@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=Hanken+Grotesk:wght@300..700&family=Martian+Mono:wght@300..700&display=swap">
+<style>
+  doc-page:not(:defined){visibility:hidden}
+  body{margin:0;font-family:'Hanken Grotesk',system-ui,sans-serif;color:#0E1A17}
+  a{color:#14342C;text-decoration:none}
+  a:hover{color:#0E1A17}
+  h1,h2,h3,p,ul,li{margin:0;padding:0}
+  ul{list-style:none}
+</style>
+<script src="./pluka-logo-sprite.js"></script>
+<script src="./doc-page.js"></script>
+<script src="./image-slot.js"></script>
+</helmet>
+
+<doc-page orientation="landscape" size="letter">
+
+<!-- 01 COUVERTURE -->
+<section class="page" data-screen-label="Couverture" style="background:#0E1A17;color:#F2F0E9;padding:54px 56px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden">
+  <sc-if value="{{ showTopo }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;inset:0;background:url(assets/topo-dark.svg) center/cover no-repeat"></div>
+  </sc-if>
+  <div style="position:relative;display:flex;justify-content:space-between;align-items:flex-start">
+    <div style="display:flex;align-items:center;gap:16px;color:#C6F24E">
+      <svg viewBox="0 0 928 175" style="width:242px;height:46px"><use href="#pk-lockup-light"></use></svg>
+    </div>
+    <div style="font-family:'Martian Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#C6F24E;text-align:right;line-height:2.1">Charte graphique<br>Version 2.0 — 2026</div>
+  </div>
+  <div style="position:relative">
+    <div style="font-family:'Martian Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#9AE0D6;margin-bottom:24px">Système d'identité — « Ligne d'altitude »</div>
+    <h1 style="font-family:Archivo;font-variation-settings:'wdth' 122;font-weight:700;font-size:76px;line-height:.95;letter-spacing:-.03em;max-width:740px;text-wrap:balance">Une inscription<br>n'est que le<br><span style="color:#C6F24E">départ.</span></h1>
+    <p style="margin-top:26px;font-size:18px;line-height:1.55;max-width:580px;color:#B9C4BE;text-wrap:pretty">Principes d'identité, langage graphique et règles d'application de la marque PLUKA — la plateforme intelligente post-inscription des sports d'endurance.</p>
+  </div>
+  <div style="position:relative;display:flex;justify-content:space-between;align-items:flex-end;padding-top:22px;border-top:1px solid rgba(242,240,233,.16)">
+    <div style="font-family:Archivo;font-variation-settings:'wdth' 118;font-weight:600;font-size:21px;color:#C6F24E">Registered. Now get ready.</div>
+    <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#6F7A74">Document de travail officiel — Confidentiel</div>
+  </div>
+</section>
+
+<!-- 02 FONDATION -->
+<section class="page" data-screen-label="01 Fondation" style="background:#F2F0E9;padding:50px 56px;display:flex;flex-direction:column;overflow:hidden">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid rgba(14,26,23,.16)">
+    <span style="font-family:'Martian Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#14342C">01 / Fondation de marque</span>
+    <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">02 / 15</span>
+  </div>
+  <h2 style="font-family:Archivo;font-variation-settings:'wdth' 120;font-weight:700;font-size:52px;line-height:1.02;letter-spacing:-.025em;margin-top:32px;max-width:700px;color:#0E1A17;text-wrap:balance">PLUKA transforme l'après-inscription en parcours maîtrisé.</h2>
+  <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:44px;margin-top:26px;align-items:start">
+    <p style="font-size:16.5px;line-height:1.6;color:#3C4A45;text-wrap:pretty">Centraliser ce que le participant doit savoir, préparer et faire — avant, pendant et après son événement. Sans jamais remplacer l'organisateur, le chronométreur ou la plateforme d'inscription : PLUKA est l'infrastructure de l'expérience participant.</p>
+    <div style="background:#0E1A17;color:#F2F0E9;padding:20px 22px;border-left:4px solid #C6F24E">
+      <div style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#9AE0D6;margin-bottom:10px">Signature produit</div>
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 118;font-weight:600;font-size:20px;line-height:1.2">Registered.<br>Now get ready.</div>
+      <div style="margin-top:12px;font-size:13.5px;color:#B9C4BE">Accroche FR — « Inscrit. Maintenant, y'a plus qu'à. »</div>
+    </div>
+  </div>
+  <div style="margin-top:auto;padding-top:24px">
+    <div style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#6F7A74;margin-bottom:12px">Parcours participant</div>
+    <svg viewBox="0 0 944 44" preserveAspectRatio="none" style="width:100%;height:44px;display:block">
+      <path d="M14 30 L930 30" stroke="#D6D3C6" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+      <path d="M14 30 L620 30" stroke="#C6F24E" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+      <circle cx="14" cy="30" r="7" fill="#C6F24E"></circle>
+      <circle cx="316" cy="30" r="7" fill="#C6F24E"></circle>
+      <circle cx="620" cy="30" r="7" fill="none" stroke="#14342C" stroke-width="2" vector-effect="non-scaling-stroke"></circle>
+      <path d="M930 18 L940 38 L920 38 Z" fill="#FF6A3D"></path>
+    </svg>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);margin-top:8px">
+      <div style="font-size:13.5px;color:#5A6660">Inscrit</div>
+      <div style="font-size:13.5px;color:#5A6660">Matériel validé</div>
+      <div style="font-size:14px;color:#0E1A17;font-weight:600">Briefing — prochaine étape</div>
+      <div style="font-size:14px;color:#FF6A3D;font-weight:600;text-align:right">Jour J</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:26px;padding-top:24px;margin-top:24px;border-top:1px solid rgba(14,26,23,.16)">
+    <div>
+      <div style="font-family:'Martian Mono',monospace;font-size:11px;letter-spacing:.14em;color:#FF6A3D">01</div>
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 115;font-weight:600;font-size:19px;margin:6px 0 6px;color:#0E1A17">Clarté</div>
+      <p style="font-size:13.5px;line-height:1.5;color:#5A6660">Une information utile, contextualisée, au bon moment.</p>
+    </div>
+    <div>
+      <div style="font-family:'Martian Mono',monospace;font-size:11px;letter-spacing:.14em;color:#FF6A3D">02</div>
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 115;font-weight:600;font-size:19px;margin:6px 0 6px;color:#0E1A17">Progression</div>
+      <p style="font-size:13.5px;line-height:1.5;color:#5A6660">Chaque action rapproche visiblement du jour J.</p>
+    </div>
+    <div>
+      <div style="font-family:'Martian Mono',monospace;font-size:11px;letter-spacing:.14em;color:#FF6A3D">03</div>
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 115;font-weight:600;font-size:19px;margin:6px 0 6px;color:#0E1A17">Confiance</div>
+      <p style="font-size:13.5px;line-height:1.5;color:#5A6660">On ne devine jamais à la place de l'organisateur.</p>
+    </div>
+    <div>
+      <div style="font-family:'Martian Mono',monospace;font-size:11px;letter-spacing:.14em;color:#FF6A3D">04</div>
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 115;font-weight:600;font-size:19px;margin:6px 0 6px;color:#0E1A17">Terrain</div>
+      <p style="font-size:13.5px;line-height:1.5;color:#5A6660">Sportif dans l'énergie, minéral dans le ton, jamais démonstratif.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 03 LOGO -->
+<section class="page" data-screen-label="02 Logo" style="background:#F2F0E9;padding:50px 56px;display:flex;flex-direction:column;overflow:hidden">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid rgba(14,26,23,.16)">
+    <span style="font-family:'Martian Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#14342C">02 / Logo principal</span>
+    <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">03 / 15</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:44px;margin-top:28px;flex:1;min-height:0">
+    <div style="display:flex;flex-direction:column;min-height:0">
+      <h2 style="font-family:Archivo;font-variation-settings:'wdth' 120;font-weight:700;font-size:38px;letter-spacing:-.025em;color:#0E1A17">Flow Path, version altitude</h2>
+      <p style="font-size:15.5px;line-height:1.6;color:#3C4A45;max-width:520px;margin-top:10px;text-wrap:pretty">La structure du symbole est conservée : un chemin qui serpente et monte vers un jalon. Seule la couleur change. Le chemin prend le ton qui garantit le contraste — Forêt sur fond clair, Lichen sur fond sombre — et le triangle du A reste en Aube, couleur du prochain objectif.</p>
+      <div style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;margin-top:18px;background:#FFFFFF;border:1px solid rgba(14,26,23,.1)">
+        <div style="display:flex;align-items:center;gap:22px;color:#C6F24E">
+          <svg viewBox="0 0 928 175" style="width:498px;height:94px"><use href="#pk-lockup"></use></svg>
+        </div>
+      </div>
+      <div style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#6F7A74;margin-top:10px">Logo principal — sur fond clair, chemin et logotype en Forêt</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="background:#0E1A17;padding:22px 20px">
+        <div style="display:flex;align-items:center;gap:12px;color:#C6F24E">
+          <svg viewBox="0 0 928 175" style="width:216px;height:41px"><use href="#pk-lockup-light"></use></svg>
+        </div>
+        <div style="font-family:'Martian Mono',monospace;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:#6F7A74;margin-top:16px">Version inversée sur Ardoise</div>
+      </div>
+      <div style="background:#C6F24E;padding:22px 20px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <svg viewBox="0 0 928 175" style="width:216px;height:41px"><use href="#pk-lockup-mono-dark"></use></svg>
+        </div>
+        <div style="font-family:'Martian Mono',monospace;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:#3C4A45;margin-top:16px">Monochrome sur Lichen</div>
+      </div>
+      <div style="border:1px solid rgba(14,26,23,.16);padding:18px 20px;background:#FFFFFF;flex:1">
+        <div style="font-family:'Martian Mono',monospace;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:#6F7A74;margin-bottom:10px">Lecture du symbole</div>
+        <p style="font-size:13.5px;line-height:1.55;color:#3C4A45">Chemin = accompagnement. Ligne claire au centre = la part du parcours qui reste à faire. Triangle = direction, objectif, prochain jalon.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 CONSTRUCTION -->
+<section class="page" data-screen-label="03 Construction" style="background:#F2F0E9;padding:50px 56px;display:flex;flex-direction:column;overflow:hidden">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid rgba(14,26,23,.16)">
+    <span style="font-family:'Martian Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#14342C">03 / Construction &amp; protection</span>
+    <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">04 / 15</span>
+  </div>
+  <h2 style="font-family:Archivo;font-variation-settings:'wdth' 120;font-weight:700;font-size:38px;letter-spacing:-.025em;margin-top:28px;color:#0E1A17">Donner de l'air au logo.</h2>
+  <div style="display:grid;grid-template-columns:1.05fr 1fr;gap:40px;margin-top:22px;flex:1;min-height:0">
+    <div style="display:flex;flex-direction:column;min-height:0">
+      <div style="flex:1;min-height:0;background:#FFFFFF;border:1px solid rgba(14,26,23,.1);display:flex;align-items:center;justify-content:center">
+        <div style="border:1px dashed rgba(255,106,61,.6);padding:35px;display:flex;align-items:center;gap:18px;position:relative;color:#C6F24E">
+          <svg viewBox="0 0 928 175" style="width:292px;height:55px"><use href="#pk-lockup"></use></svg>
+          <span style="position:absolute;top:-9px;left:14px;font-family:'Martian Mono',monospace;font-size:8.5px;letter-spacing:.1em;color:#FF6A3D;background:#FFFFFF;padding:0 6px">X = hauteur du P</span>
+        </div>
+      </div>
+      <div style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#6F7A74;margin-top:10px">Zone de protection = X sur chaque côté</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+        <div>
+          <div style="aspect-ratio:1;background:#0E1A17;border-radius:23%;display:flex;align-items:center;justify-content:center;color:#C6F24E"><svg viewBox="0 0 240 195" style="width:60%"><use href="#pk-mark"></use></svg></div>
+          <div style="font-family:'Martian Mono',monospace;font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74;margin-top:7px">Icône app</div>
+        </div>
+        <div>
+          <div style="aspect-ratio:1;background:#C6F24E;border-radius:23%;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 240 195" style="width:60%"><use href="#pk-mark-dark"></use></svg></div>
+          <div style="font-family:'Martian Mono',monospace;font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74;margin-top:7px">Favicon</div>
+        </div>
+        <div>
+          <div style="aspect-ratio:1;background:#FFFFFF;border:1px solid rgba(14,26,23,.16);border-radius:23%;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 240 195" style="width:60%"><use href="#pk-mark-dark"></use></svg></div>
+          <div style="font-family:'Martian Mono',monospace;font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74;margin-top:7px">Monochrome</div>
+        </div>
+      </div>
+      <div style="display:grid;gap:1px;background:rgba(14,26,23,.16)">
+        <div style="background:#F2F0E9;padding:13px 0">
+          <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:15.5px;color:#0E1A17">Taille minimale digitale</div>
+          <p style="font-size:13.5px;line-height:1.5;color:#5A6660;margin-top:2px">Logo complet 120 px de large · symbole seul 20 px.</p>
+        </div>
+        <div style="background:#F2F0E9;padding:13px 0">
+          <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:15.5px;color:#0E1A17">Taille minimale print</div>
+          <p style="font-size:13.5px;line-height:1.5;color:#5A6660;margin-top:2px">Logo complet 32 mm de large · symbole seul 7 mm.</p>
+        </div>
+        <div style="background:#F2F0E9;padding:13px 0">
+          <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:15.5px;color:#0E1A17">Oblique constitutive</div>
+          <p style="font-size:13.5px;line-height:1.5;color:#5A6660;margin-top:2px">Le logotype est incliné. Cette oblique ne se corrige pas.</p>
+        </div>
+        <div style="background:#F2F0E9;padding:13px 0">
+          <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:15.5px;color:#0E1A17">Priorité</div>
+          <p style="font-size:13.5px;line-height:1.5;color:#5A6660;margin-top:2px">Logo complet pour toute première exposition ; symbole seul en contexte déjà identifié.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 05 USAGES -->
+<section class="page" data-screen-label="04 Usages" style="background:#F2F0E9;padding:50px 56px;display:flex;flex-direction:column;overflow:hidden">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid rgba(14,26,23,.16)">
+    <span style="font-family:'Martian Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#14342C">04 / Usages du logo</span>
+    <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">05 / 15</span>
+  </div>
+  <h2 style="font-family:Archivo;font-variation-settings:'wdth' 120;font-weight:700;font-size:38px;letter-spacing:-.025em;margin-top:28px;color:#0E1A17">Toujours reconnaissable. Jamais décoratif.</h2>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;gap:18px 20px;margin-top:24px;flex:1;min-height:0">
+    <div style="display:flex;flex-direction:column;gap:9px;min-height:0">
+      <div style="flex:1;background:#FFFFFF;border:1px solid rgba(14,26,23,.1);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 240 195" style="width:74px"><use href="#pk-mark-foret"></use></svg></div>
+      <div style="display:flex;gap:8px"><span style="color:#14342C;font-weight:700">✓</span><span style="font-size:13px;line-height:1.4;color:#3C4A45">Chemin Forêt sur Calcaire ou blanc.</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px;min-height:0">
+      <div style="flex:1;background:#0E1A17;display:flex;align-items:center;justify-content:center;color:#C6F24E"><svg viewBox="0 0 240 195" style="width:74px"><use href="#pk-mark"></use></svg></div>
+      <div style="display:flex;gap:8px"><span style="color:#14342C;font-weight:700">✓</span><span style="font-size:13px;line-height:1.4;color:#3C4A45">Version inversée sur Ardoise.</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px;min-height:0">
+      <div style="flex:1;background:#E4E1D6;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 240 195" style="width:74px"><use href="#pk-mark-dark"></use></svg></div>
+      <div style="display:flex;gap:8px"><span style="color:#14342C;font-weight:700">✓</span><span style="font-size:13px;line-height:1.4;color:#3C4A45">Monochrome quand la production l'exige.</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px;min-height:0">
+      <div style="flex:1;background:#FFFFFF;border:1px solid rgba(14,26,23,.1);display:flex;align-items:center;justify-content:center;color:#C6F24E"><svg viewBox="0 0 240 195" preserveAspectRatio="none" style="width:118px;height:56px"><use href="#pk-mark-stretch"></use></svg></div>
+      <div style="display:flex;gap:8px"><span style="color:#E14434;font-weight:700">✕</span><span style="font-size:13px;line-height:1.4;color:#3C4A45">Ne jamais étirer ni déformer.</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px;min-height:0">
+      <div style="flex:1;background:#FFFFFF;border:1px solid rgba(14,26,23,.1);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 240 195" style="width:74px"><use href="#pk-mark-lilac"></use></svg></div>
+      <div style="display:flex;gap:8px"><span style="color:#E14434;font-weight:700">✕</span><span style="font-size:13px;line-height:1.4;color:#3C4A45">Ne pas recolorer hors palette.</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px;min-height:0">
+      <div style="flex:1;background:#14342C;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 240 195" style="width:74px"><use href="#pk-mark-faint"></use></svg></div>
+      <div style="display:flex;gap:8px"><span style="color:#E14434;font-weight:700">✕</span><span style="font-size:13px;line-height:1.4;color:#3C4A45">Éviter les fonds qui écrasent le contraste.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 COULEURS -->
+<section class="page" data-screen-label="05 Couleurs" style="background:#F2F0E9;padding:50px 56px;display:flex;flex-direction:column;overflow:hidden">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid rgba(14,26,23,.16)">
+    <span style="font-family:'Martian Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#14342C">05 / Couleurs</span>
+    <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">06 / 15</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:26px;gap:40px">
+    <h2 style="font-family:Archivo;font-variation-settings:'wdth' 120;font-weight:700;font-size:38px;letter-spacing:-.025em;color:#0E1A17;max-width:480px;line-height:1.06">Une palette minérale, deux signaux.</h2>
+    <p style="font-size:14.5px;line-height:1.55;color:#5A6660;max-width:390px;text-wrap:pretty">L'Ardoise porte la confiance et la lisibilité. Le Lichen porte l'action et la progression. L'Aube ne sert qu'à désigner le prochain jalon.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-top:24px">
+    <div style="background:#0E1A17;height:240px;padding:16px;display:flex;flex-direction:column;justify-content:flex-end;color:#F2F0E9">
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 115;font-weight:600;font-size:17px">Ardoise</div>
+      <div style="font-family:'Martian Mono',monospace;font-size:10.5px;color:#9AE0D6;margin-top:3px">#0E1A17</div>
+    </div>
+    <div style="background:#14342C;height:240px;padding:16px;display:flex;flex-direction:column;justify-content:flex-end;color:#F2F0E9">
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 115;font-weight:600;font-size:17px">Forêt</div>
+      <div style="font-family:'Martian Mono',monospace;font-size:10.5px;color:#9AE0D6;margin-top:3px">#14342C</div>
+    </div>
+    <div style="background:#C6F24E;height:240px;padding:16px;display:flex;flex-direction:column;justify-content:flex-end;color:#0E1A17">
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 115;font-weight:600;font-size:17px">Lichen</div>
+      <div style="font-family:'Martian Mono',monospace;font-size:10.5px;color:#14342C;margin-top:3px">#C6F24E</div>
+    </div>
+    <div style="background:#FF6A3D;height:240px;padding:16px;display:flex;flex-direction:column;justify-content:flex-end;color:#2A0E05">
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 115;font-weight:600;font-size:17px">Aube</div>
+      <div style="font-family:'Martian Mono',monospace;font-size:10.5px;color:#4A1608;margin-top:3px">#FF6A3D</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-top:13px">
+    <div style="background:#9AE0D6;height:118px;padding:13px;display:flex;flex-direction:column;justify-content:flex-end;color:#0E1A17">
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:14.5px">Glacier</div>
+      <div style="font-family:'Martian Mono',monospace;font-size:9.5px;color:#14342C">#9AE0D6</div>
+    </div>
+    <div style="background:#F2F0E9;border:1px solid rgba(14,26,23,.16);height:144px;padding:13px;display:flex;flex-direction:column;justify-content:flex-end;color:#0E1A17;box-sizing:border-box">
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:14.5px">Calcaire</div>
+      <div style="font-family:'Martian Mono',monospace;font-size:9.5px;color:#6F7A74">#F2F0E9</div>
+    </div>
+    <div style="background:#E4E1D6;height:118px;padding:13px;display:flex;flex-direction:column;justify-content:flex-end;color:#0E1A17">
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:14.5px">Sable</div>
+      <div style="font-family:'Martian Mono',monospace;font-size:9.5px;color:#6F7A74">#E4E1D6</div>
+    </div>
+    <div style="background:#6F7A74;height:118px;padding:13px;display:flex;flex-direction:column;justify-content:flex-end;color:#F2F0E9">
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:14.5px">Granit</div>
+      <div style="font-family:'Martian Mono',monospace;font-size:9.5px;color:#E4E1D6">#6F7A74</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:40px;margin-top:auto;padding-top:22px">
+    <div>
+      <div style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#6F7A74;margin-bottom:9px">Répartition recommandée</div>
+      <div style="display:flex;height:15px;overflow:hidden">
+        <div style="flex:60;background:#F2F0E9;border:1px solid rgba(14,26,23,.16);box-sizing:border-box"></div>
+        <div style="flex:25;background:#0E1A17"></div>
+        <div style="flex:11;background:#C6F24E"></div>
+        <div style="flex:4;background:#FF6A3D"></div>
+      </div>
+      <div style="display:flex;gap:18px;margin-top:9px;font-size:12.5px;color:#5A6660;flex-wrap:wrap">
+        <span>60 % Calcaire</span><span>25 % Ardoise</span><span>11 % Lichen</span><span>4 % Aube</span>
+      </div>
+    </div>
+    <div>
+      <div style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#6F7A74;margin-bottom:9px">Couleurs fonctionnelles</div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:7px"><span style="width:13px;height:13px;background:#3FBF7F"></span><span style="font-size:12.5px;color:#3C4A45">Succès <span style="font-family:'Martian Mono',monospace;font-size:10px;color:#6F7A74">#3FBF7F</span></span></div>
+        <div style="display:flex;align-items:center;gap:7px"><span style="width:13px;height:13px;background:#F2B33D"></span><span style="font-size:12.5px;color:#3C4A45">Attention <span style="font-family:'Martian Mono',monospace;font-size:10px;color:#6F7A74">#F2B33D</span></span></div>
+        <div style="display:flex;align-items:center;gap:7px"><span style="width:13px;height:13px;background:#E14434"></span><span style="font-size:12.5px;color:#3C4A45">Erreur <span style="font-family:'Martian Mono',monospace;font-size:10px;color:#6F7A74">#E14434</span></span></div>
+      </div>
+      <p style="font-size:12.5px;line-height:1.5;color:#5A6660;margin-top:9px">Réservées à l'interface. Elles ne concurrencent jamais le Lichen.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 07 TYPO -->
+<section class="page" data-screen-label="06 Typographie" style="background:#F2F0E9;padding:50px 56px;display:flex;flex-direction:column;overflow:hidden">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid rgba(14,26,23,.16)">
+    <span style="font-family:'Martian Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#14342C">06 / Typographie</span>
+    <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">07 / 15</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:24px">
+    <div>
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 125;font-weight:700;font-size:40px;letter-spacing:-.02em;color:#0E1A17;line-height:1">Archivo</div>
+      <div style="font-family:'Martian Mono',monospace;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:#FF6A3D;margin-top:7px">Expanded — titres</div>
+      <p style="font-size:13px;line-height:1.5;color:#5A6660;margin-top:7px">Largeur étendue 115–125. Technique et sportive sans être criarde. 700 / 600.</p>
+    </div>
+    <div>
+      <div style="font-weight:600;font-size:40px;letter-spacing:-.02em;color:#0E1A17;line-height:1">Hanken Grotesk</div>
+      <div style="font-family:'Martian Mono',monospace;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:#FF6A3D;margin-top:7px">Texte &amp; interface</div>
+      <p style="font-size:13px;line-height:1.5;color:#5A6660;margin-top:7px">Humaniste, très lisible en petit corps. 400 / 500 / 600.</p>
+    </div>
+    <div>
+      <div style="font-family:'Martian Mono',monospace;font-weight:700;font-size:23px;letter-spacing:-.05em;color:#0E1A17;line-height:1.1">Martian Mono</div>
+      <div style="font-family:'Martian Mono',monospace;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:#FF6A3D;margin-top:7px">Donnée &amp; micro-libellés</div>
+      <p style="font-size:13px;line-height:1.5;color:#5A6660;margin-top:7px">Horaires, D+, distances, dossards, libellés de section. Jamais de paragraphe.</p>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:92px 78px 1fr;gap:0 20px;margin-top:24px;align-content:start">
+    <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74;padding:19px 0;border-top:1px solid rgba(14,26,23,.12)">Display</div>
+    <div style="font-family:'Martian Mono',monospace;font-size:9px;color:#6F7A74;padding:19px 0;border-top:1px solid rgba(14,26,23,.12)">64 / 700</div>
+    <div style="font-family:Archivo;font-variation-settings:'wdth' 122;font-weight:700;font-size:54px;letter-spacing:-.03em;color:#0E1A17;padding:12px 0 16px;border-top:1px solid rgba(14,26,23,.12);line-height:1.05">Ta course, au bon endroit.</div>
+    <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74;padding:19px 0;border-top:1px solid rgba(14,26,23,.12)">H1</div>
+    <div style="font-family:'Martian Mono',monospace;font-size:9px;color:#6F7A74;padding:19px 0;border-top:1px solid rgba(14,26,23,.12)">36 / 700</div>
+    <div style="font-family:Archivo;font-variation-settings:'wdth' 120;font-weight:700;font-size:36px;letter-spacing:-.025em;color:#0E1A17;padding:15px 0;border-top:1px solid rgba(14,26,23,.12)">Wildstrubel 70</div>
+    <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74;padding:17px 0;border-top:1px solid rgba(14,26,23,.12)">H2</div>
+    <div style="font-family:'Martian Mono',monospace;font-size:9px;color:#6F7A74;padding:17px 0;border-top:1px solid rgba(14,26,23,.12)">24 / 600</div>
+    <div style="font-family:Archivo;font-variation-settings:'wdth' 116;font-weight:600;font-size:24px;letter-spacing:-.015em;color:#0E1A17;padding:15px 0;border-top:1px solid rgba(14,26,23,.12)">Préparation</div>
+    <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74;padding:17px 0;border-top:1px solid rgba(14,26,23,.12)">Corps</div>
+    <div style="font-family:'Martian Mono',monospace;font-size:9px;color:#6F7A74;padding:17px 0;border-top:1px solid rgba(14,26,23,.12)">16 / 400</div>
+    <div style="font-size:16px;line-height:1.55;color:#3C4A45;padding:16px 0;border-top:1px solid rgba(14,26,23,.12)">Tout ce qu'il te reste à préparer avant le départ.</div>
+    <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74;padding:17px 0;border-top:1px solid rgba(14,26,23,.12)">Donnée</div>
+    <div style="font-family:'Martian Mono',monospace;font-size:9px;color:#6F7A74;padding:17px 0;border-top:1px solid rgba(14,26,23,.12)">18 / 500</div>
+    <div style="font-family:'Martian Mono',monospace;font-weight:500;font-size:18px;color:#0E1A17;padding:16px 0;border-top:1px solid rgba(14,26,23,.12)">04:50 · 71 km · D+ 4 200 m</div>
+  </div>
+  <div style="margin-top:auto;padding-top:18px;border-top:1px solid rgba(14,26,23,.16);display:flex;gap:36px;font-size:12.5px;color:#5A6660">
+    <span><strong style="color:#0E1A17;font-weight:600">Hiérarchie</strong> — par la taille et l'espace, jamais par les capitales forcées.</span>
+    <span><strong style="color:#0E1A17;font-weight:600">Fallback</strong> — Archivo → system-ui ; Martian Mono → ui-monospace.</span>
+  </div>
+</section>
+
+<!-- 08 LANGAGE GRAPHIQUE -->
+<section class="page" data-screen-label="07 Langage graphique" style="background:#0E1A17;color:#F2F0E9;padding:50px 56px;display:flex;flex-direction:column;position:relative;overflow:hidden">
+  <sc-if value="{{ showTopo }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;inset:0;background:url(assets/topo-glacier.svg) center/cover no-repeat"></div>
+  </sc-if>
+  <div style="position:relative;display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid rgba(242,240,233,.2)">
+    <span style="font-family:'Martian Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#C6F24E">07 / Langage graphique</span>
+    <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">08 / 15</span>
+  </div>
+  <h2 style="position:relative;font-family:Archivo;font-variation-settings:'wdth' 120;font-weight:700;font-size:38px;letter-spacing:-.025em;margin-top:24px">Le profil devient un composant.</h2>
+  <p style="position:relative;font-size:15.5px;line-height:1.55;color:#B9C4BE;max-width:620px;margin-top:9px">Au-delà du logo, la marque s'exprime par une logique d'altitude : une ligne qui monte, des jalons qui se franchissent, des courbes de niveau en fond de scène.</p>
+  <div style="position:relative;margin-top:20px;background:#14342C;padding:20px 22px 12px">
+    <div style="display:flex;justify-content:space-between;font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#9AE0D6;margin-bottom:6px">
+      <span>Profil d'altitude — composant signature</span><span>D+ 4 200 m</span>
+    </div>
+    <svg viewBox="0 0 900 190" preserveAspectRatio="none" style="width:100%;height:186px;display:block">
+      <path d="M0 175 L70 160 L130 168 L200 130 L265 140 L340 96 L400 110 L470 58 L540 72 L610 34 L680 70 L750 120 L820 105 L900 150 L900 190 L0 190 Z" fill="rgba(198,242,78,.14)"></path>
+      <path d="M0 175 L70 160 L130 168 L200 130 L265 140 L340 96 L400 110 L470 58 L540 72 L610 34 L680 70 L750 120 L820 105 L900 150" fill="none" stroke="#C6F24E" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+      <circle cx="200" cy="130" r="5" fill="#0E1A17" stroke="#C6F24E" stroke-width="2.5" vector-effect="non-scaling-stroke"></circle>
+      <circle cx="470" cy="58" r="5" fill="#0E1A17" stroke="#C6F24E" stroke-width="2.5" vector-effect="non-scaling-stroke"></circle>
+      <circle cx="750" cy="120" r="5" fill="#0E1A17" stroke="#C6F24E" stroke-width="2.5" vector-effect="non-scaling-stroke"></circle>
+      <path d="M610 14 L624 40 L596 40 Z" fill="#FF6A3D"></path>
+    </svg>
+    <div style="display:flex;justify-content:space-between;font-family:'Martian Mono',monospace;font-size:9.5px;color:#6F7A74;border-top:1px solid rgba(242,240,233,.14);padding-top:8px;margin-top:4px">
+      <span>Départ 04:50</span><span>Ravito 2 — km 31</span><span style="color:#FF6A3D">Sommet — km 44</span><span>Arrivée</span>
+    </div>
+  </div>
+  <div style="position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:auto;padding-top:24px">
+    <div>
+      <svg viewBox="0 0 120 30" style="width:100%;height:22px"><path d="M2 26 L30 20 L52 24 L78 8 L118 14" fill="none" stroke="#C6F24E" stroke-width="2.5" stroke-linejoin="round"></path></svg>
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:15.5px;margin-top:8px">01. Ligne de progression</div>
+      <p style="font-size:13px;line-height:1.5;color:#9AA5A0;margin-top:4px">Toute chronologie ou barre d'avancement emprunte le tracé du symbole.</p>
+    </div>
+    <div>
+      <div style="height:22px;display:flex;align-items:center;gap:10px">
+        <svg viewBox="0 0 30 30" style="width:22px;height:22px"><path d="M15 5 L26 25 L4 25 Z" fill="#FF6A3D"></path></svg>
+        <svg viewBox="0 0 30 30" style="width:22px;height:22px"><circle cx="15" cy="15" r="9" fill="none" stroke="#C6F24E" stroke-width="2.5"></circle></svg>
+      </div>
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:15.5px;margin-top:8px">02. Jalon</div>
+      <p style="font-size:13px;line-height:1.5;color:#9AA5A0;margin-top:4px">Triangle Aube = prochaine action. Cercle Lichen = étape franchie.</p>
+    </div>
+    <div>
+      <div style="height:22px;background:#14342C url(assets/topo-glacier.svg) center/210px no-repeat"></div>
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:15.5px;margin-top:8px">03. Courbes de niveau</div>
+      <p style="font-size:13px;line-height:1.5;color:#9AA5A0;margin-top:4px">Fond <b style="font-weight:600;color:#F2F0E9">topo-dark</b> / <b style="font-weight:600;color:#F2F0E9">topo-light</b> / <b style="font-weight:600;color:#F2F0E9">topo-glacier</b> — jamais au-dessus du texte, opacité maximale 10 %.</p>
+    </div>
+    <div>
+      <div style="height:22px;display:flex;gap:4px;align-items:flex-end">
+        <span style="width:22px;height:6px;background:#F2F0E9"></span><span style="width:22px;height:14px;background:#F2F0E9;opacity:.55"></span><span style="width:22px;height:22px;background:#F2F0E9;opacity:.25"></span>
+      </div>
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:15.5px;margin-top:8px">04. Bandes de terrain</div>
+      <p style="font-size:13px;line-height:1.5;color:#9AA5A0;margin-top:4px">Les blocs se posent bord à bord, sans carte flottante ni ombre portée.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 08 FOND TOPOGRAPHIQUE -->
+<section class="page" data-screen-label="08 Fond topographique" style="background:#F2F0E9;padding:50px 56px;display:flex;flex-direction:column;overflow:hidden">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid rgba(14,26,23,.16)">
+    <span style="font-family:'Martian Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#14342C">08 / Fond topographique</span>
+    <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">09 / 15</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:26px;gap:40px">
+    <h2 style="font-family:Archivo;font-variation-settings:'wdth' 120;font-weight:700;font-size:38px;letter-spacing:-.025em;color:#0E1A17;max-width:520px;line-height:1.06">Un fond qui a du relief.</h2>
+    <p style="font-size:14.5px;line-height:1.55;color:#5A6660;max-width:390px;text-wrap:pretty">Le même terrain sert de fond de scène à toute la marque : courbes de niveau régulières, lignes maîtresses tous les cinq intervalles, aucune légende. Deux tons, un seul relief.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px;flex:1;min-height:0">
+    <div style="display:flex;flex-direction:column;gap:9px;min-height:0">
+      <div style="flex:1;min-height:0;background:#0E1A17 url(assets/topo-dark.svg) center/cover no-repeat;display:flex;flex-direction:column;justify-content:flex-end;padding:22px">
+        <div style="font-family:Archivo;font-variation-settings:'wdth' 118;font-weight:700;font-size:26px;letter-spacing:-.02em;color:#F2F0E9">Ardoise</div>
+        <div style="font-family:'Martian Mono',monospace;font-size:10.5px;color:#C6F24E;margin-top:4px">topo-dark.svg — Lichen 10 % / 20 %</div>
+      </div>
+      <div style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">Fond sombre — couverture, sections d'ouverture, cartes de course</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px;min-height:0">
+      <div style="flex:1;min-height:0;background:#F2F0E9 url(assets/topo-light.svg) center/cover no-repeat;border:1px solid rgba(14,26,23,.14);display:flex;flex-direction:column;justify-content:flex-end;padding:22px;box-sizing:border-box">
+        <div style="font-family:Archivo;font-variation-settings:'wdth' 118;font-weight:700;font-size:26px;letter-spacing:-.02em;color:#0E1A17">Calcaire</div>
+        <div style="font-family:'Martian Mono',monospace;font-size:10.5px;color:#14342C;margin-top:4px">topo-light.svg — Forêt 8,5 % / 17 %</div>
+      </div>
+      <div style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">Fond clair — pages de contenu, documents imprimés, e-mails</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin-top:22px;padding-top:18px;border-top:1px solid rgba(14,26,23,.16)">
+    <div>
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:15.5px;color:#0E1A17">Échelle</div>
+      <p style="font-size:13px;line-height:1.55;color:#5A6660;margin-top:3px">Toujours en <b style="font-weight:600">cover</b>, jamais répété en tuiles. Le relief doit rester lisible : pas plus de deux sommets par surface.</p>
+    </div>
+    <div>
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:15.5px;color:#0E1A17">Troisième ton</div>
+      <p style="font-size:13px;line-height:1.55;color:#5A6660;margin-top:3px"><b style="font-weight:600">topo-glacier.svg</b> — mêmes courbes en Glacier, réservé aux pages de langage graphique et aux vues de parcours.</p>
+    </div>
+    <div>
+      <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#E14434">À éviter</div>
+      <p style="font-size:13px;line-height:1.55;color:#5A6660;margin-top:5px">Monter l'opacité, colorer les lignes hors palette, poser du texte de labeur par-dessus, ou empiler le relief sur une photographie.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 10 ICONOGRAPHIE -->
+<section class="page" data-screen-label="09 Iconographie" style="background:#F2F0E9;padding:50px 56px;display:flex;flex-direction:column;overflow:hidden">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid rgba(14,26,23,.16)">
+    <span style="font-family:'Martian Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#14342C">09 / Iconographie</span>
+    <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">10 / 15</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:26px;gap:40px">
+    <h2 style="font-family:Archivo;font-variation-settings:'wdth' 120;font-weight:700;font-size:38px;letter-spacing:-.025em;color:#0E1A17;max-width:520px;line-height:1.06">Utilitaire. Tracée d'un seul geste.</h2>
+    <p style="font-size:14.5px;line-height:1.55;color:#5A6660;max-width:380px;text-wrap:pretty">Grille 24 × 24, trait 1,75 px, extrémités carrées, angles à peine adoucis. Aucun réalisme, aucun détail décoratif.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(14,26,23,.14);margin-top:26px;border:1px solid rgba(14,26,23,.14)">
+    <div style="background:#FFFFFF;padding:46px 22px;display:flex;flex-direction:column;gap:20px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#14342C" stroke-width="1.75" style="width:34px;height:34px"><path d="M3 6h11M3 12h11M3 18h7"></path><path d="M17 5.5l2.2 2.2L23 4"></path></svg>
+      <span style="font-size:13.5px;color:#0E1A17">Checklist</span>
+    </div>
+    <div style="background:#FFFFFF;padding:46px 22px;display:flex;flex-direction:column;gap:20px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#14342C" stroke-width="1.75" style="width:34px;height:34px"><path d="M2 19l5-4 4 2 5-8 6 5"></path><path d="M2 21h20"></path></svg>
+      <span style="font-size:13.5px;color:#0E1A17">Parcours</span>
+    </div>
+    <div style="background:#FFFFFF;padding:46px 22px;display:flex;flex-direction:column;gap:20px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#14342C" stroke-width="1.75" style="width:34px;height:34px"><path d="M7 17L17 7"></path><path d="M10 7h7v7"></path></svg>
+      <span style="font-size:13.5px;color:#0E1A17">Direction</span>
+    </div>
+    <div style="background:#FFFFFF;padding:46px 22px;display:flex;flex-direction:column;gap:20px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#14342C" stroke-width="1.75" style="width:34px;height:34px"><path d="M12 3l9 17H3z"></path><path d="M12 9v5"></path><path d="M12 17h.01"></path></svg>
+      <span style="font-size:13.5px;color:#0E1A17">Alerte</span>
+    </div>
+    <div style="background:#FFFFFF;padding:46px 22px;display:flex;flex-direction:column;gap:20px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#14342C" stroke-width="1.75" style="width:34px;height:34px"><path d="M4 8h16v12H4z"></path><path d="M9 8V4h6v4"></path><path d="M4 13h16"></path></svg>
+      <span style="font-size:13.5px;color:#0E1A17">Matériel</span>
+    </div>
+    <div style="background:#FFFFFF;padding:46px 22px;display:flex;flex-direction:column;gap:20px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#14342C" stroke-width="1.75" style="width:34px;height:34px"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path><path d="M10 20v-6h4v6"></path></svg>
+      <span style="font-size:13.5px;color:#0E1A17">Hébergement</span>
+    </div>
+    <div style="background:#FFFFFF;padding:46px 22px;display:flex;flex-direction:column;gap:20px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#14342C" stroke-width="1.75" style="width:34px;height:34px"><path d="M3 7h13l3 4h2v5H3z"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>
+      <span style="font-size:13.5px;color:#0E1A17">Transport</span>
+    </div>
+    <div style="background:#FFFFFF;padding:46px 22px;display:flex;flex-direction:column;gap:20px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#14342C" stroke-width="1.75" style="width:34px;height:34px"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+      <span style="font-size:13.5px;color:#0E1A17">Assistance</span>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin-top:auto;padding-top:24px;border-top:1px solid rgba(14,26,23,.16)">
+    <div>
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:15.5px;color:#0E1A17">Couleur</div>
+      <p style="font-size:13.5px;line-height:1.5;color:#5A6660;margin-top:3px">Forêt par défaut. Lichen pour l'état actif sur fond sombre, Aube pour l'échéance.</p>
+    </div>
+    <div>
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:15.5px;color:#0E1A17">Taille</div>
+      <p style="font-size:13.5px;line-height:1.5;color:#5A6660;margin-top:3px">20 px en ligne de texte, 24 px en navigation, 32 px en tête de section.</p>
+    </div>
+    <div>
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:15.5px;color:#0E1A17">Jamais</div>
+      <p style="font-size:13.5px;line-height:1.5;color:#5A6660;margin-top:3px">Pas d'emoji, pas d'icône pleine, pas de pastille colorée sous l'icône.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 10 DIRECTION UI -->
+<section class="page" data-screen-label="10 Direction UI" style="background:#E4E1D6;padding:50px 56px;display:flex;flex-direction:column;overflow:hidden">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid rgba(14,26,23,.2)">
+    <span style="font-family:'Martian Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#14342C">10 / Direction UI</span>
+    <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">11 / 15</span>
+  </div>
+  <h2 style="font-family:Archivo;font-variation-settings:'wdth' 120;font-weight:700;font-size:38px;letter-spacing:-.025em;margin-top:26px;color:#0E1A17">Une interface qui donne le contrôle.</h2>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:22px;flex:1;min-height:0">
+    <div style="background:#0E1A17;color:#F2F0E9;display:flex;flex-direction:column;position:relative;overflow:hidden">
+      <div style="position:absolute;inset:0;background:url(assets/topo-dark.svg) 30% 40%/340px no-repeat"></div>
+      <div style="position:relative;padding:20px 20px 16px">
+        <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#9AE0D6">Ma course</div>
+        <div style="font-family:Archivo;font-variation-settings:'wdth' 118;font-weight:700;font-size:26px;letter-spacing:-.02em;margin-top:8px">Wildstrubel 70</div>
+        <div style="font-family:'Martian Mono',monospace;font-size:11px;color:#C6F24E;margin-top:6px">J-19 · 71 km · D+ 4 200 m</div>
+      </div>
+      <div style="position:relative;height:52px;padding:0 20px">
+        <svg viewBox="0 0 300 60" preserveAspectRatio="none" style="width:100%;height:52px;display:block">
+          <path d="M0 52 L40 44 L80 48 L130 26 L170 34 L215 10 L260 32 L300 42" fill="none" stroke="#C6F24E" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+          <path d="M215 0 L224 14 L206 14 Z" fill="#FF6A3D"></path>
+        </svg>
+      </div>
+      <div style="position:relative;margin-top:auto;border-top:1px solid rgba(242,240,233,.16);padding:14px 20px">
+        <div style="font-size:13.5px;color:#B9C4BE">3 choses à faire</div>
+        <div style="font-size:14.5px;margin-top:2px">Matériel · assistance · briefing</div>
+        <div style="margin-top:14px;background:#C6F24E;color:#0E1A17;font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:14px;padding:11px 14px;text-align:center">Voir ma préparation</div>
+      </div>
+    </div>
+    <div style="background:#F2F0E9;display:flex;flex-direction:column">
+      <div style="padding:18px 20px 14px;border-bottom:1px solid rgba(14,26,23,.14);display:flex;justify-content:space-between;align-items:baseline">
+        <span style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#6F7A74">Matériel</span>
+        <span style="font-family:'Martian Mono',monospace;font-size:11px;color:#14342C">8 / 12</span>
+      </div>
+      <div style="padding:14px 20px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;gap:11px">
+          <span style="width:8px;height:8px;background:#3FBF7F;margin-top:6px;flex:0 0 auto"></span>
+          <div><div style="font-size:14.5px;color:#0E1A17">Veste imperméable</div><div style="font-size:12.5px;color:#5A6660">Conforme au règlement.</div></div>
+        </div>
+        <div style="display:flex;gap:11px">
+          <span style="width:8px;height:8px;background:#F2B33D;margin-top:6px;flex:0 0 auto"></span>
+          <div><div style="font-size:14.5px;color:#0E1A17">Seconde couche</div><div style="font-size:12.5px;color:#5A6660">Poids minimum 180 g.</div></div>
+        </div>
+        <div style="display:flex;gap:11px">
+          <span style="width:8px;height:8px;border:1.75px solid #6F7A74;margin-top:6px;flex:0 0 auto;box-sizing:border-box"></span>
+          <div><div style="font-size:14.5px;color:#0E1A17">Gants chauds</div><div style="font-size:12.5px;color:#5A6660">À confirmer avant vendredi.</div></div>
+        </div>
+      </div>
+      <div style="margin-top:auto;padding:14px 20px;border-top:1px solid rgba(14,26,23,.14)">
+        <div style="border:1.5px solid #14342C;color:#14342C;font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:13.5px;padding:10px 14px;text-align:center">Ajouter un équipement</div>
+      </div>
+    </div>
+    <div style="background:#F2F0E9;display:flex;flex-direction:column">
+      <div style="padding:18px 20px 14px;border-bottom:1px solid rgba(14,26,23,.14)">
+        <span style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#6F7A74">Assistant PLUKA</span>
+        <div style="font-family:Archivo;font-variation-settings:'wdth' 116;font-weight:600;font-size:19px;margin-top:6px;color:#0E1A17">Une question ?</div>
+      </div>
+      <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
+        <div style="background:#E4E1D6;padding:11px 13px;font-size:13.5px;color:#0E1A17;align-self:flex-end;max-width:88%">Puis-je récupérer mon dossard samedi ?</div>
+        <div style="border-left:3px solid #C6F24E;padding:2px 0 2px 12px">
+          <div style="font-family:Archivo;font-variation-settings:'wdth' 116;font-weight:600;font-size:16px;color:#0E1A17">Non.</div>
+          <div style="font-size:13.5px;line-height:1.5;color:#3C4A45;margin-top:3px">Pour ton 70 K, le retrait ferme vendredi à 20 h.</div>
+        </div>
+      </div>
+      <div style="margin-top:auto;padding:14px 20px;border-top:1px solid rgba(14,26,23,.14);font-size:12.5px;color:#6F7A74">Réponses basées sur les informations de ta course.</div>
+    </div>
+  </div>
+  <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(14,26,23,.2);display:flex;gap:34px;font-size:12.5px;color:#3C4A45;flex-wrap:wrap">
+    <span><strong style="font-weight:600">Blocs bord à bord</strong> — pas d'ombre, pas de coin arrondi.</span>
+    <span><strong style="font-weight:600">Un seul CTA</strong> Lichen par écran.</span>
+    <span><strong style="font-weight:600">La donnée en mono</strong>, la prose en Hanken.</span>
+    <span><strong style="font-weight:600">L'Aube</strong> uniquement sur la prochaine échéance.</span>
+  </div>
+</section>
+
+<!-- 11 PHOTO -->
+<section class="page" data-screen-label="11 Photographie" style="background:#F2F0E9;padding:50px 56px;display:flex;flex-direction:column;overflow:hidden">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid rgba(14,26,23,.16)">
+    <span style="font-family:'Martian Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#14342C">11 / Direction photographique</span>
+    <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">12 / 15</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:26px;gap:40px">
+    <h2 style="font-family:Archivo;font-variation-settings:'wdth' 120;font-weight:700;font-size:38px;letter-spacing:-.025em;color:#0E1A17;max-width:560px;line-height:1.06">Montrer l'expérience, pas seulement la performance.</h2>
+    <p style="font-size:14.5px;line-height:1.55;color:#5A6660;max-width:360px;text-wrap:pretty">PLUKA vit autour de l'événement : la préparation, l'attente, le crew, les transitions, l'arrivée — autant que l'effort.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px;flex:1;min-height:0">
+    <div style="display:flex;flex-direction:column;gap:9px;min-height:0">
+      <div style="flex:1;min-height:0;background:#E4E1D6"><image-slot id="pk-photo-1" shape="rect" placeholder="Avant le départ — dossard, sac, briefing"></image-slot></div>
+      <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">01 — Avant le départ</div>
+      <p style="font-size:13px;line-height:1.5;color:#3C4A45">Gestes de préparation, tension positive, matériel posé.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px;min-height:0">
+      <div style="flex:1;min-height:0;background:#E4E1D6"><image-slot id="pk-photo-2" shape="rect" placeholder="Autour de la course — assistance, ravitaillement"></image-slot></div>
+      <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">02 — Autour de la course</div>
+      <p style="font-size:13px;line-height:1.5;color:#3C4A45">Bénévoles, transitions, crew, ravitaillement.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px;min-height:0">
+      <div style="flex:1;min-height:0;background:#E4E1D6"><image-slot id="pk-photo-3" shape="rect" placeholder="L'émotion d'arrivée — fatigue, fierté"></image-slot></div>
+      <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">03 — L'arrivée</div>
+      <p style="font-size:13px;line-height:1.5;color:#3C4A45">Authenticité, fatigue, joie, fierté partagée.</p>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;margin-top:22px;padding-top:18px;border-top:1px solid rgba(14,26,23,.16)">
+    <div>
+      <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#14342C;margin-bottom:5px">À privilégier</div>
+      <p style="font-size:13px;line-height:1.55;color:#3C4A45">Lumière naturelle · cadrages humains · détails utiles · diversité des disciplines · énergie réelle · contexte événementiel identifiable.</p>
+    </div>
+    <div>
+      <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#E14434;margin-bottom:5px">À éviter</div>
+      <p style="font-size:13px;line-height:1.55;color:#3C4A45">Le trailer seul sur sa crête · retouches irréalistes · saturation excessive · poses commerciales · visuels anxiogènes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 12 CO-BRANDING -->
+<section class="page" data-screen-label="12 Co-branding" style="background:#F2F0E9;padding:50px 56px;display:flex;flex-direction:column;overflow:hidden">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid rgba(14,26,23,.16)">
+    <span style="font-family:'Martian Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#14342C">12 / Co-branding &amp; partenaires</span>
+    <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">13 / 15</span>
+  </div>
+  <h2 style="font-family:Archivo;font-variation-settings:'wdth' 120;font-weight:700;font-size:38px;letter-spacing:-.025em;margin-top:26px;color:#0E1A17">PLUKA s'intègre. L'événement reste au premier plan.</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;margin-top:24px;flex:1;min-height:0">
+    <div style="display:flex;flex-direction:column;min-height:0">
+      <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#6F7A74;margin-bottom:10px">Organisateur</div>
+      <div style="flex:1;min-height:0;background:#FFFFFF;border:1px solid rgba(14,26,23,.12);display:flex;flex-direction:column">
+        <div style="padding:18px 20px;border-bottom:1px solid rgba(14,26,23,.12);display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:34px;height:34px;background:#E4E1D6;display:flex;align-items:center;justify-content:center;font-family:'Martian Mono',monospace;font-size:9px;color:#6F7A74">LOGO</div>
+            <div>
+              <div style="font-family:Archivo;font-variation-settings:'wdth' 116;font-weight:600;font-size:17px;color:#0E1A17">Trail des Sommets</div>
+              <div style="font-size:12px;color:#6F7A74">Espace participant</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px;--pk-word:#14342C">
+            <span style="font-size:10.5px;color:#6F7A74">powered by</span>
+            <svg viewBox="0 0 672.6 110.8" style="width:62px;height:10px"><use href="#pk-word-mono"></use></svg>
+          </div>
+        </div>
+        <div style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:14px;color:#0E1A17">L'univers de l'événement occupe la couverture et l'en-tête.</div>
+          <div style="font-size:13.5px;line-height:1.5;color:#5A6660">Les composants fonctionnels — checklists, horaires, profil, assistant — conservent la grammaire PLUKA sans exception.</div>
+        </div>
+        <div style="margin-top:auto;background:#0E1A17;color:#F2F0E9;padding:16px 20px">
+          <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#9AE0D6;margin-bottom:6px">Principe</div>
+          <p style="font-size:13.5px;line-height:1.5">PLUKA est perçu comme l'infrastructure qui améliore l'expérience participant — pas comme une marque qui prend possession de l'événement.</p>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;min-height:0">
+      <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#6F7A74;margin-bottom:10px">Activation partenaire</div>
+      <div style="background:#FFFFFF;border:1px solid rgba(14,26,23,.12);padding:18px 20px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#6F7A74">Conseil équipement</span>
+          <span style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#FF6A3D">Partenaire</span>
+        </div>
+        <div style="font-family:Archivo;font-variation-settings:'wdth' 116;font-weight:600;font-size:19px;color:#0E1A17;margin-top:10px">Ta veste n'est pas encore validée</div>
+        <p style="font-size:13.5px;line-height:1.5;color:#5A6660;margin-top:5px">Découvre la sélection conforme au règlement proposée par le partenaire officiel.</p>
+        <div style="border:1.5px solid #14342C;color:#14342C;font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:13.5px;padding:9px 14px;text-align:center;margin-top:14px">Voir la sélection</div>
+      </div>
+      <p style="font-size:13px;line-height:1.55;color:#3C4A45;margin-top:14px">Une activation doit apporter un service ou une information utile. Bannière générique, pop-up intrusif et habillage complet sont proscrits.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:auto;padding-top:18px">
+        <div style="border-top:2px solid #C6F24E;padding-top:10px">
+          <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:15.5px;color:#0E1A17">Contextuel</div>
+          <p style="font-size:13px;line-height:1.5;color:#5A6660;margin-top:3px">Bon moment, bon besoin. La pertinence avant la pression.</p>
+        </div>
+        <div style="border-top:2px solid #C6F24E;padding-top:10px">
+          <div style="font-family:Archivo;font-variation-settings:'wdth' 112;font-weight:600;font-size:15.5px;color:#0E1A17">Mesurable</div>
+          <p style="font-size:13px;line-height:1.5;color:#5A6660;margin-top:3px">Vues, clics, coupons : valoriser l'engagement réel.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 13 TON -->
+<section class="page" data-screen-label="13 Ton de marque" style="background:#F2F0E9;padding:50px 56px;display:flex;flex-direction:column;overflow:hidden">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid rgba(14,26,23,.16)">
+    <span style="font-family:'Martian Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#14342C">13 / Ton de marque</span>
+    <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">14 / 15</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:26px;gap:40px">
+    <h2 style="font-family:Archivo;font-variation-settings:'wdth' 120;font-weight:700;font-size:38px;letter-spacing:-.025em;color:#0E1A17">Direct, utile, rassurant.</h2>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#14342C;border:1px solid rgba(20,52,44,.3);padding:5px 10px">Clair</span>
+      <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#14342C;border:1px solid rgba(20,52,44,.3);padding:5px 10px">Concret</span>
+      <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#14342C;border:1px solid rgba(20,52,44,.3);padding:5px 10px">Calme</span>
+      <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#14342C;border:1px solid rgba(20,52,44,.3);padding:5px 10px">Sportif</span>
+      <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#14342C;border:1px solid rgba(20,52,44,.3);padding:5px 10px">Humain</span>
+    </div>
+  </div>
+  <p style="font-size:16px;line-height:1.6;color:#3C4A45;max-width:640px;margin-top:16px;text-wrap:pretty">PLUKA parle comme un compagnon de préparation fiable : il simplifie sans infantiliser, alerte sans dramatiser, encourage sans tomber dans le discours de performance.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;margin-top:26px;flex:1;min-height:0">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#14342C">On écrit</div>
+      <div style="border-left:3px solid #C6F24E;padding-left:14px">
+        <div style="font-family:Archivo;font-variation-settings:'wdth' 116;font-weight:600;font-size:21px;color:#0E1A17">« Ta navette part demain à 04 h 50. »</div>
+        <p style="font-size:13px;color:#5A6660;margin-top:3px">Précis, utile, immédiatement actionnable.</p>
+      </div>
+      <div style="border-left:3px solid #C6F24E;padding-left:14px">
+        <div style="font-family:Archivo;font-variation-settings:'wdth' 116;font-weight:600;font-size:21px;color:#0E1A17">« Il te reste 3 éléments à vérifier. »</div>
+        <p style="font-size:13px;color:#5A6660;margin-top:3px">L'accent sur la prochaine étape, pas sur l'échec.</p>
+      </div>
+      <div style="border-left:3px solid #C6F24E;padding-left:14px">
+        <div style="font-family:Archivo;font-variation-settings:'wdth' 116;font-weight:600;font-size:21px;color:#0E1A17">« Cette information n'est pas précisée par l'organisateur. »</div>
+        <p style="font-size:13px;color:#5A6660;margin-top:3px">La fiabilité passe avant une réponse inventée.</p>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#E14434">On n'écrit pas</div>
+      <div style="border-left:3px solid rgba(225,68,52,.5);padding-left:14px">
+        <div style="font-family:Archivo;font-variation-settings:'wdth' 116;font-weight:600;font-size:21px;color:#6F7A74">« Attention !!! Tu n'es pas prêt ! »</div>
+        <p style="font-size:13px;color:#5A6660;margin-top:3px">Ni anxiété, ni exagération, ni culpabilisation.</p>
+      </div>
+      <div style="border-left:3px solid rgba(225,68,52,.5);padding-left:14px">
+        <div style="font-family:Archivo;font-variation-settings:'wdth' 116;font-weight:600;font-size:21px;color:#6F7A74">« Dépasse tes limites. Sois un champion. »</div>
+        <p style="font-size:13px;color:#5A6660;margin-top:3px">PLUKA prépare l'expérience ; il ne dicte pas la performance.</p>
+      </div>
+      <div style="margin-top:auto;background:#0E1A17;color:#F2F0E9;padding:18px 20px">
+        <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#9AE0D6;margin-bottom:8px">Signature</div>
+        <div style="font-family:Archivo;font-variation-settings:'wdth' 118;font-weight:600;font-size:20px;color:#C6F24E">Registered. Now get ready.</div>
+        <div style="font-size:13.5px;color:#B9C4BE;margin-top:6px">Accroche FR — « Inscrit. Maintenant, y'a plus qu'à. »</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 14 REFERENCE -->
+<section class="page" data-screen-label="14 Référence rapide" style="background:#0E1A17;color:#F2F0E9;padding:50px 56px;display:flex;flex-direction:column;position:relative;overflow:hidden">
+  <sc-if value="{{ showTopo }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;inset:0;background:url(assets/topo-dark.svg) center/cover no-repeat"></div>
+  </sc-if>
+  <div style="position:relative;display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid rgba(242,240,233,.2)">
+    <span style="font-family:'Martian Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#C6F24E">14 / Référence rapide</span>
+    <span style="font-family:'Martian Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#6F7A74">15 / 15</span>
+  </div>
+  <h2 style="position:relative;font-family:Archivo;font-variation-settings:'wdth' 120;font-weight:700;font-size:38px;letter-spacing:-.025em;margin-top:26px">PLUKA en une page.</h2>
+  <div style="position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(242,240,233,.16);margin-top:26px;flex:1;min-height:0">
+    <div style="background:#0E1A17;padding:30px 26px 30px 0">
+      <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#C6F24E">Logo</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:12px;color:#C6F24E">
+        <svg viewBox="0 0 928 175" style="width:182px;height:34px"><use href="#pk-lockup-light"></use></svg>
+      </div>
+      <p style="font-size:13px;line-height:1.5;color:#9AA5A0;margin-top:12px">Priorité au logo complet. Symbole seul en contexte déjà identifié.</p>
+    </div>
+    <div style="background:#0E1A17;padding:30px 26px">
+      <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#C6F24E">Couleurs</div>
+      <div style="display:flex;gap:6px;margin-top:12px">
+        <span style="width:34px;height:34px;background:#0E1A17;border:1px solid rgba(242,240,233,.3)"></span>
+        <span style="width:34px;height:34px;background:#14342C"></span>
+        <span style="width:34px;height:34px;background:#C6F24E"></span>
+        <span style="width:34px;height:34px;background:#FF6A3D"></span>
+        <span style="width:34px;height:34px;background:#9AE0D6"></span>
+        <span style="width:34px;height:34px;background:#F2F0E9"></span>
+      </div>
+      <p style="font-family:'Martian Mono',monospace;font-size:10.5px;line-height:1.7;color:#9AA5A0;margin-top:12px">#0E1A17 · #14342C · #C6F24E<br>#FF6A3D · #9AE0D6 · #F2F0E9</p>
+    </div>
+    <div style="background:#0E1A17;padding:30px 26px">
+      <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#C6F24E">Typographie</div>
+      <div style="font-family:Archivo;font-variation-settings:'wdth' 122;font-weight:700;font-size:26px;margin-top:12px">Archivo Expanded</div>
+      <div style="font-size:15px;margin-top:2px">Hanken Grotesk</div>
+      <div style="font-family:'Martian Mono',monospace;font-size:12px;margin-top:2px;color:#9AE0D6">Martian Mono</div>
+      <p style="font-size:13px;line-height:1.5;color:#9AA5A0;margin-top:10px">Titres / texte / donnée. 700 · 600 · 500 · 400.</p>
+    </div>
+    <div style="background:#0E1A17;padding:30px 26px 0 0">
+      <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#C6F24E">Interface</div>
+      <p style="font-size:13.5px;line-height:1.55;color:#B9C4BE;margin-top:10px">Calcaire dominant · blocs bord à bord · progression visible · un seul CTA Lichen par écran · l'Aube pour la prochaine échéance.</p>
+    </div>
+    <div style="background:#0E1A17;padding:30px 26px 0">
+      <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#C6F24E">Ton</div>
+      <p style="font-size:13.5px;line-height:1.55;color:#B9C4BE;margin-top:10px">Direct · utile · rassurant · concret. Jamais anxiogène, jamais héroïque.</p>
+    </div>
+    <div style="background:#0E1A17;padding:30px 26px 0">
+      <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#C6F24E">Co-branding</div>
+      <p style="font-size:13.5px;line-height:1.55;color:#B9C4BE;margin-top:10px">L'événement reste au premier plan. PLUKA signe l'infrastructure et garantit la cohérence fonctionnelle.</p>
+    </div>
+  </div>
+  <div style="position:relative;display:flex;justify-content:space-between;align-items:flex-end;padding-top:20px;border-top:1px solid rgba(242,240,233,.16);margin-top:20px">
+    <div style="font-family:Archivo;font-variation-settings:'wdth' 118;font-weight:600;font-size:20px;color:#C6F24E">Registered. Now get ready.</div>
+    <div style="font-family:'Martian Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#6F7A74">PLUKA Brand Guidelines — Version 2.0 — 2026</div>
+  </div>
+</section>
+
+</doc-page>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showTopo&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Habillage&quot;}}">
+class Component extends DCLogic {
+  componentDidMount() {
+    // Re-mesure du composant paginé après le montage React
+    const nudge = () => {
+      const el = document.querySelector('doc-page');
+      if (el && el._measure) { el._raf = null; el._measure(); }
+    };
+    requestAnimationFrame(nudge);
+    setTimeout(nudge, 200);
+    setTimeout(nudge, 1200);
+  }
+  renderVals() {
+    return { showTopo: this.props.showTopo ?? true };
+  }
+}
+</script>
+</body>
+</html>

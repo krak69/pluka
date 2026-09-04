@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+
+jobs:
+  quality:
+    name: Lint, types, tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  database:
+    name: Migrations et RLS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Rejoue toutes les migrations depuis une base vierge.
+      # Valide le critère d'acceptation architecture n°19 :
+      # une migration doit pouvoir reconstruire l'état de la base.
+      - name: Démarrer Supabase local
+        run: supabase start
+
+      - name: Rejouer les migrations depuis zéro
+        run: supabase db reset
+
+      # Décommenter dès que supabase/tests/ contient des tests pgTAP.
+      # - name: Tests RLS (pgTAP)
+      #   run: supabase test db
+
+      - name: Arrêter Supabase
+        if: always()
+        run: supabase stop

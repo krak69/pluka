@@ -1,0 +1,5 @@
+# Les specs et le prototype ne sont pas formatés par Prettier.
+docs/
+reference/
+supabase/migrations/
+pnpm-lock.yaml

@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>PLUKA pour les organisateurs de trail — préparation participants et analyse avant-course</title>
+<meta name="description" content="PLUKA analyse vos informations de course et votre liste d’inscrits, détecte les incohérences, anticipe les principaux flux et transforme vos données officielles en préparation personnalisée pour chaque participant.">
+<link rel="canonical" href="https://pluka.run/organisateurs">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="PLUKA">
+<meta property="og:url" content="https://pluka.run/organisateurs">
+<meta property="og:title" content="PLUKA pour les organisateurs de trail">
+<meta property="og:description" content="Vous fournissez vos documents et votre liste d’inscrits. PLUKA vérifie la cohérence de la course, analyse le peloton et prépare chaque participant.">
+<link rel="stylesheet" href="_ds/nocturne-cdf0e0e0-b13c-4c32-8e50-2e844bff2649/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<script src="_ds/nocturne-cdf0e0e0-b13c-4c32-8e50-2e844bff2649/_ds_bundle.js"></script>
+<script src="./pluka-logo-sprite.js"></script>
+<script src="./image-slot.js"></script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Organization","@id":"https://pluka.run/#org","name":"PLUKA","url":"https://pluka.run/"},
+{"@type":"WebPage","url":"https://pluka.run/organisateurs","name":"PLUKA pour les organisateurs","inLanguage":"fr-FR","isPartOf":{"@id":"https://pluka.run/#website"},"about":{"@id":"https://pluka.run/#org"}}
+]}
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=Hanken+Grotesk:wght@300..700&family=Martian+Mono:wght@300..700&display=swap');
+:root {
+  /* PLUKA v2 — Ligne d'altitude */
+  --color-bg: #F2F0E9; --color-surface: #FFFFFF; --color-text: #0E1A17;
+  --color-accent: #14342C; --color-divider: #DCD8CB;
+  --pk-ink: #0E1A17; --pk-ink-2: #14342C; --pk-stone: #F2F0E9; --pk-stone-2: #E4E1D6;
+  --pk-hair: #DCD8CB; --pk-mute: #5A6660; --pk-faint: #5A6660;
+  --pk-lichen: #C6F24E; --pk-lichen-deep: #A8D42F; --pk-aube: #FF6A3D; --pk-glacier: #9AE0D6;
+  --font-heading: 'Archivo', system-ui, sans-serif;
+  --font-body: 'Hanken Grotesk', system-ui, sans-serif;
+  --font-mono: 'Martian Mono', ui-monospace, monospace;
+  --shadow-sm: 0 0 0 1px #DCD8CB;
+  --shadow-md: 0 0 0 1px #DCD8CB;
+  --shadow-lg: 0 22px 56px rgba(14,26,23,.20), 0 0 0 1px #DCD8CB;
+}
+html { scroll-behavior: smooth; }
+html, body { background: #F2F0E9; }
+body { margin: 0; font-family: var(--font-body); color: #0E1A17; font-size: 16px; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+h1, h2, h3 { font-family: var(--font-heading); font-variation-settings: 'wdth' 119; font-weight: 600; letter-spacing: -.025em; margin: 0; text-wrap: pretty; }
+h1 { font-weight: 700; font-variation-settings: 'wdth' 121; }
+p { margin: 0; text-wrap: pretty; }
+a { color: #14342C; text-decoration: none; }
+a:hover { color: #0E1A17; }
+i.ph { line-height: 1; }
+button { font-family: inherit; }
+/* micro-libellés et données : la mono porte l'identité */
+.pk-label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--pk-mute); }
+.pk-data { font-family: var(--font-mono); font-weight: 500; letter-spacing: -.02em; }
+/* actions : le lichen ne sert qu'à l'action principale */
+.pk-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 14px 22px; border: 1.5px solid transparent; border-radius: 2px; font-family: var(--font-heading); font-variation-settings: 'wdth' 113; font-weight: 600; font-size: 16px; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+.pk-pri { background: #C6F24E; border-color: #C6F24E; color: #0E1A17; }
+.pk-pri:hover { background: #A8D42F; border-color: #A8D42F; }
+.pk-pri:active { background: #96C022; border-color: #96C022; }
+.pk-sec { background: transparent; border-color: #14342C; color: #14342C; }
+.pk-sec:hover { background: #E4E1D6; }
+.pk-dark { background: #C6F24E; color: #0E1A17; }
+.pk-dark:hover { background: #A8D42F; }
+.pk-ghostdark { background: transparent; border-color: rgba(242,240,233,.42); color: #F2F0E9; }
+.pk-ghostdark:hover { background: rgba(242,240,233,.10); border-color: rgba(242,240,233,.7); }
+.pk-navlink { color: #4A5A54; font-size: 15px; font-weight: 500; padding: 10px 4px; white-space: nowrap; }
+.pk-navlink:hover { color: #0E1A17; }
+.pk-aud { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 2px; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; transition: background .15s, color .15s; }
+.pk-aud-on { background: #C6F24E; color: #0E1A17; cursor: default; }
+.pk-aud-off { color: rgba(242,240,233,.66); }
+.pk-aud-off:hover { background: rgba(242,240,233,.12); color: #F2F0E9; }
+/* signature : le relief en fond de scène, jamais au-dessus du texte */
+.pk-topo { background-image: url(assets/topo-dark.svg); background-size: 132% auto; background-position: 12% 108%; background-repeat: no-repeat; }
+.pk-topo-light { background-image: url(assets/topo-light.svg); background-size: 132% auto; background-position: 12% 108%; background-repeat: no-repeat; }
+.pk-topo-glacier { background-image: url(assets/topo-glacier.svg); background-size: 132% auto; background-position: 88% 110%; background-repeat: no-repeat; }
+:focus-visible { outline: 2px solid #C6F24E; outline-offset: 2px; }
+/* formulaire : champs à filet, la ligne se colore à la saisie */
+.pk-field { display: flex; flex-direction: column; gap: 7px; }
+.pk-field > label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--pk-mute); }
+/* la spécificité doit gagner sur la feuille du design system, d'où .pk-field */
+.pk-field .pk-in { width: 100%; box-sizing: border-box; font-family: var(--font-body); font-size: 16px; color: #0E1A17; background: transparent; border: 0; border-bottom: 2px solid #DCD8CB; border-radius: 0; padding: 10px 2px; min-height: 46px; transition: border-color .16s, background .16s; }
+.pk-field .pk-in::placeholder { color: #5A6660; }
+.pk-field .pk-in:hover { border-bottom-color: #14342C; }
+/* focus : filet Forêt épaissi, fond Lichen et anneau — l'outline global reste actif */
+.pk-field .pk-in:focus,
+.pk-field:focus-within .pk-in { border-bottom-color: #14342C; background: rgba(198,242,78,.14); box-shadow: inset 0 -3px 0 #C6F24E; }
+.pk-field:focus-within > label { color: #14342C; }
+.pk-field textarea.pk-in { resize: vertical; min-height: 84px; line-height: 1.5; }
+::selection { background: rgba(198,242,78,.55); }
+@keyframes pkUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes pkTrace { from { stroke-dashoffset: 1800; } to { stroke-dashoffset: 0; } }
+@keyframes pkPop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { animation: none !important; }
+}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#F2F0E9;position:relative">
+  <div aria-hidden="true" style="position:absolute;z-index:0;top:0;right:0;width:min(58%,880px);height:760px;pointer-events:none;background:url(assets/topo-light.svg) right top/1400px auto no-repeat;opacity:.55;mask-image:linear-gradient(to left,#000 30%,transparent 100%);-webkit-mask-image:linear-gradient(to left,#000 30%,transparent 100%)"></div>
+
+  <header style="position:sticky;top:0;z-index:50;background:rgba(242,240,233,.92);backdrop-filter:blur(10px);box-shadow:inset 0 -1px 0 rgba(14,26,23,.08)">
+    <div style="background:#0E1A17">
+      <div style="max-width:1200px;margin:0 auto;padding:0 20px;height:36px;display:flex;align-items:center;gap:16px">
+        <span style="{{ stripTagStyle }}">Vos informations officielles, transformées en préparation</span>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex:none">
+          <span style="font-size:12px;font-weight:500;color:rgba(242,240,233,.5)">Je suis</span>
+          <a href="PLUKA%20Homepage.dc.html" class="pk-aud pk-aud-off"><i class="ph ph-sneaker-move" style="font-size:14px"></i>Coureur</a>
+          <span aria-current="page" class="pk-aud pk-aud-on"><i class="ph ph-flag-banner" style="font-size:14px"></i>Organisateur</span>
+        </div>
+      </div>
+    </div>
+    <div style="max-width:1200px;margin:0 auto;padding:11px 20px;display:flex;align-items:center;gap:24px">
+      <a href="PLUKA%20Homepage.dc.html" style="display:flex;align-items:center;flex:none">
+        <svg viewBox="0 0 928 175" style="width:140px;height:26px;display:block;flex:none"><use href="#pk-lockup"></use></svg>
+      </a>
+      <nav aria-label="Navigation organisateurs" style="display:flex;align-items:center;gap:22px;flex:1;min-width:0;overflow:hidden">
+        <sc-for list="{{ navLinks }}" as="n" hint-placeholder-count="4">
+          <a href="{{ n.href }}" class="pk-navlink" style="{{ n.style }}">{{ n.label }}</a>
+        </sc-for>
+      </nav>
+      <div style="display:flex;align-items:center;gap:8px;flex:none">
+        <a href="#contact" class="pk-btn pk-pri" style="min-height:44px;padding:11px 18px;font-size:15px">Demander une présentation</a>
+        <button onClick="{{ toggleMenu }}" aria-label="Ouvrir le menu" style="{{ burgerStyle }}"><i class="ph ph-list" style="font-size:22px"></i></button>
+      </div>
+    </div>
+    <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:8px 20px 18px;box-shadow:inset 0 1px 0 rgba(14,26,23,.08);animation:pkUp .2s ease both">
+        <nav style="display:flex;flex-direction:column">
+          <sc-for list="{{ navLinks }}" as="n" hint-placeholder-count="4">
+            <a href="{{ n.href }}" onClick="{{ closeMenu }}" style="display:flex;align-items:center;min-height:52px;font-size:17px;font-weight:500;color:#0E1A17;box-shadow:inset 0 -1px 0 rgba(14,26,23,.07)">{{ n.label }}</a>
+          </sc-for>
+        </nav>
+        <a href="PLUKA%20Homepage.dc.html" style="display:flex;align-items:center;gap:12px;margin-top:14px;padding:14px 16px;border-radius:2px;background:#E8F4F1;min-height:56px">
+          <i class="ph ph-sneaker-move" style="font-size:20px;color:#0E1A17;flex:none"></i>
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-size:15.5px;font-weight:600;color:#14342C">Vous préparez une course&nbsp;?</span>
+            <span style="display:block;font-size:13px;color:#4A5A54;margin-top:2px">Voir PLUKA côté coureur</span>
+          </span>
+          <i class="ph ph-arrow-right" style="font-size:17px;color:#0E1A17;flex:none"></i>
+        </a>
+      </div>
+    </sc-if>
+  </header>
+
+  <main style="position:relative;z-index:1">
+
+    <!-- ═══ HERO ═══ -->
+    <section style="padding:clamp(40px,7vw,80px) 20px clamp(46px,6vw,80px)">
+      <div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:{{ heroCols }};gap:clamp(30px,4vw,54px);align-items:center">
+        <div style="animation:pkUp .5s ease both">
+          <div class="pk-label" style="color:#14342C;margin-bottom:16px">PLUKA pour les organisateurs</div>
+          <h1 style="font-size:clamp(34px,5.4vw,58px);line-height:1.05;margin-bottom:20px">Votre course, plus claire avant même le départ.</h1>
+          <p style="font-size:clamp(17px,2vw,20px);line-height:1.55;color:#4A5A54;max-width:58ch;margin-bottom:28px">Donnez à PLUKA les informations que vous avez déjà. PLUKA vérifie leur cohérence, analyse votre peloton et vous remonte ce qui mérite votre attention — tout en préparant chaque participant individuellement.</p>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+            <a href="#contact" class="pk-btn pk-pri">Parler de mon événement<i class="ph ph-arrow-right"></i></a>
+            <a href="#brief" class="pk-btn pk-sec">Voir un exemple de brief</a>
+          </div>
+          <div style="font-size:13.5px;color:#5A6660">Programme d’ouverture progressive · aucun engagement à ce stade.</div>
+        </div>
+        <div class="pk-topo" style="animation:pkUp .6s ease both;animation-delay:.1s;background-color:#0E1A17;color:#F2F0E9;box-shadow:var(--shadow-lg);overflow:hidden">
+          <div style="padding:20px 22px 0">
+            <div class="pk-label" style="color:#C6F24E;margin-bottom:11px">Brief avant-course</div>
+            <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+              <span style="font-family:var(--font-heading);font-variation-settings:'wdth' 119;font-weight:700;font-size:26px;letter-spacing:-.025em">Wildstrubel by UTMB</span>
+            </div>
+            <div class="pk-data" style="font-size:11px;color:#C6F24E;margin-top:7px">Brief avant-course · J-7</div>
+              <div class="pk-data" style="font-size:10.5px;color:rgba(242,240,233,.62);margin-top:8px">Exemple de démonstration · données simulées · aucune affiliation</div>
+            <div style="margin-top:22px;padding:18px 0 20px;border-top:1px solid rgba(242,240,233,.16)">
+              <div class="pk-label" style="color:rgba(242,240,233,.62);margin-bottom:14px">3 points à retenir</div>
+              <sc-for list="{{ heroBrief }}" as="b" hint-placeholder-count="3">
+                <div style="display:flex;gap:14px;align-items:flex-start;padding:9px 0">
+                  <span class="pk-data" style="flex:none;font-size:12px;color:#C6F24E;padding-top:2px">{{ b.n }}</span>
+                  <span style="flex:1;min-width:0;font-size:15px;line-height:1.45;color:#F2F0E9">{{ b.v }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="background:#FFFFFF;color:#0E1A17;padding:16px 22px 18px">
+            <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px">
+              <span class="pk-label" style="color:#C4471F">Conditions</span>
+              <span class="pk-data" style="margin-left:auto;font-size:11px;color:#5A6660">à partir de J-14</span>
+            </div>
+            <div class="pk-h" style="font-size:17px;color:#0E1A17">Froid + vent probable au col du Rawil</div>
+            <div style="font-size:13.5px;color:#5A6660;margin-top:8px">Une majorité du peloton devrait traverser le secteur pendant cette période.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ RACE INTELLIGENCE ═══ -->
+    <section id="intelligence" style="padding:clamp(52px,7vw,90px) 20px;background:#FFFFFF;box-shadow:inset 0 1px 0 rgba(14,26,23,.07)">
+      <div style="max-width:1200px;margin:0 auto">
+        <div class="pk-label" style="color:#14342C;margin-bottom:14px">Pas un outil de plus à piloter</div>
+        <h2 style="font-size:clamp(27px,4vw,42px);line-height:1.1;margin-bottom:18px;max-width:26ch">Vous fournissez ce que vous avez déjà. PLUKA fait le travail.</h2>
+        <p style="font-size:clamp(16px,1.8vw,18px);line-height:1.6;color:#3C4A45;max-width:66ch;margin-bottom:14px">Vos documents de course, votre GPX, votre liste d’inscrits. PLUKA les analyse automatiquement et ne vous présente que les informations utiles.</p>
+        <p style="font-size:15.5px;line-height:1.6;color:#5A6660;max-width:66ch;margin-bottom:36px">Pas de double saisie. Pas de PC course à remplacer. Pas de nouveau workflow le jour J. Aucune donnée individuelle de participant n’est exposée&nbsp;: les analyses sont agrégées et anonymisées.</p>
+        <div style="display:grid;grid-template-columns:{{ duoCols }};gap:2px;margin-bottom:2px">
+          <div style="background:#F2F0E9;border-top:3px solid #14342C;padding:24px 26px 26px">
+            <div class="pk-label" style="margin-bottom:14px">PLUKA contrôle</div>
+            <div class="pk-h" style="font-size:21px;color:#0E1A17;margin-bottom:12px">Une course plus cohérente avant publication.</div>
+            <p style="font-size:15px;line-height:1.6;color:#3C4A45;margin-bottom:18px">PLUKA compare votre site, votre règlement, votre guide coureur et votre GPX. Vos contradictions remontent avant celles de vos participants.</p>
+            <div style="background:#FFFFFF;box-shadow:0 0 0 1px #DCD8CB;padding:14px 16px">
+              <div class="pk-label" style="margin-bottom:10px">Assistance · Adelboden</div>
+              <div style="display:flex;gap:12px;padding:6px 0;font-size:13.5px;color:#0E1A17"><span style="flex:1">Règlement</span><span class="pk-data" style="color:#5A6660">autorisée</span></div>
+              <div style="display:flex;gap:12px;padding:6px 0;font-size:13.5px;color:#0E1A17"><span style="flex:1">Guide coureur</span><span class="pk-data" style="color:#5A6660">non mentionnée</span></div>
+              <div class="pk-data" style="margin-top:10px;padding-top:10px;box-shadow:inset 0 1px 0 #EDEAE0;font-size:11px;color:#C4471F">PLUKA · information à vérifier</div>
+            </div>
+          </div>
+          <div style="background:#F2F0E9;border-top:3px solid #14342C;padding:24px 26px 26px">
+            <div class="pk-label" style="margin-bottom:14px">PLUKA analyse</div>
+            <div class="pk-h" style="font-size:21px;color:#0E1A17;margin-bottom:12px">Comprenez votre peloton sans devenir analyste.</div>
+            <p style="font-size:15px;line-height:1.6;color:#3C4A45;margin-bottom:18px">Vagues, indices de performance quand vous en disposez, plans PLUKA agrégés. PLUKA ne restitue que les conclusions.</p>
+            <div style="background:#FFFFFF;box-shadow:0 0 0 1px #DCD8CB;padding:14px 16px">
+              <div class="pk-label" style="margin-bottom:10px">Wild 70 · 1 091 participants</div>
+              <div style="font-size:13.5px;color:#0E1A17;padding:4px 0">Vagues 1 et 2 · relativement homogènes</div>
+              <div style="font-size:13.5px;color:#0E1A17;padding:4px 0">Vague 3 · plus dispersée</div>
+              <div style="font-size:12.5px;color:#5A6660;margin-top:10px;padding-top:10px;box-shadow:inset 0 1px 0 #EDEAE0">Les données individuelles restent privées&nbsp;: l’organisation ne voit que des analyses agrégées.</div>
+            </div>
+          </div>
+          <div style="background:#F2F0E9;border-top:3px solid #14342C;padding:24px 26px 26px">
+            <div class="pk-label" style="margin-bottom:14px">PLUKA anticipe</div>
+            <div class="pk-h" style="font-size:21px;color:#0E1A17;margin-bottom:12px">Voyez les principaux moments de votre course.</div>
+            <p style="font-size:15px;line-height:1.6;color:#3C4A45;margin-bottom:18px">Prévisions PLUKA — des estimations agrégées, pas des certitudes.</p>
+            <div style="background:#FFFFFF;box-shadow:0 0 0 1px #DCD8CB;padding:14px 16px">
+              <div style="display:flex;gap:12px;padding:7px 0;font-size:13.5px;color:#0E1A17"><span style="flex:1">Adelboden</span><span class="pk-data" style="color:#5A6660">pic 10:40 → 11:20</span></div>
+              <div style="display:flex;gap:12px;padding:7px 0;font-size:13.5px;color:#0E1A17"><span style="flex:1">Iffigenalp</span><span class="pk-data" style="color:#C4471F">barrière à surveiller</span></div>
+              <div style="display:flex;gap:12px;padding:7px 0;font-size:13.5px;color:#0E1A17"><span style="flex:1">Rawil</span><span class="pk-data" style="color:#5A6660">flux 16:20 → 18:40</span></div>
+            </div>
+          </div>
+          <div style="background:#F2F0E9;border-top:3px solid #FF6A3D;padding:24px 26px 26px">
+            <div class="pk-label" style="margin-bottom:14px">PLUKA écoute</div>
+            <div class="pk-h" style="font-size:21px;color:#0E1A17;margin-bottom:12px">Découvrez ce que vos participants ne comprennent pas.</div>
+            <div style="background:#FFFFFF;box-shadow:0 0 0 1px #DCD8CB;padding:14px 16px;margin-bottom:16px">
+              <div class="pk-label" style="margin-bottom:10px">38 participants ont demandé</div>
+              <div style="font-size:14.5px;line-height:1.45;color:#0E1A17">«&nbsp;Où peut se garer mon accompagnant à Adelboden&nbsp;?&nbsp;»</div>
+              <div class="pk-data" style="font-size:11px;color:#C4471F;margin-top:10px">Aucune réponse officielle suffisamment précise</div>
+            </div>
+            <p style="font-size:15px;line-height:1.6;color:#3C4A45">Vous ajoutez la réponse une fois. Elle devient immédiatement exploitable dans La course, dans Assistance et dans «&nbsp;Demander à PLUKA&nbsp;» — pour tous vos participants.</p>
+          </div>
+        </div>
+
+        <div style="background:#0E1A17;color:#F2F0E9;padding:20px 24px">
+          <p style="font-size:14.5px;line-height:1.6;color:rgba(242,240,233,.82);margin:0;max-width:80ch">PLUKA prépare l’avant-course. Le chronométrage et le pilotage temps réel restent dans vos outils métier — PLUKA ne cherche pas à les remplacer.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ CONSTAT ═══ -->
+    <section style="padding:clamp(46px,6vw,78px) 20px;background:#FFFFFF;box-shadow:inset 0 1px 0 rgba(14,26,23,.07),inset 0 -1px 0 rgba(14,26,23,.07)">
+      <div style="max-width:1100px;margin:0 auto">
+        <h2 style="font-size:clamp(26px,3.8vw,40px);line-height:1.14;margin-bottom:18px;max-width:30ch">Vos informations existent déjà. Elles arrivent simplement trop tard, ou pas au bon endroit.</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px 30px">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ pains }}" as="p" hint-placeholder-count="4">
+              <div style="display:flex;gap:11px;align-items:flex-start;font-size:15.5px;color:#4A5A54">
+                <i class="{{ p.icon }}" style="font-size:18px;color:#5A6660;margin-top:2px;flex:none"></i>{{ p.label }}
+              </div>
+            </sc-for>
+          </div>
+          <p style="font-size:17px;line-height:1.6;color:#14342C">Un règlement de vingt-quatre pages est un document juridique, pas un outil de préparation. PLUKA ne le remplace pas&nbsp;: il en extrait ce qui concerne chaque coureur — sa barrière horaire, son matériel, sa zone d’assistance — et le lui présente au moment utile, en citant toujours votre document d’origine.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ COMMENT ═══ -->
+    <section id="fonctionnement" style="padding:clamp(50px,7vw,88px) 20px">
+      <div style="max-width:1200px;margin:0 auto">
+        <div style="font-size:12px;font-weight:500;color:#0E1A17;font-weight:600;margin-bottom:12px">Fonctionnement</div>
+        <h2 style="font-size:clamp(26px,3.8vw,42px);line-height:1.12;margin-bottom:32px;max-width:26ch">Trois étapes, côté organisation.</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(266px,1fr));gap:14px;margin-bottom:26px">
+          <sc-for list="{{ steps }}" as="s" hint-placeholder-count="3">
+            <div style="background:#FFFFFF;border-radius:2px;box-shadow:var(--shadow-sm);padding:24px">
+              <div style="font-family:var(--font-heading);font-weight:700;font-size:15px;color:#14342C;margin-bottom:14px">{{ s.num }}</div>
+              <h3 style="font-size:20px;font-weight:600;margin-bottom:8px">{{ s.title }}</h3>
+              <p style="font-size:15.5px;line-height:1.55;color:#4A5A54">{{ s.text }}</p>
+            </div>
+          </sc-for>
+        </div>
+        <p style="font-size:14.5px;color:#5A6660;max-width:70ch">Aucune intégration technique n’est nécessaire pour commencer&nbsp;: un règlement, un guide coureur, une trace GPX et vos horaires suffisent.</p>
+      </div>
+    </section>
+
+    <!-- ═══ BACK-OFFICE ═══ -->
+    <section id="backoffice" style="padding:clamp(50px,7vw,88px) 20px;background:#FFFFFF;box-shadow:inset 0 1px 0 rgba(14,26,23,.07)">
+      <div style="max-width:1200px;margin:0 auto">
+        <div style="display:grid;grid-template-columns:{{ splitCols }};gap:clamp(30px,4vw,52px);align-items:center">
+          <div>
+            <h2 style="font-size:clamp(26px,3.8vw,40px);line-height:1.12;margin-bottom:18px">Vous restez la source officielle.</h2>
+            <p style="font-size:17px;line-height:1.6;color:#4A5A54;margin-bottom:22px">Chaque information détectée dans vos documents vous est présentée avec sa provenance. Vous validez, corrigez ou refusez. Rien n’est publié comme officiel sans votre accord, et chaque règle affichée à un coureur renvoie vers votre document, page et article compris.</p>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px">
+              <sc-for list="{{ boPoints }}" as="p" hint-placeholder-count="4">
+                <div style="display:flex;gap:11px;align-items:flex-start;font-size:15.5px">
+                  <i class="ph ph-check" style="font-size:17px;color:#14342C;margin-top:3px;flex:none"></i><span>{{ p }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <a href="#contact" class="pk-btn pk-sec">Voir une démonstration</a>
+          </div>
+          <div style="background:#F2F0E9;border-radius:2px;box-shadow:var(--shadow-sm);padding:18px 20px">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+              <sc-for list="{{ boTabs }}" as="t" hint-placeholder-count="4">
+                <span style="padding:7px 12px;border-radius:2px;background:{{ t.bg }};color:{{ t.color }};font-size:13px;font-weight:500">{{ t.label }}</span>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <sc-for list="{{ boRows }}" as="r" hint-placeholder-count="5">
+                <div style="padding:13px 14px;border-radius:2px;background:#FFFFFF;box-shadow:var(--shadow-sm)">
+                  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                    <span style="flex:1;min-width:150px;font-size:15px;font-weight:500">{{ r.label }}</span>
+                    <span style="padding:4px 9px;border-radius:2px;background:{{ r.bg }};color:{{ r.color }};font-size:11.5px;font-weight:600">{{ r.status }}</span>
+                  </div>
+                  <div style="font-size:12.5px;color:#5A6660;margin-top:4px">{{ r.src }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ BRIEF ORGANISATEUR ═══ -->
+    <section id="brief" style="padding:clamp(50px,7vw,90px) 20px">
+      <div style="max-width:1200px;margin:0 auto">
+        <div style="display:grid;grid-template-columns:{{ splitCols }};gap:clamp(30px,4vw,52px);align-items:start">
+          <div>
+            <div class="pk-label" style="color:#14342C;margin-bottom:14px">Votre brief avant-course</div>
+            <h2 style="font-size:clamp(27px,4vw,42px);line-height:1.1;margin-bottom:18px;max-width:20ch">Tout ce qui compte. Une seule page.</h2>
+            <p style="font-size:clamp(16px,1.8vw,18px);line-height:1.6;color:#3C4A45;max-width:56ch;margin-bottom:16px">PLUKA génère votre brief automatiquement et le fait évoluer avec l’échéance. Vous ne le construisez pas.</p>
+            <p style="font-size:15.5px;line-height:1.6;color:#5A6660;max-width:56ch;margin-bottom:22px">Partagez-le avec votre équipe&nbsp;: tout le monde n’a pas besoin d’un compte PLUKA pour en profiter. Il ne contient que des données agrégées, aucune information personnelle de coureur.</p>
+            <a href="#contact" class="pk-btn pk-sec">Voir un exemple de brief</a>
+          </div>
+          <div style="background:#FFFFFF;box-shadow:var(--shadow-lg)">
+            <div class="pk-topo" style="background-color:#0E1A17;color:#F2F0E9;padding:20px 22px">
+              <div class="pk-label" style="color:#C6F24E;margin-bottom:8px">Brief organisation</div>
+              <div class="pk-h" style="font-size:20px;color:#F2F0E9">Wild 70 · J-7</div>
+              <div class="pk-data" style="font-size:11px;color:rgba(242,240,233,.66);margin-top:7px">Mis à jour aujourd’hui · 14:20</div>
+            </div>
+            <div style="padding:4px 22px 18px">
+              <sc-for list="{{ briefSections }}" as="s" hint-placeholder-count="5">
+                <div style="padding:15px 0;box-shadow:inset 0 -1px 0 #EDEAE0">
+                  <div class="pk-label" style="margin-bottom:9px">{{ s.title }}</div>
+                  <sc-for list="{{ s.lines }}" as="l" hint-placeholder-count="2">
+                    <div style="font-size:14.5px;line-height:1.5;color:#0E1A17;padding:2px 0">{{ l.v }}</div>
+                  </sc-for>
+                </div>
+              </sc-for>
+              <div style="font-size:12.5px;color:#5A6660;padding-top:14px">Données agrégées et simulées pour cet exemple.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ CONDITIONS J-14 ═══ -->
+    <section id="conditions" class="pk-topo-glacier" style="padding:clamp(50px,7vw,90px) 20px;background-color:#0E1A17;color:#F2F0E9">
+      <div style="max-width:1200px;margin:0 auto">
+        <div class="pk-label" style="color:#C6F24E;margin-bottom:14px">Conditions</div>
+        <h2 style="font-size:clamp(26px,3.8vw,42px);line-height:1.12;margin-bottom:18px;max-width:24ch">À J-14, le terrain entre dans l’analyse.</h2>
+        <p style="font-size:clamp(16px,1.8vw,18px);line-height:1.6;color:#E4E1D6;max-width:60ch;margin-bottom:34px">Avant J-14, PLUKA n’affiche aucune tendance météo — ni à vos participants, ni à votre organisation. Ensuite, les conditions annoncées sont croisées avec les flux prévisionnels de votre peloton.</p>
+        <div style="display:grid;grid-template-columns:{{ splitCols }};gap:clamp(28px,4vw,48px);align-items:center">
+          <div style="background:#FFFFFF;color:#0E1A17;padding:20px 22px">
+            <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px">
+              <span class="pk-h" style="font-size:19px">Col du Rawil</span>
+              <span class="pk-data" style="margin-left:auto;font-size:11.5px;color:#C4471F">froid + vent probable</span>
+            </div>
+            <div class="pk-data" style="font-size:13.5px;color:#5A6660;margin-bottom:18px">15:30 → 19:00</div>
+            <div class="pk-h" style="font-size:38px;color:#0E1A17;line-height:1">68 %</div>
+            <div style="font-size:14.5px;line-height:1.5;color:#3C4A45;margin-top:8px;max-width:38ch">du peloton devrait traverser la zone pendant cette période, selon les flux prévisionnels.</div>
+          </div>
+          <div>
+            <p style="font-size:17px;line-height:1.6;color:#E4E1D6;max-width:48ch;margin-bottom:16px">PLUKA éclaire la décision. L’organisation reste la seule à décider d’un kit froid, d’une modification de parcours ou d’une consigne officielle.</p>
+            <p style="font-size:15px;line-height:1.6;color:rgba(242,240,233,.72);max-width:48ch">Et une décision publiée reste visible par tous vos participants, quelle que soit leur formule.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ CÔTÉ PARTICIPANT ═══ -->
+    <section id="participant" class="pk-topo" style="padding:clamp(50px,7vw,90px) 20px;background-color:#0E1A17;color:#F2F0E9">
+      <div style="max-width:1200px;margin:0 auto">
+        <div style="font-size:12px;font-weight:500;color:#C6F24E;font-weight:600;margin-bottom:12px">Côté participant</div>
+        <h2 style="font-size:clamp(26px,3.8vw,42px);line-height:1.12;margin-bottom:18px;max-width:28ch">De votre invitation à son premier plan de course.</h2>
+        <p style="font-size:17px;line-height:1.6;color:#E4E1D6;max-width:62ch;margin-bottom:34px">Vos participants reçoivent une invitation à vos couleurs. En deux minutes, sans configuration, ils obtiennent un espace de préparation construit à partir de vos informations.</p>
+        <div style="display:grid;grid-template-columns:{{ splitCols }};gap:clamp(30px,4vw,52px);align-items:start">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ flow }}" as="f" hint-placeholder-count="5">
+              <div style="display:flex;gap:14px;align-items:flex-start;padding:16px 18px;border-radius:2px;background:rgba(242,240,233,.06)">
+                <span style="width:26px;height:26px;flex:none;border-radius:50%;background:#14342C;color:#FFFFFF;display:grid;place-items:center;font-family:var(--font-heading);font-weight:600;font-size:13px">{{ f.n }}</span>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:16.5px;font-weight:600">{{ f.title }}</span>
+                  <span style="display:block;font-size:14.5px;color:#C6F24E;margin-top:4px">{{ f.text }}</span>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#FFFFFF;color:#0E1A17;border-radius:2px;box-shadow:0 20px 50px rgba(0,0,0,.3);padding:20px 22px">
+            <div style="font-size:12px;font-weight:500;color:#5A6660;margin-bottom:10px">Ce que voit votre participant</div>
+            <div style="font-family:var(--font-heading);font-weight:700;font-size:24px;margin-bottom:4px">Wild 70</div>
+            <div style="font-size:13.5px;color:#5A6660;margin-bottom:16px">72 km · 4 600 m D+ · 11 septembre 2026 · départ 06:00</div>
+            <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:16px">
+              <sc-for list="{{ participantRows }}" as="r" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:11px;padding:11px 0;box-shadow:inset 0 -1px 0 rgba(14,26,23,.07)">
+                  <i class="{{ r.icon }}" style="font-size:17px;color:#14342C;flex:none"></i>
+                  <span style="flex:1;min-width:0;font-size:15px">{{ r.label }}</span>
+                  <span style="font-family:var(--font-heading);font-weight:600;font-size:15px">{{ r.v }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="padding:13px 15px;border-radius:2px;background:#E8F4F1">
+              <div style="font-size:12px;font-weight:500;color:#0E1A17;margin-bottom:4px"><i class="ph ph-seal-check" style="margin-right:5px"></i>Information officielle</div>
+              <div style="font-size:14px;color:#14342C">Assistance autorisée uniquement dans la zone prévue, à la sortie du ravitaillement.</div>
+              <div style="font-size:12.5px;color:#5A6660;margin-top:6px">Votre règlement 2026 · page 14 · article 9.1</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ CONFIDENTIALITÉ ═══ -->
+    <section id="confidentialite" style="padding:clamp(46px,6vw,80px) 20px;background:#FFFFFF;box-shadow:inset 0 1px 0 rgba(14,26,23,.07),inset 0 -1px 0 rgba(14,26,23,.07)">
+      <div style="max-width:1100px;margin:0 auto">
+        <div class="pk-label" style="color:#14342C;margin-bottom:14px">Confidentialité</div>
+        <h2 style="font-size:clamp(25px,3.6vw,38px);line-height:1.12;margin-bottom:18px;max-width:24ch">Le plan reste celui du participant.</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px 34px">
+          <div>
+            <div style="font-size:15px;line-height:1.6;color:#3C4A45;margin-bottom:12px">L’organisation ne voit jamais&nbsp;:</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <sc-for list="{{ privacyNever }}" as="p" hint-placeholder-count="6">
+                <span class="pk-data" style="font-size:11.5px;padding:6px 10px;background:#F2F0E9;color:#5A6660">{{ p.v }}</span>
+              </sc-for>
+            </div>
+          </div>
+          <p style="font-size:16px;line-height:1.6;color:#14342C">Les analyses organisateur reposent uniquement sur des données agrégées et anonymisées, avec un seuil minimal&nbsp;: aucune analyse n’est affichée sur un groupe trop petit. Aucun classement de coureurs, aucun score individuel, aucune notion de participant «&nbsp;à risque&nbsp;».</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ UNE MÊME DONNÉE, PLUSIEURS MÉTIERS ═══ -->
+    <section id="metiers" class="pk-topo" style="padding:clamp(50px,7vw,90px) 20px;background-color:#0E1A17;color:#F2F0E9">
+      <div style="max-width:1200px;margin:0 auto">
+        <div class="pk-label" style="color:#C6F24E;margin-bottom:14px">Une même donnée</div>
+        <h2 style="font-size:clamp(26px,3.8vw,42px);line-height:1.12;margin-bottom:18px;max-width:24ch">Plusieurs métiers, une seule source.</h2>
+        <div style="display:grid;grid-template-columns:{{ splitCols }};gap:clamp(28px,4vw,48px);margin-top:34px">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <sc-for list="{{ riRoles }}" as="r" hint-placeholder-count="5">
+              <div style="padding:18px 0;border-top:1px solid rgba(242,240,233,.16)">
+                <div class="pk-label" style="color:#C6F24E;margin-bottom:9px">{{ r.who }}</div>
+                <p style="font-size:15.5px;line-height:1.6;color:#E4E1D6;margin:0;max-width:52ch">{{ r.what }}</p>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#FFFFFF;color:#0E1A17;box-shadow:var(--shadow-lg);align-self:start">
+            <div style="padding:20px 22px 0">
+              <div class="pk-label" style="margin-bottom:12px">Ce que PLUKA vous remonte · Adelboden</div>
+              <div class="pk-data" style="font-size:12px;color:#5A6660;margin-bottom:16px">km 31,2 · 1 350 m · 1 091 coureurs attendus</div>
+            </div>
+            <div style="padding:0 22px 8px">
+              <div style="display:flex;align-items:flex-end;gap:5px;height:110px">
+                <sc-for list="{{ riDemoBars }}" as="b" hint-placeholder-count="8">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+                    <span style="width:100%;height:{{ b.h }};background:{{ b.c }}"></span>
+                    <span class="pk-data" style="font-size:9px;color:#5A6660">{{ b.t }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="padding:14px 22px 18px;box-shadow:inset 0 1px 0 #EDEAE0">
+              <div style="display:flex;align-items:baseline;gap:12px">
+                <span class="pk-label" style="color:#C4471F">Pic attendu</span>
+                <span class="pk-data" style="margin-left:auto;font-size:15px;color:#0E1A17">10:30 → 11:00</span>
+              </div>
+              <div style="font-size:12.5px;color:#5A6660;margin-top:10px">Basé sur 82 % du peloton avec données exploitables. Analyses agrégées — aucun plan individuel accessible.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ BÉNÉFICES ═══ -->
+    <section id="benefices" style="padding:clamp(50px,7vw,88px) 20px">
+      <div style="max-width:1200px;margin:0 auto">
+        <h2 style="font-size:clamp(26px,3.8vw,42px);line-height:1.12;margin-bottom:30px;max-width:26ch">Ce que cela change pour votre événement.</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:16px;margin-bottom:28px">
+          <sc-for list="{{ benefits }}" as="b" hint-placeholder-count="4">
+            <div style="background:#FFFFFF;border-radius:2px;box-shadow:var(--shadow-sm);padding:24px">
+              <i class="{{ b.icon }}" style="font-size:24px;color:#14342C"></i>
+              <h3 style="font-size:18.5px;font-weight:600;margin:12px 0 8px">{{ b.title }}</h3>
+              <p style="font-size:15px;line-height:1.55;color:#4A5A54">{{ b.text }}</p>
+            </div>
+          </sc-for>
+        </div>
+        <div style="border-radius:2px;overflow:hidden;height:clamp(190px,24vw,300px);position:relative">
+          <image-slot id="pluka-org-photo" shape="rect" placeholder="Photo de votre événement — départ, ravitaillement ou zone d’assistance"></image-slot>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ PÉRIMÈTRE ═══ -->
+    <section style="padding:clamp(46px,6vw,80px) 20px;background:#FFFFFF;box-shadow:inset 0 1px 0 rgba(14,26,23,.07),inset 0 -1px 0 rgba(14,26,23,.07)">
+      <div style="max-width:1100px;margin:0 auto">
+        <h2 style="font-size:clamp(24px,3.4vw,36px);line-height:1.14;margin-bottom:24px">Ce que PLUKA fait — et ne fait pas.</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px">
+          <div>
+            <div style="font-size:12px;font-weight:500;color:#0F7A4D;font-weight:600;margin-bottom:12px">PLUKA prend en charge</div>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <sc-for list="{{ doList }}" as="d" hint-placeholder-count="5">
+                <div style="display:flex;gap:11px;align-items:flex-start;font-size:15.5px"><i class="ph ph-check-circle" style="font-size:18px;color:#2F7A55;margin-top:2px;flex:none"></i>{{ d }}</div>
+              </sc-for>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:500;color:#5A6660;font-weight:600;margin-bottom:12px">PLUKA ne remplace pas</div>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <sc-for list="{{ dontList }}" as="d" hint-placeholder-count="5">
+                <div style="display:flex;gap:11px;align-items:flex-start;font-size:15.5px;color:#4A5A54"><i class="ph ph-minus-circle" style="font-size:18px;color:#C9C4B4;margin-top:2px;flex:none"></i>{{ d }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ CONTACT ═══ -->
+    <section id="contact" style="padding:clamp(50px,7vw,88px) 20px">
+      <div style="max-width:1000px;margin:0 auto;display:grid;grid-template-columns:{{ splitCols }};gap:clamp(28px,4vw,48px);align-items:start">
+        <div>
+          <h2 style="font-size:clamp(26px,3.6vw,38px);line-height:1.12;margin-bottom:14px">Parlons de votre événement.</h2>
+          <p style="font-size:16.5px;line-height:1.6;color:#4A5A54;margin-bottom:20px">Nous ouvrons PLUKA progressivement à des organisateurs de trail, pour construire un outil réellement utile aux coureurs comme aux organisations. Décrivez-nous votre épreuve&nbsp;: nous revenons vers vous avec une présentation adaptée à vos documents.</p>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <sc-for list="{{ contactPoints }}" as="c" hint-placeholder-count="3">
+              <div style="display:flex;gap:11px;align-items:flex-start;font-size:15px;color:#4A5A54"><i class="ph ph-check" style="font-size:16px;color:#14342C;margin-top:3px;flex:none"></i>{{ c }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:#FFFFFF;box-shadow:var(--shadow-lg)">
+          <div class="pk-topo" style="background-color:#0E1A17;color:#F2F0E9;padding:20px 22px">
+            <div class="pk-label" style="color:#C6F24E;margin-bottom:8px">Parler de mon événement</div>
+            <div class="pk-h" style="font-size:19px;color:#F2F0E9;line-height:1.2">Quatre champs suffisent.</div>
+          </div>
+          <div style="padding:clamp(22px,3vw,28px)">
+          <sc-if value="{{ formOpen }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:20px">
+              <div class="pk-field">
+                <label for="org-event">Nom de l’événement</label>
+                <input id="org-event" class="pk-in" placeholder="Wildstrubel by UTMB" />
+              </div>
+              <div style="display:grid;grid-template-columns:{{ formCols }};gap:20px">
+                <div class="pk-field">
+                  <label for="org-name">Votre nom et fonction</label>
+                  <input id="org-name" class="pk-in" placeholder="Responsable coureurs" />
+                </div>
+                <div class="pk-field">
+                  <label for="org-count">Participants attendus · facultatif</label>
+                  <input id="org-count" class="pk-in" placeholder="1 200" />
+                </div>
+              </div>
+              <div class="pk-field">
+                <label for="org-mail">Email professionnel</label>
+                <input id="org-mail" type="email" class="pk-in" placeholder="organisation@monevenement.fr" />
+              </div>
+              <div class="pk-field">
+                <label for="org-msg">Votre épreuve en quelques mots</label>
+                <textarea id="org-msg" class="pk-in" rows="3" placeholder="Nombre d’épreuves, date de la prochaine édition, ce que vous aimeriez améliorer…"></textarea>
+              </div>
+              <button onClick="{{ sendForm }}" class="pk-btn pk-pri" style="width:100%;margin-top:2px">Parler de mon événement<i class="ph ph-arrow-right"></i></button>
+              <div style="display:flex;gap:10px;align-items:flex-start;padding-top:16px;box-shadow:inset 0 1px 0 #EDEAE0">
+                <i class="ph ph-lock-simple" style="font-size:15px;color:#5A6660;margin-top:2px;flex:none"></i>
+                <p style="font-size:12.5px;line-height:1.55;color:#5A6660;margin:0">Vos informations servent uniquement à préparer cet échange. Aucune donnée de vos participants ne nous est nécessaire à ce stade.</p>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ formSent }}" hint-placeholder-val="{{ false }}">
+            <div style="animation:pkUp .3s ease both;padding:8px 0">
+              <div style="display:flex;align-items:center;gap:11px">
+                <i class="ph ph-check-circle" style="font-size:26px;color:#2F7A55;flex:none"></i>
+                <span class="pk-label" style="color:#2F7A55">Demande envoyée</span>
+              </div>
+              <h3 class="pk-h" style="font-size:22px;margin:16px 0 10px">On vous répond sous quelques jours.</h3>
+              <p style="font-size:15.5px;line-height:1.6;color:#3C4A45;margin:0 0 20px">Avec une présentation appuyée sur les documents réels de votre épreuve — pas une démonstration générique.</p>
+              <button onClick="{{ resetForm }}" class="pk-btn pk-sec" style="width:100%">Envoyer une autre demande</button>
+            </div>
+          </sc-if>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ FAQ ═══ -->
+    <section id="faq" style="padding:clamp(46px,6vw,80px) 20px;background:#FFFFFF;box-shadow:inset 0 1px 0 rgba(14,26,23,.07)">
+      <div style="max-width:860px;margin:0 auto">
+        <h2 style="font-size:clamp(25px,3.4vw,36px);line-height:1.14;margin-bottom:24px">Questions des organisateurs</h2>
+        <div style="display:flex;flex-direction:column">
+          <sc-for list="{{ faq }}" as="f" hint-placeholder-count="6">
+            <div style="box-shadow:inset 0 -1px 0 rgba(14,26,23,.09)">
+              <button onClick="{{ f.toggle }}" aria-expanded="{{ f.expanded }}" style="display:flex;align-items:center;gap:14px;width:100%;min-height:60px;padding:16px 2px;border:0;background:transparent;cursor:pointer;text-align:left">
+                <h3 style="flex:1;min-width:0;font-size:17px;font-weight:600">{{ f.q }}</h3>
+                <i class="{{ f.icon }}" style="font-size:19px;color:#0E1A17;flex:none"></i>
+              </button>
+              <sc-if value="{{ f.open }}" hint-placeholder-val="{{ false }}">
+                <p style="font-size:16px;line-height:1.62;color:#4A5A54;padding:0 40px 20px 2px;max-width:70ch">{{ f.a }}</p>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ CTA FINAL ═══ -->
+    <section class="pk-topo-glacier" style="padding:clamp(52px,7vw,96px) 20px;background-color:#0E1A17;color:#F2F0E9">
+      <div style="max-width:900px;margin:0 auto">
+        <h2 style="font-size:clamp(28px,4.4vw,46px);line-height:1.08;margin-bottom:16px">Vos participants arriveront mieux préparés au départ.</h2>
+        <p style="font-size:clamp(16.5px,2vw,19px);line-height:1.55;color:#E4E1D6;max-width:56ch;margin-bottom:30px">Fournissez vos informations officielles une fois&nbsp;; PLUKA les transforme en préparation personnelle pour chacun de vos coureurs.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <a href="#contact" class="pk-btn pk-dark">Demander une présentation<i class="ph ph-arrow-right"></i></a>
+          <a href="PLUKA%20Homepage.dc.html" class="pk-btn pk-ghostdark">Voir PLUKA côté coureur</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer style="padding:clamp(38px,5vw,56px) 20px 40px;background:#F2F0E9">
+    <div style="max-width:1200px;margin:0 auto">
+      <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;margin-bottom:28px">
+        <div style="flex:1;min-width:220px">
+          <div style="margin-bottom:14px"><svg viewBox="0 0 928 175" style="width:140px;height:26px;display:block;flex:none"><use href="#pk-lockup"></use></svg></div>
+          <p style="font-size:14px;color:#5A6660;max-width:32ch">La préparation opérationnelle de votre course, du règlement au plan de chaque participant.</p>
+        </div>
+        <div style="display:flex;gap:40px;flex-wrap:wrap">
+          <sc-for list="{{ footer }}" as="col" hint-placeholder-count="2">
+            <div>
+              <div style="font-size:12px;font-weight:500;color:#5A6660;margin-bottom:12px">{{ col.title }}</div>
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <sc-for list="{{ col.links }}" as="l" hint-placeholder-count="4">
+                  <a href="{{ l.href }}" style="display:flex;align-items:center;min-height:36px;font-size:14.5px;color:#4A5A54">{{ l.label }}</a>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding-top:20px;box-shadow:inset 0 1px 0 rgba(14,26,23,.09);font-size:13px;color:#5A6660">
+        <span>© PLUKA</span>
+        <span>pluka.run/organisateurs</span>
+      </div>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { menu: false, faq: 0, sent: false, vw: 1280 };
+
+  componentDidMount() {
+    this._rz = () => { const w = window.innerWidth; if (Math.abs((this.state.vw || 0) - w) > 4) this.setState({ vw: w }); };
+    this._rz();
+    window.addEventListener('resize', this._rz);
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this._rz); }
+
+  renderVals() {
+    const w = this.state.vw || 1280, mob = w <= 1000, small = w <= 860;
+    // l'ordre du menu suit l'ordre des sections de la page
+    const links = [
+      { label: 'Pourquoi PLUKA', href: '#intelligence' },
+      { label: 'Comment ça marche', href: '#fonctionnement' },
+      { label: 'Pour vos participants', href: '#participant' },
+      { label: 'Questions', href: '#faq' }
+    ];
+    const faqData = [
+      { q: 'Faut-il une intégration technique pour démarrer ?', a: 'Non. Un règlement, un guide coureur, votre trace GPX et vos horaires officiels suffisent pour construire un espace de préparation. Une connexion à votre système d’inscription peut venir ensuite, pour automatiser les invitations, mais elle n’est pas nécessaire au départ.' },
+      { q: 'Qui reste responsable des informations affichées ?', a: 'Vous. Toute information issue de vos documents vous est soumise avant d’être publiée comme officielle, et chaque règle affichée à un coureur cite votre document d’origine avec sa page et son article. Ce que PLUKA n’a pas pu faire confirmer est signalé comme tel, jamais présenté comme officiel.' },
+      { q: 'Que se passe-t-il si nous modifions une information après publication ?', a: 'Vous mettez l’information à jour dans votre espace organisateur ; elle est répercutée dans la préparation des participants concernés, et les plans qui en dépendent — barrières, matériel, zones d’assistance — sont recalculés côté coureur.' },
+      { q: 'PLUKA remplace-t-il notre site ou notre application officielle ?', a: 'Non. Votre site reste la référence de votre événement. PLUKA est l’outil de préparation du coureur : il exploite vos informations pour construire son plan, sa nutrition, son matériel et son assistance, et renvoie systématiquement vers vos documents.' },
+      { q: 'Nos participants doivent-ils payer ?', a: 'La préparation reste accessible gratuitement à vos participants pendant la phase d’ouverture. Les conditions applicables à votre événement sont discutées lors de la présentation, sans grille tarifaire imposée à ce stade.' },
+      { q: 'Vos participants reçoivent-ils une météo de course ?', a: 'À partir de J-14, les participants équipés d’un Race Pass, d’un PLUKA+ ou d’une préparation offerte par votre organisation voient les conditions prévues point par point, recalées sur leurs propres horaires de passage. Aucune prévision n’est affichée au-delà de J-14. Vos décisions — kit froid, parcours de repli, alerte sécurité — restent gratuites pour tous et s’affichent systématiquement au-dessus de la prévision. Vous n’avez accès ni au plan personnel ni aux conditions individuelles d’un participant.' },
+      { q: 'Quelles données de participants sont nécessaires ?', a: 'Aucune pour commencer : un espace peut être construit à partir de vos seuls documents officiels. Les invitations personnalisées nécessitent ensuite les éléments strictement utiles — nom, email, épreuve, dossard — que vous restez libre de ne pas transmettre.' }
+    ];
+    return {
+      navLinks: links.map(l => Object.assign({}, l, { style: mob ? 'display:none' : '' })),
+      backStyle: 'display:none',
+      stripTagStyle: 'font-size:12.5px;color:rgba(242,240,233,.62);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:' + (w <= 620 ? 'none' : 'block'),
+      burgerStyle: 'display:' + (mob ? 'inline-flex' : 'none') + ';align-items:center;justify-content:center;width:44px;height:44px;border:1px solid #DCD8CB;border-radius:2px;background:#FFFFFF;color:#0E1A17;cursor:pointer',
+      menuOpen: mob && this.state.menu,
+      toggleMenu: () => this.setState(s => ({ menu: !s.menu })),
+      closeMenu: () => this.setState({ menu: false }),
+      heroCols: w <= 1000 ? '1fr' : '1.05fr 1fr',
+      splitCols: w <= 1000 ? '1fr' : '1fr 1fr',
+
+      heroStats: [{ v: '4', k: 'épreuves' }, { v: '47', k: 'informations structurées' }, { v: '5', k: 'sources officielles' }],
+      heroRows: [
+        { icon: 'ph ph-file-pdf', label: 'Règlement 2026 · 24 pages', status: '23 informations', bg: '#E8F4F1', color: '#0E1A17' },
+        { icon: 'ph ph-map-trifold', label: 'Trace GPX Wild 70 · v3', status: 'Officielle', bg: '#E6EFE4', color: '#0F7A4D' },
+        { icon: 'ph ph-clock-countdown', label: 'Barrières horaires · 4 points', status: 'Officielle', bg: '#E6EFE4', color: '#0F7A4D' },
+        { icon: 'ph ph-warning', label: 'Zone d’assistance Lenk', status: 'À valider', bg: '#F5ECD8', color: '#7A4E12' }
+      ],
+      pains: [
+        { icon: 'ph ph-file-pdf', label: 'Le règlement est lu une fois, puis oublié' },
+        { icon: 'ph ph-envelope', label: 'Les mêmes questions reviennent chaque année' },
+        { icon: 'ph ph-chats-circle', label: 'Des réponses approximatives circulent sur les réseaux' },
+        { icon: 'ph ph-users-three', label: 'Les accompagnants arrivent au mauvais endroit, au mauvais moment' }
+      ],
+      steps: [
+        { num: '01', title: 'Vous fournissez', text: 'Documents de course, trace GPX, liste d’inscrits. Ce que vous possédez déjà — un lien vers votre site suffit pour démarrer.' },
+        { num: '02', title: 'PLUKA analyse', text: 'Cohérence des informations, composition du peloton, principaux flux sur le parcours, questions de vos participants.' },
+        { num: '03', title: 'Vous décidez', text: 'Vous ne vérifiez que les points qui méritent votre attention. Rien n’est publié sans votre validation.' }
+      ],
+      boPoints: [
+        'Une information, une source : document, page, article',
+        'Statuts explicites : officielle, validée PLUKA, communautaire',
+        'Historique des modifications d’une édition à l’autre',
+        'Prévisualisation « voir comme un participant »'
+      ],
+      boTabs: [
+        { label: 'Sources', bg: '#FFFFFF', color: '#0E1A17' },
+        { label: 'Informations', bg: 'transparent', color: '#4A5A54' },
+        { label: 'Participants', bg: 'transparent', color: '#4A5A54' },
+        { label: 'Épreuves', bg: 'transparent', color: '#4A5A54' }
+      ],
+      boRows: [
+        { label: 'Matériel obligatoire', status: 'Officielle', bg: '#E6EFE4', color: '#0F7A4D', src: 'Règlement 2026 · page 11 · article 7.2' },
+        { label: 'Barrière Iffigenalp 16:31', status: 'Officielle', bg: '#E6EFE4', color: '#0F7A4D', src: 'Règlement 2026 · page 13 · article 8.1' },
+        { label: 'Dépôt du sac d’arrivée', status: 'À vérifier', bg: '#F5ECD8', color: '#7A4E12', src: 'Guide coureur 2026 · page 18 — horaire à confirmer' },
+        { label: 'Parking assistance Adelboden', status: 'Communautaire', bg: '#E4E1D6', color: '#4A5A54', src: 'Retour de 3 participants · édition 2025' },
+        { label: 'Navettes retour', status: 'Officielle', bg: '#E6EFE4', color: '#0F7A4D', src: 'Guide coureur 2026 · page 22' }
+      ],
+      flow: [
+        { n: '1', title: 'Invitation à vos couleurs', text: 'Un email signé de votre organisation, propulsé par PLUKA.' },
+        { n: '2', title: '« Ton espace Wild 70 est presque prêt »', text: 'Vos informations sont déjà préremplies : épreuve, dossard, vague de départ.' },
+        { n: '3', title: 'Le participant fixe son objectif', text: 'Un chrono visé, une question sur son assistance. Rien d’autre.' },
+        { n: '4', title: 'Son plan est généré', text: 'Temps de passage, marges aux barrières, matériel, sacs, tâches.' },
+        { n: '5', title: 'Il prépare le reste', text: 'Nutrition, assistance et lien privé pour son accompagnant.' }
+      ],
+      participantRows: [
+        { icon: 'ph ph-path', label: 'Plan de course généré', v: '12 h 30', bg: '' },
+        { icon: 'ph ph-clock-countdown', label: 'Barrières contrôlées', v: '4', bg: '' },
+        { icon: 'ph ph-list-checks', label: 'Matériel identifié', v: '22', bg: '' },
+        { icon: 'ph ph-users-three', label: 'Points d’assistance', v: '2', bg: '' },
+        { icon: 'ph ph-mountains', label: 'Conditions point par point', v: 'dès J-14', bg: '' }
+      ],
+      briefSections: [
+        { title: 'Course', lines: [{ v: '✓ Informations principales validées.' }, { v: '1 point à vérifier : parking assistance Adelboden.' }] },
+        { title: 'Peloton', lines: [{ v: '1 091 participants.' }, { v: 'Vague 3 plus dispersée que les deux autres.' }] },
+        { title: 'Parcours', lines: [{ v: 'Adelboden : pic attendu 10:40 → 11:20.' }, { v: 'Iffigenalp : barrière à surveiller.' }] },
+        { title: 'Participants', lines: [{ v: 'Assistance : principal sujet de questions cette semaine.' }] },
+        { title: 'Conditions', lines: [{ v: 'Froid + vent prévu au col du Rawil.' }] }
+      ],
+      privacyNever: ['Objectif individuel', 'Horaires personnels', 'Plan personnel', 'Nutrition', 'Assistance privée', 'Sacs et notes'].map(v => ({ v })),
+      heroBrief: [
+        { n: '01', v: 'La vague 3 est plus hétérogène que les deux autres.' },
+        { n: '02', v: 'Pic attendu à Adelboden entre 10:40 et 11:20.' },
+        { n: '03', v: '38 participants cherchent une information sur le parking assistance.' }
+      ],
+      formCols: (this.state.vw || 1280) <= 620 ? '1fr' : '1.4fr 1fr',
+      duoCols: (this.state.vw || 1280) <= 900 ? '1fr' : 'repeat(2,1fr)',
+      riRoles: [
+        { who: 'Directeur de course', what: 'Les points du parcours et les barrières qui méritent votre attention.' },
+        { who: 'Opérations', what: 'Les principales périodes de charge attendues.' },
+        { who: 'Relation participants', what: 'Les informations que vos coureurs cherchent réellement.' },
+        { who: 'Direction', what: 'Une vision synthétique de l’état de préparation de l’événement.' },
+        { who: 'Marketing', what: 'Une expérience premium offerte aux participants, avec une adoption mesurable.' }
+      ],
+      riDemoBars: [
+        { t: '09:00', v: 18 }, { t: '09:30', v: 42 }, { t: '10:00', v: 74 }, { t: '10:30', v: 100 },
+        { t: '11:00', v: 78 }, { t: '11:30', v: 46 }, { t: '12:00', v: 24 }, { t: '12:30', v: 11 }
+      ].map(b => ({ t: b.t, h: Math.max(3, Math.round(b.v * 0.9)) + 'px', c: b.v === 100 ? '#FF6A3D' : '#14342C' })),
+      benefits: [
+        { icon: 'ph ph-book-open-text', title: 'Des informations mieux utilisées', text: 'Vos règles apparaissent au moment où le coureur en a besoin, plutôt qu’enfouies page 14 d’un PDF.' },
+        { icon: 'ph ph-flag-checkered', title: 'Des participants mieux préparés', text: 'Matériel conforme, horaires réalistes, sacs déposés à temps, accompagnants au bon endroit.' },
+        { icon: 'ph ph-chat-teardrop-text', title: 'Moins de questions répétitives', text: 'Les participants interrogent directement les informations officielles de votre épreuve.' },
+        { icon: 'ph ph-chart-line', title: 'Une meilleure lecture des besoins', text: 'Vous voyez l’activation de vos participants et les thématiques les plus consultées.' },
+        { icon: 'ph ph-mountains', title: 'Des conditions comprises, pas subies', text: 'À partir de J-14, chaque participant voit les conditions recalées sur son propre plan et ses horaires de passage — et vos décisions météo apparaissent toujours au-dessus de la prévision.' }
+      ],
+      doList: [
+        'Structurer vos documents officiels en informations exploitables',
+        'Construire le plan de course personnel de chaque participant',
+        'Traduire le matériel obligatoire en checklist individuelle',
+        'Organiser la nutrition et les sacs selon le parcours',
+        'Montrer à chacun les conditions prévues sur son propre horaire, dès J-14',
+        'Donner à chaque accompagnant les consignes qui le concernent'
+      ],
+      dontList: [
+        'Votre site officiel et votre communication',
+        'Votre système d’inscription et de chronométrage',
+        'Le suivi live et le tracking GPS des coureurs',
+        'Les plans d’entraînement de vos participants',
+        'La vente de produits ou de services aux coureurs',
+        'Vous donner accès au plan personnel ou aux conditions d’un participant'
+      ],
+      contactPoints: [
+        'Présentation adaptée à vos documents réels',
+        'Aucune donnée de participant nécessaire à ce stade',
+        'Retour sous quelques jours'
+      ],
+      formOpen: !this.state.sent, formSent: this.state.sent,
+      sendForm: () => this.setState({ sent: true }),
+      resetForm: () => this.setState({ sent: false }),
+      faq: faqData.map((f, i) => ({
+        q: f.q, a: f.a,
+        open: this.state.faq === i,
+        expanded: this.state.faq === i ? 'true' : 'false',
+        icon: this.state.faq === i ? 'ph ph-minus' : 'ph ph-plus',
+        toggle: () => this.setState(s => ({ faq: s.faq === i ? -1 : i }))
+      })),
+      footer: [
+        { title: 'Organisateurs', links: [
+          { label: 'Pourquoi PLUKA', href: '#intelligence' },
+      { label: 'Comment ça marche', href: '#fonctionnement' }, { label: 'Espace organisateur', href: '#backoffice' },
+          { label: 'Questions', href: '#faq' }, { label: 'Demander une présentation', href: '#contact' }
+        ] },
+        { title: 'PLUKA', links: [
+          { label: 'PLUKA côté coureur', href: 'PLUKA%20Homepage.dc.html' }, { label: 'Contact', href: '#contact' },
+          { label: 'Confidentialité', href: '#contact' }, { label: 'CGU', href: '#contact' }
+        ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

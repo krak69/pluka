@@ -1,0 +1,3 @@
+-- Tests pgTAP. Cible prioritaire : deny-by-default et isolation coureur/organisation.
+-- Voir docs/03_PRIVACY_RLS.md
+
