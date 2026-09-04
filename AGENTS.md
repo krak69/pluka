@@ -241,47 +241,99 @@ Do not introduce an alternative major framework without explicit approval.
 
 \---
 
-# 6\. Suggested repository shape
+# 6\. Repository shape
 
-Follow the existing repository if already bootstrapped.
-
-Target direction:
+This is the canonical structure, mirroring `docs/01_ARCHITECTURE.md` §4. It is not a
+suggestion. Follow the existing repository where it already exists; create missing
+directories exactly as named here.
 
 ```text
-apps/
-
-├── www/       # site public, SEO, aucune donnée privée
-
-├── app/       # application authentifiée — coureur ET organisateur
-
-├── admin/     # administration interne PLUKA
-
-└── worker/    # jobs asynchrones, process Node durable
-
-
-packages/
-├── domain/
-├── ui/
-├── plan-engine/
-├── nutrition-engine/
-├── sources/
-├── weather/
-├── race-intelligence/
-├── db/
-└── shared/
-
-supabase/
-├── migrations/
-├── tests/
-└── seed.sql
-
-docs/
-reference/
+/
+├── AGENTS.md
+├── README.md
+├── docs/
+├── reference/
+├── supabase/
+│   ├── migrations/
+│   ├── seed.sql
+│   └── tests/
+│
+├── apps/
+│   ├── www/
+│   ├── app/
+│   ├── admin/
+│   └── worker/
+│
+└── packages/
+    ├── ui/
+    ├── contracts/
+    ├── db/
+    ├── domain/
+    ├── plan-engine/
+    ├── nutrition-engine/
+    ├── sources/
+    ├── weather/
+    ├── race-intelligence/
+    ├── analytics/
+    ├── notifications/
+    └── config/
 ```
+
+## Applications
+
+| App | Role | Hard rules |
+| --- | --- | --- |
+| `www` | Public site: runner and organizer homepages, marketing, public race pages, SEO | No private data. Indexable. No critical business logic. |
+| `app` | Authenticated application — **runner and organizer both** | B2B lives here, not in a separate app. Same domain layer, same backend. |
+| `admin` | Internal PLUKA administration | Never reachable by customers. |
+| `worker` | Asynchronous jobs, durable Node process consuming pgmq | Not serverless. Never invoked directly from a request. |
+
+There is no `apps/organizer`. The organizer experience is a set of routes and permissions
+inside `apps/app`, sharing the same domain model — see `docs/01_ARCHITECTURE.md` §4.2.
+
+## Packages
+
+| Package | Role |
+| --- | --- |
+| `config` | Typed, validated environment access and feature flags |
+| `contracts` | Shared Zod schemas, DTOs, external provider interfaces, domain event types |
+| `db` | Supabase client, repositories, generated database types |
+| `domain` | Use cases and cross-cutting business rules |
+| `ui` | Design System |
+| `plan-engine` | Pure, deterministic, versioned |
+| `nutrition-engine` | Pure, deterministic, versioned |
+| `sources` | Parsing, chunking, retrieval, provenance |
+| `weather` | Provider normalization, forecast runs |
+| `race-intelligence` | B2B aggregates — feature-flagged |
+| `analytics` | Aggregation and rollups |
+| `notifications` | Delivery of notifications and emails |
+
+There is no `packages/shared`. A package with no defined responsibility becomes a dumping
+ground: put cross-cutting rules in `domain`, shared schemas in `contracts`, and environment
+access in `config`.
+
+## Dependency direction
+
+```text
+apps/*
+  ↓
+packages/domain
+  ↓
+packages/contracts + engines + repositories
+  ↓
+packages/db + provider adapters
+```
+
+* `contracts` imports no other workspace package. It is the leaf everything else depends on.
+* A pure engine (`plan-engine`, `nutrition-engine`) never depends on Next.js, on Supabase, or on any network call.
+* `db` never decides an entitlement.
+* A package never imports an application.
+* No circular dependency between domains.
 
 Do not reorganize the repository purely for aesthetics.
 
-A structure change must solve a real problem.
+A structure change must solve a real problem, and must be reflected in
+`docs/01_ARCHITECTURE.md` first.
 
 \---
 
@@ -997,7 +1049,7 @@ Examples:
 
 ```text
 WeatherProvider
-AIExtractionProvider
+AIProvider
 EmailProvider
 BillingProvider
 ```

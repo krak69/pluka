@@ -1353,13 +1353,28 @@ C’est une boucle importante du B2B.
 
 # 56. Organisation du package
 
+## Frontière avec `packages/contracts`
+
+`01_ARCHITECTURE.md` §4.5 fait de `packages/contracts` le lieu des contrats de providers
+externes. La ligne de partage est la suivante :
+
+| Type | Emplacement | Raison |
+| --- | --- | --- |
+| Interface `AIProvider` | `packages/contracts` | Contrat de fournisseur externe. Aucun moteur ne doit connaître le nom d'un fournisseur, et l'interface doit être visible sans dépendre de `sources`. |
+| `ExtractedCandidate`, provenance, DTO de facts, schémas d'issues | `packages/sources` | Types métier propres au domaine d'extraction. Les sortir d'ici créerait une dépendance inutile pour tous les autres paquets. |
+
+`packages/sources` importe donc `AIProvider` depuis `packages/contracts` et n'y définit
+aucune interface de fournisseur.
+
+## Structure
+
 Package recommandé :
 
 ```text
 packages/sources/
 ├── src/
 │   ├── index.ts
-│   ├── contracts.ts
+│   ├── contracts.ts        # types métier d'extraction — PAS les interfaces providers
 │   ├── source-types.ts
 │   ├── snapshot.ts
 │   ├── web-fetcher.ts

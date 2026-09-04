@@ -2250,6 +2250,10 @@ Le SQL actuel contient :
 
 Ce socle est cohérent avec la spec.
 
+`forecast_issued_at` et `fetched_at` portent ici les **valeurs de référence du run** :
+l'émission la plus ancienne et la récupération la plus récente parmi les points obtenus.
+L'origine réelle de chaque valeur affichée est portée par le point — voir §99.
+
 ---
 
 # 99. `weather_forecast_points`
@@ -2271,6 +2275,19 @@ Le SQL actuel contient notamment :
 - direction ;
 - weather code ;
 - payload provider.
+
+À quoi s'ajoutent, conformément au contrat `NormalizedWeatherPoint` de §26 :
+
+- `forecast_issued_at` (nullable) ;
+- `fetched_at`.
+
+Ces deux colonnes font foi sur l'origine temporelle de la valeur affichée. Le run n'en porte
+que des valeurs de référence (§98).
+
+Un run partiel ou récupéré en plusieurs appels produit des points d'émissions différentes.
+L'interface ne peut donc pas dater une valeur à partir du run : elle lit le point.
+
+Ces colonnes n'entrent jamais dans `input_hash` (§30).
 
 Ce modèle est cohérent avec la V1.
 

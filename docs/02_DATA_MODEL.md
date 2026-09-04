@@ -1034,8 +1034,8 @@ Un run correspond exactement à :
 Il conserve :
 
 - provider / modèle ;
-- heure d'émission ;
-- heure de récupération ;
+- heure d'émission de référence du run ;
+- heure de récupération de référence du run ;
 - timezone ;
 - `input_hash` ;
 - `input_snapshot` minimal ;
@@ -1096,6 +1096,32 @@ Donnée point par point contextualisée avec :
 `point_key` est unique dans un run.
 
 Un point virtuel est localisé explicitement et n'utilise jamais une clé globale réutilisée.
+
+### Traçabilité temporelle par point
+
+Chaque point persiste sa propre origine temporelle :
+
+```text
+forecast_issued_at
+fetched_at
+```
+
+Ces deux colonnes existent aussi sur le run, où elles ont une sémantique différente :
+
+| Niveau | Sens |
+| --- | --- |
+| `weather_forecast_runs` | Valeurs de référence du run. Émission la plus ancienne et récupération la plus récente parmi les points obtenus. |
+| `weather_forecast_points` | Origine réelle de **cette** valeur affichée. Fait foi. |
+
+Cette séparation est nécessaire : un run peut interroger le provider en plusieurs appels, ou
+n'obtenir qu'une partie de ses points — c'est exactement ce que décrit
+`completeness_status = 'partial'` en §18.2. Sans traçabilité par point, deux valeurs affichées
+côte à côte peuvent provenir d'émissions différentes sans que rien ne permette de le savoir.
+
+`forecast_issued_at` reste nullable : certains providers ne communiquent pas leur heure
+d'émission. `fetched_at` est toujours renseigné.
+
+Ces colonnes n'entrent jamais dans `input_hash` — voir `WEATHER_CONDITIONS.md` §30.
 
 ## 18.4 `condition_periods`
 
