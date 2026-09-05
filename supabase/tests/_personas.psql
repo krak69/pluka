@@ -1,0 +1,306 @@
+-- PLUKA — Fixture commune aux tests RLS
+-- Référence : docs/03_PRIVACY_RLS.md §137 (personas) et §136 (positif + négatif)
+--
+-- Un seul monde, interrogé sous cinq angles par les cinq fichiers de tests.
+-- Le partager plutôt que le recopier évite la dérive silencieuse entre
+-- copies : une fixture qui n'insérerait plus de Plan rendrait toutes les
+-- assertions « l'organisation ne voit pas le Plan » vraies pour rien.
+--
+-- Inclus par `\ir _personas.psql`. L'extension `.psql` la garde hors du glob
+-- `*.sql` de pg_prove, qui descend dans les sous-répertoires et la prendrait
+-- sinon pour un fichier de tests sans plan.
+--
+-- Les insertions se font en `postgres`, propriétaire des tables : elles
+-- ignorent la RLS. C'est voulu — on construit un monde réel, puis on le
+-- regarde à travers les yeux de chaque persona.
+
+-- ============================================================
+-- Personas (§137)
+-- ============================================================
+
+insert into auth.users (id, email) values
+  ('11111111-1111-4111-8111-111111111111', 'runner-a@test.pluka'),
+  ('22222222-2222-4222-8222-222222222222', 'runner-b@test.pluka'),
+  ('33333333-3333-4333-8333-333333333333', 'org-owner-a@test.pluka'),
+  ('44444444-4444-4444-8444-444444444444', 'org-admin-a@test.pluka'),
+  ('55555555-5555-4555-8555-555555555555', 'org-editor-a@test.pluka'),
+  ('66666666-6666-4666-8666-666666666666', 'org-viewer-a@test.pluka'),
+  ('77777777-7777-4777-8777-777777777777', 'org-owner-b@test.pluka'),
+  ('88888888-8888-4888-8888-888888888888', 'pluka-admin@test.pluka'),
+  ('99999999-9999-4999-8999-999999999999', 'ex-member-a@test.pluka');
+
+update public.users set platform_role = 'pluka_admin'
+where id = '88888888-8888-4888-8888-888888888888';
+
+insert into public.organizations (id, name, slug, contact_email) values
+  ('aaaaaaaa-0000-4000-8000-000000000001', 'Org A', 'org-a', 'contact@org-a.test'),
+  ('aaaaaaaa-0000-4000-8000-000000000002', 'Org B', 'org-b', 'contact@org-b.test');
+
+-- `ex-member-a` n'apparaît volontairement dans aucun membership : il a quitté
+-- l'organisation, et §114 veut que ses accès aient cessé immédiatement.
+insert into public.organization_members (organization_id, user_id, role) values
+  ('aaaaaaaa-0000-4000-8000-000000000001', '33333333-3333-4333-8333-333333333333', 'owner'),
+  ('aaaaaaaa-0000-4000-8000-000000000001', '44444444-4444-4444-8444-444444444444', 'admin'),
+  ('aaaaaaaa-0000-4000-8000-000000000001', '55555555-5555-4555-8555-555555555555', 'editor'),
+  ('aaaaaaaa-0000-4000-8000-000000000001', '66666666-6666-4666-8666-666666666666', 'viewer'),
+  ('aaaaaaaa-0000-4000-8000-000000000002', '77777777-7777-4777-8777-777777777777', 'owner');
+
+-- ============================================================
+-- Course publiée d'Org A, plus un brouillon et une course privée
+-- ============================================================
+
+insert into public.events (id, organization_id, name, slug, status) values
+  ('aaaaaaaa-0000-4000-8000-000000000011', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'Trail de Test', 'trail-de-test', 'published'),
+  ('aaaaaaaa-0000-4000-8000-000000000015', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'Trail Confidentiel', 'trail-confidentiel', 'draft'),
+  ('bbbbbbbb-0000-4000-8000-000000000011', 'aaaaaaaa-0000-4000-8000-000000000002',
+   'Trail Org B', 'trail-org-b', 'published');
+
+insert into public.editions (id, event_id, year, slug, start_date, status) values
+  ('aaaaaaaa-0000-4000-8000-000000000012', 'aaaaaaaa-0000-4000-8000-000000000011',
+   2026, 'trail-de-test-2026', '2026-06-20', 'published'),
+  ('aaaaaaaa-0000-4000-8000-000000000016', 'aaaaaaaa-0000-4000-8000-000000000015',
+   2026, 'trail-confidentiel-2026', '2026-09-12', 'draft'),
+  ('bbbbbbbb-0000-4000-8000-000000000012', 'bbbbbbbb-0000-4000-8000-000000000011',
+   2026, 'trail-org-b-2026', '2026-07-04', 'published');
+
+insert into public.races
+  (id, edition_id, name, slug, distance_km, start_datetime, timezone, status, public_visibility)
+values
+  ('aaaaaaaa-0000-4000-8000-000000000013', 'aaaaaaaa-0000-4000-8000-000000000012',
+   '80K', '80k', 80, '2026-06-20T04:00:00Z', 'Europe/Paris', 'published', 'public'),
+  ('aaaaaaaa-0000-4000-8000-000000000014', 'aaaaaaaa-0000-4000-8000-000000000012',
+   'Test privé', 'test-prive', 20, '2026-06-20T06:00:00Z', 'Europe/Paris', 'published', 'private'),
+  ('bbbbbbbb-0000-4000-8000-000000000013', 'bbbbbbbb-0000-4000-8000-000000000012',
+   'Org B 50K', 'org-b-50k', 50, '2026-07-04T05:00:00Z', 'Europe/Paris', 'published', 'public');
+
+insert into public.race_waypoints
+  (id, race_id, name, waypoint_type, distance_km, sort_order)
+values
+  ('aaaaaaaa-0000-4000-8000-000000000021', 'aaaaaaaa-0000-4000-8000-000000000013',
+   'Départ', 'start', 0, 1),
+  ('aaaaaaaa-0000-4000-8000-000000000022', 'aaaaaaaa-0000-4000-8000-000000000013',
+   'Col du Test', 'aid_station', 40, 2),
+  ('aaaaaaaa-0000-4000-8000-000000000023', 'aaaaaaaa-0000-4000-8000-000000000014',
+   'Départ privé', 'start', 0, 1);
+
+-- ============================================================
+-- Sources et facts (§19 à §25)
+-- ============================================================
+
+insert into public.sources (id, edition_id, organization_id, source_type, title, url) values
+  ('aaaaaaaa-0000-4000-8000-000000000091', 'aaaaaaaa-0000-4000-8000-000000000012',
+   'aaaaaaaa-0000-4000-8000-000000000001', 'url', 'Règlement officiel',
+   'https://exemple.test/reglement');
+
+insert into public.source_snapshots (id, source_id, version_number, content_hash) values
+  ('aaaaaaaa-0000-4000-8000-000000000092', 'aaaaaaaa-0000-4000-8000-000000000091',
+   1, repeat('a', 64));
+
+insert into public.race_facts (id, race_id, category, fact_key) values
+  ('aaaaaaaa-0000-4000-8000-000000000093', 'aaaaaaaa-0000-4000-8000-000000000013',
+   'equipment', 'veste-impermeable'),
+  ('aaaaaaaa-0000-4000-8000-000000000095', 'aaaaaaaa-0000-4000-8000-000000000013',
+   'bib', 'retrait-dossard');
+
+-- Une version publiée, lisible dans le scope de la course ; une version en
+-- travail, qui ne doit pas l'être (§22).
+insert into public.race_fact_versions
+  (id, fact_id, version_number, value_text, workflow_status, published_at)
+values
+  ('aaaaaaaa-0000-4000-8000-000000000094', 'aaaaaaaa-0000-4000-8000-000000000093',
+   1, 'Veste imperméable à coutures étanchées', 'published', now());
+
+insert into public.race_fact_versions
+  (id, fact_id, version_number, value_text, workflow_status)
+values
+  ('aaaaaaaa-0000-4000-8000-000000000096', 'aaaaaaaa-0000-4000-8000-000000000095',
+   1, 'Retrait dossard — brouillon interne', 'draft');
+
+insert into public.fact_sources
+  (id, fact_version_id, source_id, source_snapshot_id, excerpt)
+values
+  ('aaaaaaaa-0000-4000-8000-000000000097', 'aaaaaaaa-0000-4000-8000-000000000094',
+   'aaaaaaaa-0000-4000-8000-000000000091', 'aaaaaaaa-0000-4000-8000-000000000092',
+   'Article 7 — matériel obligatoire');
+
+-- ============================================================
+-- Participation de Runner A à la course d'Org A
+-- ============================================================
+
+insert into public.participant_races (id, race_id, user_id, bib_number) values
+  ('aaaaaaaa-0000-4000-8000-000000000031', 'aaaaaaaa-0000-4000-8000-000000000013',
+   '11111111-1111-4111-8111-111111111111', '101');
+
+insert into public.trail_profiles (user_id, representative_effort_label) values
+  ('11111111-1111-4111-8111-111111111111', 'Trail des Tests 2025');
+
+-- ============================================================
+-- Les objets privés que l'organisation ne doit jamais voir
+-- ============================================================
+-- Ils existent réellement : sans eux, les assertions `is_empty` passeraient
+-- pour une base vide au lieu de prouver un refus (§136).
+
+insert into public.race_plans
+  (id, participant_race_id, version, engine_version,
+   initial_target_duration_seconds, target_duration_seconds)
+values
+  ('aaaaaaaa-0000-4000-8000-000000000041', 'aaaaaaaa-0000-4000-8000-000000000031',
+   1, 'plan-1.0.0', 43200, 43200);
+
+insert into public.plan_waypoints
+  (id, race_plan_id, race_waypoint_id, planned_elapsed_seconds, sort_order)
+values
+  ('aaaaaaaa-0000-4000-8000-000000000042', 'aaaaaaaa-0000-4000-8000-000000000041',
+   'aaaaaaaa-0000-4000-8000-000000000022', 18000, 1);
+
+insert into public.nutrition_plans
+  (id, race_plan_id, carbs_target_g_per_hour, hydration_target_ml_per_hour,
+   sodium_target_mg_per_hour, engine_version)
+values
+  ('aaaaaaaa-0000-4000-8000-000000000051', 'aaaaaaaa-0000-4000-8000-000000000041',
+   60, 500, 400, 'nutrition-1.0.0');
+
+insert into public.nutrition_waypoints
+  (id, nutrition_plan_id, plan_waypoint_id, label, elapsed_seconds, sort_order,
+   origin, stable_key)
+values
+  ('aaaaaaaa-0000-4000-8000-000000000052', 'aaaaaaaa-0000-4000-8000-000000000051',
+   'aaaaaaaa-0000-4000-8000-000000000042', 'Col du Test', 18000, 1,
+   'plan_waypoint', 'col-du-test');
+
+insert into public.user_nutrition_products (id, user_id, custom_name) values
+  ('aaaaaaaa-0000-4000-8000-000000000053', '11111111-1111-4111-8111-111111111111',
+   'Purée maison patate douce');
+
+insert into public.race_assistants (id, participant_race_id, first_name) values
+  ('aaaaaaaa-0000-4000-8000-000000000061', 'aaaaaaaa-0000-4000-8000-000000000031', 'Camille');
+
+insert into public.assistance_assignments (id, assistant_id, race_waypoint_id) values
+  ('aaaaaaaa-0000-4000-8000-000000000062', 'aaaaaaaa-0000-4000-8000-000000000061',
+   'aaaaaaaa-0000-4000-8000-000000000022');
+
+insert into public.assistant_access_tokens (id, assistant_id, token_hash) values
+  ('aaaaaaaa-0000-4000-8000-000000000063', 'aaaaaaaa-0000-4000-8000-000000000061', repeat('b', 64));
+
+insert into public.emergency_contacts
+  (id, participant_race_id, first_name, phone, explicit_consent_at)
+values
+  ('aaaaaaaa-0000-4000-8000-000000000064', 'aaaaaaaa-0000-4000-8000-000000000031',
+   'Dominique', '+33600000000', now());
+
+insert into public.outings (id, user_id, name) values
+  ('aaaaaaaa-0000-4000-8000-000000000071', '11111111-1111-4111-8111-111111111111',
+   'Sortie longue col du Test');
+
+insert into public.outing_waypoints (id, outing_id, name, distance_km, sort_order) values
+  ('aaaaaaaa-0000-4000-8000-000000000072', 'aaaaaaaa-0000-4000-8000-000000000071',
+   'Fontaine', 12, 1);
+
+insert into public.tasks (id, participant_race_id, title, origin) values
+  ('aaaaaaaa-0000-4000-8000-000000000101', 'aaaaaaaa-0000-4000-8000-000000000031',
+   'Vérifier la veste', 'official_change');
+
+insert into public.participant_equipment (id, participant_race_id, custom_label, origin) values
+  ('aaaaaaaa-0000-4000-8000-000000000102', 'aaaaaaaa-0000-4000-8000-000000000031',
+   'Gants chauds', 'personal');
+
+insert into public.bags (id, participant_race_id, bag_type, name) values
+  ('aaaaaaaa-0000-4000-8000-000000000103', 'aaaaaaaa-0000-4000-8000-000000000031',
+   'drop_bag', 'Sac Col du Test');
+
+insert into public.bag_items (id, bag_id, item_type, label) values
+  ('aaaaaaaa-0000-4000-8000-000000000104', 'aaaaaaaa-0000-4000-8000-000000000103',
+   'free_text', 'Chaussettes de rechange');
+
+insert into public.library_templates (id, user_id, template_type, name, payload) values
+  ('aaaaaaaa-0000-4000-8000-000000000081', '11111111-1111-4111-8111-111111111111',
+   'nutrition_strategy', 'Ma stratégie 100K', '{"carbs_g_per_hour": 75}'::jsonb);
+
+insert into public.weather_forecast_runs
+  (id, scope, race_plan_id, provider, timezone)
+values
+  ('aaaaaaaa-0000-4000-8000-000000000111', 'race_plan', 'aaaaaaaa-0000-4000-8000-000000000041',
+   'provider-de-test', 'Europe/Paris');
+
+insert into public.condition_periods
+  (id, weather_run_id, condition_type, source, start_datetime, end_datetime)
+values
+  ('aaaaaaaa-0000-4000-8000-000000000112', 'aaaaaaaa-0000-4000-8000-000000000111',
+   'cold', 'weather', '2026-06-20T04:00:00Z', '2026-06-20T08:00:00Z');
+
+insert into public.condition_proposals
+  (id, condition_period_id, user_id, participant_race_id, target_module)
+values
+  ('aaaaaaaa-0000-4000-8000-000000000113', 'aaaaaaaa-0000-4000-8000-000000000112',
+   '11111111-1111-4111-8111-111111111111', 'aaaaaaaa-0000-4000-8000-000000000031',
+   'preparation');
+
+insert into public.pluka_conversations (id, user_id, participant_race_id, title) values
+  ('aaaaaaaa-0000-4000-8000-000000000121', '11111111-1111-4111-8111-111111111111',
+   'aaaaaaaa-0000-4000-8000-000000000031', 'Questions matériel');
+
+insert into public.pluka_messages (id, conversation_id, role, content) values
+  ('aaaaaaaa-0000-4000-8000-000000000122', 'aaaaaaaa-0000-4000-8000-000000000121',
+   'user', 'La veste est-elle obligatoire au départ ?');
+
+insert into public.post_race_reviews (id, participant_race_id, result_status, private_note) values
+  ('aaaaaaaa-0000-4000-8000-000000000131', 'aaaaaaaa-0000-4000-8000-000000000031',
+   'finisher', 'Note privée : mal géré la descente.');
+
+-- ============================================================
+-- Objets organisation (§58 à §61, §68)
+-- ============================================================
+
+insert into public.participant_imports
+  (id, organization_id, edition_id, storage_path, created_by_user_id)
+values
+  ('aaaaaaaa-0000-4000-8000-000000000141', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'aaaaaaaa-0000-4000-8000-000000000012', 'imports/org-a/2026.csv',
+   '99999999-9999-4999-8999-999999999999');
+
+insert into public.participant_import_rows (id, import_id, row_number, raw_data) values
+  ('aaaaaaaa-0000-4000-8000-000000000142', 'aaaaaaaa-0000-4000-8000-000000000141',
+   1, '{"email": "inscrit@test.pluka", "dossard": "101"}'::jsonb);
+
+insert into public.race_intelligence_runs (id, race_id, mode, status) values
+  ('aaaaaaaa-0000-4000-8000-000000000151', 'aaaaaaaa-0000-4000-8000-000000000013',
+   'demo', 'completed');
+
+insert into public.organization_adoption_snapshots (id, race_id, invited_count) values
+  ('aaaaaaaa-0000-4000-8000-000000000152', 'aaaaaaaa-0000-4000-8000-000000000013', 42);
+
+insert into public.organizer_briefs (id, edition_id, race_id, content) values
+  ('aaaaaaaa-0000-4000-8000-000000000153', 'aaaaaaaa-0000-4000-8000-000000000012',
+   'aaaaaaaa-0000-4000-8000-000000000013', '{"resume": "brief de test"}'::jsonb);
+
+insert into public.race_notices (id, race_id, notice_type, title, body, published_by_organization_id)
+values
+  ('aaaaaaaa-0000-4000-8000-000000000161', 'aaaaaaaa-0000-4000-8000-000000000013',
+   'safety', 'Météo dégradée', 'Veste obligatoire au départ.',
+   'aaaaaaaa-0000-4000-8000-000000000001');
+
+-- ============================================================
+-- Bascule d'identité
+-- ============================================================
+-- §11 : l'identité vient du claim JWT, jamais d'un `user_id` passé en
+-- paramètre par le client.
+
+create function pg_temp.act_as(p_user uuid) returns void language plpgsql as $$
+begin
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object('sub', p_user, 'role', 'authenticated')::text,
+    true
+  );
+  execute 'set local role authenticated';
+end;
+$$;
+
+create function pg_temp.act_as_anon() returns void language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
+  execute 'set local role anon';
+end;
+$$;

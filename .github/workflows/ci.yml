@@ -49,9 +49,11 @@ jobs:
       - name: Rejouer les migrations depuis zéro
         run: supabase db reset
 
-      # Décommenter dès que supabase/tests/ contient des tests pgTAP.
-      # - name: Tests RLS (pgTAP)
-      #   run: supabase test db
+      # La suite RLS doit tourner sur une base fraîchement réinitialisée :
+      # `supabase test db` ne nettoie rien lui-même, et une exécution
+      # interrompue peut laisser des lignes derrière elle.
+      - name: Tests RLS (pgTAP)
+        run: supabase test db
 
       - name: Arrêter Supabase
         if: always()
