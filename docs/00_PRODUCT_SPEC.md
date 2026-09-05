@@ -1618,6 +1618,12 @@ Lorsqu’une information officielle est modifiée :
 - diffuser l’information selon les canaux du produit ;
 - permettre de suivre des agrégats de consultation.
 
+Le coureur peut couper les notifications d’un changement officiel pour une course donnée
+(`participant_race_settings.notifications_enabled`, actif par défaut). Ce réglage ne
+concerne que la diffusion : l’impact reste visible dans l’application, qui est le canal
+ne dépendant d’aucun fournisseur. Une préférence ne doit jamais empêcher un coureur de
+constater qu’une information de sa course a changé.
+
 Exemples d’agrégats organisation :
 
 - préparations concernées ;

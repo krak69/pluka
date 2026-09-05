@@ -25,7 +25,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(26);
+select plan(31);
 
 \ir _personas.psql
 
@@ -58,6 +58,16 @@ values
    1, 'plan-1.0.0', 43200, 43200),
   ('cccccccc-0000-4000-8000-000000000012', 'cccccccc-0000-4000-8000-000000000003',
    1, 'plan-1.0.0', 43200, 43200);
+
+-- Runner B coupe ses notifications ; Runner C n'a aucune ligne de réglages,
+-- ce qui doit valoir « activé » (§46, défaut de la colonne).
+insert into public.participant_race_settings (participant_race_id, notifications_enabled) values
+  ('cccccccc-0000-4000-8000-000000000001', false);
+
+-- Runner D crée ses réglages pour son objectif, sans rien dire des
+-- notifications : le défaut de la colonne doit les laisser actives.
+insert into public.participant_race_settings (participant_race_id, target_duration_seconds) values
+  ('cccccccc-0000-4000-8000-000000000003', 43200);
 
 -- ============================================================
 -- Une barrière qui change de valeur
@@ -322,6 +332,50 @@ select is_empty(
 );
 
 reset role;
+
+-- ============================================================
+-- 7 bis. La préférence de notification (§46, 02_DATA_MODEL §9.2)
+-- ============================================================
+-- Le changement de matériel concerne les trois coureurs actifs. Runner B a
+-- coupé ses notifications : il garde son impact, il ne reçoit pas d'email.
+
+select is(
+  (select count(*)::integer from private.notification_deliveries
+   where change_event_id = 'cccccccc-0000-4000-8000-000000000060'),
+  2,
+  'SRC-46 — deux livraisons pour trois coureurs concernés : un a dit non'
+);
+
+select is_empty(
+  $$ select id from private.notification_deliveries
+     where change_event_id = 'cccccccc-0000-4000-8000-000000000060'
+       and participant_race_id = 'cccccccc-0000-4000-8000-000000000001' $$,
+  'SRC-46 — le coureur qui a coupé ses notifications n''en reçoit aucune'
+);
+
+select isnt_empty(
+  $$ select id from public.participant_change_impacts
+     where change_event_id = 'cccccccc-0000-4000-8000-000000000060'
+       and participant_race_id = 'cccccccc-0000-4000-8000-000000000001' $$,
+  'SRC-46 — mais son impact reste écrit : couper l''email ne coupe pas l''information'
+);
+
+select isnt_empty(
+  $$ select id from private.notification_deliveries
+     where change_event_id = 'cccccccc-0000-4000-8000-000000000060'
+       and participant_race_id = 'cccccccc-0000-4000-8000-000000000002' $$,
+  'SRC-46 — sans ligne de réglages, le coureur est notifié'
+);
+
+-- Le défaut de la colonne compte pour lui-même : une ligne de réglages créée
+-- pour une autre raison — objectif, Nutrition — ne doit pas couper les
+-- notifications au passage. §46 fait de l'information la règle.
+select is(
+  (select notifications_enabled from public.participant_race_settings
+   where participant_race_id = 'cccccccc-0000-4000-8000-000000000003'),
+  true,
+  'SRC-46 — une ligne de réglages écrite sans la colonne laisse les notifications actives'
+);
 
 -- ============================================================
 -- 8. Les quatre interdictions organisation (contrat de suite)

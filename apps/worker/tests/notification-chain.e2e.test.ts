@@ -35,6 +35,7 @@ const VERSION_ID = 'ddddeeee-0000-4000-8000-000000000006';
 const CHANGE_ID = 'ddddeeee-0000-4000-8000-000000000007';
 const RUNNER_RACE = 'ddddeeee-0000-4000-8000-000000000010';
 const INVITED_RACE = 'ddddeeee-0000-4000-8000-000000000011';
+const SILENT_RACE = 'ddddeeee-0000-4000-8000-000000000012';
 
 type ServiceClient = ReturnType<typeof createServiceRoleClient>;
 type Rpc = {
@@ -146,6 +147,7 @@ beforeAll(async () => {
 
   runnerEmail = `runner-${SUFFIX}@notification.test`;
   const runnerId = await createUser(runnerEmail);
+  const silentId = await createUser(`silencieux-${SUFFIX}@notification.test`);
   publisherId = await createUser(`publisher-${SUFFIX}@notification.test`);
 
   await client.from('users').update({ first_name: 'Camille' }).eq('id', runnerId);
@@ -192,7 +194,13 @@ beforeAll(async () => {
       invite_email: `invite-${SUFFIX}@notification.test`,
       status: 'active',
     },
+    { id: SILENT_RACE, race_id: RACE_ID, user_id: silentId, status: 'active' },
   ]);
+
+  // §46 : informer est la règle, se taire est un choix. Celui-ci l'a fait.
+  await client
+    .from('participant_race_settings')
+    .insert({ participant_race_id: SILENT_RACE, notifications_enabled: false });
 
   await client.from('race_facts').insert({
     id: FACT_ID,
@@ -249,6 +257,26 @@ describe.runIf(process.env.SUPABASE_SERVICE_ROLE_KEY !== undefined)('livraisons'
     const rows = await deliveries();
 
     expect(rows.some((row) => row.participant_race_id === INVITED_RACE)).toBe(false);
+  });
+
+  it('n’en crée aucune pour un coureur qui a coupé ses notifications — §46', async () => {
+    if (!available) return;
+
+    const rows = await deliveries();
+
+    expect(rows.some((row) => row.participant_race_id === SILENT_RACE)).toBe(false);
+  });
+
+  it('laisse son impact lisible malgré tout', async () => {
+    if (!available) return;
+
+    // Couper l'email ne coupe pas l'information : l'application reste le canal
+    // qui ne dépend ni d'un fournisseur, ni d'un réglage.
+    const { data } = await call().rpc('worker_read_change_impacts', {
+      p_change_event_id: CHANGE_ID,
+    });
+
+    expect((data as Row[]).map((row) => row.participant_race_id)).toContain(SILENT_RACE);
   });
 
   it('a bien produit l’impact correspondant', async () => {

@@ -2494,6 +2494,7 @@ export type Database = {
       participant_race_settings: {
         Row: {
           assistance_status: Database["public"]["Enums"]["assistance_status"]
+          notifications_enabled: boolean
           nutrition_enabled: boolean
           nutrition_waypoints_visible: boolean
           participant_race_id: string
@@ -2503,6 +2504,7 @@ export type Database = {
         }
         Insert: {
           assistance_status?: Database["public"]["Enums"]["assistance_status"]
+          notifications_enabled?: boolean
           nutrition_enabled?: boolean
           nutrition_waypoints_visible?: boolean
           participant_race_id: string
@@ -2512,6 +2514,7 @@ export type Database = {
         }
         Update: {
           assistance_status?: Database["public"]["Enums"]["assistance_status"]
+          notifications_enabled?: boolean
           nutrition_enabled?: boolean
           nutrition_waypoints_visible?: boolean
           participant_race_id?: string
@@ -5242,8 +5245,11 @@ export type Database = {
       list_fact_candidates_for_review: {
         Args: { p_limit?: number; p_race_id: string }
         Returns: {
+          block_content: string
+          block_index: number
           candidate_id: string
           category: Database["public"]["Enums"]["fact_category"]
+          chunk_index: number
           confidence_label: string
           conflict_status: string
           conflict_type: string
@@ -5254,6 +5260,7 @@ export type Database = {
           matched_fact_id: string
           model: string
           notes: string
+          organization_name: string
           origin: string
           page_number: number
           provider: string
@@ -5262,8 +5269,11 @@ export type Database = {
           published_version_id: string
           race_id: string
           section_path: Json
+          snapshot_content_hash: string
+          snapshot_id: string
           snapshot_retrieved_at: string
           source_title: string
+          source_type: Database["public"]["Enums"]["source_type"]
           source_url: string
           status: string
           unit: string
@@ -5310,6 +5320,10 @@ export type Database = {
           version_number: number
         }[]
       }
+      worker_analyze_change_impact: {
+        Args: { p_change_event_id: string }
+        Returns: number
+      }
       worker_archive_message: {
         Args: { p_msg_id: number; p_queue: string }
         Returns: boolean
@@ -5323,6 +5337,25 @@ export type Database = {
           status: string
         }[]
       }
+      worker_claim_notification: {
+        Args: { p_delivery_id: string }
+        Returns: {
+          already_sent: boolean
+          attempts: number
+          change_title: string
+          delivery_id: string
+          event_name: string
+          idempotency_key: string
+          locale: string
+          max_attempts: number
+          modules: string[]
+          race_id: string
+          race_name: string
+          recipient_email: string
+          recipient_first_name: string
+          severity: Database["public"]["Enums"]["change_severity"]
+        }[]
+      }
       worker_complete_extraction_run: {
         Args: {
           p_input_tokens: number
@@ -5330,6 +5363,15 @@ export type Database = {
           p_output_json: Json
           p_output_tokens: number
           p_run_id: string
+        }
+        Returns: undefined
+      }
+      worker_complete_notification: {
+        Args: {
+          p_delivery_id: string
+          p_provider: string
+          p_provider_message_id: string
+          p_template_version: string
         }
         Returns: undefined
       }
@@ -5350,6 +5392,10 @@ export type Database = {
       }
       worker_fail_ingestion_job: {
         Args: { p_error: string; p_idempotency_key: string }
+        Returns: string
+      }
+      worker_fail_notification: {
+        Args: { p_delivery_id: string; p_error: string }
         Returns: string
       }
       worker_fail_parse_run: {
@@ -5422,6 +5468,15 @@ export type Database = {
           value_text: string
         }[]
       }
+      worker_read_change_impacts: {
+        Args: { p_change_event_id: string }
+        Returns: {
+          created_at: string
+          impacted_module: string
+          participant_race_id: string
+          status: Database["public"]["Enums"]["change_impact_status"]
+        }[]
+      }
       worker_read_chunk_links: {
         Args: { p_snapshot_id: string }
         Returns: {
@@ -5446,6 +5501,18 @@ export type Database = {
           schema_version: string
           started_at: string
           status: string
+        }[]
+      }
+      worker_read_notifications: {
+        Args: { p_change_event_id: string }
+        Returns: {
+          attempts: number
+          delivery_id: string
+          last_error: string
+          participant_race_id: string
+          provider: string
+          status: string
+          template_version: string
         }[]
       }
       worker_read_parse_output: {

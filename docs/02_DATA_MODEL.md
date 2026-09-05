@@ -574,7 +574,16 @@ Préférences personnelles propres à la course :
 - objectif ;
 - état Assistance ;
 - Nutrition active ;
-- préférences d'affichage.
+- préférences d'affichage ;
+- notifications de changement officiel.
+
+`notifications_enabled` vaut **vrai par défaut** : `SOURCES_EXTRACTION.md` §46 fait de
+l'information la règle, et personne ne va chercher un réglage dont il ignore l'existence.
+Se taire est donc un choix explicite du coureur.
+
+La préférence ne coupe que l'envoi. `participant_change_impacts` continue d'être écrit et
+reste lisible dans l'application, qui est le canal ne dépendant ni d'un fournisseur email,
+ni d'un réglage. Couper la notification coupe le message, jamais l'information.
 
 ## 9.3 Cycle de vie
 
