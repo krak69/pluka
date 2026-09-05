@@ -11,11 +11,11 @@ import { Badge, type BadgeTone } from './Badge.js';
  * rien de plus.
  */
 export type TrustLevel =
-  'official' | 'validated_pluka' | 'community' | 'external_forecast' | 'estimated';
+  'official' | 'pluka_validated' | 'community' | 'external_forecast' | 'estimated';
 
 export const TRUST_LEVEL_LABELS: Readonly<Record<TrustLevel, string>> = {
   official: 'Officielle',
-  validated_pluka: 'Validée PLUKA',
+  pluka_validated: 'Validée PLUKA',
   community: 'Communautaire',
   external_forecast: 'Prévision externe',
   estimated: 'Estimation',
@@ -28,7 +28,7 @@ export const TRUST_LEVEL_LABELS: Readonly<Record<TrustLevel, string>> = {
  */
 const TRUST_LEVEL_TONE: Readonly<Record<TrustLevel, BadgeTone>> = {
   official: 'glacier',
-  validated_pluka: 'glacier',
+  pluka_validated: 'glacier',
   community: 'neutral',
   external_forecast: 'neutral',
   estimated: 'neutral',

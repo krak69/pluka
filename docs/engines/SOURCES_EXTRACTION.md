@@ -2268,7 +2268,7 @@ Le moteur Sources / Extraction V1 est correctement implémenté lorsque :
 17. les anciennes versions restent accessibles ;
 18. plusieurs sources peuvent justifier une même version ;
 19. seule une organisation autorisée peut publier `official`;
-20. PLUKA peut publier `validated_pluka` selon ses droits ;
+20. PLUKA peut publier `pluka_validated` selon ses droits ;
 21. un changement critique produit un événement downstream ;
 22. aucun Plan n’est réécrit automatiquement ;
 23. les dépendances exactes des Plans peuvent être retrouvées ;

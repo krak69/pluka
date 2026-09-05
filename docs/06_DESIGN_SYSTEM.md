@@ -2208,6 +2208,11 @@ Prévision externe
 Estimation
 ```
 
+Ce sont les libellés affichés. Les identifiants correspondants sont donnés en §182, et
+`official`, `pluka_validated` et `community` sont écrits exactement comme l’enum
+`public.trust_level` du modèle de données : un même niveau de confiance ne doit pas
+porter deux noms selon la couche.
+
 Ne pas rendre la hiérarchie uniquement par couleur.
 
 Texte toujours présent.
@@ -3962,7 +3967,7 @@ Le design doit rester distinct d’une `Alert` système.
 ```ts
 type TrustLevel =
   | 'official'
-  | 'validated_pluka'
+  | 'pluka_validated'
   | 'community'
   | 'external_forecast'
   | 'estimated'

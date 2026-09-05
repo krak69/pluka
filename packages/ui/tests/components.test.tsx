@@ -181,7 +181,7 @@ describe('Badge', () => {
 describe('TrustBadge', () => {
   const levels: readonly TrustLevel[] = [
     'official',
-    'validated_pluka',
+    'pluka_validated',
     'community',
     'external_forecast',
     'estimated',

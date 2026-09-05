@@ -169,6 +169,33 @@ describe('fact courant en regard', () => {
     expect(html).toContain('16:20');
   });
 
+  it('rend le niveau de confiance par son libellé humain — §87', () => {
+    // Le vocabulaire de la base et celui du Design System sont désormais le
+    // même : `publishedTrustLevel` alimente `TrustBadge` sans traduction, et
+    // le composant porte le libellé — « texte toujours présent ».
+    const official = render([
+      candidate({
+        matchedFactId: 'aaaa',
+        publishedValueText: '16:20',
+        publishedTrustLevel: 'official',
+      }),
+    ]);
+
+    expect(official).toContain('Officielle');
+    expect(official).toContain('data-trust-level="official"');
+
+    const validated = render([
+      candidate({
+        matchedFactId: 'aaaa',
+        publishedValueText: '16:20',
+        publishedTrustLevel: 'pluka_validated',
+      }),
+    ]);
+
+    expect(validated).toContain('Validée PLUKA');
+    expect(validated).toContain('data-trust-level="pluka_validated"');
+  });
+
   it('le dit quand il n’y en a pas', () => {
     expect(render([candidate()])).toContain('aucun');
   });

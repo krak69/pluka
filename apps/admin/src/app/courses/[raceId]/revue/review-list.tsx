@@ -1,8 +1,15 @@
 'use client';
 
 import type { FactCandidateReviewRecord } from '@pluka/db';
-import { Badge, DataValue, Divider, MicroLabel, SourceDrawer, StatusBadge } from '@pluka/ui';
-import type { TrustLevel } from '@pluka/ui';
+import {
+  Badge,
+  DataValue,
+  Divider,
+  MicroLabel,
+  SourceDrawer,
+  StatusBadge,
+  TrustBadge,
+} from '@pluka/ui';
 import { useActionState } from 'react';
 
 import { decideCandidateAction, publishCandidateAction, type ActionState } from '@/app/actions';
@@ -22,19 +29,6 @@ const INITIAL: ActionState = {};
  * absent — il apprend ce qui lui manque au lieu de se demander pourquoi
  * l'écran est vide.
  */
-
-/**
- * Le vocabulaire de confiance de la base et celui du Design System ne sont pas
- * écrits pareil : l'enum SQL dit `pluka_validated`, §87 dit `validated_pluka`.
- * La correspondance est faite ici, à la frontière d'affichage, plutôt que de
- * renommer l'un des deux — les deux sont déjà en place et portés par des
- * tests.
- */
-const TRUST_DISPLAY: Readonly<Record<string, TrustLevel>> = {
-  official: 'official',
-  pluka_validated: 'validated_pluka',
-  community: 'community',
-};
 
 /** §185 : un état se lit, il ne se devine pas à la couleur. */
 const STATUS_LABEL: Readonly<Record<string, string>> = {
@@ -140,11 +134,7 @@ function CandidateCard({
           <span style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
             <DataValue label="Fact courant" value={candidate.publishedValueText} />
             {candidate.publishedTrustLevel === null ? null : (
-              <span className="pk-label">
-                {TRUST_DISPLAY[candidate.publishedTrustLevel] === undefined
-                  ? candidate.publishedTrustLevel
-                  : `niveau ${candidate.publishedTrustLevel}`}
-              </span>
+              <TrustBadge level={candidate.publishedTrustLevel} />
             )}
           </span>
         )}
