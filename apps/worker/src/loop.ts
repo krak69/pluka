@@ -1,4 +1,5 @@
 import { GPX_QUEUE, handleGpxMessage } from './jobs/gpx-process.js';
+import { IMPACT_QUEUE, handleImpactMessage, isImpactMessage } from './jobs/change-impact.js';
 import { handleExtractMessage, isExtractMessage } from './jobs/source-extract.js';
 import { SOURCES_QUEUE, handleSourceMessage } from './jobs/source-ingest.js';
 import { handleParseMessage, isParseMessage } from './jobs/source-parse.js';
@@ -80,6 +81,16 @@ const CONSUMERS: readonly {
 
       return handleSourceMessage(ports, message);
     },
+  },
+  // §44 : les changements de course descendent vers les objets dépendants.
+  // La file portera aussi les recalculs de Plan et de Nutrition (0002), d'où
+  // le routage sur la forme du message.
+  {
+    queue: IMPACT_QUEUE,
+    handle: (ports, message) =>
+      isImpactMessage(message)
+        ? handleImpactMessage(ports, message)
+        : Promise.resolve({ kind: 'abandoned' as const }),
   },
 ];
 

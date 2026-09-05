@@ -6,6 +6,7 @@ import { fetchSource } from './fetcher.js';
 import {
   createExtractionStore,
   createGeometryStore,
+  createImpactStore,
   createSourceStore,
   createJobStore,
   createLogger,
@@ -37,6 +38,7 @@ export function createPorts(
     sources: createSourceStore(client, fetchSource),
     parsing: createParsingStore(client),
     extraction: createExtractionStore(client),
+    impacts: createImpactStore(client),
     ai,
     outbox: createOutboxDispatcher(client),
     logger: createLogger(),

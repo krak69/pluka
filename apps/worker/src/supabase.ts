@@ -6,6 +6,7 @@ import { transient } from './errors.js';
 import type {
   ExtractionStore,
   GeometryStore,
+  ImpactStore,
   ParsingStore,
   SourceStore,
   JobClaim,
@@ -410,6 +411,28 @@ export function createExtractionStore(client: PlukaClient): ExtractionStore {
         }),
         'worker_fail_extraction_run',
       );
+    },
+  };
+}
+
+/**
+ * Impact Analyzer — §44.
+ *
+ * L'analyse entière est une fonction SQL : c'est ce qui garantit que les
+ * données de préparation servant à déterminer l'affectation ne quittent jamais
+ * la base (00_PRODUCT_SPEC §37, 03_PRIVACY_RLS §35).
+ */
+export function createImpactStore(client: PlukaClient): ImpactStore {
+  return {
+    async analyze(changeEventId) {
+      const created = unwrapRpc(
+        await rpc(client).rpc('worker_analyze_change_impact', {
+          p_change_event_id: changeEventId,
+        }),
+        'worker_analyze_change_impact',
+      );
+
+      return Number(created ?? 0);
     },
   };
 }

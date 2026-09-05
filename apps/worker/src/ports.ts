@@ -183,6 +183,19 @@ export interface ExtractionStore {
   failRun(runId: string, code: string, error: string): Promise<void>;
 }
 
+/**
+ * Impact Analyzer — §44.
+ *
+ * Une seule opération, et sa signature dit l'essentiel : un identifiant
+ * d'événement entre, un nombre sort. Les données de préparation qui servent à
+ * déterminer l'affectation ne franchissent jamais cette frontière
+ * (00_PRODUCT_SPEC §37).
+ */
+export interface ImpactStore {
+  /** Rend le nombre d'impacts créés. Rejouer n'en crée aucun de plus. */
+  analyze(changeEventId: string): Promise<number>;
+}
+
 export interface GeometryStore {
   persist(input: {
     readonly raceId: string;
@@ -228,6 +241,7 @@ export interface WorkerPorts {
   readonly sources: SourceStore;
   readonly parsing: ParsingStore;
   readonly extraction: ExtractionStore;
+  readonly impacts: ImpactStore;
   readonly ai: ConfiguredAI | null;
   readonly outbox: OutboxDispatcher;
   readonly logger: Logger;

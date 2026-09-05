@@ -122,6 +122,7 @@ function createRecorder(): Recorder {
       completeRun: async (): Promise<void> => undefined,
       failRun: async (): Promise<void> => undefined,
     },
+    impacts: { analyze: async (): Promise<number> => 0 },
     // Aucune IA configurée : l'extraction déterministe suffit (§29).
     ai: null,
     outbox: { dispatch: async (): Promise<number> => 0 },
@@ -312,9 +313,12 @@ describe('boucle', () => {
     expect(result.dispatched).toBe(3);
   });
 
-  it('consomme les deux files du lot', () => {
+  it('consomme les files de chaque domaine', () => {
     // Les queues sont groupées par domaine, pas une par type de job
     // (migration 0002) : le worker en lit plusieurs par tour.
+    //
+    // `pluka_plan` s'y ajoute avec l'Impact Analyzer de §44 : un changement
+    // publié descend vers les Plans, la Préparation et l'Assistance.
     const order: string[] = [];
 
     recorder.ports.queue.read = async (queue) => {
@@ -323,7 +327,7 @@ describe('boucle', () => {
     };
 
     return tick(recorder.ports).then(() => {
-      expect(order).toEqual(['pluka_geo', 'pluka_sources']);
+      expect(order).toEqual(['pluka_geo', 'pluka_sources', 'pluka_plan']);
     });
   });
 });
