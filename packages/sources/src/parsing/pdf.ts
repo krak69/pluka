@@ -98,7 +98,16 @@ export function isPdfParseError(error: unknown): error is PdfParseError {
 interface TextItem {
   readonly str: string;
   readonly height: number;
+  readonly width: number;
   readonly transform: readonly number[];
+}
+
+interface Fragment {
+  readonly text: string;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly size: number;
 }
 
 interface PositionedLine {
@@ -109,6 +118,14 @@ interface PositionedLine {
   readonly size: number;
   readonly x: number;
   readonly y: number;
+  /**
+   * Les fragments de la ligne, dans l'ordre de lecture.
+   *
+   * Conservés parce qu'une ligne de tableau ne se distingue d'une phrase que
+   * par eux : « Iffigenalp    16h20 » et « Iffigenalp arrive à 16h20 » ont le
+   * même texte recollé, mais pas les mêmes gouttières.
+   */
+  readonly fragments: readonly Fragment[];
 }
 
 /**
@@ -139,6 +156,7 @@ function toLines(items: readonly TextItem[], page: number): readonly PositionedL
       text: item.str,
       x: round(item.transform[4] ?? 0),
       y: round(item.transform[5] ?? 0),
+      width: round(item.width),
       size: round(item.height),
     }));
 
@@ -166,6 +184,7 @@ function toLines(items: readonly TextItem[], page: number): readonly PositionedL
         size: Math.max(...entries.map((entry) => entry.size)),
         x: entries[0]?.x ?? 0,
         y: group.y,
+        fragments: entries,
       } satisfies PositionedLine;
     })
     .filter((line) => line.text !== '');
@@ -379,6 +398,137 @@ function errorName(error: unknown): string {
 }
 
 /**
+ * Détection de tableaux — §13, « détection tableaux / blocs lorsque possible ».
+ *
+ * Un PDF ne déclare pas ses tableaux : il pose du texte à des coordonnées. Une
+ * ligne de tableau ne se reconnaît donc qu'à sa forme — des fragments séparés
+ * par des gouttières nettes, alignés d'une ligne à l'autre.
+ *
+ * L'enjeu est §84 : « une barrière doit conserver waypoint, horaire, basis ».
+ * L'extracteur déterministe lit ces trois éléments dans des cellules indexées
+ * par tableau et par ligne. Sans cette détection, un tableau de barrières
+ * arriverait en paragraphes — « Iffigenalp 16h20 » — et §84 ne trouverait
+ * rien dans un PDF là où il trouve tout dans le HTML équivalent.
+ *
+ * La détection est volontairement stricte. Elle exige des colonnes en nombre
+ * constant et alignées, sur au moins deux lignes consécutives : de la prose
+ * justifiée ne devient donc pas un tableau. Le prix de cette prudence est
+ * qu'un tableau irrégulier reste en paragraphes — ce qui est le bon sens du
+ * refus plutôt que de la structure inventée.
+ */
+
+/** Écart minimal entre deux cellules, en points. En deçà, c'est un mot suivant. */
+const COLUMN_GAP = 8;
+
+/** Décalage toléré entre les colonnes de deux lignes d'un même tableau. */
+const COLUMN_ALIGNMENT = 12;
+
+/** Sous deux lignes, il n'y a pas de tableau : il faut un en-tête et une donnée. */
+const MIN_TABLE_ROWS = 2;
+
+/**
+ * Les cellules d'une ligne, ou `null` si la ligne n'a pas de gouttière.
+ *
+ * Les fragments d'une même cellule sont recollés : une cellule peut contenir
+ * plusieurs fragments quand le générateur change de style au milieu d'un mot.
+ */
+function toCells(line: PositionedLine): readonly Fragment[][] | null {
+  const cells: Fragment[][] = [];
+  let current: Fragment[] = [];
+  let previousEnd: number | null = null;
+
+  for (const fragment of line.fragments) {
+    if (previousEnd !== null && fragment.x - previousEnd >= COLUMN_GAP) {
+      cells.push(current);
+      current = [];
+    }
+
+    current.push(fragment);
+    previousEnd = fragment.x + fragment.width;
+  }
+
+  if (current.length > 0) cells.push(current);
+
+  return cells.length >= 2 ? cells : null;
+}
+
+/** Les abscisses de départ des cellules : la signature de colonnes d'une ligne. */
+function columnStarts(cells: readonly Fragment[][]): readonly number[] {
+  return cells.map((cell) => cell[0]?.x ?? 0);
+}
+
+function alignedWith(left: readonly number[], right: readonly number[]): boolean {
+  return (
+    left.length === right.length &&
+    left.every((value, index) => Math.abs(value - (right[index] ?? 0)) <= COLUMN_ALIGNMENT)
+  );
+}
+
+interface TableRow {
+  readonly line: PositionedLine;
+  readonly cells: readonly Fragment[][];
+}
+
+/**
+ * Regroupe les lignes consécutives qui partagent une structure de colonnes.
+ *
+ * Rend, pour chaque ligne, l'index du tableau auquel elle appartient et son
+ * rang dans celui-ci — ou rien si elle n'appartient à aucun.
+ */
+function detectTables(
+  lines: readonly PositionedLine[],
+): ReadonlyMap<
+  PositionedLine,
+  { tableIndex: number; rowIndex: number; cells: readonly Fragment[][] }
+> {
+  const assignment = new Map<
+    PositionedLine,
+    { tableIndex: number; rowIndex: number; cells: readonly Fragment[][] }
+  >();
+
+  let tableIndex = -1;
+  let run: TableRow[] = [];
+
+  function flush(): void {
+    if (run.length >= MIN_TABLE_ROWS) {
+      tableIndex += 1;
+
+      run.forEach((row, rowIndex) => {
+        assignment.set(row.line, { tableIndex, rowIndex, cells: row.cells });
+      });
+    }
+
+    run = [];
+  }
+
+  for (const line of lines) {
+    const cells = toCells(line);
+    const previous = run[run.length - 1];
+
+    // Un tableau ne traverse pas une page : les colonnes d'une page suivante
+    // sont un autre tableau, même si elles s'alignent par coïncidence.
+    const continues =
+      cells !== null &&
+      previous !== undefined &&
+      previous.line.page === line.page &&
+      alignedWith(columnStarts(cells), columnStarts(previous.cells));
+
+    if (cells === null) {
+      flush();
+      continue;
+    }
+
+    if (!continues) flush();
+
+    run.push({ line, cells });
+  }
+
+  flush();
+
+  return assignment;
+}
+
+/**
  * Transforme les lignes en blocks — §18.
  *
  * Un titre ouvre une section et n'est pas dans sa propre section, exactement
@@ -389,6 +539,7 @@ function errorName(error: unknown): string {
 function toBlocks(lines: readonly PositionedLine[]): readonly ParsedBlock[] {
   const body = bodySize(lines);
   const levels = headingLevels(lines, body);
+  const tables = detectTables(lines);
   const sectionByLevel = new Map<number, string>();
   const blocks: ParsedBlock[] = [];
 
@@ -399,8 +550,10 @@ function toBlocks(lines: readonly PositionedLine[]): readonly ParsedBlock[] {
   }
 
   for (const line of lines) {
-    const level = levels.get(line.size);
-    const type: BlockType = level === undefined ? paragraphType(line.text) : 'heading';
+    const table = tables.get(line);
+    // Une ligne de tableau n'est jamais un titre : sa taille de police peut
+    // dépasser celle du corps sans qu'elle ouvre une section.
+    const level = table === undefined ? levels.get(line.size) : undefined;
 
     if (level !== undefined) {
       for (const known of [...sectionByLevel.keys()]) {
@@ -410,13 +563,45 @@ function toBlocks(lines: readonly PositionedLine[]): readonly ParsedBlock[] {
     }
 
     const path = currentPath();
+    const sectionPath = level === undefined ? path : path.slice(0, -1);
+    const heading = level === undefined ? (path[path.length - 1] ?? null) : null;
+
+    if (table !== undefined) {
+      // Une cellule par block, comme le parseur HTML en produit pour un
+      // `<td>` : c'est ce qui permet à l'extracteur de §84 de lire un tableau
+      // de barrières sans savoir de quel format il vient.
+      for (const cell of table.cells) {
+        const text = joinFragments(cell.map((fragment) => fragment.text));
+
+        if (text === '') continue;
+
+        blocks.push({
+          blockIndex: blocks.length,
+          pageNumber: line.page,
+          sectionPath,
+          heading,
+          blockType: 'table',
+          text,
+          locator: {
+            page: line.page,
+            tableIndex: table.tableIndex,
+            rowIndex: table.rowIndex,
+            lineIndex: line.lineIndex,
+            x: cell[0]?.x ?? line.x,
+            y: line.y,
+          },
+        });
+      }
+
+      continue;
+    }
 
     blocks.push({
       blockIndex: blocks.length,
       pageNumber: line.page,
-      sectionPath: level === undefined ? path : path.slice(0, -1),
-      heading: level === undefined ? (path[path.length - 1] ?? null) : null,
-      blockType: type,
+      sectionPath,
+      heading,
+      blockType: level === undefined ? paragraphType(line.text) : 'heading',
       text: line.text,
       // §20 : de quoi revenir à la position exacte dans le document capturé.
       // La page et la ligne suffisent à retrouver un passage ; les coordonnées

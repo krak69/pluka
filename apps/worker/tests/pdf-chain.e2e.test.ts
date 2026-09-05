@@ -44,6 +44,7 @@ const FIXTURES = resolve(
 
 const REGLEMENT_PDF = new Uint8Array(readFileSync(resolve(FIXTURES, 'reglement.pdf')));
 const SCANNED_PDF = new Uint8Array(readFileSync(resolve(FIXTURES, 'scanned.pdf')));
+const BARRIERES_PDF = new Uint8Array(readFileSync(resolve(FIXTURES, 'barrieres.pdf')));
 
 type ServiceClient = ReturnType<typeof createServiceRoleClient>;
 type Rpc = {
@@ -56,6 +57,7 @@ let ports: WorkerPorts;
 let served: Uint8Array = REGLEMENT_PDF;
 let readableSourceId = '';
 let scannedSourceId = '';
+let barrieresSourceId = '';
 let available = false;
 
 async function reachable(): Promise<boolean> {
@@ -145,7 +147,13 @@ beforeAll(async () => {
 
   await tick(ports);
   await tick(ports);
-}, 120000);
+
+  served = BARRIERES_PDF;
+  barrieresSourceId = await enqueue('Barrières', 'https://organisation.example/barrieres.pdf');
+
+  await tick(ports);
+  await tick(ports);
+}, 180000);
 
 afterAll(async () => {
   if (available) await client.from('organizations').delete().eq('id', ORG_ID);
@@ -215,6 +223,60 @@ describe.runIf(process.env.SUPABASE_SERVICE_ROLE_KEY !== undefined)('parsing PDF
 
     expect(run?.parser_version).toBe(PARSER_VERSION);
     expect(run?.status).toBe('completed');
+  });
+
+  it('persiste un tableau de barrières en cellules — §13, §84', async () => {
+    if (!available) return;
+
+    // Un PDF ne déclare aucun tableau : celui-ci est reconnu à ses gouttières.
+    // Ce que la base doit contenir est ce dont §84 a besoin — des cellules
+    // indexées par tableau et par ligne, avec leur page.
+    const snapshot = await snapshotOf(barrieresSourceId);
+    const { data } = await call().rpc('worker_read_blocks', { p_snapshot_id: snapshot?.id });
+
+    const cells = (data as Row[]).filter((row) => row.block_type === 'table');
+
+    expect(cells.map((row) => String(row.content))).toEqual([
+      'Point',
+      'Distance',
+      'Barriere (arrivee)',
+      'Iffigenalp',
+      '32 km',
+      '16h20',
+      'Adelboden',
+      '58 km',
+      '21h45',
+    ]);
+  });
+
+  it('conserve page_number et locator de chaque cellule — §20, §84', async () => {
+    if (!available) return;
+
+    const snapshot = await snapshotOf(barrieresSourceId);
+    const { data } = await call().rpc('worker_read_blocks', { p_snapshot_id: snapshot?.id });
+
+    const heure = (data as Row[]).find((row) => String(row.content) === '16h20');
+
+    // Le tableau est en page 2 de la fixture : un document d'une seule page ne
+    // prouverait pas que la segmentation de §13 tient jusqu'en base.
+    expect(heure?.page_number).toBe(2);
+    expect(heure?.section_path).toEqual(['Reglement 2026', 'Barrieres horaires']);
+
+    const locator = heure?.locator as Row;
+
+    expect(locator.page).toBe(2);
+    expect(locator.tableIndex).toBe(0);
+    // Ligne 1 : l'en-tête est la ligne 0, la première barrière la ligne 1.
+    expect(locator.rowIndex).toBe(1);
+    expect(typeof locator.x).toBe('number');
+    expect(typeof locator.y).toBe('number');
+
+    const nom = (data as Row[]).find((row) => String(row.content) === 'Iffigenalp');
+
+    // Même ligne, colonne différente : c'est ce qui permet à §84 de recomposer
+    // « Iffigenalp, arrivée, 16:20 » à partir de deux cellules.
+    expect((nom?.locator as Row).rowIndex).toBe(1);
+    expect((nom?.locator as Row).x).not.toBe(locator.x);
   });
 
   it('refuse un PDF scanné en nommant sa raison — §14', async () => {

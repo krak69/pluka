@@ -176,6 +176,69 @@ const brokenXref = buildPdf(
   { brokenXref: true },
 );
 
+// ============================================================
+// Barrières horaires : le même tableau que l'équivalent HTML
+// ============================================================
+//
+// Les colonnes sont posées à des abscisses fixes, comme le ferait n'importe
+// quel générateur : c'est ainsi qu'un tableau existe dans un PDF — il n'y a
+// aucune balise, seulement des gouttières. La détection de §13 doit les
+// retrouver, pour que l'extraction de §84 lise les mêmes barrières que depuis
+// le HTML.
+//
+// Le tableau est en page 2 : `page_number` doit valoir 2, ce qu'une fixture
+// d'une seule page ne prouverait pas.
+
+const BARRIERES_PAGE_ONE = page([
+  { text: 'Reglement 2026', size: 20, y: 720 },
+  { text: 'Assistance', size: 15, y: 680 },
+  { text: "L'assistance personnelle est autorisee uniquement a Lenk.", y: 655 },
+]);
+
+/** Une ligne de tableau : trois cellules, à trois abscisses distinctes. */
+function row(cells, y) {
+  return cells.map(([text, x], index) => ({ text, x, y, size: index === undefined ? 12 : 12 }));
+}
+
+const BARRIERES_PAGE_TWO = page([
+  { text: 'Barrieres horaires', size: 15, y: 720 },
+  ...row(
+    [
+      ['Point', 72],
+      ['Distance', 220],
+      ['Barriere (arrivee)', 340],
+    ],
+    680,
+  ),
+  ...row(
+    [
+      ['Iffigenalp', 72],
+      ['32 km', 220],
+      ['16h20', 340],
+    ],
+    660,
+  ),
+  ...row(
+    [
+      ['Adelboden', 72],
+      ['58 km', 220],
+      ['21h45', 340],
+    ],
+    640,
+  ),
+  { text: 'Tout coureur hors barriere est mis hors course.', y: 600 },
+]);
+
+const barrieres = buildPdf([
+  '<< /Type /Catalog /Pages 2 0 R >>',
+  '<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>',
+  '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 7 0 R >> >> /Contents 4 0 R >>',
+  stream(BARRIERES_PAGE_ONE, { compress: true }),
+  '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 7 0 R >> >> /Contents 6 0 R >>',
+  stream(BARRIERES_PAGE_TWO, { compress: true }),
+  '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+]);
+
 const here = new URL('.', import.meta.url);
 
 for (const [name, bytes] of [
@@ -184,6 +247,7 @@ for (const [name, bytes] of [
   ['encrypted.pdf', encrypted],
   ['javascript.pdf', withJavaScript],
   ['broken-xref.pdf', brokenXref],
+  ['barrieres.pdf', barrieres],
 ]) {
   writeFileSync(new URL(name, here), bytes);
   console.log(`${name} — ${bytes.length} octets`);
