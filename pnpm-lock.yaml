@@ -133,6 +133,9 @@ importers:
       '@pluka/gpx':
         specifier: workspace:*
         version: link:../../packages/gpx
+      '@pluka/notifications':
+        specifier: workspace:*
+        version: link:../../packages/notifications
       '@pluka/sources':
         specifier: workspace:*
         version: link:../../packages/sources
@@ -246,6 +249,22 @@ importers:
         version: 3.2.7(@types/node@22.20.1)
 
   packages/gpx:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.1.0
+        version: 3.2.7(@types/node@22.20.1)
+
+  packages/notifications:
+    dependencies:
+      '@pluka/contracts':
+        specifier: workspace:*
+        version: link:../contracts
     devDependencies:
       '@types/node':
         specifier: ^22.15.0

@@ -123,6 +123,15 @@ function createRecorder(): Recorder {
       failRun: async (): Promise<void> => undefined,
     },
     impacts: { analyze: async (): Promise<number> => 0 },
+    notifications: {
+      claim: async () => {
+        throw new Error('non employé dans ces tests');
+      },
+      complete: async (): Promise<void> => undefined,
+      fail: async () => 'pending',
+    },
+    email: null,
+    appUrl: 'http://localhost:3001',
     // Aucune IA configurée : l'extraction déterministe suffit (§29).
     ai: null,
     outbox: { dispatch: async (): Promise<number> => 0 },
@@ -327,7 +336,7 @@ describe('boucle', () => {
     };
 
     return tick(recorder.ports).then(() => {
-      expect(order).toEqual(['pluka_geo', 'pluka_sources', 'pluka_plan']);
+      expect(order).toEqual(['pluka_geo', 'pluka_sources', 'pluka_plan', 'pluka_email']);
     });
   });
 });

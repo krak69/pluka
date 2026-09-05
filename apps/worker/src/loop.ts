@@ -1,5 +1,10 @@
 import { GPX_QUEUE, handleGpxMessage } from './jobs/gpx-process.js';
 import { IMPACT_QUEUE, handleImpactMessage, isImpactMessage } from './jobs/change-impact.js';
+import {
+  EMAIL_QUEUE,
+  handleNotificationMessage,
+  isNotificationMessage,
+} from './jobs/notification-send.js';
 import { handleExtractMessage, isExtractMessage } from './jobs/source-extract.js';
 import { SOURCES_QUEUE, handleSourceMessage } from './jobs/source-ingest.js';
 import { handleParseMessage, isParseMessage } from './jobs/source-parse.js';
@@ -90,6 +95,14 @@ const CONSUMERS: readonly {
     handle: (ports, message) =>
       isImpactMessage(message)
         ? handleImpactMessage(ports, message)
+        : Promise.resolve({ kind: 'abandoned' as const }),
+  },
+  // §46 : le coureur concerné est informé.
+  {
+    queue: EMAIL_QUEUE,
+    handle: (ports, message) =>
+      isNotificationMessage(message)
+        ? handleNotificationMessage(ports, message)
         : Promise.resolve({ kind: 'abandoned' as const }),
   },
 ];

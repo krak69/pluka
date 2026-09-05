@@ -1,6 +1,8 @@
-import type { AIProvider } from '@pluka/contracts';
+import type { AIProvider, EmailProvider } from '@pluka/contracts';
 import type { ProcessedTrack } from '@pluka/gpx';
 import type { Capture, ExtractedCandidate, ParsedBlock, ParsedChunk } from '@pluka/sources';
+
+import type { NotificationStore } from './ports-notifications.js';
 
 /**
  * Frontières du worker.
@@ -196,6 +198,12 @@ export interface ImpactStore {
   analyze(changeEventId: string): Promise<number>;
 }
 
+export type {
+  NotificationClaim,
+  NotificationResult,
+  NotificationStore,
+} from './ports-notifications.js';
+
 export interface GeometryStore {
   persist(input: {
     readonly raceId: string;
@@ -242,6 +250,16 @@ export interface WorkerPorts {
   readonly parsing: ParsingStore;
   readonly extraction: ExtractionStore;
   readonly impacts: ImpactStore;
+  readonly notifications: NotificationStore;
+  /**
+   * Fournisseur email, ou son absence.
+   *
+   * Nul quand rien n'est configuré : §35 veut alors que la livraison reste
+   * persistée et soit retentée, pas qu'elle disparaisse.
+   */
+  readonly email: EmailProvider | null;
+  /** Base des liens envoyés au coureur — `NEXT_PUBLIC_APP_URL`. */
+  readonly appUrl: string;
   readonly ai: ConfiguredAI | null;
   readonly outbox: OutboxDispatcher;
   readonly logger: Logger;
