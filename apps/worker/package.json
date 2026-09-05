@@ -12,10 +12,12 @@
   },
   "dependencies": {
     "@pluka/config": "workspace:*",
+    "@pluka/contracts": "workspace:*",
     "@pluka/db": "workspace:*",
     "@pluka/gpx": "workspace:*",
     "@pluka/sources": "workspace:*",
-    "@supabase/supabase-js": "^2.115.0"
+    "@supabase/supabase-js": "^2.115.0",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

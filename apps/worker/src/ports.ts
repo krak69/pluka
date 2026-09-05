@@ -1,5 +1,6 @@
+import type { AIProvider } from '@pluka/contracts';
 import type { ProcessedTrack } from '@pluka/gpx';
-import type { Capture, ParsedBlock, ParsedChunk } from '@pluka/sources';
+import type { Capture, ExtractedCandidate, ParsedBlock, ParsedChunk } from '@pluka/sources';
 
 /**
  * Frontières du worker.
@@ -117,6 +118,63 @@ export interface ParsingStore {
   failRun(runId: string, error: string): Promise<void>;
 }
 
+/**
+ * Runs d'extraction — étape 3 de SOURCES_EXTRACTION.
+ *
+ * L'extraction lit ce que le parsing a persisté, écrit des candidats, et ne
+ * touche à aucun fact publié : §25 et §61. Les cinq éléments de traçabilité de
+ * §26 — moteur, schéma, prompt, fournisseur, modèle — voyagent avec le run,
+ * plus le run de parsing dont il descend.
+ */
+export interface ParseOutput {
+  readonly blocks: readonly ParsedBlock[];
+  readonly chunks: readonly ParsedChunk[];
+}
+
+export interface ExtractionRunStart {
+  readonly parseRunId: string;
+  readonly snapshotId: string;
+  readonly engineVersion: string;
+  readonly schemaVersion: string;
+  readonly promptVersion: string;
+  /** Nul quand aucune IA n'est configurée : l'extraction reste déterministe. */
+  readonly provider: string | null;
+  readonly model: string | null;
+  readonly inputHash: string;
+}
+
+export interface ExtractionRun {
+  readonly runId: string;
+  /** Vrai si un run identique — même parsing, mêmes versions — existe déjà. */
+  readonly alreadyCompleted: boolean;
+}
+
+export interface ExtractionRecord {
+  readonly runId: string;
+  readonly parseRunId: string;
+  readonly snapshotId: string;
+  readonly candidates: readonly ExtractedCandidate[];
+}
+
+export interface ExtractionUsage {
+  readonly inputTokens: number | null;
+  readonly outputTokens: number | null;
+  readonly latencyMs: number;
+}
+
+export interface ExtractionStore {
+  readParseOutput(parseRunId: string): Promise<ParseOutput>;
+  startRun(input: ExtractionRunStart): Promise<ExtractionRun>;
+  /** Rend le nombre de candidats écrits, toutes courses confondues. */
+  recordCandidates(input: ExtractionRecord): Promise<number>;
+  completeRun(
+    runId: string,
+    usage: ExtractionUsage,
+    summary: Readonly<Record<string, unknown>>,
+  ): Promise<void>;
+  failRun(runId: string, code: string, error: string): Promise<void>;
+}
+
 export interface GeometryStore {
   persist(input: {
     readonly raceId: string;
@@ -137,6 +195,23 @@ export interface Logger {
   error(message: string, context?: Record<string, unknown>): void;
 }
 
+/**
+ * Fournisseur IA configuré, s'il y en a un.
+ *
+ * Le modèle accompagne le fournisseur parce que le worker en a besoin *avant*
+ * d'appeler quoi que ce soit : §26 fait du couple fournisseur / modèle une
+ * partie de l'identité d'un run, donc de sa clé d'idempotence. `AIProvider` ne
+ * l'expose pas, et n'a pas à le faire — c'est une donnée de configuration, pas
+ * de contrat.
+ *
+ * Nul quand aucune IA n'est configurée. Ce n'est pas une panne : l'extraction
+ * déterministe de §29 fonctionne seule.
+ */
+export interface ConfiguredAI {
+  readonly provider: AIProvider;
+  readonly model: string;
+}
+
 export interface WorkerPorts {
   readonly queue: Queue;
   readonly jobs: JobStore;
@@ -144,6 +219,8 @@ export interface WorkerPorts {
   readonly geometries: GeometryStore;
   readonly sources: SourceStore;
   readonly parsing: ParsingStore;
+  readonly extraction: ExtractionStore;
+  readonly ai: ConfiguredAI | null;
   readonly outbox: OutboxDispatcher;
   readonly logger: Logger;
 }

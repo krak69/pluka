@@ -111,6 +111,15 @@ function createRecorder(): Recorder {
       completeRun: async () => 0,
       failRun: async (): Promise<void> => undefined,
     },
+    extraction: {
+      readParseOutput: async () => ({ blocks: [], chunks: [] }),
+      startRun: async () => ({ runId: 'extract-1', alreadyCompleted: false }),
+      recordCandidates: async () => 0,
+      completeRun: async (): Promise<void> => undefined,
+      failRun: async (): Promise<void> => undefined,
+    },
+    // Aucune IA configurée : l'extraction déterministe suffit (§29).
+    ai: null,
     outbox: { dispatch: async (): Promise<number> => 0 },
     logger: { info: () => {}, warn: () => {}, error: () => {} },
   };

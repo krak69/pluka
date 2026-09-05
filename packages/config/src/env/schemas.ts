@@ -56,6 +56,9 @@ export const providerEnvSchema = z
   .object({
     AI_PROVIDER: optionalText(),
     AI_API_KEY: optionalText(),
+    // Le nom du modèle est enregistré dans chaque run d'extraction
+    // (SOURCES_EXTRACTION §26) : sans lui, un run ne dirait pas ce qui l'a produit.
+    AI_MODEL: optionalText(),
 
     WEATHER_PROVIDER: optionalText(),
     WEATHER_API_KEY: optionalText(),
@@ -87,7 +90,10 @@ export const providerEnvSchema = z
       }
     };
 
-    requireCompanions('AI_PROVIDER', env.AI_PROVIDER, [['AI_API_KEY', env.AI_API_KEY]]);
+    requireCompanions('AI_PROVIDER', env.AI_PROVIDER, [
+      ['AI_API_KEY', env.AI_API_KEY],
+      ['AI_MODEL', env.AI_MODEL],
+    ]);
     requireCompanions('WEATHER_PROVIDER', env.WEATHER_PROVIDER, [
       ['WEATHER_API_KEY', env.WEATHER_API_KEY],
     ]);

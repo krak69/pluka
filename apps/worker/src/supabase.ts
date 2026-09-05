@@ -1,9 +1,10 @@
 import type { PlukaClient } from '@pluka/db';
 import { toEwktLineStringZ } from '@pluka/gpx';
-import type { Capture } from '@pluka/sources';
+import type { Capture, ParsedBlock, ParsedChunk } from '@pluka/sources';
 
 import { transient } from './errors.js';
 import type {
+  ExtractionStore,
   GeometryStore,
   ParsingStore,
   SourceStore,
@@ -313,6 +314,91 @@ export function createParsingStore(client: PlukaClient): ParsingStore {
       unwrapRpc(
         await rpc(client).rpc('worker_fail_parse_run', { p_run_id: runId, p_error: error }),
         'worker_fail_parse_run',
+      );
+    },
+  };
+}
+
+/**
+ * Runs d'extraction — étape 3.
+ *
+ * Comme pour le parsing, tout passe par des fonctions SQL : candidats, preuves
+ * et clôture du run doivent réussir ensemble (§31). Aucune de ces fonctions
+ * n'écrit dans `race_facts` — un candidat est une proposition (§25).
+ */
+export function createExtractionStore(client: PlukaClient): ExtractionStore {
+  return {
+    async readParseOutput(parseRunId) {
+      const rows = unwrapRpc(
+        await rpc(client).rpc('worker_read_parse_output', { p_parse_run_id: parseRunId }),
+        'worker_read_parse_output',
+      );
+
+      const row = (Array.isArray(rows) ? rows[0] : rows) as Record<string, unknown> | undefined;
+
+      return {
+        blocks: (row?.blocks ?? []) as ParsedBlock[],
+        chunks: (row?.chunks ?? []) as ParsedChunk[],
+      };
+    },
+
+    async startRun(input) {
+      const rows = unwrapRpc(
+        await rpc(client).rpc('worker_start_extraction_run', {
+          p_parse_run_id: input.parseRunId,
+          p_snapshot_id: input.snapshotId,
+          p_engine_version: input.engineVersion,
+          p_schema_version: input.schemaVersion,
+          p_prompt_version: input.promptVersion,
+          p_provider: input.provider,
+          p_model: input.model,
+          p_input_hash: input.inputHash,
+        }),
+        'worker_start_extraction_run',
+      );
+
+      const row = (Array.isArray(rows) ? rows[0] : rows) as Record<string, unknown> | undefined;
+
+      if (row === undefined) throw transient('DB_UNAVAILABLE', "run d'extraction non ouvert");
+
+      return { runId: String(row.run_id), alreadyCompleted: row.already_completed === true };
+    },
+
+    async recordCandidates(input) {
+      const count = unwrapRpc(
+        await rpc(client).rpc('worker_record_fact_candidates', {
+          p_run_id: input.runId,
+          p_parse_run_id: input.parseRunId,
+          p_snapshot_id: input.snapshotId,
+          p_candidates: input.candidates,
+        }),
+        'worker_record_fact_candidates',
+      );
+
+      return Number(count ?? 0);
+    },
+
+    async completeRun(runId, usage, summary) {
+      unwrapRpc(
+        await rpc(client).rpc('worker_complete_extraction_run', {
+          p_run_id: runId,
+          p_input_tokens: usage.inputTokens,
+          p_output_tokens: usage.outputTokens,
+          p_latency_ms: usage.latencyMs,
+          p_output_json: summary,
+        }),
+        'worker_complete_extraction_run',
+      );
+    },
+
+    async failRun(runId, code, error) {
+      unwrapRpc(
+        await rpc(client).rpc('worker_fail_extraction_run', {
+          p_run_id: runId,
+          p_error_code: code,
+          p_error: error,
+        }),
+        'worker_fail_extraction_run',
       );
     },
   };

@@ -21,6 +21,10 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "dependencies": {
+    "@pluka/contracts": "workspace:*",
+    "zod": "^4.5.4"
+  },
   "devDependencies": {
     "@types/node": "^22.15.0",
     "typescript": "^5.8.0",

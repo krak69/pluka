@@ -124,6 +124,9 @@ importers:
       '@pluka/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@pluka/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@pluka/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -136,6 +139,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.115.0
         version: 2.115.0
+      zod:
+        specifier: ^4.5.4
+        version: 4.5.4
     devDependencies:
       '@types/node':
         specifier: ^22.15.0
@@ -252,6 +258,13 @@ importers:
         version: 3.2.7(@types/node@22.20.1)
 
   packages/sources:
+    dependencies:
+      '@pluka/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      zod:
+        specifier: ^4.5.4
+        version: 4.5.4
     devDependencies:
       '@types/node':
         specifier: ^22.15.0

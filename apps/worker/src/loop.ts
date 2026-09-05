@@ -1,4 +1,5 @@
 import { GPX_QUEUE, handleGpxMessage } from './jobs/gpx-process.js';
+import { handleExtractMessage, isExtractMessage } from './jobs/source-extract.js';
 import { SOURCES_QUEUE, handleSourceMessage } from './jobs/source-ingest.js';
 import { handleParseMessage, isParseMessage } from './jobs/source-parse.js';
 import type { QueueMessage, WorkerPorts } from './ports.js';
@@ -70,10 +71,15 @@ const CONSUMERS: readonly {
   // routage se fait sur la forme de la charge utile.
   {
     queue: SOURCES_QUEUE,
-    handle: (ports, message) =>
-      isParseMessage(message)
-        ? handleParseMessage(ports, message)
-        : handleSourceMessage(ports, message),
+    handle: (ports, message) => {
+      // L'ordre compte : un message d'extraction porte aussi un `snapshotId`,
+      // et le tester en premier le ferait reparser indéfiniment. Le
+      // discriminant le plus spécifique passe donc devant.
+      if (isExtractMessage(message)) return handleExtractMessage(ports, message);
+      if (isParseMessage(message)) return handleParseMessage(ports, message);
+
+      return handleSourceMessage(ports, message);
+    },
   },
 ];
 
