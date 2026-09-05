@@ -204,6 +204,80 @@ Les données personnelles suivantes appartiennent au participant :
 - sorties ;
 - retours après-course.
 
+
+## 4.1 Cycle de vie d'une Race
+
+Une Race possède un statut explicite. Les transitions ci-dessous sont les seules autorisées ;
+toute autre est refusée avec `invalid_state`.
+
+```text
+draft ──► published ──► completed ──► archived
+             │                            ▲
+             └────────► cancelled ────────┘
+```
+
+| Statut | Sens |
+| --- | --- |
+| `draft` | En préparation. Non visible publiquement. |
+| `published` | Diffusée. Visible et préparable. |
+| `cancelled` | Annulée par l'organisation ou par PLUKA. Reste visible. |
+| `completed` | Course courue. Déclarée, jamais automatique. |
+| `archived` | Sortie de la circulation courante. Réversible. |
+
+### Qui peut faire quoi
+
+| Transition | Autorisé |
+| --- | --- |
+| `draft → published` | `editor` de l'organisation gestionnaire, ou `pluka_admin` |
+| `published → cancelled` | `admin` de l'organisation gestionnaire, ou `pluka_admin` |
+| `published → completed` | `pluka_admin` uniquement |
+| `completed → archived` | `pluka_admin` uniquement |
+| `cancelled → archived` | `pluka_admin` uniquement |
+| `archived → completed` / `archived → cancelled` | `pluka_admin` uniquement — retour au statut antérieur à l'archivage |
+
+Un événement sans organisation gestionnaire n'est administrable que par `pluka_admin`.
+
+L'annulation reste possible tant que la course n'est ni `completed` ni `archived`, y compris
+après la date de départ : une course peut être annulée sur place le jour J.
+
+`completed` n'est jamais déclenché par le passage de la date. Une course non déclarée reste
+`published` — l'échéance seule ne dit pas qu'elle a eu lieu.
+
+### Effets d'une annulation
+
+Une course annulée **reste visible** pour tous les coureurs concernés, avec une mention
+« Annulée » explicite partout où elle apparaît : Ma saison, page de course, Race Pack.
+
+Elle n'est jamais masquée ni retirée de l'espace du coureur. Le travail de préparation
+appartient au coureur, pas à l'organisation.
+
+Les données personnelles rattachées — Plan, Nutrition, Préparation, Assistance, sacs, notes,
+sorties — **restent accessibles et modifiables**. Le coureur peut continuer à les consulter,
+à les exporter et à les réutiliser pour une autre course.
+
+Aucune donnée personnelle n'est supprimée, dégradée ni verrouillée par une annulation.
+
+Les moteurs restent utilisables sur une course annulée. PLUKA ne recalcule ni ne réinitialise
+quoi que ce soit lors de la transition.
+
+### Effets d'un archivage
+
+Une course archivée sort des listes courantes et de la recherche publique. Elle reste
+accessible par lien direct et dans l'espace des coureurs concernés.
+
+L'archivage est réversible par `pluka_admin`, qui la ramène à son statut antérieur.
+
+### Invariants
+
+- Une Race n'est publiquement lisible que si elle est `published`, `cancelled`, `completed`
+  ou `archived`, **et** que son Edition est diffusée, **et** que son Event l'est aussi.
+- Une Race `draft` n'est jamais lisible publiquement, quelle que soit la chaîne au-dessus.
+- Une transition non listée ci-dessus est refusée avec `invalid_state`.
+- Un changement de statut est journalisé : qui, quand, depuis quel statut.
+
+> **Point ouvert.** Une course annulée reste-t-elle inscriptible ? La réponse évidente est non,
+> mais le mécanisme d'inscription n'est pas encore spécifié — à trancher au lot B2B.
+
 ---
 
 # 5. Navigation B2C

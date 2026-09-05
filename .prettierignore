@@ -3,3 +3,7 @@ docs/
 reference/
 supabase/migrations/
 pnpm-lock.yaml
+
+# Types générés par `supabase gen types` : reformater créerait un diff à chaque
+# régénération.
+packages/db/src/generated/
