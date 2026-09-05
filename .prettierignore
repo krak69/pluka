@@ -7,3 +7,7 @@ pnpm-lock.yaml
 # Types générés par `supabase gen types` : reformater créerait un diff à chaque
 # régénération.
 packages/db/src/generated/
+
+# Régénérés par Next à chaque build : les reformater crée un diff permanent.
+apps/*/next-env.d.ts
+apps/*/.next/
