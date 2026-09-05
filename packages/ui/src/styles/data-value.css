@@ -1,0 +1,30 @@
+/*
+ * DataValue — 06_DESIGN_SYSTEM.md §184, et chiffres §16.
+ *
+ * Toujours en chiffres tabulaires. L'unité reste collée à sa valeur : une
+ * unité rejetée à la ligne suivante n'est plus une donnée lisible.
+ */
+.pk-data-value {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.pk-data-value-figure {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--pk-text);
+  white-space: nowrap;
+}
+
+.pk-data-value-strong {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.pk-data-value-unit {
+  margin-left: 0.25em;
+  color: var(--pk-text-muted);
+}

@@ -1,0 +1,63 @@
+/*
+ * Échelle typographique — 06_DESIGN_SYSTEM.md §13 à §16.
+ *
+ * Les valeurs `clamp()` sont une convention d'implémentation V1 ; la Charte
+ * fixe les tailles de référence (Display 64/700, H1 36/700, H2 24/600,
+ * corps 16/400, donnée 18/500) et la hiérarchie.
+ *
+ * §15 : la hiérarchie se fait par la taille et l'espace, jamais par les
+ * capitales forcées. Seul le micro-label est en capitales.
+ */
+.pk-display {
+  font-family: var(--font-heading);
+  font-variation-settings: 'wdth' 122;
+  font-weight: 700;
+  font-size: clamp(44px, 6vw, 64px);
+  line-height: 0.96;
+  letter-spacing: -0.03em;
+}
+
+.pk-h1 {
+  font-family: var(--font-heading);
+  font-variation-settings: 'wdth' 121;
+  font-weight: 700;
+  font-size: clamp(32px, 4vw, 36px);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+}
+
+.pk-h2 {
+  font-family: var(--font-heading);
+  font-variation-settings: 'wdth' 119;
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+}
+
+.pk-body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+/*
+ * §16 : les données sportives sont en chiffres tabulaires — ETA, horaires,
+ * marges, températures, km, D+. Sans cela les colonnes dansent et la
+ * comparaison rapide devient impossible.
+ */
+.pk-data {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* §14 : micro-label. Les capitales sont admises ici, et seulement ici. */
+.pk-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pk-text-muted);
+}

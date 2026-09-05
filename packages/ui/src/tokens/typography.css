@@ -1,0 +1,13 @@
+/*
+ * Familles typographiques — 06_DESIGN_SYSTEM.md §114, §131.
+ *
+ * Aucune police n'est chargée ici : ni `@import` Google Fonts (§114), ni
+ * fichier committé (licence). Le chargement appartient à l'application, via
+ * `next/font`, qui peut réassigner ces variables aux familles générées.
+ * Chaque pile porte donc un fallback système utilisable tel quel (§115).
+ */
+:root {
+  --font-heading: 'Archivo', system-ui, sans-serif;
+  --font-body: 'Hanken Grotesk', system-ui, sans-serif;
+  --font-mono: 'Martian Mono', ui-monospace, monospace;
+}

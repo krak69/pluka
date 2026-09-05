@@ -1,0 +1,39 @@
+/*
+ * Liens — 06_DESIGN_SYSTEM.md §32.
+ *
+ * Forêt sur fond clair, Ardoise au survol. Le soulignement est présent par
+ * défaut : « les liens inline doivent être distinguables du texte » par un
+ * indicateur non chromatique. Le prototype marketing s'appuie parfois sur la
+ * couleur seule ; la production ne le peut pas (§103).
+ */
+.pk-link {
+  color: var(--pk-forest);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.pk-link:hover {
+  color: var(--pk-ink);
+}
+
+.pk-link-on-dark {
+  color: var(--pk-lichen);
+}
+
+.pk-link-on-dark:hover {
+  color: var(--pk-limestone);
+}
+
+/*
+ * Un lien de navigation autonome — ligne de liste, bloc entier — n'a pas
+ * besoin du soulignement : sa nature est déjà portée par sa forme et sa
+ * position. Il reste distinguable autrement que par la couleur.
+ */
+.pk-link-standalone {
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.pk-link-standalone:hover {
+  text-decoration: underline;
+}

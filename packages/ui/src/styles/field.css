@@ -1,0 +1,68 @@
+/*
+ * Champs de formulaire — 06_DESIGN_SYSTEM.md §33 à §35.
+ *
+ * « Champ à filet, pas champ capsule / card. »
+ */
+.pk-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.pk-field-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pk-text-muted);
+}
+
+.pk-input {
+  min-height: 46px;
+  padding: 10px 2px;
+  border: 0;
+  border-bottom: 2px solid var(--pk-hairline);
+  border-radius: 0;
+  background: transparent;
+  color: var(--pk-text);
+  font-family: var(--font-body);
+  font-size: 16px;
+}
+
+/* §34 : filet Forêt, fond Lichen très léger, accent Lichen inférieur. */
+.pk-input:focus {
+  border-bottom-color: var(--pk-forest);
+  background: rgba(198, 242, 78, 0.14);
+  box-shadow: inset 0 -3px 0 var(--pk-lichen);
+}
+
+/*
+ * L'anneau de focus n'est pas supprimé, il est resserré (§30) : l'accent
+ * Lichen ne suffirait pas pour un utilisateur qui navigue au clavier sans
+ * percevoir la nuance de fond.
+ */
+.pk-input:focus-visible {
+  outline: 2px solid var(--pk-focus-light);
+  outline-offset: 2px;
+}
+
+/*
+ * §35 : une bordure rouge seule ne porte pas l'erreur. Le message est
+ * obligatoire et rattaché au champ par `aria-describedby` — le composant
+ * `Input` s'en charge.
+ */
+.pk-input-invalid {
+  border-bottom-color: var(--pk-error);
+}
+
+.pk-field-error {
+  color: var(--pk-error);
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.pk-field-hint {
+  color: var(--pk-text-muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+}

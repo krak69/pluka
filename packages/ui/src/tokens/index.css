@@ -1,0 +1,7 @@
+/* Tokens source — 06_DESIGN_SYSTEM.md §113. Importables seuls via `@pluka/ui/tokens.css`. */
+@import './colors.css';
+@import './typography.css';
+@import './radius.css';
+@import './spacing.css';
+@import './motion.css';
+@import './layers.css';

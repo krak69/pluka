@@ -1,0 +1,58 @@
+/*
+ * Tokens couleur canoniques — 06_DESIGN_SYSTEM.md §6.
+ *
+ * Les valeurs viennent du Design System, pas du prototype. Le prototype
+ * `reference/prototype/PLUKA.dc.html` porte les mêmes hex sous d'autres noms
+ * — `--pk-aube`, `--pk-stone`, `--pk-hair`, `--pk-faint`, `--pk-oxide`. Ces
+ * noms-là ne sont pas repris : le document fait foi, le prototype ne vaut que
+ * comme intention visuelle (§0.1, §191).
+ *
+ * Toute nouvelle couleur de l'UI principale doit d'abord être validée dans le
+ * Design System (§139).
+ */
+:root {
+  /* Marque — §4.1 */
+  --pk-ink: #0e1a17;
+  --pk-forest: #14342c;
+  --pk-lichen: #c6f24e;
+  --pk-lichen-deep: #a8d42f;
+  --pk-lichen-active: #96c022;
+  --pk-dawn: #ff6a3d;
+  --pk-dawn-ink: #c4471f;
+  --pk-glacier: #9ae0d6;
+  --pk-glacier-bg: #e8f4f1;
+
+  --pk-limestone: #f2f0e9;
+  --pk-surface: #ffffff;
+  --pk-sand: #e4e1d6;
+  --pk-hairline: #dcd8cb;
+  --pk-granite: #6f7a74;
+
+  /* Texte */
+  --pk-text: #0e1a17;
+  --pk-text-secondary: #4a5a54;
+  --pk-text-muted: #5a6660;
+  --pk-text-on-dark: #f2f0e9;
+
+  /*
+   * Signal fonctionnel de la Charte, et encre lisible du prototype.
+   * Les deux niveaux sont conservés (§5) : le signal porte la couleur de
+   * marque, l'encre porte le texte. Les couleurs fonctionnelles ne
+   * remplacent jamais les couleurs de marque et ne concurrencent pas Lichen.
+   */
+  --pk-success-signal: #3fbf7f;
+  --pk-warning-signal: #f2b33d;
+  --pk-error-signal: #e14434;
+
+  --pk-success: #2f7a55;
+  --pk-warning: #b8791c;
+  --pk-error: #b23a2b;
+
+  --pk-success-bg: #e6efe4;
+  --pk-warning-bg: #f5ecd8;
+  --pk-error-bg: #f6e7e1;
+
+  /* Focus — §134. Valeurs à revalider en contraste réel. */
+  --pk-focus-light: #14342c;
+  --pk-focus-dark: #c6f24e;
+}

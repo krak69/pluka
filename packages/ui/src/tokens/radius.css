@@ -1,0 +1,13 @@
+/*
+ * Rayons — 06_DESIGN_SYSTEM.md §17.
+ *
+ * La direction est volontairement anguleuse : « pas de grosses cartes
+ * arrondies ». 12, 16, 24 px et les `rounded-2xl` sont interdits par défaut ;
+ * aucun token ne les rend disponibles, et un test de règles échoue si un
+ * rayon supérieur apparaît dans les styles du paquet.
+ */
+:root {
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
+}

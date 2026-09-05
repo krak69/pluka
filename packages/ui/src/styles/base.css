@@ -1,0 +1,39 @@
+/*
+ * Base document — 06_DESIGN_SYSTEM.md §132, §133.
+ *
+ * `color-scheme: light` est explicite : la Charte ne définit pas de mode dark
+ * global utilisateur, seulement des surfaces sombres de marque. Un thème dark
+ * déclenché par le système serait une feature de design à part entière, pas
+ * un effet de bord (§133).
+ */
+html {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: var(--pk-limestone);
+  color: var(--pk-ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Focus clavier — §30.
+ *
+ * L'`outline` n'est jamais supprimé sans remplacement. La règle est posée au
+ * niveau du document pour qu'un composant qui l'oublierait reste malgré tout
+ * navigable au clavier.
+ */
+:focus-visible {
+  outline: 2px solid var(--pk-focus-light);
+  outline-offset: 3px;
+}
+
+/* Sur fond sombre, le vert Forêt disparaîtrait : l'anneau passe au Lichen. */
+.pk-surface-dark :focus-visible {
+  outline-color: var(--pk-focus-dark);
+}

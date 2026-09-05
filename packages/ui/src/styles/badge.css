@@ -1,0 +1,77 @@
+/*
+ * Badges — 06_DESIGN_SYSTEM.md §36, §37, §87, §185.
+ *
+ * Faible rayon, pas de capsule, et surtout : « ne jamais retourner uniquement
+ * un rond vert ». Le texte est toujours présent, la couleur ne porte jamais
+ * seule le sens (§103).
+ */
+.pk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 3px var(--space-2);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  color: var(--pk-text);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pk-badge-neutral {
+  background: var(--pk-sand);
+  border-color: var(--pk-hairline);
+  color: var(--pk-text-secondary);
+}
+
+/* §36.3 : Aube porte la prochaine échéance, jamais une erreur. */
+.pk-badge-deadline {
+  background: var(--pk-surface);
+  border-color: var(--pk-dawn);
+  color: var(--pk-dawn-ink);
+}
+
+/* §36.4 : état actif sur fond sombre. */
+.pk-badge-active {
+  background: var(--pk-lichen);
+  border-color: var(--pk-lichen);
+  color: var(--pk-ink);
+}
+
+.pk-badge-glacier {
+  background: var(--pk-glacier-bg);
+  border-color: var(--pk-glacier);
+  color: var(--pk-text);
+}
+
+.pk-badge-success {
+  background: var(--pk-success-bg);
+  border-color: var(--pk-success);
+  color: var(--pk-success);
+}
+
+.pk-badge-warning {
+  background: var(--pk-warning-bg);
+  border-color: var(--pk-warning);
+  color: var(--pk-warning);
+}
+
+.pk-badge-error {
+  background: var(--pk-error-bg);
+  border-color: var(--pk-error);
+  color: var(--pk-error);
+}
+
+/*
+ * Pastille de signal — §185. Elle accompagne un texte, elle ne le remplace
+ * jamais : le composant la marque `aria-hidden`, ce qui traduit cette
+ * subordination pour les lecteurs d'écran.
+ */
+.pk-badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}

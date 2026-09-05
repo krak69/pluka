@@ -1,0 +1,15 @@
+/*
+ * Séparateurs — 06_DESIGN_SYSTEM.md §19, §38.
+ *
+ * « Les filets font partie de l'identité fonctionnelle de PLUKA. » Une liste
+ * d'actions se lit en lignes séparées par un filet, pas en une pile de cards.
+ */
+.pk-divider {
+  border: 0;
+  border-top: 1px solid var(--pk-hairline);
+  margin: 0;
+}
+
+.pk-divider-spaced {
+  margin-block: var(--space-6);
+}

@@ -1,0 +1,113 @@
+/*
+ * Boutons — 06_DESIGN_SYSTEM.md §24 à §31.
+ *
+ * §29 : toute cible interactive vise 44 × 44 px au minimum ; le bouton
+ * principal conserve les 52 px du prototype.
+ */
+.pk-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 52px;
+  padding: 14px 22px;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-heading);
+  font-variation-settings: 'wdth' 113;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-interaction) var(--motion-ease),
+    border-color var(--motion-interaction) var(--motion-ease);
+}
+
+/*
+ * §25 : un seul CTA Lichen dominant par écran ou zone décisionnelle. Le
+ * composant ne peut pas faire respecter cette règle — elle appartient à
+ * l'écran.
+ */
+.pk-button-primary {
+  background: var(--pk-lichen);
+  border-color: var(--pk-lichen);
+  color: var(--pk-ink);
+}
+
+.pk-button-primary:hover {
+  background: var(--pk-lichen-deep);
+  border-color: var(--pk-lichen-deep);
+}
+
+.pk-button-primary:active {
+  background: var(--pk-lichen-active);
+  border-color: var(--pk-lichen-active);
+}
+
+.pk-button-secondary {
+  background: transparent;
+  border-color: var(--pk-forest);
+  color: var(--pk-forest);
+}
+
+.pk-button-secondary:hover {
+  background: var(--pk-sand);
+}
+
+/* §27 : secondaire sur fond sombre. */
+.pk-button-ghost-dark {
+  background: transparent;
+  border-color: rgba(242, 240, 233, 0.42);
+  color: var(--pk-limestone);
+}
+
+.pk-button-ghost-dark:hover {
+  background: rgba(242, 240, 233, 0.1);
+  border-color: rgba(242, 240, 233, 0.72);
+}
+
+/*
+ * §28 : un bouton destructif n'est pas un CTA primaire de page, et n'utilise
+ * jamais le Lichen.
+ */
+.pk-button-destructive {
+  background: transparent;
+  border-color: var(--pk-error);
+  color: var(--pk-error);
+}
+
+.pk-button-destructive:hover {
+  background: var(--pk-error-bg);
+}
+
+/*
+ * §31 : un contrôle désactivé reste lisible et garde sa forme. Pas d'opacité
+ * extrême qui rendrait le texte illisible — le contraste baisse, la lecture
+ * non.
+ */
+.pk-btn:disabled,
+.pk-btn[aria-disabled='true'] {
+  cursor: not-allowed;
+  background: var(--pk-sand);
+  border-color: var(--pk-hairline);
+  color: var(--pk-text-muted);
+}
+
+/* §40 : 20 px en ligne de texte, 24 px en navigation. */
+.pk-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--space-2);
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--pk-forest);
+  cursor: pointer;
+}
+
+.pk-icon-button:hover {
+  background: var(--pk-sand);
+}

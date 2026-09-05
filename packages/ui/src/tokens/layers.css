@@ -1,0 +1,14 @@
+/*
+ * Plans d'empilement — 06_DESIGN_SYSTEM.md §159.
+ *
+ * Convention V1. Nommer les plans limite les contextes arbitraires : un
+ * `z-index: 9999` local finit toujours par entrer en conflit avec un autre.
+ */
+:root {
+  --layer-base: 0;
+  --layer-sticky: 20;
+  --layer-dropdown: 40;
+  --layer-overlay: 60;
+  --layer-modal: 80;
+  --layer-toast: 100;
+}

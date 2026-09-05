@@ -1,0 +1,25 @@
+/*
+ * Motion — 06_DESIGN_SYSTEM.md §99, §100, §160.
+ *
+ * « PLUKA est calme. » L'animation est courte, fonctionnelle et discrète :
+ * pas de chiffres qui défilent, pas de cartes qui flottent, pas de parallax.
+ */
+:root {
+  --motion-interaction: 150ms;
+  --motion-panel: 240ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+/*
+ * §100 : en mode réduit, les animations non essentielles disparaissent, les
+ * changements d'état restent instantanés, et aucune information n'est perdue.
+ * Les durées passent à une valeur quasi nulle plutôt qu'à zéro : certains
+ * navigateurs n'émettent pas `transitionend` sur une durée nulle, et un
+ * composant qui attend cet événement resterait bloqué.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-interaction: 1ms;
+    --motion-panel: 1ms;
+  }
+}
