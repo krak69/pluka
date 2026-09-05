@@ -4403,6 +4403,48 @@ export type Database = {
           },
         ]
       }
+      race_status_transitions: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          from_status: Database["public"]["Enums"]["race_status"]
+          id: string
+          race_id: string
+          to_status: Database["public"]["Enums"]["race_status"]
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          from_status: Database["public"]["Enums"]["race_status"]
+          id?: string
+          race_id: string
+          to_status: Database["public"]["Enums"]["race_status"]
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["race_status"]
+          id?: string
+          race_id?: string
+          to_status?: Database["public"]["Enums"]["race_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "race_status_transitions_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "race_status_transitions_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       race_waypoints: {
         Row: {
           altitude_m: number | null

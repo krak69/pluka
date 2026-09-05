@@ -21,6 +21,28 @@ export {
   type PostgrestLikeError,
 } from './errors.js';
 export { classifySupabaseKey, type SupabaseKeyKind } from './keys.js';
+export {
+  createCourseRepositories,
+  editionRepository,
+  eventRepository,
+  identityRepository,
+  raceRepository,
+  raceStatusTransitionRepository,
+  type CourseRepositories,
+  type EditionRepository,
+  type EventRepository,
+  type IdentityRepository,
+  type RaceRepository,
+  type RaceStatusTransitionRepository,
+} from './repositories/course.js';
+export type {
+  EditionRecord,
+  EventRecord,
+  MembershipRecord,
+  PlatformIdentityRecord,
+  RaceRecord,
+  RaceStatusTransitionRecord,
+} from './repositories/records.js';
 export { defineRepository, type RepositoryContext, type RepositoryFactory } from './repository.js';
 export {
   unwrap,

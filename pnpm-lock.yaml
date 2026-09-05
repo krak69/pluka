@@ -66,6 +66,25 @@ importers:
         specifier: ^3.1.0
         version: 3.2.7(@types/node@22.20.1)
 
+  packages/domain:
+    dependencies:
+      '@pluka/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@pluka/db':
+        specifier: workspace:*
+        version: link:../db
+      zod:
+        specifier: ^4.5.4
+        version: 4.5.4
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.1.0
+        version: 3.2.7(@types/node@22.20.1)
+
   packages/ui:
     devDependencies:
       '@types/node':
