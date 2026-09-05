@@ -63,18 +63,44 @@ export function validationError(
  * organisation » confirmerait l'existence de l'objet visé, et le rôle qu'il
  * aurait fallu avoir (03_PRIVACY_RLS §120).
  */
-export function forbiddenError(useCase: string): DomainError {
-  return new DomainError({ code: 'forbidden', useCase, message: 'action non autorisée' });
+export function forbiddenError(
+  useCase: string,
+  details?: Readonly<Record<string, string>>,
+): DomainError {
+  return new DomainError({
+    code: 'forbidden',
+    useCase,
+    message: 'action non autorisée',
+    ...(details === undefined ? {} : { details }),
+  });
 }
 
 export function notFoundError(useCase: string, subject: string): DomainError {
   return new DomainError({ code: 'not_found', useCase, message: `${subject} introuvable` });
 }
 
-export function conflictError(useCase: string, message: string): DomainError {
-  return new DomainError({ code: 'conflict', useCase, message });
+export function conflictError(
+  useCase: string,
+  message: string,
+  details?: Readonly<Record<string, string>>,
+): DomainError {
+  return new DomainError({
+    code: 'conflict',
+    useCase,
+    message,
+    ...(details === undefined ? {} : { details }),
+  });
 }
 
-export function invalidStateError(useCase: string, message: string): DomainError {
-  return new DomainError({ code: 'invalid_state', useCase, message });
+export function invalidStateError(
+  useCase: string,
+  message: string,
+  details?: Readonly<Record<string, string>>,
+): DomainError {
+  return new DomainError({
+    code: 'invalid_state',
+    useCase,
+    message,
+    ...(details === undefined ? {} : { details }),
+  });
 }

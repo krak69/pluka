@@ -111,3 +111,30 @@ export {
   type DomainErrorCode,
   type DomainErrorParams,
 } from './errors.js';
+
+export {
+  decideFactCandidateCommandSchema,
+  listCandidatesForReviewQuerySchema,
+  publishFactCommandSchema,
+  PUBLISHABLE_TRUST_LEVELS,
+  REVIEW_DECISIONS,
+  type DecideFactCandidateCommand,
+  type ListCandidatesForReviewQuery,
+  type PublishableTrustLevel,
+  type PublishFactCommand,
+  type ReviewDecision,
+} from './facts/commands.js';
+export {
+  canReviewFacts,
+  MIN_PUBLISH_ROLE,
+  refusalForTrustLevel,
+  resolvePublicationAuthority,
+  type PublicationAuthority,
+  type TrustLevelRefusal,
+} from './facts/trust.js';
+export {
+  decideFactCandidate,
+  listCandidatesForReview,
+  publishFactCandidate,
+  type FactReviewContext,
+} from './facts/use-cases.js';

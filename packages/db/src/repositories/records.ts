@@ -81,3 +81,116 @@ export interface PlatformIdentityRecord {
   readonly id: string;
   readonly platformRole: Enum<'platform_role'>;
 }
+
+/**
+ * Action de revue — SOURCES_EXTRACTION §31.
+ *
+ * « publish, edit_and_publish, reject, mark_duplicate, needs_review ». Les
+ * deux premières sont décidées par la base au vu de la valeur transmise :
+ * corriger avant de publier est `edit_and_publish`, et §31 veut que la
+ * correction soit auditée.
+ */
+export type FactReviewAction =
+  'publish' | 'edit_and_publish' | 'reject' | 'mark_duplicate' | 'needs_review';
+
+/** États d'un candidat au moment de la revue. Aucun n'est un état publié (§25). */
+export type FactCandidateStatus =
+  'detected' | 'needs_review' | 'conflict' | 'accepted' | 'rejected' | 'duplicate';
+
+/**
+ * Portée d'un candidat, lue en base à partir de son seul identifiant.
+ *
+ * Le use case ne reçoit jamais de `raceId` de l'appelant : le déduire du
+ * candidat évite qu'une commande désigne une course sur laquelle son auteur a
+ * des droits, pour agir sur un candidat qui appartient à une autre.
+ */
+export interface FactCandidateScopeRecord {
+  readonly candidateId: string;
+  readonly raceId: string;
+  readonly organizationId: string | null;
+  readonly category: Enum<'fact_category'>;
+  readonly factKey: string;
+  readonly status: FactCandidateStatus;
+  readonly origin: string | null;
+  readonly matchedFactId: string | null;
+  readonly valueText: string | null;
+  readonly valueNumber: number | null;
+  readonly unit: string | null;
+  /** §20 et §34 : sans preuve, il n'y a rien à publier. */
+  readonly evidenceCount: number;
+  readonly conflictStatus: string | null;
+}
+
+/**
+ * Une ligne de l'écran de revue — SOURCES_EXTRACTION §30.
+ *
+ * « La revue doit afficher : valeur proposée ; type ; source ; extrait ;
+ * page / section ; anciennes valeurs ; contradictions ; action proposée. »
+ * Les huit y sont, plus la provenance d'extraction : un relecteur qui voit
+ * qu'une valeur vient d'un modèle ne la lit pas comme une lecture de tableau.
+ */
+export interface FactCandidateReviewRecord {
+  readonly candidateId: string;
+  readonly raceId: string;
+  readonly category: Enum<'fact_category'>;
+  readonly factKey: string;
+  readonly valueText: string | null;
+  readonly valueNumber: number | null;
+  readonly unit: string | null;
+  readonly valueJson: Readonly<Record<string, unknown>> | null;
+  readonly confidenceLabel: 'high' | 'medium' | 'low' | null;
+  readonly status: FactCandidateStatus;
+  readonly origin: string | null;
+  readonly notes: string | null;
+  readonly matchedFactId: string | null;
+  /** Ancienne valeur, telle qu'elle est publiée aujourd'hui (§30, §40). */
+  readonly publishedValueText: string | null;
+  readonly publishedVersionId: string | null;
+  readonly publishedTrustLevel: Enum<'trust_level'> | null;
+  readonly conflictType: string | null;
+  readonly conflictStatus: string | null;
+  readonly excerpt: string | null;
+  readonly pageNumber: number | null;
+  readonly sectionPath: readonly string[];
+  readonly locator: Readonly<Record<string, unknown>>;
+  readonly sourceTitle: string | null;
+  readonly sourceUrl: string | null;
+  readonly snapshotRetrievedAt: string | null;
+  readonly provider: string | null;
+  readonly model: string | null;
+  readonly extractedAt: string | null;
+}
+
+/** Résultat d'une publication — les identifiants que §33 fait naître. */
+export interface PublishedFactRecord {
+  readonly factId: string;
+  readonly factVersionId: string;
+  readonly versionNumber: number;
+  readonly action: 'publish' | 'edit_and_publish';
+  /** Version que celle-ci remplace, nulle à la première publication (§35). */
+  readonly supersededVersionId: string | null;
+  readonly trustLevel: Enum<'trust_level'>;
+}
+
+/**
+ * Une décision de revue, telle que le journal la conserve — §30, §31.
+ *
+ * `actorUserId` n'est jamais nul : la colonne SQL l'interdit. Une décision
+ * sans auteur n'est pas une décision.
+ */
+export interface FactPublicationActRecord {
+  readonly actId: string;
+  readonly candidateId: string | null;
+  readonly factId: string | null;
+  readonly factVersionId: string | null;
+  readonly action: FactReviewAction;
+  readonly actorUserId: string;
+  readonly authority: 'platform_admin' | 'organization_member';
+  readonly actorRole: Enum<'organization_member_role'> | null;
+  readonly trustLevel: Enum<'trust_level'> | null;
+  /** Valeur du candidat quand l'humain l'a corrigée avant de publier (§31). */
+  readonly originalValue: Readonly<Record<string, unknown>> | null;
+  readonly publishedValue: Readonly<Record<string, unknown>> | null;
+  readonly note: string | null;
+  readonly createdAt: string;
+}

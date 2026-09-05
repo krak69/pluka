@@ -145,11 +145,12 @@ select is(
 select lives_ok(
   $$ insert into public.race_fact_versions
        (fact_id, version_number, value_text, workflow_status, published_at,
-        supersedes_version_id)
+        supersedes_version_id, published_by_user_id)
      values
        ('aaaaaaaa-0000-4000-8000-000000000093', 2,
         'Veste imperméable — nouvelle exigence', 'published', now(),
-        'aaaaaaaa-0000-4000-8000-000000000094') $$,
+        'aaaaaaaa-0000-4000-8000-000000000094',
+        '55555555-5555-4555-8555-555555555555') $$,
   'SPEC-33 — publier une nouvelle version reste le chemin normal'
 );
 

@@ -106,17 +106,33 @@ insert into public.race_facts (id, race_id, category, fact_key) values
 
 -- Une version publiée, lisible dans le scope de la course ; une version en
 -- travail, qui ne doit pas l'être (§22).
+-- Une version publiée nomme toujours son auteur humain, et cet auteur doit
+-- avoir autorité sur la course : `org-editor-a` est éditeur d'Org A (0012).
+-- La fixture ne contourne rien — elle décrit un monde que la base accepte.
 insert into public.race_fact_versions
-  (id, fact_id, version_number, value_text, workflow_status, published_at)
+  (id, fact_id, version_number, value_text, workflow_status, published_at,
+   published_by_user_id)
 values
   ('aaaaaaaa-0000-4000-8000-000000000094', 'aaaaaaaa-0000-4000-8000-000000000093',
-   1, 'Veste imperméable à coutures étanchées', 'published', now());
+   1, 'Veste imperméable à coutures étanchées', 'published', now(),
+   '55555555-5555-4555-8555-555555555555');
 
 insert into public.race_fact_versions
   (id, fact_id, version_number, value_text, workflow_status)
 values
   ('aaaaaaaa-0000-4000-8000-000000000096', 'aaaaaaaa-0000-4000-8000-000000000095',
    1, 'Retrait dossard — brouillon interne', 'draft');
+
+-- §23 : `RaceFact.current_version_id` pointe vers la version courante. Sans
+-- ce pointeur, le fact publié n'aurait pas de valeur courante et toute
+-- comparaison à « la valeur publiée » porterait sur du vide.
+update public.race_facts
+set current_version_id = 'aaaaaaaa-0000-4000-8000-000000000094'
+where id = 'aaaaaaaa-0000-4000-8000-000000000093';
+
+update public.race_facts
+set current_version_id = 'aaaaaaaa-0000-4000-8000-000000000096'
+where id = 'aaaaaaaa-0000-4000-8000-000000000095';
 
 insert into public.fact_sources
   (id, fact_version_id, source_id, source_snapshot_id, excerpt)

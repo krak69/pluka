@@ -70,6 +70,7 @@ let client: ServiceClient;
 let ports: WorkerPorts;
 let snapshotId = '';
 let parseRunId = '';
+let publisherId = '';
 let available = false;
 
 async function reachable(): Promise<boolean> {
@@ -198,6 +199,34 @@ beforeAll(async () => {
 
   // Un fact déjà publié, que le document contredit : le règlement annonce
   // 07:10, la base porte 06:00. §35 — l'extraction ne doit pas y toucher.
+  //
+  // La version publiée nomme un auteur qui a autorité sur la course : depuis
+  // 0012, la base refuse une publication anonyme. La fixture ne contourne
+  // rien, elle décrit un monde que la base accepte.
+  const publisher = await (
+    client as unknown as {
+      auth: {
+        admin: {
+          createUser(input: {
+            email: string;
+            password: string;
+            email_confirm: boolean;
+          }): Promise<{ data: { user: { id: string } | null } }>;
+        };
+      };
+    }
+  ).auth.admin.createUser({
+    email: `publisher-${Date.now().toString(36)}@extract.test`,
+    password: 'pluka-test-2026!',
+    email_confirm: true,
+  });
+
+  publisherId = publisher.data.user?.id ?? '';
+
+  await client
+    .from('organization_members')
+    .insert({ organization_id: ORG_ID, user_id: publisherId, role: 'editor' });
+
   await client
     .from('race_facts')
     .insert({ id: FACT_ID, race_id: RACE_ID, category: 'start', fact_key: 'start/start_time' });
@@ -208,6 +237,7 @@ beforeAll(async () => {
     value_text: '06:00',
     workflow_status: 'published',
     published_at: new Date().toISOString(),
+    published_by_user_id: publisherId,
   });
   await client.from('race_facts').update({ current_version_id: VERSION_ID }).eq('id', FACT_ID);
 

@@ -35,11 +35,24 @@ export {
   type RaceRepository,
   type RaceStatusTransitionRepository,
 } from './repositories/course.js';
+export {
+  createFactRepositories,
+  factReviewRepository,
+  type FactRepositories,
+  type FactReviewRepository,
+  type PublishFactInput,
+} from './repositories/facts.js';
 export type {
   EditionRecord,
   EventRecord,
+  FactCandidateReviewRecord,
+  FactCandidateScopeRecord,
+  FactCandidateStatus,
+  FactPublicationActRecord,
+  FactReviewAction,
   MembershipRecord,
   PlatformIdentityRecord,
+  PublishedFactRecord,
   RaceRecord,
   RaceStatusTransitionRecord,
 } from './repositories/records.js';

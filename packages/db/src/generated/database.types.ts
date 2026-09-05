@@ -3694,6 +3694,7 @@ export type Database = {
           fact_id: string
           id: string
           published_at: string | null
+          published_by_user_id: string | null
           supersedes_version_id: string | null
           trust_level: Database["public"]["Enums"]["trust_level"]
           unit: string | null
@@ -3712,6 +3713,7 @@ export type Database = {
           fact_id: string
           id?: string
           published_at?: string | null
+          published_by_user_id?: string | null
           supersedes_version_id?: string | null
           trust_level?: Database["public"]["Enums"]["trust_level"]
           unit?: string | null
@@ -3730,6 +3732,7 @@ export type Database = {
           fact_id?: string
           id?: string
           published_at?: string | null
+          published_by_user_id?: string | null
           supersedes_version_id?: string | null
           trust_level?: Database["public"]["Enums"]["trust_level"]
           unit?: string | null
@@ -3755,6 +3758,13 @@ export type Database = {
             columns: ["fact_id"]
             isOneToOne: false
             referencedRelation: "race_facts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "race_fact_versions_published_by_user_id_fkey"
+            columns: ["published_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -5183,7 +5193,345 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      decide_fact_candidate: {
+        Args: {
+          p_action: string
+          p_actor_user_id: string
+          p_candidate_id: string
+          p_note?: string
+        }
+        Returns: string
+      }
+      enqueue_race_gpx: {
+        Args: {
+          p_content_hash: string
+          p_race_id: string
+          p_storage_path: string
+          p_title?: string
+        }
+        Returns: string
+      }
+      enqueue_source_ingest: {
+        Args: {
+          p_edition_id: string
+          p_race_id?: string
+          p_source_type: Database["public"]["Enums"]["source_type"]
+          p_title: string
+          p_url?: string
+        }
+        Returns: string
+      }
+      get_fact_candidate_scope: {
+        Args: { p_candidate_id: string }
+        Returns: {
+          candidate_id: string
+          category: Database["public"]["Enums"]["fact_category"]
+          conflict_status: string
+          evidence_count: number
+          fact_key: string
+          matched_fact_id: string
+          organization_id: string
+          origin: string
+          race_id: string
+          status: string
+          unit: string
+          value_number: number
+          value_text: string
+        }[]
+      }
+      list_fact_candidates_for_review: {
+        Args: { p_limit?: number; p_race_id: string }
+        Returns: {
+          candidate_id: string
+          category: Database["public"]["Enums"]["fact_category"]
+          confidence_label: string
+          conflict_status: string
+          conflict_type: string
+          excerpt: string
+          extracted_at: string
+          fact_key: string
+          locator: Json
+          matched_fact_id: string
+          model: string
+          notes: string
+          origin: string
+          page_number: number
+          provider: string
+          published_trust_level: Database["public"]["Enums"]["trust_level"]
+          published_value_text: string
+          published_version_id: string
+          race_id: string
+          section_path: Json
+          snapshot_retrieved_at: string
+          source_title: string
+          source_url: string
+          status: string
+          unit: string
+          value_json: Json
+          value_number: number
+          value_text: string
+        }[]
+      }
+      list_fact_publication_acts: {
+        Args: { p_limit?: number; p_race_id: string }
+        Returns: {
+          act_id: string
+          action: string
+          actor_role: Database["public"]["Enums"]["organization_member_role"]
+          actor_user_id: string
+          authority: string
+          candidate_id: string
+          created_at: string
+          fact_id: string
+          fact_version_id: string
+          note: string
+          original_value: Json
+          published_value: Json
+          trust_level: Database["public"]["Enums"]["trust_level"]
+        }[]
+      }
+      publish_fact_candidate: {
+        Args: {
+          p_actor_user_id: string
+          p_candidate_id: string
+          p_note?: string
+          p_resolve_conflict?: boolean
+          p_trust_level: Database["public"]["Enums"]["trust_level"]
+          p_unit?: string
+          p_value_json?: Json
+          p_value_number?: number
+          p_value_text?: string
+        }
+        Returns: {
+          action: string
+          fact_id: string
+          fact_version_id: string
+          superseded_version_id: string
+          version_number: number
+        }[]
+      }
+      worker_archive_message: {
+        Args: { p_msg_id: number; p_queue: string }
+        Returns: boolean
+      }
+      worker_claim_ingestion_job: {
+        Args: { p_idempotency_key: string }
+        Returns: {
+          attempts: number
+          job_id: string
+          max_attempts: number
+          status: string
+        }[]
+      }
+      worker_complete_extraction_run: {
+        Args: {
+          p_input_tokens: number
+          p_latency_ms: number
+          p_output_json: Json
+          p_output_tokens: number
+          p_run_id: string
+        }
+        Returns: undefined
+      }
+      worker_complete_parse_run: {
+        Args: {
+          p_blocks: Json
+          p_chunker_version: string
+          p_chunks: Json
+          p_run_id: string
+          p_snapshot_id: string
+        }
+        Returns: number
+      }
+      worker_dispatch_outbox: { Args: { p_limit?: number }; Returns: number }
+      worker_fail_extraction_run: {
+        Args: { p_error: string; p_error_code: string; p_run_id: string }
+        Returns: undefined
+      }
+      worker_fail_ingestion_job: {
+        Args: { p_error: string; p_idempotency_key: string }
+        Returns: string
+      }
+      worker_fail_parse_run: {
+        Args: { p_error: string; p_run_id: string }
+        Returns: undefined
+      }
+      worker_mark_source_failed: {
+        Args: { p_source_id: string }
+        Returns: undefined
+      }
+      worker_persist_race_geometry: {
+        Args: {
+          p_geometry_ewkt: string
+          p_idempotency_key: string
+          p_length_m: number
+          p_point_count: number
+          p_processor_version: string
+          p_race_id: string
+          p_source_snapshot_id: string
+        }
+        Returns: string
+      }
+      worker_read_blocks: {
+        Args: { p_snapshot_id: string }
+        Returns: {
+          block_index: number
+          block_type: string
+          content: string
+          content_hash: string
+          heading: string
+          locator: Json
+          page_number: number
+          section_path: Json
+        }[]
+      }
+      worker_read_candidate_evidence: {
+        Args: { p_candidate_id: string }
+        Returns: {
+          block_content: string
+          block_index: number
+          chunk_index: number
+          excerpt: string
+          is_primary: boolean
+          locator: Json
+          page_number: number
+          section_path: Json
+        }[]
+      }
+      worker_read_candidates: {
+        Args: { p_snapshot_id: string }
+        Returns: {
+          candidate_id: string
+          category: Database["public"]["Enums"]["fact_category"]
+          confidence_label: string
+          engine_version: string
+          fact_key: string
+          matched_fact_id: string
+          model: string
+          notes: string
+          origin: string
+          parse_run_id: string
+          prompt_version: string
+          provider: string
+          race_id: string
+          run_id: string
+          status: string
+          unit: string
+          value_json: Json
+          value_number: number
+          value_text: string
+        }[]
+      }
+      worker_read_chunk_links: {
+        Args: { p_snapshot_id: string }
+        Returns: {
+          block_index: number
+          chunk_index: number
+          sort_order: number
+        }[]
+      }
+      worker_read_extraction_runs: {
+        Args: { p_snapshot_id: string }
+        Returns: {
+          completed_at: string
+          engine_version: string
+          error_code: string
+          input_tokens: number
+          model: string
+          output_tokens: number
+          parent_run_id: string
+          prompt_version: string
+          provider: string
+          run_id: string
+          schema_version: string
+          started_at: string
+          status: string
+        }[]
+      }
+      worker_read_parse_output: {
+        Args: { p_parse_run_id: string }
+        Returns: {
+          blocks: Json
+          chunks: Json
+        }[]
+      }
+      worker_read_queue: {
+        Args: { p_count: number; p_queue: string; p_visibility_seconds: number }
+        Returns: {
+          message: Json
+          msg_id: number
+          read_ct: number
+        }[]
+      }
+      worker_read_runs: {
+        Args: { p_snapshot_id: string }
+        Returns: {
+          chunker_version: string
+          completed_at: string
+          parser_version: string
+          run_id: string
+          started_at: string
+          status: string
+        }[]
+      }
+      worker_record_fact_candidates: {
+        Args: {
+          p_candidates: Json
+          p_parse_run_id: string
+          p_run_id: string
+          p_snapshot_id: string
+        }
+        Returns: number
+      }
+      worker_record_source_snapshot: {
+        Args: {
+          p_content_hash: string
+          p_content_type: string
+          p_final_url: string
+          p_http_status: number
+          p_size_bytes: number
+          p_source_id: string
+          p_storage_path: string
+        }
+        Returns: {
+          created: boolean
+          snapshot_id: string
+        }[]
+      }
+      worker_source_content_hashes: {
+        Args: { p_source_id: string }
+        Returns: {
+          content_hash: string
+        }[]
+      }
+      worker_start_extraction_run: {
+        Args: {
+          p_engine_version: string
+          p_input_hash: string
+          p_model: string
+          p_parse_run_id: string
+          p_prompt_version: string
+          p_provider: string
+          p_schema_version: string
+          p_snapshot_id: string
+        }
+        Returns: {
+          already_completed: boolean
+          run_id: string
+        }[]
+      }
+      worker_start_parse_run: {
+        Args: {
+          p_chunker_version: string
+          p_input_hash: string
+          p_parser_version: string
+          p_snapshot_id: string
+        }
+        Returns: {
+          already_completed: boolean
+          run_id: string
+        }[]
+      }
     }
     Enums: {
       assistance_item_type:
