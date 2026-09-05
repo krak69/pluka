@@ -1,5 +1,6 @@
 import { GPX_QUEUE, handleGpxMessage } from './jobs/gpx-process.js';
-import type { WorkerPorts } from './ports.js';
+import { SOURCES_QUEUE, handleSourceMessage } from './jobs/source-ingest.js';
+import type { QueueMessage, WorkerPorts } from './ports.js';
 
 /**
  * Boucle de consommation.
@@ -44,6 +45,35 @@ export interface TickResult {
 }
 
 /**
+ * Verdict commun aux deux familles de job.
+ *
+ * `done` couvre aussi bien un traitement réussi qu'un travail déjà fait ou un
+ * contenu inchangé : dans les trois cas le message a rempli son office et doit
+ * quitter la file.
+ */
+type Verdict = 'done' | 'abandoned' | 'retry';
+
+/**
+ * Files consommées, et leur traitement.
+ *
+ * Le worker consomme plusieurs files — les queues sont groupées par domaine,
+ * pas une par type de job (migration 0002). En ajouter une se fait ici.
+ */
+const CONSUMERS: readonly {
+  readonly queue: string;
+  readonly handle: (ports: WorkerPorts, message: QueueMessage) => Promise<{ kind: string }>;
+}[] = [
+  { queue: GPX_QUEUE, handle: handleGpxMessage },
+  { queue: SOURCES_QUEUE, handle: handleSourceMessage },
+];
+
+function verdictOf(kind: string): Verdict {
+  if (kind === 'retry') return 'retry';
+  if (kind === 'abandoned') return 'abandoned';
+  return 'done';
+}
+
+/**
  * Un tour de boucle.
  *
  * Extrait de la boucle infinie pour être testable et rejouable : c'est cette
@@ -56,32 +86,34 @@ export async function tick(
 ): Promise<TickResult> {
   const dispatched = await ports.outbox.dispatch(options.outboxBatchSize);
 
-  const messages = await ports.queue.read(GPX_QUEUE, options.visibilitySeconds, options.batchSize);
-
   let processed = 0;
   let abandoned = 0;
   let retried = 0;
 
-  for (const message of messages) {
-    const outcome = await handleGpxMessage(ports, message);
+  for (const consumer of CONSUMERS) {
+    const messages = await ports.queue.read(
+      consumer.queue,
+      options.visibilitySeconds,
+      options.batchSize,
+    );
 
-    if (outcome.kind === 'processed' || outcome.kind === 'already_done') {
-      await ports.queue.archive(GPX_QUEUE, message.msgId);
-      processed += 1;
-      continue;
-    }
+    for (const message of messages) {
+      const verdict = verdictOf((await consumer.handle(ports, message)).kind);
 
-    if (outcome.kind === 'abandoned') {
-      // Archivé pour ne pas tourner en boucle : le job garde sa trace et son
+      if (verdict === 'retry') {
+        // Le message n'est pas archivé : pgmq le rendra visible à l'expiration
+        // du délai, et le compteur de tentatives du job aura avancé.
+        retried += 1;
+        continue;
+      }
+
+      // Archivé pour ne pas tourner en boucle. Le job garde sa trace et son
       // erreur normalisée dans `ingestion_jobs`.
-      await ports.queue.archive(GPX_QUEUE, message.msgId);
-      abandoned += 1;
-      continue;
-    }
+      await ports.queue.archive(consumer.queue, message.msgId);
 
-    // `retry` : le message n'est pas archivé. pgmq le rendra visible à
-    // l'expiration du délai, et le compteur de tentatives du job aura avancé.
-    retried += 1;
+      if (verdict === 'abandoned') abandoned += 1;
+      else processed += 1;
+    }
   }
 
   return { dispatched, processed, abandoned, retried };
@@ -102,7 +134,7 @@ export interface RunOptions extends LoopOptions {
  */
 export async function run(ports: WorkerPorts, options: RunOptions): Promise<void> {
   ports.logger.info('worker démarré', {
-    queue: GPX_QUEUE,
+    queues: CONSUMERS.map((consumer) => consumer.queue),
     batchSize: options.batchSize,
   });
 

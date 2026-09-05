@@ -130,6 +130,9 @@ importers:
       '@pluka/gpx':
         specifier: workspace:*
         version: link:../../packages/gpx
+      '@pluka/sources':
+        specifier: workspace:*
+        version: link:../../packages/sources
       '@supabase/supabase-js':
         specifier: ^2.115.0
         version: 2.115.0
@@ -237,6 +240,18 @@ importers:
         version: 3.2.7(@types/node@22.20.1)
 
   packages/gpx:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.1.0
+        version: 3.2.7(@types/node@22.20.1)
+
+  packages/sources:
     devDependencies:
       '@types/node':
         specifier: ^22.15.0

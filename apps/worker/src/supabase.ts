@@ -1,9 +1,11 @@
 import type { PlukaClient } from '@pluka/db';
 import { toEwktLineStringZ } from '@pluka/gpx';
+import type { Capture } from '@pluka/sources';
 
 import { transient } from './errors.js';
 import type {
   GeometryStore,
+  SourceStore,
   JobClaim,
   JobStore,
   Logger,
@@ -127,6 +129,77 @@ export function createObjectStore(client: PlukaClient): ObjectStore {
       }
 
       return data.text();
+    },
+
+    async upload(bucket, path, bytes, contentType) {
+      const { error } = await client.storage.from(bucket).upload(path, new Blob([bytes]), {
+        contentType: contentType ?? 'application/octet-stream',
+        // Le chemin dérive de l'empreinte : réécrire écrit les mêmes octets,
+        // ce qui rend l'étape rejouable sans conflit.
+        upsert: true,
+      });
+
+      if (error !== null) {
+        throw transient('STORAGE_UNAVAILABLE', 'écriture impossible', error);
+      }
+    },
+  };
+}
+
+/**
+ * Acquisition de sources — étape 1 de SOURCES_EXTRACTION.
+ *
+ * `fetchSource` est injecté plutôt qu'importé pour que le test unitaire puisse
+ * exercer la décision de déduplication sans réseau.
+ */
+export function createSourceStore(
+  client: PlukaClient,
+  fetchSource: (url: string) => Promise<Capture>,
+): SourceStore {
+  return {
+    fetch: fetchSource,
+
+    async knownHashes(sourceId) {
+      const rows = unwrapRpc(
+        await rpc(client).rpc('worker_source_content_hashes', { p_source_id: sourceId }),
+        'worker_source_content_hashes',
+      );
+
+      if (!Array.isArray(rows)) return [];
+
+      return rows
+        .map((row) => String((row as Record<string, unknown>).content_hash ?? ''))
+        .filter((hash) => hash !== '');
+    },
+
+    async recordSnapshot(input) {
+      const rows = unwrapRpc(
+        await rpc(client).rpc('worker_record_source_snapshot', {
+          p_source_id: input.sourceId,
+          p_content_hash: input.contentHash,
+          p_storage_path: input.storagePath,
+          p_content_type: input.contentType,
+          p_size_bytes: input.sizeBytes,
+          p_final_url: input.finalUrl,
+          p_http_status: input.httpStatus,
+        }),
+        'worker_record_source_snapshot',
+      );
+
+      const row = (Array.isArray(rows) ? rows[0] : rows) as Record<string, unknown> | undefined;
+
+      if (row === undefined) {
+        throw transient('DB_UNAVAILABLE', 'snapshot non enregistré');
+      }
+
+      return { snapshotId: String(row.snapshot_id), created: row.created === true };
+    },
+
+    async markFailed(sourceId) {
+      unwrapRpc(
+        await rpc(client).rpc('worker_mark_source_failed', { p_source_id: sourceId }),
+        'worker_mark_source_failed',
+      );
     },
   };
 }

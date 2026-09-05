@@ -1,4 +1,5 @@
 import type { ProcessedTrack } from '@pluka/gpx';
+import type { Capture } from '@pluka/sources';
 
 /**
  * Frontières du worker.
@@ -43,6 +44,42 @@ export interface JobStore {
 export interface ObjectStore {
   /** Télécharge un objet sous forme de texte. */
   downloadText(bucket: string, path: string): Promise<string>;
+  /** Écrit un objet. Le chemin dérivant de l'empreinte, réécrire écrit les mêmes octets. */
+  upload(
+    bucket: string,
+    path: string,
+    bytes: Uint8Array,
+    contentType: string | null,
+  ): Promise<void>;
+}
+
+/**
+ * Acquisition de sources — étape 1 de SOURCES_EXTRACTION.
+ *
+ * `fetch` fait l'I/O réseau sous politique SSRF ; `knownHashes` alimente la
+ * décision de déduplication ; `recordSnapshot` écrit le snapshot immuable.
+ */
+export interface SnapshotInput {
+  readonly sourceId: string;
+  readonly contentHash: string;
+  readonly storagePath: string;
+  readonly contentType: string | null;
+  readonly sizeBytes: number;
+  readonly finalUrl: string | null;
+  readonly httpStatus: number | null;
+}
+
+export interface RecordedSnapshot {
+  readonly snapshotId: string;
+  /** Faux lorsque le contenu était déjà connu : aucun snapshot n'a été ajouté. */
+  readonly created: boolean;
+}
+
+export interface SourceStore {
+  fetch(url: string): Promise<Capture>;
+  knownHashes(sourceId: string): Promise<readonly string[]>;
+  recordSnapshot(input: SnapshotInput): Promise<RecordedSnapshot>;
+  markFailed(sourceId: string): Promise<void>;
 }
 
 export interface GeometryStore {
@@ -70,6 +107,7 @@ export interface WorkerPorts {
   readonly jobs: JobStore;
   readonly objects: ObjectStore;
   readonly geometries: GeometryStore;
+  readonly sources: SourceStore;
   readonly outbox: OutboxDispatcher;
   readonly logger: Logger;
 }

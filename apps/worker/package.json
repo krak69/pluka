@@ -14,6 +14,7 @@
     "@pluka/config": "workspace:*",
     "@pluka/db": "workspace:*",
     "@pluka/gpx": "workspace:*",
+    "@pluka/sources": "workspace:*",
     "@supabase/supabase-js": "^2.115.0"
   },
   "devDependencies": {

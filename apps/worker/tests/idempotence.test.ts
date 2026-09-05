@@ -82,6 +82,15 @@ function createRecorder(): Recorder {
         if (state.downloadError !== null) throw state.downloadError;
         return state.gpxContent;
       },
+      upload: async (): Promise<void> => undefined,
+    },
+    sources: {
+      fetch: async () => {
+        throw new Error('non employé dans ces tests');
+      },
+      knownHashes: async () => [],
+      recordSnapshot: async () => ({ snapshotId: 'snapshot-1', created: true }),
+      markFailed: async (): Promise<void> => undefined,
     },
     geometries: {
       // Reproduit la garantie de `private.persist_race_geometry` : rejouer
@@ -274,14 +283,29 @@ describe('boucle', () => {
       order.push('dispatch');
       return 3;
     };
-    recorder.ports.queue.read = async () => {
-      order.push('read');
+    recorder.ports.queue.read = async (queue) => {
+      order.push(`read:${queue}`);
       return [];
     };
 
     const result = await tick(recorder.ports);
 
-    expect(order).toEqual(['dispatch', 'read']);
+    expect(order[0]).toBe('dispatch');
     expect(result.dispatched).toBe(3);
+  });
+
+  it('consomme les deux files du lot', () => {
+    // Les queues sont groupées par domaine, pas une par type de job
+    // (migration 0002) : le worker en lit plusieurs par tour.
+    const order: string[] = [];
+
+    recorder.ports.queue.read = async (queue) => {
+      order.push(queue);
+      return [];
+    };
+
+    return tick(recorder.ports).then(() => {
+      expect(order).toEqual(['pluka_geo', 'pluka_sources']);
+    });
   });
 });

@@ -1,8 +1,10 @@
 import type { PlukaClient } from '@pluka/db';
 
 import type { WorkerPorts } from './ports.js';
+import { fetchSource } from './fetcher.js';
 import {
   createGeometryStore,
+  createSourceStore,
   createJobStore,
   createLogger,
   createObjectStore,
@@ -23,6 +25,7 @@ export function createPorts(client: PlukaClient): WorkerPorts {
     jobs: createJobStore(client),
     objects: createObjectStore(client),
     geometries: createGeometryStore(client),
+    sources: createSourceStore(client, fetchSource),
     outbox: createOutboxDispatcher(client),
     logger: createLogger(),
   };
