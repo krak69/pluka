@@ -25,6 +25,8 @@ export { IconButton, type IconButtonProps } from './components/IconButton.js';
 export { Input, type InputProps } from './components/Input.js';
 export { Link, type LinkProps } from './components/Link.js';
 export { MicroLabel, type MicroLabelProps } from './components/MicroLabel.js';
+export { SourceDrawer, type SourceDrawerProps } from './components/SourceDrawer.js';
+export { SourceLink, type SourceLinkProps } from './components/SourceLink.js';
 export { StatusBadge, type StatusBadgeProps, type StatusTone } from './components/StatusBadge.js';
 export {
   TRUST_LEVEL_LABELS,

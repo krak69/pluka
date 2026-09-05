@@ -10,6 +10,8 @@ import {
   Input,
   Link,
   MicroLabel,
+  SourceDrawer,
+  SourceLink,
   StatusBadge,
   TRUST_LEVEL_LABELS,
   TrustBadge,
@@ -293,5 +295,93 @@ describe('Input', () => {
 
     expect(html).not.toContain('aria-invalid');
     expect(html).not.toContain('aria-describedby');
+  });
+});
+
+describe('SourceLink', () => {
+  it('affiche « Voir la source » par défaut', () => {
+    // §186 : le libellé est porté par le composant, pour qu'une information
+    // sourcée propose le même mot sur tous les écrans.
+    const html = renderToStaticMarkup(<SourceLink />);
+
+    expect(html).toContain('Voir la source');
+    expect(html).toContain('pk-source-link');
+  });
+
+  it('rend un bouton sans destination, un lien avec', () => {
+    // Ouvrir un tiroir n'est pas une navigation : un `<a>` sans `href` n'est
+    // pas atteignable au clavier.
+    expect(renderToStaticMarkup(<SourceLink />)).toContain('<button');
+    expect(renderToStaticMarkup(<SourceLink href="https://exemple.test" />)).toContain('<a');
+  });
+});
+
+describe('SourceDrawer', () => {
+  const complete = (
+    <SourceDrawer
+      type="url"
+      title="Règlement 2026"
+      organization="Organisation Test"
+      sectionLabel="Règlement › Assistance"
+      pageLabel="14"
+      excerpt="Assistance autorisée uniquement à Lenk."
+      date="2026-03-01"
+      trustLevel="official"
+      href="https://exemple.test/reglement"
+    />
+  );
+
+  it('affiche les sept éléments de §86', () => {
+    const html = renderToStaticMarkup(complete);
+
+    for (const expected of [
+      'url',
+      'Règlement 2026',
+      'Organisation Test',
+      'Règlement › Assistance',
+      '14',
+      'Assistance autorisée uniquement à Lenk.',
+      '2026-03-01',
+      'Officielle',
+    ]) {
+      expect(html, `§86 : ${expected} absent du tiroir`).toContain(expected);
+    }
+  });
+
+  it('reste replié : la source ne pollue pas l’écran principal', () => {
+    // §86 : « accessible depuis l'information critique sans polluer l'écran
+    // principal ». Le `<details>` est fermé tant qu'on ne l'ouvre pas.
+    const html = renderToStaticMarkup(complete);
+
+    expect(html).toContain('<details');
+    expect(html).not.toContain('open=""');
+  });
+
+  it('omet un champ absent plutôt que d’afficher un tiret', () => {
+    // « selon disponibilité » : une page inconnue n'est pas une page vide.
+    const html = renderToStaticMarkup(<SourceDrawer title="Guide coureur" />);
+
+    expect(html).toContain('Guide coureur');
+    expect(html).not.toContain('Page');
+    expect(html).not.toContain('Organisme');
+  });
+
+  it('accueille une provenance propre au contexte', () => {
+    // Le locator et l'adresse du block dépendent du format : le tiroir les
+    // reçoit en enfants plutôt que d'imposer une liste de champs.
+    const html = renderToStaticMarkup(
+      <SourceDrawer title="Règlement">
+        <span>block n° 12</span>
+      </SourceDrawer>,
+    );
+
+    expect(html).toContain('block n° 12');
+  });
+
+  it('marque un lien externe comme tel', () => {
+    const html = renderToStaticMarkup(complete);
+
+    expect(html).toContain('rel="noreferrer noopener"');
+    expect(html).toContain('target="_blank"');
   });
 });

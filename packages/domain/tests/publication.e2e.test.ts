@@ -402,6 +402,26 @@ describe.runIf(process.env.SUPABASE_SERVICE_ROLE_KEY !== undefined)('publication
     expect(cutoff?.conflictType).toBe('published_fact_conflict');
   });
 
+  it("rend l'adresse de la preuve, pas seulement sa citation", () => {
+    if (!available) return;
+
+    // §20 : « snapshot_id, block_id ou chunk_id ». Un extrait sans adresse ne
+    // se remonte pas jusqu'au document, et l'écran de revue en a besoin pour
+    // qu'un réviseur puisse vérifier avant de décider.
+    return editor.context.repositories.factReview.listForReview(RACE_ID, 50).then((rows) => {
+      const assistance = rows.find((row) => row.factKey === ASSISTANCE_KEY);
+
+      expect(assistance?.snapshotId).toBe(SNAPSHOT_ID);
+      expect(assistance?.snapshotContentHash).toBe('c'.repeat(64));
+      expect(assistance?.blockIndex).toBe(0);
+      expect(assistance?.chunkIndex).toBe(0);
+      expect(assistance?.blockContent).toBe(EXCERPT);
+      expect(assistance?.locator).toEqual({ cssSelector: 'p' });
+      expect(assistance?.sourceType).toBe('url');
+      expect(assistance?.organizationName).toBe('Org Publication');
+    });
+  });
+
   it('ne montre rien à un coureur', async () => {
     if (!available) return;
 

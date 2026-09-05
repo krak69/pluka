@@ -153,8 +153,22 @@ export interface FactCandidateReviewRecord {
   readonly pageNumber: number | null;
   readonly sectionPath: readonly string[];
   readonly locator: Readonly<Record<string, unknown>>;
+  /**
+   * Adresse de la preuve — §20 : « snapshot_id, block_id ou chunk_id ».
+   *
+   * Sans elle, une citation ne se vérifie pas : un extrait sans adresse ne se
+   * remonte pas jusqu'au document d'origine.
+   */
+  readonly snapshotId: string | null;
+  readonly snapshotContentHash: string | null;
+  readonly blockIndex: number | null;
+  readonly chunkIndex: number | null;
+  /** Texte complet du block cité, pour relire l'extrait dans son contexte. */
+  readonly blockContent: string | null;
   readonly sourceTitle: string | null;
   readonly sourceUrl: string | null;
+  readonly sourceType: Enum<'source_type'> | null;
+  readonly organizationName: string | null;
   readonly snapshotRetrievedAt: string | null;
   readonly provider: string | null;
   readonly model: string | null;

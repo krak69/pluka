@@ -1,5 +1,5 @@
-import { createCourseRepositories } from '@pluka/db';
-import { DomainError, type CourseContext } from '@pluka/domain';
+import { createCourseRepositories, createFactRepositories } from '@pluka/db';
+import { DomainError, type CourseContext, type FactReviewContext } from '@pluka/domain';
 import { notFound, redirect } from 'next/navigation';
 
 import { requireSession, type Session } from '@/lib/session';
@@ -79,4 +79,26 @@ export function domainErrorMessage(error: unknown): string {
   // Le message du domaine est déjà rédigé pour être lu — il ne contient ni
   // requête, ni identifiant technique (AGENTS : jamais d'erreur brute).
   return `${messages[error.code]} ${error.message.replace(/^\[[^\]]+\]\s*\w+\s*:\s*/, '')}`.trim();
+}
+
+/**
+ * Contexte de revue et de publication des facts.
+ *
+ * Même principe que `courseContext` : l'acteur n'est qu'un `userId`, et
+ * l'autorité est relue en base par `@pluka/domain` à chaque commande. Cette
+ * application ne peut donc pas se déclarer autorisée à publier — elle dit
+ * seulement *qui* décide, et la base vérifie que ce « qui » est bien celui de
+ * la session (migration 0012).
+ */
+export function factReviewContext(session: Session): FactReviewContext {
+  return {
+    repositories: createFactRepositories({ client: createDataClient(session.accessToken) }),
+    actor: { userId: session.userId },
+  };
+}
+
+export async function requireFactReviewContext(returnTo: string): Promise<FactReviewContext> {
+  const session = await requireSession(returnTo);
+
+  return factReviewContext(session);
 }

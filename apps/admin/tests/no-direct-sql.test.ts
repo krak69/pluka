@@ -69,6 +69,12 @@ describe('aucune requête directe', () => {
       'events',
       'organization_members',
       'race_status_transitions',
+      'race_facts',
+      'race_fact_versions',
+      'fact_candidates',
+      'fact_candidate_evidence',
+      'fact_sources',
+      'source_snapshots',
     ];
 
     const offenders = sourceFiles().flatMap((moduleId) => {
@@ -129,6 +135,7 @@ describe('autorisations', () => {
       'app/page.tsx',
       'app/evenements/[eventId]/page.tsx',
       'app/courses/[raceId]/page.tsx',
+      'app/courses/[raceId]/revue/page.tsx',
     ];
 
     for (const screen of screens) {
@@ -136,5 +143,89 @@ describe('autorisations', () => {
         "from '@pluka/domain'",
       );
     }
+  });
+});
+
+describe('fonctions SQL', () => {
+  it('n’appelle aucune fonction de publication par son nom', () => {
+    // Les fonctions de la migration 0012 sont la surface du repository, pas
+    // celle de l'application. Les voir ici signifierait que l'écran a
+    // court-circuité `@pluka/domain` — et donc ses invariants de §31 et §38.
+    const functions = [
+      'publish_fact_candidate',
+      'decide_fact_candidate',
+      'list_fact_candidates_for_review',
+      'get_fact_candidate_scope',
+      'list_fact_publication_acts',
+    ];
+
+    const offenders = sourceFiles().flatMap((moduleId) => {
+      const source = withoutComments(read(moduleId));
+      const found = functions.filter((name) => source.includes(name));
+      return found.length === 0 ? [] : [`${moduleId} → ${found.join(', ')}`];
+    });
+
+    expect(offenders, 'fonction SQL appelée depuis l’application').toEqual([]);
+  });
+});
+
+describe('design system', () => {
+  it('n’écrit à la main aucune classe interne d’un composant', () => {
+    // « Composants de `packages/ui` uniquement. » Les classes de mise en page
+    // et de typographie sont publiques — `pk-body`, `pk-h1`, `pk-input` — mais
+    // `pk-badge` ou `pk-source-body` appartiennent à un composant : les
+    // recopier reviendrait à réimplémenter ce composant dans l'application, et
+    // il divergerait au premier changement du Design System.
+    const internal = [
+      'pk-badge',
+      'pk-data-value',
+      'pk-source-body',
+      'pk-source-drawer',
+      'pk-source-excerpt',
+      'pk-divider',
+      'pk-micro-label',
+    ];
+
+    const offenders = sourceFiles().flatMap((moduleId) => {
+      const source = withoutComments(read(moduleId));
+      const found = internal.filter((name) => source.includes(name));
+      return found.length === 0 ? [] : [`${moduleId} → ${found.join(', ')}`];
+    });
+
+    expect(offenders, 'classe interne d’un composant recopiée').toEqual([]);
+  });
+
+  it('ne définit aucun composant qui doublerait une primitive', () => {
+    // Un `function Badge(` ou `function SourceDrawer(` local serait une
+    // seconde version du composant, hors de portée des tests du paquet.
+    const primitives = [
+      'Badge',
+      'Button',
+      'DataValue',
+      'Divider',
+      'IconButton',
+      'Input',
+      'MicroLabel',
+      'SourceDrawer',
+      'SourceLink',
+      'StatusBadge',
+      'TrustBadge',
+    ];
+
+    const offenders = sourceFiles().flatMap((moduleId) => {
+      const source = withoutComments(read(moduleId));
+      const found = primitives.filter((name) =>
+        new RegExp(String.raw`function\s+${name}\s*\(`).test(source),
+      );
+      return found.length === 0 ? [] : [`${moduleId} → ${found.join(', ')}`];
+    });
+
+    expect(offenders, 'primitive du Design System redéfinie dans l’application').toEqual([]);
+  });
+
+  it('importe ses composants de @pluka/ui', () => {
+    // Contrepartie des tests d'absence : l'écran de revue consomme bien le
+    // Design System plutôt que d'être un empilement de div nues.
+    expect(read('app/courses/[raceId]/revue/review-list.tsx')).toContain("from '@pluka/ui'");
   });
 });

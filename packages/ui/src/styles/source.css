@@ -1,0 +1,79 @@
+/*
+ * Source — 06_DESIGN_SYSTEM.md §86, §150, §186.
+ *
+ * « La source doit être accessible depuis l'information critique sans polluer
+ * l'écran principal. » Le déclencheur est donc discret et le contenu replié ;
+ * une fois ouvert, il se présente comme une fiche, pas comme un paragraphe.
+ */
+.pk-source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--pk-forest);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  /* §137 : une cible d'interaction reste atteignable au doigt. */
+  min-height: 44px;
+}
+
+.pk-source-link:hover {
+  color: var(--pk-ink);
+}
+
+/*
+ * Le marqueur natif est retiré : il rend un triangle dont la sémantique est
+ * déjà portée par l'état `open` du `<details>` et par le libellé.
+ */
+.pk-source-drawer > summary {
+  list-style: none;
+}
+
+.pk-source-drawer > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pk-source-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-4);
+  background: var(--pk-limestone);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-md);
+}
+
+.pk-source-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.pk-source-row-value {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--pk-ink);
+  /* Un locator ou une URL ne doit pas déborder de la fiche. */
+  overflow-wrap: anywhere;
+}
+
+/*
+ * L'extrait est une citation : il se distingue du commentaire qui l'entoure,
+ * sans devenir un bloc de code. §20 de SOURCES_EXTRACTION en fait une preuve,
+ * et une preuve se lit.
+ */
+.pk-source-excerpt {
+  margin: 0;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--pk-granite);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-style: italic;
+  color: var(--pk-text-muted);
+}

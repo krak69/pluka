@@ -11,9 +11,6 @@ import {
   decideFactCandidateCommandSchema,
   listCandidatesForReviewQuerySchema,
   publishFactCommandSchema,
-  type DecideFactCandidateCommand,
-  type ListCandidatesForReviewQuery,
-  type PublishFactCommand,
 } from './commands.js';
 import { canReviewFacts, refusalForTrustLevel, resolvePublicationAuthority } from './trust.js';
 
@@ -88,9 +85,9 @@ async function loadReviewScope(
  */
 export async function listCandidatesForReview(
   context: FactReviewContext,
-  query: ListCandidatesForReviewQuery,
+  input: unknown,
 ): Promise<readonly FactCandidateReviewRecord[]> {
-  const parsed = listCandidatesForReviewQuerySchema.parse(query);
+  const parsed = listCandidatesForReviewQuerySchema.parse(input);
 
   return context.repositories.factReview.listForReview(parsed.raceId, parsed.limit);
 }
@@ -103,10 +100,10 @@ export async function listCandidatesForReview(
  */
 export async function publishFactCandidate(
   context: FactReviewContext,
-  command: PublishFactCommand,
+  input: unknown,
 ): Promise<PublishedFactRecord> {
   const useCase = 'publishFactCandidate';
-  const parsed = publishFactCommandSchema.parse(command);
+  const parsed = publishFactCommandSchema.parse(input);
 
   const { scope, authority } = await loadReviewScope(context, parsed.candidateId, useCase);
 
@@ -162,10 +159,10 @@ export async function publishFactCandidate(
  */
 export async function decideFactCandidate(
   context: FactReviewContext,
-  command: DecideFactCandidateCommand,
+  input: unknown,
 ): Promise<FactCandidateScopeRecord['status']> {
   const useCase = 'decideFactCandidate';
-  const parsed = decideFactCandidateCommandSchema.parse(command);
+  const parsed = decideFactCandidateCommandSchema.parse(input);
 
   const { scope } = await loadReviewScope(context, parsed.candidateId, useCase);
 

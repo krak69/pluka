@@ -94,7 +94,7 @@ export default async function EventPage({
                       }}
                     >
                       <span style={{ flex: 1 }}>{race.name}</span>
-                      <span className="pk-data-value-figure">{race.distanceKm} km</span>
+                      <DataValue value={race.distanceKm} unit="km" />
                       <Badge tone={race.status === 'published' ? 'glacier' : 'neutral'}>
                         {race.status}
                       </Badge>

@@ -52,6 +52,19 @@ export default async function RacePage({
 
       <Divider spaced />
 
+      <h2 className="pk-h2" style={{ marginBottom: 'var(--space-2)' }}>
+        Revue des candidats
+      </h2>
+      <p className="pk-body" style={{ color: 'var(--pk-text-muted)' }}>
+        Les informations extraites des sources attendent une décision humaine avant publication
+        (SOURCES_EXTRACTION §30).
+      </p>
+      <Link href={`/courses/${race.id}/revue`} className="pk-link">
+        Ouvrir la revue
+      </Link>
+
+      <Divider spaced />
+
       <h2 className="pk-h2" style={{ marginBottom: 'var(--space-4)' }}>
         Statut
       </h2>

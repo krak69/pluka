@@ -5,12 +5,14 @@ import {
   createEdition,
   createEvent,
   createRace,
+  decideFactCandidate,
+  publishFactCandidate,
   updateRace,
 } from '@pluka/domain';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-import { courseContext, domainErrorMessage } from '@/lib/admin';
+import { courseContext, domainErrorMessage, factReviewContext } from '@/lib/admin';
 import { publicEnv } from '@/lib/env';
 import { safeReturnTo } from '@/lib/return-to';
 import { requireSession } from '@/lib/session';
@@ -206,4 +208,74 @@ export async function requestSignInLinkAction(form: FormData): Promise<void> {
   }
 
   redirect(`/connexion?etat=lien-envoye&returnTo=${encodeURIComponent(returnTo)}`);
+}
+
+/**
+ * Décisions de revue — SOURCES_EXTRACTION §31.
+ *
+ * Les trois actions passent par un use case de publication. Aucune ne teste
+ * un rôle : §32 — « seule une organisation autorisée peut conférer le niveau
+ * Officielle » — est appliqué par `publishFactCandidate` et réappliqué par la
+ * base. Un écran qui proposerait le mauvais bouton obtient un refus lisible,
+ * jamais un contournement.
+ *
+ * Le niveau de confiance vient du formulaire parce que c'est une décision du
+ * réviseur, pas une déduction de l'écran. Ce qu'il a le droit de conférer,
+ * c'est le domaine qui le sait.
+ */
+function trustLevel(form: FormData): 'official' | 'pluka_validated' | undefined {
+  const value = text(form, 'trustLevel');
+
+  // Le champ n'est pas validé ici : `publishFactCandidate` a un schéma strict,
+  // et lui laisser refuser évite une seconde liste de valeurs autorisées qui
+  // divergerait de la première.
+  return value as 'official' | 'pluka_validated' | undefined;
+}
+
+export async function publishCandidateAction(
+  _previous: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const context = factReviewContext(await requireSession('/'));
+  const raceId = text(form, 'raceId') ?? '';
+
+  try {
+    await publishFactCandidate(context, {
+      candidateId: text(form, 'candidateId') ?? '',
+      trustLevel: trustLevel(form),
+      // Corriger avant de publier reste une correction : §31 la fait auditer,
+      // et c'est la base qui en tire `edit_and_publish`.
+      valueText: text(form, 'valueText') ?? null,
+      note: text(form, 'note') ?? null,
+      // §38 : publier par-dessus une valeur contradictoire demande de le dire.
+      // La case est décochée par défaut ; sans elle, le domaine refuse.
+      resolveConflict: form.get('resolveConflict') === 'on',
+    });
+  } catch (error) {
+    return { error: domainErrorMessage(error) };
+  }
+
+  revalidatePath(`/courses/${raceId}/revue`);
+  return {};
+}
+
+export async function decideCandidateAction(
+  _previous: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const context = factReviewContext(await requireSession('/'));
+  const raceId = text(form, 'raceId') ?? '';
+
+  try {
+    await decideFactCandidate(context, {
+      candidateId: text(form, 'candidateId') ?? '',
+      decision: text(form, 'decision'),
+      note: text(form, 'note') ?? null,
+    });
+  } catch (error) {
+    return { error: domainErrorMessage(error) };
+  }
+
+  revalidatePath(`/courses/${raceId}/revue`);
+  return {};
 }
