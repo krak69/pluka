@@ -1,5 +1,6 @@
 import { GPX_QUEUE, handleGpxMessage } from './jobs/gpx-process.js';
 import { SOURCES_QUEUE, handleSourceMessage } from './jobs/source-ingest.js';
+import { handleParseMessage, isParseMessage } from './jobs/source-parse.js';
 import type { QueueMessage, WorkerPorts } from './ports.js';
 
 /**
@@ -64,7 +65,16 @@ const CONSUMERS: readonly {
   readonly handle: (ports: WorkerPorts, message: QueueMessage) => Promise<{ kind: string }>;
 }[] = [
   { queue: GPX_QUEUE, handle: handleGpxMessage },
-  { queue: SOURCES_QUEUE, handle: handleSourceMessage },
+  // La file `pluka_sources` porte les deux étapes : capture puis parsing. Le
+  // groupement est par domaine, pas par type de job (migration 0002), donc le
+  // routage se fait sur la forme de la charge utile.
+  {
+    queue: SOURCES_QUEUE,
+    handle: (ports, message) =>
+      isParseMessage(message)
+        ? handleParseMessage(ports, message)
+        : handleSourceMessage(ports, message),
+  },
 ];
 
 function verdictOf(kind: string): Verdict {

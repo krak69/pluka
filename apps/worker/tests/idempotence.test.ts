@@ -106,6 +106,11 @@ function createRecorder(): Recorder {
         return id;
       },
     },
+    parsing: {
+      startRun: async () => ({ runId: 'run-1', alreadyCompleted: false }),
+      completeRun: async () => 0,
+      failRun: async (): Promise<void> => undefined,
+    },
     outbox: { dispatch: async (): Promise<number> => 0 },
     logger: { info: () => {}, warn: () => {}, error: () => {} },
   };

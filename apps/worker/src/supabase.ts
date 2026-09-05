@@ -5,6 +5,7 @@ import type { Capture } from '@pluka/sources';
 import { transient } from './errors.js';
 import type {
   GeometryStore,
+  ParsingStore,
   SourceStore,
   JobClaim,
   JobStore,
@@ -263,5 +264,56 @@ export function createLogger(): Logger {
     info: (message, context) => emit('info', message, context),
     warn: (message, context) => emit('warn', message, context),
     error: (message, context) => emit('error', message, context),
+  };
+}
+
+/**
+ * Runs de parsing — étape 2.
+ *
+ * Toutes les écritures passent par `worker_complete_parse_run` : blocks,
+ * chunks, liens et clôture du run doivent réussir ensemble (§31), ce que
+ * PostgREST ne saurait pas orchestrer en plusieurs appels.
+ */
+export function createParsingStore(client: PlukaClient): ParsingStore {
+  return {
+    async startRun(input) {
+      const rows = unwrapRpc(
+        await rpc(client).rpc('worker_start_parse_run', {
+          p_snapshot_id: input.snapshotId,
+          p_parser_version: input.parserVersion,
+          p_chunker_version: input.chunkerVersion,
+          p_input_hash: input.inputHash,
+        }),
+        'worker_start_parse_run',
+      );
+
+      const row = (Array.isArray(rows) ? rows[0] : rows) as Record<string, unknown> | undefined;
+
+      if (row === undefined) throw transient('DB_UNAVAILABLE', 'run non ouvert');
+
+      return { runId: String(row.run_id), alreadyCompleted: row.already_completed === true };
+    },
+
+    async completeRun(result) {
+      const count = unwrapRpc(
+        await rpc(client).rpc('worker_complete_parse_run', {
+          p_run_id: result.runId,
+          p_snapshot_id: result.snapshotId,
+          p_blocks: result.blocks,
+          p_chunks: result.chunks,
+          p_chunker_version: result.chunkerVersion,
+        }),
+        'worker_complete_parse_run',
+      );
+
+      return Number(count ?? 0);
+    },
+
+    async failRun(runId, error) {
+      unwrapRpc(
+        await rpc(client).rpc('worker_fail_parse_run', { p_run_id: runId, p_error: error }),
+        'worker_fail_parse_run',
+      );
+    },
   };
 }

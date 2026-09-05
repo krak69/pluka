@@ -9,6 +9,7 @@ import {
   createLogger,
   createObjectStore,
   createOutboxDispatcher,
+  createParsingStore,
   createQueue,
 } from './supabase.js';
 
@@ -26,6 +27,7 @@ export function createPorts(client: PlukaClient): WorkerPorts {
     objects: createObjectStore(client),
     geometries: createGeometryStore(client),
     sources: createSourceStore(client, fetchSource),
+    parsing: createParsingStore(client),
     outbox: createOutboxDispatcher(client),
     logger: createLogger(),
   };

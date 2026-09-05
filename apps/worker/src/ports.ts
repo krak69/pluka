@@ -1,5 +1,5 @@
 import type { ProcessedTrack } from '@pluka/gpx';
-import type { Capture } from '@pluka/sources';
+import type { Capture, ParsedBlock, ParsedChunk } from '@pluka/sources';
 
 /**
  * Frontières du worker.
@@ -82,6 +82,41 @@ export interface SourceStore {
   markFailed(sourceId: string): Promise<void>;
 }
 
+/**
+ * Runs de parsing — étape 2 de SOURCES_EXTRACTION.
+ *
+ * Les versions de parseur et de chunker vivent dans le schéma privé, avec le
+ * run : le snapshot reste immuable, et re-parser crée un run, jamais une
+ * modification du contenu capturé.
+ */
+export interface ParseRunStart {
+  readonly snapshotId: string;
+  readonly parserVersion: string;
+  readonly chunkerVersion: string;
+  readonly inputHash: string;
+}
+
+export interface ParseRun {
+  readonly runId: string;
+  /** Vrai si un run identique — mêmes versions, même snapshot — existe déjà. */
+  readonly alreadyCompleted: boolean;
+}
+
+export interface ParseRunResult {
+  readonly runId: string;
+  readonly snapshotId: string;
+  readonly blocks: readonly ParsedBlock[];
+  readonly chunks: readonly ParsedChunk[];
+  readonly chunkerVersion: string;
+}
+
+export interface ParsingStore {
+  startRun(input: ParseRunStart): Promise<ParseRun>;
+  /** Rend le nombre de blocks écrits. */
+  completeRun(result: ParseRunResult): Promise<number>;
+  failRun(runId: string, error: string): Promise<void>;
+}
+
 export interface GeometryStore {
   persist(input: {
     readonly raceId: string;
@@ -108,6 +143,7 @@ export interface WorkerPorts {
   readonly objects: ObjectStore;
   readonly geometries: GeometryStore;
   readonly sources: SourceStore;
+  readonly parsing: ParsingStore;
   readonly outbox: OutboxDispatcher;
   readonly logger: Logger;
 }
