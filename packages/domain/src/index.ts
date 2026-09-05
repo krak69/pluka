@@ -21,11 +21,25 @@ export {
 } from './authorization/organization-role.js';
 
 export {
+  getEditionAdministration,
+  getEventAdministration,
+  getRaceAdministration,
+  listEventsForAdministration,
+  type EditionAdministration,
+  type EventAdministration,
+  type RaceAdministration,
+} from './course/administration.js';
+
+export {
   changeRaceStatusCommandSchema,
   createEditionCommandSchema,
   createEventCommandSchema,
   createRaceCommandSchema,
+  getEditionAdministrationQuerySchema,
+  getEventAdministrationQuerySchema,
+  getRaceAdministrationQuerySchema,
   getRaceOverviewQuerySchema,
+  listEventsForAdministrationQuerySchema,
   listRaceStatusHistoryQuerySchema,
   publishRaceCommandSchema,
   setRaceVisibilityCommandSchema,
@@ -34,7 +48,11 @@ export {
   type CreateEditionCommand,
   type CreateEventCommand,
   type CreateRaceCommand,
+  type GetEditionAdministrationQuery,
+  type GetEventAdministrationQuery,
+  type GetRaceAdministrationQuery,
   type GetRaceOverviewQuery,
+  type ListEventsForAdministrationQuery,
   type ListRaceStatusHistoryQuery,
   type PublishRaceCommand,
   type SetRaceVisibilityCommand,

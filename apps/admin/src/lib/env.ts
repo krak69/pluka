@@ -3,15 +3,16 @@ import { loadPublicEnv, type PublicEnv } from '@pluka/config';
 let cached: PublicEnv | undefined;
 
 /**
- * Configuration publique du site.
+ * Configuration publique de l'administration.
  *
- * Les variables sont listées explicitement : Next n'inline que les
- * `process.env.NEXT_PUBLIC_*` écrits littéralement. Un `process.env` passé en
- * bloc serait vide côté client.
+ * Variables listées explicitement : Next n'inline que les
+ * `process.env.NEXT_PUBLIC_*` écrits littéralement.
  *
- * La lecture est différée au premier rendu : une configuration invalide
- * échoue en nommant les variables fautives, plutôt qu'au chargement du module
- * avec une pile illisible.
+ * Aucun secret ici, et notamment pas de `SUPABASE_SERVICE_ROLE_KEY` : cette
+ * application travaille sous la session de l'administrateur, donc sous RLS
+ * (01_ARCHITECTURE §9). C'est la migration 0007 qui donne à `pluka_admin` le
+ * droit d'écrire sur le référentiel de course, pas une clé qui contournerait
+ * la barrière.
  */
 export function publicEnv(): PublicEnv {
   cached ??= loadPublicEnv({

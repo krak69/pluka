@@ -25,6 +25,20 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      # `next build` inline les NEXT_PUBLIC_* : sans elles, la validation de
+      # configuration (@pluka/config) échoue au build des trois applications.
+      # Valeurs locales, publiques par définition — aucun secret ici.
+      - name: Configuration publique de build
+        run: |
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_ci-placeholder"
+            echo "NEXT_PUBLIC_SITE_URL=http://localhost:3000"
+            echo "NEXT_PUBLIC_APP_URL=http://localhost:3001"
+            echo "NEXT_PUBLIC_ADMIN_URL=http://localhost:3002"
+          } >> "$GITHUB_ENV"
+
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck

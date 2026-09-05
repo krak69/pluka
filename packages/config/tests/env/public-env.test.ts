@@ -28,6 +28,7 @@ describe('loadPublicEnv', () => {
     );
 
     expect(Object.keys(env).sort()).toEqual([
+      'NEXT_PUBLIC_ADMIN_URL',
       'NEXT_PUBLIC_APP_URL',
       'NEXT_PUBLIC_SITE_URL',
       'NEXT_PUBLIC_SUPABASE_ANON_KEY',
@@ -69,6 +70,7 @@ describe('loadPublicEnv', () => {
         'NEXT_PUBLIC_SUPABASE_ANON_KEY',
         'NEXT_PUBLIC_SITE_URL',
         'NEXT_PUBLIC_APP_URL',
+        'NEXT_PUBLIC_ADMIN_URL',
       ]);
     }
   });

@@ -166,6 +166,10 @@ export function createFakeRepositories(state: FakeState): CourseRepositories {
     events: {
       findById: async (id) => state.events.find((event) => event.id === id) ?? null,
       findBySlug: async (slug) => state.events.find((event) => event.slug === slug) ?? null,
+      list: async (limit) =>
+        [...state.events]
+          .sort((left, right) => left.name.localeCompare(right.name))
+          .slice(0, limit),
       insert: async (input) => {
         const record: EventRecord = {
           id: nextId('bbbbbbbb-0000-4000-8000-'),

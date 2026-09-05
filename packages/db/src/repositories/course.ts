@@ -156,6 +156,8 @@ function toTransition(row: TransitionRow): RaceStatusTransitionRecord {
 export interface EventRepository {
   findById(eventId: string): Promise<EventRecord | null>;
   findBySlug(slug: string): Promise<EventRecord | null>;
+  /** Liste bornée, triée par nom : la base courses se parcourt, elle ne se déverse pas. */
+  list(limit: number): Promise<readonly EventRecord[]>;
   insert(input: InsertRow<'events'>): Promise<EventRecord>;
 }
 
@@ -184,6 +186,19 @@ export const eventRepository = defineRepository<EventRepository>((context) => ({
     );
 
     return row === null ? null : toEvent(row);
+  },
+
+  async list(limit) {
+    const rows = unwrap(
+      await context.client
+        .from('events')
+        .select(selectColumns('events', EVENT_COLUMNS))
+        .order('name', { ascending: true })
+        .limit(limit),
+      'events.list',
+    );
+
+    return rows.map(toEvent);
   },
 
   async insert(input) {

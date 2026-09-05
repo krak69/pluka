@@ -13,6 +13,7 @@ export function publicEnvFixture(overrides: EnvSource = {}): EnvSource {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-key-de-test',
     NEXT_PUBLIC_SITE_URL: 'http://localhost:3000',
     NEXT_PUBLIC_APP_URL: 'http://localhost:3001',
+    NEXT_PUBLIC_ADMIN_URL: 'http://localhost:3002',
     ...overrides,
   };
 }

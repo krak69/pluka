@@ -119,3 +119,30 @@ export const listRaceStatusHistoryQuerySchema = z.object({
 });
 
 export type ListRaceStatusHistoryQuery = z.infer<typeof listRaceStatusHistoryQuerySchema>;
+
+/**
+ * Lectures d'administration — 00_PRODUCT_SPEC §3.5.
+ *
+ * La borne est obligatoire et plafonnée : une base courses se parcourt page
+ * par page, elle ne se déverse pas dans un écran.
+ */
+export const listEventsForAdministrationQuerySchema = z.object({
+  limit: z.number().int().min(1).max(200).default(100),
+});
+
+export type ListEventsForAdministrationQuery = z.infer<
+  typeof listEventsForAdministrationQuerySchema
+>;
+
+export const getEventAdministrationQuerySchema = z.object({ eventId: uuid });
+export type GetEventAdministrationQuery = z.infer<typeof getEventAdministrationQuerySchema>;
+
+export const getEditionAdministrationQuerySchema = z.object({ editionId: uuid });
+export type GetEditionAdministrationQuery = z.infer<typeof getEditionAdministrationQuerySchema>;
+
+export const getRaceAdministrationQuerySchema = z.object({
+  raceId: uuid,
+  limit: z.number().int().min(1).max(200).default(50),
+});
+
+export type GetRaceAdministrationQuery = z.infer<typeof getRaceAdministrationQuerySchema>;
