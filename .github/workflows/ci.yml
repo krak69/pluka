@@ -69,6 +69,25 @@ jobs:
       - name: Tests RLS (pgTAP)
         run: supabase test db
 
+      # Le test de bout en bout de l'ingestion GPX a besoin d'une base réelle :
+      # pgmq, PostGIS et le bucket de stockage. Il s'ignore de lui-même quand
+      # `SUPABASE_SERVICE_ROLE_KEY` est absent, ce qui est le cas du job
+      # `quality` — sans cette étape, il ne tournerait donc jamais en CI.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Chaînage GPX de bout en bout
+        run: |
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$(supabase status -o env | grep '^API_URL=' | cut -d= -f2- | tr -d '\"')"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep '^SERVICE_ROLE_KEY=' | cut -d= -f2- | tr -d '\"')"
+          } >> "$GITHUB_ENV"
+      - run: pnpm --filter @pluka/worker test
+
       - name: Arrêter Supabase
         if: always()
         run: supabase stop

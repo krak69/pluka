@@ -1,0 +1,24 @@
+{
+  "name": "@pluka/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit --incremental false",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@pluka/config": "workspace:*",
+    "@pluka/db": "workspace:*",
+    "@pluka/gpx": "workspace:*",
+    "@supabase/supabase-js": "^2.115.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}
