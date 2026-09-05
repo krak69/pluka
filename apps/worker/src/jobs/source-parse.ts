@@ -4,7 +4,7 @@ import {
   chunkBlocks,
   contentHash,
   isParseError,
-  parseSnapshot,
+  parseSnapshotBytes,
 } from '@pluka/sources';
 
 import { formatForStorage, normalizeError, permanent, transient } from '../errors.js';
@@ -87,11 +87,13 @@ export async function handleParseMessage(
   let runId = '';
 
   try {
-    const content = await downloadSnapshot(ports, payload.storagePath);
+    const bytes = await downloadSnapshot(ports, payload.storagePath);
 
     // L'empreinte du contenu entre dans le run : elle prouve *sur quoi* le
-    // parsing a porté, indépendamment du chemin de stockage.
-    const inputHash = contentHash(new TextEncoder().encode(content));
+    // parsing a porté, indépendamment du chemin de stockage. Elle est calculée
+    // sur les octets capturés, donc comparable à celle du snapshot — un
+    // aller-retour par une chaîne de caractères ne survivrait pas à un PDF.
+    const inputHash = contentHash(bytes);
 
     const run = await ports.parsing.startRun({
       snapshotId: payload.snapshotId,
@@ -113,7 +115,7 @@ export async function handleParseMessage(
       return { kind: 'already_done', runId: run.runId };
     }
 
-    const parsed = parseSnapshot({ content, contentType: payload.contentType });
+    const parsed = await parseSnapshotBytes({ bytes, contentType: payload.contentType });
     const chunks = chunkBlocks(parsed.blocks);
 
     const blockCount = await ports.parsing.completeRun({
@@ -140,9 +142,9 @@ export async function handleParseMessage(
   }
 }
 
-async function downloadSnapshot(ports: WorkerPorts, storagePath: string): Promise<string> {
+async function downloadSnapshot(ports: WorkerPorts, storagePath: string): Promise<Uint8Array> {
   try {
-    return await ports.objects.downloadText(SOURCES_BUCKET, storagePath);
+    return await ports.objects.downloadBytes(SOURCES_BUCKET, storagePath);
   } catch (error) {
     throw transient('STORAGE_UNAVAILABLE', 'snapshot illisible', error);
   }
@@ -154,9 +156,11 @@ async function failRun(
   runId: string,
   error: unknown,
 ): Promise<ParseOutcome> {
-  // Un document non traitable — PDF sans extracteur, contenu vide, aucun texte
-  // exploitable — ne guérira pas au retry. Le distinguer évite d'user cinq
-  // tentatives sur un fichier qui restera le même.
+  // Un document non traitable — PDF scanné, PDF chiffré, contenu vide, aucun
+  // texte exploitable — ne guérira pas au retry. Le distinguer évite d'user
+  // cinq tentatives sur un fichier qui restera le même. La raison voyage avec
+  // le code : un relecteur doit savoir qu'il manque une OCR, pas seulement que
+  // le parsing a échoué.
   const normalized = isParseError(error)
     ? {
         kind: 'permanent' as const,

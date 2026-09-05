@@ -201,11 +201,12 @@ describe('types de contenu', () => {
     }
   });
 
-  it('refuse un PDF plutôt que de le lire approximativement', () => {
-    // §13 demande d'extraire le texte natif : sans bibliothèque PDF, produire
-    // un texte approximatif donnerait une preuve fausse. Le refus est explicite
-    // et traçable.
-    expect(isParsableContentType('application/pdf')).toBe(false);
+  it('accepte le PDF, mais pas par le chemin texte', () => {
+    // §13 est désormais couvert par `pdf.ts` : le type est accepté. Il reste
+    // binaire, donc il n'entre pas par `parseSnapshot`, qui reçoit du texte —
+    // décoder un PDF en UTF-8 produirait du bruit présenté comme un document.
+    // Le pipeline PDF a ses propres tests, dans `pdf.test.ts`.
+    expect(isParsableContentType('application/pdf')).toBe(true);
 
     try {
       parseSnapshot({ content: '%PDF-1.7 ...', contentType: 'application/pdf' });

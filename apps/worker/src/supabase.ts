@@ -133,6 +133,16 @@ export function createObjectStore(client: PlukaClient): ObjectStore {
       return data.text();
     },
 
+    async downloadBytes(bucket, path) {
+      const { data, error } = await client.storage.from(bucket).download(path);
+
+      if (error !== null || data === null) {
+        throw transient('STORAGE_UNAVAILABLE', 'téléchargement impossible', error);
+      }
+
+      return new Uint8Array(await data.arrayBuffer());
+    },
+
     async upload(bucket, path, bytes, contentType) {
       const { error } = await client.storage.from(bucket).upload(path, new Blob([bytes]), {
         contentType: contentType ?? 'application/octet-stream',

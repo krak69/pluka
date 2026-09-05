@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@pluka/contracts": "workspace:*",
+    "unpdf": "^1.8.1",
     "zod": "^4.5.4"
   },
   "devDependencies": {

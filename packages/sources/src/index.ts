@@ -133,3 +133,16 @@ export {
   type ExtractionInput,
   type ExtractionOutcome,
 } from './extraction/extract.js';
+
+export { isPdfContentType, parseSnapshotBytes, type ParseBinaryInput } from './parsing/parse.js';
+export {
+  isPdfParseError,
+  parsePdfBlocks,
+  PDF_LIMITS,
+  PDF_REJECTION_REASONS,
+  PdfParseError,
+  type PdfDocumentInfo,
+  type PdfEngine,
+  type PdfParseResult,
+  type PdfRejectionReason,
+} from './parsing/pdf.js';

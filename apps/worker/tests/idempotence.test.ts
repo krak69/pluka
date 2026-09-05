@@ -82,6 +82,10 @@ function createRecorder(): Recorder {
         if (state.downloadError !== null) throw state.downloadError;
         return state.gpxContent;
       },
+      downloadBytes: async (): Promise<Uint8Array> => {
+        if (state.downloadError !== null) throw state.downloadError;
+        return new TextEncoder().encode(state.gpxContent);
+      },
       upload: async (): Promise<void> => undefined,
     },
     sources: {

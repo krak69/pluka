@@ -45,6 +45,14 @@ export interface JobStore {
 export interface ObjectStore {
   /** Télécharge un objet sous forme de texte. */
   downloadText(bucket: string, path: string): Promise<string>;
+  /**
+   * Télécharge un objet tel qu'il a été capturé.
+   *
+   * Un PDF n'est pas du texte : le décoder en UTF-8 le détruirait. Les octets
+   * sont aussi ce sur quoi l'empreinte du snapshot a été calculée à l'étape 1,
+   * donc la seule forme qui permette de la revérifier.
+   */
+  downloadBytes(bucket: string, path: string): Promise<Uint8Array>;
   /** Écrit un objet. Le chemin dérivant de l'empreinte, réécrire écrit les mêmes octets. */
   upload(
     bucket: string,

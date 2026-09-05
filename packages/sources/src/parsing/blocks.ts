@@ -29,6 +29,10 @@ export interface SourceLocator {
   readonly cssSelector?: string;
   readonly tableIndex?: number;
   readonly rowIndex?: number;
+  /** Rang de la ligne dans sa page — les PDF n'ont ni balise ni sélecteur. */
+  readonly lineIndex?: number;
+  readonly x?: number;
+  readonly y?: number;
   /** Décalage en caractères dans le texte source, pour les formats plats. */
   readonly charOffset?: number;
 }
