@@ -52,6 +52,12 @@ export {
   type ParticipantRaceSettingsRepository,
   type ParticipationRepositories,
 } from './repositories/participation.js';
+export {
+  createProfileRepositories,
+  trailProfileRepository,
+  type ProfileRepositories,
+  type TrailProfileRepository,
+} from './repositories/profile.js';
 export type {
   EditionRecord,
   EventRecord,
@@ -68,6 +74,7 @@ export type {
   PublishedFactRecord,
   RaceRecord,
   RaceStatusTransitionRecord,
+  TrailProfileRecord,
 } from './repositories/records.js';
 export { defineRepository, type RepositoryContext, type RepositoryFactory } from './repository.js';
 export {

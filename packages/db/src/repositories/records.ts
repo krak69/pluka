@@ -279,3 +279,42 @@ export interface ParticipantRosterEntry {
   readonly externalRegistrationId: string | null;
   readonly activated: boolean;
 }
+
+/**
+ * Profil trailer — 02_DATA_MODEL §4.2, 00_PRODUCT_SPEC §8.
+ *
+ * « Un seul Profil trailer persistant par utilisateur », porté par `user_id`
+ * en clé primaire. Il est indépendant d'une course (§38, critère 3) : aucun
+ * champ n'y référence une participation.
+ *
+ * Tous les champs sont facultatifs en base. Le profil se remplit en deux
+ * écrans, et §7.2 veut qu'on puisse le reprendre sans reposer toutes les
+ * questions : un profil partiel est un état normal, pas une anomalie.
+ *
+ * Ce que ce DTO ne porte pas est aussi important que ce qu'il porte. §8.2
+ * exclut du cœur V1 : VO2max, VMA, zones cardiaques, historique détaillé
+ * d'entraînement, puissance, charge d'entraînement. Aucun de ces signaux n'a
+ * de colonne, donc aucun ne peut arriver ici par élargissement de projection.
+ */
+export interface TrailProfileRecord {
+  readonly userId: string;
+  /** Libellé libre de l'effort de référence — « course ou sortie longue » (§8.1). */
+  readonly representativeEffortLabel: string | null;
+  /** §8.1 : « date facultative ». */
+  readonly representativeEffortDate: string | null;
+  readonly representativeDistanceKm: number | null;
+  readonly representativeElevationGainM: number | null;
+  readonly representativeDurationSeconds: number | null;
+  /** §8.1 : « à défaut, repère d'allure trail ». */
+  readonly fallbackTrailPaceSecondsPerKm: number | null;
+  readonly weeklyDistanceKm: number | null;
+  readonly weeklyElevationGainM: number | null;
+  readonly climbComfort: Enum<'profile_comfort'> | null;
+  readonly descentComfort: Enum<'profile_comfort'> | null;
+  readonly longDistanceExperience: Enum<'long_distance_experience'> | null;
+  /**
+   * Date à laquelle le profil a porté pour la première fois un signal
+   * d'allure exploitable. Nulle tant que l'onboarding n'a pas abouti (§7.2).
+   */
+  readonly profileCompletedAt: string | null;
+}

@@ -236,6 +236,34 @@ Il contient les signaux fonctionnels validés dans `00_PRODUCT_SPEC.md` :
 
 Il ne contient pas de VO2max, zones cardiaques ou historique de charge d'entraînement.
 
+### Effort représentatif
+
+`00_PRODUCT_SPEC.md` §8.1 décrit l'effort de référence comme un tout — « distance ; D+ ;
+durée ; date facultative » — et lui donne une alternative : « à défaut, repère d'allure
+trail ».
+
+Deux invariants en découlent.
+
+**Cohérence.** Les trois mesures sont présentes ensemble, ou absentes ensemble
+(`trail_profiles_effort_is_whole`, migration 0019). Une distance sans durée ne situe aucune
+allure. La contrainte vit en SQL parce que `trail_profiles` est écrite directement par le
+client sous RLS : le use case serveur n'est pas le seul chemin d'écriture. Le libellé et la
+date restent indépendants — l'un nomme l'effort, l'autre le situe, aucun des deux ne mesure.
+
+**Complétude.** Un profil est complet lorsqu'il porte un signal d'allure : un effort
+représentatif complet, **ou** une allure de repli. La complétude n'est pas une contrainte de
+table — §7.2 veut qu'on puisse reprendre un profil sans reposer toutes les questions, donc
+l'enregistrer avant la fin. Un profil partiel est un état normal.
+
+`profile_completed_at` date la **première** complétion. Il ne bouge plus ensuite : le
+redater à chaque édition en ferait un doublon d'`updated_at`, et l'effacer quand un profil
+redevient incomplet effacerait un fait qui a eu lieu. L'état courant se recalcule à la
+lecture ; c'est lui que l'onboarding consulte.
+
+Aucune date d'ancienneté maximale n'est imposée à l'effort : §8 n'en définit aucune. Seul un
+effort daté dans le futur est refusé, par le domaine — PostgreSQL n'accepte pas `current_date`
+dans une contrainte `CHECK`.
+
 ### Repère PLUKA
 
 Aucune table ne contient une « vérité Repère PLUKA » calculée par une formule de prototype.

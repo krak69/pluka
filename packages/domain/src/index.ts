@@ -6,8 +6,9 @@
  * (01_ARCHITECTURE §4.5, §5).
  *
  * Périmètre : Event / Edition / Race et leur cycle de vie (00_PRODUCT_SPEC
- * §4.1), la revue et la publication de facts, et le rattachement d'un coureur
- * à une course (02_DATA_MODEL §9). Aucune UI, aucun job asynchrone, aucune IA.
+ * §4.1), la revue et la publication de facts, le rattachement d'un coureur à
+ * une course (02_DATA_MODEL §9) et son Profil trailer (§4.2). Aucune UI, aucun
+ * job asynchrone, aucune IA.
  */
 
 export {
@@ -159,6 +160,29 @@ export {
   type ParticipationContext,
   type ParticipationDetail,
 } from './participation/use-cases.js';
+
+export {
+  getTrailProfileQuerySchema,
+  MAX_PROFILE_INTEGER,
+  updateTrailProfileCommandSchema,
+  type GetTrailProfileQuery,
+  type UpdateTrailProfileCommand,
+} from './profile/commands.js';
+export {
+  checkTrailProfile,
+  hasPaceSignal,
+  hasPartialRepresentativeEffort,
+  hasRepresentativeEffort,
+  type ProfileVerdict,
+  type TrailProfileShape,
+} from './profile/invariants.js';
+export {
+  getTrailProfile,
+  updateTrailProfile,
+  type ProfileContext,
+  type SavedTrailProfile,
+  type TrailProfileView,
+} from './profile/use-cases.js';
 
 export {
   decideFactCandidateCommandSchema,
