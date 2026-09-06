@@ -5,8 +5,10 @@ import {
   PLAN_ENGINE_V1,
   preprocessCourse,
   resampleTrack,
+  snapWaypointsToTrack,
   type CourseTrackPoint,
   type CourseWaypointInput,
+  type GeoTrackPoint,
   type PlanRaceSegmentInput,
 } from '../src/index.js';
 import { START_AT } from './fixtures/course.js';
@@ -321,5 +323,95 @@ describe('du prétraitement au Plan', () => {
 
     expect(course.preprocessingVersion).toBe(config.preprocessingVersion);
     expect(course.preprocessingVersion).not.toBe(config.engineVersion);
+  });
+});
+
+describe('raccordement au GPX (§8.1, étape 9)', () => {
+  /**
+   * Trace le long du méridien 6°E : 0.0009° de latitude valent environ 100 m,
+   * ce qui rend les écarts attendus calculables au crayon.
+   */
+  const track: readonly GeoTrackPoint[] = Array.from({ length: 21 }, (_, index) => ({
+    latitude: 45 + index * 0.0009,
+    longitude: 6,
+    distanceMeters: index * 100,
+  }));
+
+  it('projette un waypoint sur le point de trace le plus proche', () => {
+    const snapped = snapWaypointsToTrack(track, [
+      { id: 'a', sortOrder: 0, latitude: 45, longitude: 6, declaredDistanceMeters: 0 },
+      { id: 'b', sortOrder: 1, latitude: 45.009, longitude: 6, declaredDistanceMeters: 1000 },
+    ]);
+
+    expect(snapped[0]).toMatchObject({ alongDistanceMeters: 0 });
+    expect(snapped[1]?.alongDistanceMeters).toBe(1000);
+    expect(snapped[1]?.offRouteMeters).toBeLessThan(1);
+  });
+
+  it('mesure l’écart de raccordement, sans le corriger (§9)', () => {
+    // Environ 0.0013° de longitude à 45° de latitude : à peu près 100 m à l'est.
+    const snapped = snapWaypointsToTrack(track, [
+      { id: 'a', sortOrder: 0, latitude: 45.009, longitude: 6.0013, declaredDistanceMeters: 1000 },
+    ]);
+
+    expect(snapped[0]?.offRouteMeters).toBeGreaterThan(80);
+    expect(snapped[0]?.offRouteMeters).toBeLessThan(120);
+    // L'abscisse reste celle de la trace : le waypoint n'a pas déplacé le GPX.
+    expect(snapped[0]?.alongDistanceMeters).toBe(1000);
+  });
+
+  it('fait foi de l’abscisse mesurée plutôt que de la distance annoncée (§9.1)', () => {
+    // L'organisation annonce 1 800 m ; la trace place le point à 1 000 m.
+    const snapped = snapWaypointsToTrack(track, [
+      { id: 'a', sortOrder: 0, latitude: 45.009, longitude: 6, declaredDistanceMeters: 1800 },
+    ]);
+
+    expect(snapped[0]?.alongDistanceMeters).toBe(1000);
+  });
+
+  it('retombe sur la distance déclarée quand la position manque', () => {
+    // « On ne mesure pas ce qu'on n'a pas » : l'écart est nul, faute de mesure.
+    const snapped = snapWaypointsToTrack(track, [
+      { id: 'a', sortOrder: 0, latitude: null, longitude: null, declaredDistanceMeters: 1500 },
+    ]);
+
+    expect(snapped[0]).toMatchObject({ alongDistanceMeters: 1500, offRouteMeters: 0 });
+  });
+
+  it('refuse un waypoint qui n’a ni position ni distance', () => {
+    expect(() =>
+      snapWaypointsToTrack(track, [
+        { id: 'a', sortOrder: 0, latitude: null, longitude: null, declaredDistanceMeters: null },
+      ]),
+    ).toThrow(/WAYPOINT_OFF_ROUTE/);
+  });
+
+  it('rend les waypoints dans l’ordre du parcours', () => {
+    const snapped = snapWaypointsToTrack(track, [
+      { id: 'b', sortOrder: 1, latitude: 45.009, longitude: 6, declaredDistanceMeters: 1000 },
+      { id: 'a', sortOrder: 0, latitude: 45, longitude: 6, declaredDistanceMeters: 0 },
+    ]);
+
+    expect(snapped.map((waypoint) => waypoint.id)).toEqual(['a', 'b']);
+  });
+
+  it('alimente directement le prétraitement', () => {
+    const snapped = snapWaypointsToTrack(track, [
+      { id: 'a', sortOrder: 0, latitude: 45, longitude: 6, declaredDistanceMeters: 0 },
+      { id: 'b', sortOrder: 1, latitude: 45.018, longitude: 6, declaredDistanceMeters: 2000 },
+    ]);
+
+    const course = preprocessCourse({
+      points: track.map((point) => ({
+        distanceMeters: point.distanceMeters,
+        elevationMeters: 1000 + point.distanceMeters / 20,
+      })),
+      waypoints: snapped,
+      raceSegments: segments(['a', 'b']),
+      config,
+    });
+
+    expect(course.microSegments).toHaveLength(20);
+    expect(course.totalDistanceMeters).toBe(2000);
   });
 });

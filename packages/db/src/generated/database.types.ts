@@ -3541,6 +3541,9 @@ export type Database = {
           id: string
           length_m: number | null
           point_count: number
+          preprocessed_at: string | null
+          preprocessing_issue: string | null
+          preprocessing_status: Database["public"]["Enums"]["course_preprocessing_status"]
           processed_at: string
           processor_version: string
           race_id: string
@@ -3553,6 +3556,9 @@ export type Database = {
           id?: string
           length_m?: number | null
           point_count: number
+          preprocessed_at?: string | null
+          preprocessing_issue?: string | null
+          preprocessing_status?: Database["public"]["Enums"]["course_preprocessing_status"]
           processed_at?: string
           processor_version: string
           race_id: string
@@ -3565,6 +3571,9 @@ export type Database = {
           id?: string
           length_m?: number | null
           point_count?: number
+          preprocessed_at?: string | null
+          preprocessing_issue?: string | null
+          preprocessing_status?: Database["public"]["Enums"]["course_preprocessing_status"]
           processed_at?: string
           processor_version?: string
           race_id?: string
@@ -5306,6 +5315,10 @@ export type Database = {
         }
         Returns: string
       }
+      get_course_preprocessing_input: {
+        Args: { p_race_id: string }
+        Returns: Json
+      }
       get_fact_candidate_scope: {
         Args: { p_candidate_id: string }
         Returns: {
@@ -5733,6 +5746,7 @@ export type Database = {
         | "weather_proposal"
         | "strategy_template"
       condition_source: "weather" | "astronomy"
+      course_preprocessing_status: "pending" | "completed" | "blocked"
       coverage_label: "limited" | "partial" | "good"
       cutoff_basis: "arrival" | "departure"
       cutoff_margin_status: "comfortable" | "watch" | "critical" | "beyond"
@@ -6111,6 +6125,7 @@ export const Constants = {
         "strategy_template",
       ],
       condition_source: ["weather", "astronomy"],
+      course_preprocessing_status: ["pending", "completed", "blocked"],
       coverage_label: ["limited", "partial", "good"],
       cutoff_basis: ["arrival", "departure"],
       cutoff_margin_status: ["comfortable", "watch", "critical", "beyond"],

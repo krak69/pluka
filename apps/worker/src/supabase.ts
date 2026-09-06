@@ -4,6 +4,8 @@ import type { Capture, ParsedBlock, ParsedChunk } from '@pluka/sources';
 
 import { transient } from './errors.js';
 import type {
+  CoursePreprocessingInput,
+  CoursePreprocessingStore,
   ExtractionStore,
   GeometryStore,
   ImpactStore,
@@ -238,6 +240,74 @@ export function createGeometryStore(client: PlukaClient): GeometryStore {
       return String(geometryId);
     },
   };
+}
+
+/**
+ * Prétraitement du parcours — PLAN_ENGINE §8.1, étapes 5 à 9.
+ *
+ * Les trois opérations passent par les fonctions de 0021, réservées à
+ * `service_role`. L'écriture y est un remplacement complet dans une seule
+ * transaction : un rejeu de message rend le même ensemble de micro-segments,
+ * jamais un second exemplaire (01_ARCHITECTURE §22.1).
+ */
+export function createCoursePreprocessingStore(client: PlukaClient): CoursePreprocessingStore {
+  return {
+    async readInput(raceId) {
+      const data = unwrapRpc(
+        await rpc(client).rpc('worker_course_preprocessing_input', { p_race_id: raceId }),
+        'worker_course_preprocessing_input',
+      ) as CoursePreprocessingInput | null;
+
+      return (
+        data ?? {
+          waypoints: [],
+          segments: [],
+          official: { distanceMeters: null, elevationGainMeters: null },
+        }
+      );
+    },
+
+    async persist(courseGeometryId, preprocessingVersion, microSegments) {
+      const written = unwrapRpc(
+        await rpc(client).rpc('worker_persist_course_micro_segments', {
+          p_course_geometry_id: courseGeometryId,
+          p_preprocessing_version: preprocessingVersion,
+          // Les colonnes sont `numeric` : arrondir ici évite un écart de
+          // représentation entre ce qui est calculé et ce qui est relu.
+          p_micro_segments: microSegments.map((micro) => ({
+            race_segment_id: micro.raceSegmentId,
+            sort_order: micro.sortOrder,
+            distance_m: round(micro.distanceMeters, 3),
+            elevation_delta_m: round(micro.elevationDeltaMeters, 3),
+            elevation_gain_m: round(micro.elevationGainMeters, 3),
+            elevation_loss_m: round(micro.elevationLossMeters, 3),
+            raw_grade: round(micro.rawGrade, 6),
+            model_grade: round(micro.modelGrade, 6),
+            progress: round(micro.progress, 8),
+            technicality: micro.technicality,
+          })),
+        }),
+        'worker_persist_course_micro_segments',
+      );
+
+      return Number(written);
+    },
+
+    async block(courseGeometryId, issue) {
+      unwrapRpc(
+        await rpc(client).rpc('worker_block_course_preprocessing', {
+          p_course_geometry_id: courseGeometryId,
+          p_issue: issue,
+        }),
+        'worker_block_course_preprocessing',
+      );
+    },
+  };
+}
+
+/** Arrondi à la précision de la colonne, pour que relire rende ce qu'on a écrit. */
+function round(value: number, decimals: number): number {
+  return Number(value.toFixed(decimals));
 }
 
 export function createOutboxDispatcher(client: PlukaClient): OutboxDispatcher {

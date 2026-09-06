@@ -7,6 +7,7 @@ import type { ConfiguredAI, WorkerPorts } from './ports.js';
 import { fetchSource } from './fetcher.js';
 import {
   createExtractionStore,
+  createCoursePreprocessingStore,
   createGeometryStore,
   createImpactStore,
   createSourceStore,
@@ -37,6 +38,7 @@ export function createPorts(
     jobs: createJobStore(client),
     objects: createObjectStore(client),
     geometries: createGeometryStore(client),
+    coursePreprocessing: createCoursePreprocessingStore(client),
     sources: createSourceStore(client, fetchSource),
     parsing: createParsingStore(client),
     extraction: createExtractionStore(client),

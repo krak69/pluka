@@ -69,9 +69,9 @@ export const SEG1 = 'ffff0000-0000-4000-8000-000000000021';
  */
 export function planBaseState(participation: ParticipationState, raceId: string): PlanState {
   const waypoints: RaceWaypointRecord[] = [
-    { id: WP0, raceId, name: 'Départ', sortOrder: 0, distanceKm: 0 },
-    { id: WP1, raceId, name: 'Col du Test', sortOrder: 1, distanceKm: 5 },
-    { id: WP2, raceId, name: 'Arrivée', sortOrder: 2, distanceKm: 10 },
+    { id: WP0, raceId, name: 'Départ', sortOrder: 0, distanceKm: 0, altitudeM: 900 },
+    { id: WP1, raceId, name: 'Col du Test', sortOrder: 1, distanceKm: 5, altitudeM: 1400 },
+    { id: WP2, raceId, name: 'Arrivée', sortOrder: 2, distanceKm: 10, altitudeM: 900 },
   ];
 
   const segments: RaceSegmentRecord[] = [
@@ -162,6 +162,18 @@ export function createFakePlanRepositories(state: PlanState): PlanRepositories {
 
       listDependencies: async (racePlanId) =>
         state.plans.find((plan) => plan.record.id === racePlanId)?.dependencies ?? [],
+
+      // Trié par marge croissante, comme le repository réel : le premier est
+      // le point le plus serré (PLAN_ENGINE §64).
+      listCutoffStatuses: async (racePlanId) =>
+        [...(state.plans.find((plan) => plan.record.id === racePlanId)?.cutoffStatuses ?? [])]
+          .sort((left, right) => left.marginSeconds - right.marginSeconds)
+          .map((status) => ({
+            raceCutoffId: status.raceCutoffId,
+            raceWaypointId: status.raceWaypointId,
+            marginSeconds: status.marginSeconds,
+            status: status.status,
+          })),
 
       persist: async (input) => {
         // La fonction SQL revérifie la propriété quel que soit l'appelant

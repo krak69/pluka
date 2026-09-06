@@ -41,18 +41,126 @@ export interface CourseTrackPoint {
 export interface CourseWaypointInput {
   readonly id: string;
   readonly sortOrder: number;
-  /**
-   * Position du waypoint le long du parcours, en mètres.
-   *
-   * Le raccordement géographique — projeter une latitude / longitude sur la
-   * trace — appartient au domaine Course, qui possède la géométrie PostGIS et
-   * sait le faire en SQL. Ce qui arrive ici est son résultat : une abscisse
-   * curviligne, plus l'écart mesuré au raccordement.
-   */
+  /** Position du waypoint le long du parcours, en mètres. */
   readonly alongDistanceMeters: number;
   /** Écart entre le waypoint déclaré et la trace, en mètres (§9). */
   readonly offRouteMeters?: number;
   readonly technicality?: TechnicalityLevel | null;
+}
+
+/** Point de trace géolocalisé, pour le raccordement de §8.1, étape 9. */
+export interface GeoTrackPoint {
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly distanceMeters: number;
+}
+
+/** Waypoint tel que le référentiel Course le déclare. */
+export interface DeclaredWaypoint {
+  readonly id: string;
+  readonly sortOrder: number;
+  readonly latitude: number | null;
+  readonly longitude: number | null;
+  /** Distance officielle annoncée, en mètres. Repli quand la position manque. */
+  readonly declaredDistanceMeters: number | null;
+  readonly technicality?: TechnicalityLevel | null;
+}
+
+const EARTH_RADIUS_METERS = 6_371_008.8;
+
+/** Distance haversine entre deux positions, en mètres. */
+function haversineMeters(
+  fromLatitude: number,
+  fromLongitude: number,
+  toLatitude: number,
+  toLongitude: number,
+): number {
+  const toRadians = Math.PI / 180;
+  const deltaLatitude = (toLatitude - fromLatitude) * toRadians;
+  const deltaLongitude = (toLongitude - fromLongitude) * toRadians;
+
+  const a =
+    Math.sin(deltaLatitude / 2) ** 2 +
+    Math.cos(fromLatitude * toRadians) *
+      Math.cos(toLatitude * toRadians) *
+      Math.sin(deltaLongitude / 2) ** 2;
+
+  return 2 * EARTH_RADIUS_METERS * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
+/**
+ * Raccordement des RaceWaypoints au GPX — §8.1, étape 9.
+ *
+ * Chaque waypoint est projeté sur le point de trace le plus proche : l'abscisse
+ * curviligne de ce point devient sa position le long du parcours, et la
+ * distance qui les sépare son écart de raccordement — la valeur que §9 borne à
+ * 200 m.
+ *
+ * L'abscisse mesurée l'emporte sur la distance officielle annoncée. §9.1 ne
+ * demande pas de falsifier le GPX pour le faire coller au référentiel ; ici
+ * c'est l'inverse qui compte — la chronologie se calcule sur la trace réelle,
+ * et l'écart entre les deux est un fait de qualité, pas une correction à
+ * appliquer.
+ *
+ * Sans position, le waypoint garde sa distance déclarée et un écart nul : on ne
+ * mesure pas ce qu'on n'a pas.
+ */
+export function snapWaypointsToTrack(
+  points: readonly GeoTrackPoint[],
+  waypoints: readonly DeclaredWaypoint[],
+): readonly CourseWaypointInput[] {
+  if (points.length === 0) {
+    throw new PlanEngineError(planIssue('GPX_INVALID', 'trace vide : rien à raccorder'));
+  }
+
+  return [...waypoints]
+    .sort((left, right) => left.sortOrder - right.sortOrder)
+    .map((waypoint) => {
+      if (waypoint.latitude === null || waypoint.longitude === null) {
+        if (waypoint.declaredDistanceMeters === null) {
+          throw new PlanEngineError(
+            planIssue(
+              'WAYPOINT_OFF_ROUTE',
+              'ce waypoint n’a ni position ni distance : il ne peut pas être placé',
+              { waypointId: waypoint.id },
+            ),
+          );
+        }
+
+        return {
+          id: waypoint.id,
+          sortOrder: waypoint.sortOrder,
+          alongDistanceMeters: waypoint.declaredDistanceMeters,
+          offRouteMeters: 0,
+          technicality: waypoint.technicality ?? null,
+        };
+      }
+
+      let nearest = points[0] as GeoTrackPoint;
+      let nearestMeters = Number.POSITIVE_INFINITY;
+
+      for (const point of points) {
+        const distance = haversineMeters(
+          waypoint.latitude,
+          waypoint.longitude,
+          point.latitude,
+          point.longitude,
+        );
+
+        if (distance < nearestMeters) {
+          nearestMeters = distance;
+          nearest = point;
+        }
+      }
+
+      return {
+        id: waypoint.id,
+        sortOrder: waypoint.sortOrder,
+        alongDistanceMeters: nearest.distanceMeters,
+        offRouteMeters: nearestMeters,
+        technicality: waypoint.technicality ?? null,
+      };
+    });
 }
 
 export interface PreprocessCourseInput {

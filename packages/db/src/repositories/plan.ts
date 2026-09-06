@@ -54,6 +54,8 @@ export interface RaceWaypointRecord {
   readonly name: string;
   readonly sortOrder: number;
   readonly distanceKm: number;
+  /** Altitude officielle, quand elle est connue. Ancre le profil altimétrique. */
+  readonly altitudeM: number | null;
 }
 
 export interface RaceSegmentRecord {
@@ -128,6 +130,14 @@ export interface PlanSegmentRecord {
   readonly manualOverride: boolean;
 }
 
+/** Marge calculée à une barrière — §38.4. */
+export interface PlanCutoffStatusRecord {
+  readonly raceCutoffId: string;
+  readonly raceWaypointId: string;
+  readonly marginSeconds: number;
+  readonly status: Enum<'cutoff_margin_status'>;
+}
+
 export interface PlanFactDependency {
   readonly raceFactVersionId: string;
   readonly dependencyType: Enum<'plan_dependency_type'>;
@@ -177,7 +187,14 @@ export interface PersistedPlan {
   readonly version: number;
 }
 
-const WAYPOINT_COLUMNS = ['id', 'race_id', 'name', 'sort_order', 'distance_km'] as const;
+const WAYPOINT_COLUMNS = [
+  'id',
+  'race_id',
+  'name',
+  'sort_order',
+  'distance_km',
+  'altitude_m',
+] as const;
 const SEGMENT_COLUMNS = [
   'id',
   'race_id',
@@ -273,6 +290,7 @@ export const planCourseRepository = defineRepository<PlanCourseRepository>((cont
       name: row.name,
       sortOrder: row.sort_order,
       distanceKm: row.distance_km,
+      altitudeM: row.altitude_m,
     }));
   },
 
@@ -388,6 +406,8 @@ export interface RacePlanRepository {
   listWaypoints(racePlanId: string): Promise<readonly PlanWaypointRecord[]>;
   listSegments(racePlanId: string): Promise<readonly PlanSegmentRecord[]>;
   listDependencies(racePlanId: string): Promise<readonly PlanFactDependency[]>;
+  /** Marges de barrière du Plan, dans l'ordre du parcours (§38.4). */
+  listCutoffStatuses(racePlanId: string): Promise<readonly PlanCutoffStatusRecord[]>;
   /**
    * Confirme un Plan — §37.
    *
@@ -485,6 +505,41 @@ export const racePlanRepository = defineRepository<RacePlanRepository>((context)
       raceFactVersionId: row.race_fact_version_id,
       dependencyType: row.dependency_type,
       dependencyKey: row.dependency_key,
+    }));
+  },
+
+  async listCutoffStatuses(racePlanId) {
+    const result = unwrap(
+      await context.client
+        .from('plan_cutoff_statuses')
+        .select(
+          selectColumns('plan_cutoff_statuses', [
+            'race_cutoff_id',
+            'plan_waypoint_id',
+            'margin_seconds',
+            'status',
+          ]),
+        )
+        .eq('race_plan_id', racePlanId)
+        .order('margin_seconds', { ascending: true }),
+      'plan_cutoff_statuses.listCutoffStatuses',
+    );
+
+    const waypoints = unwrap(
+      await context.client
+        .from('plan_waypoints')
+        .select(selectColumns('plan_waypoints', ['id', 'race_waypoint_id']))
+        .eq('race_plan_id', racePlanId),
+      'plan_waypoints.forCutoffStatuses',
+    );
+
+    const waypointById = new Map(waypoints.map((row) => [row.id, row.race_waypoint_id]));
+
+    return result.map((row) => ({
+      raceCutoffId: row.race_cutoff_id,
+      raceWaypointId: waypointById.get(row.plan_waypoint_id) ?? '',
+      marginSeconds: row.margin_seconds,
+      status: row.status,
     }));
   },
 

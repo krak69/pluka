@@ -126,6 +126,20 @@ async function authorize(
   );
 }
 
+/**
+ * Garde de lecture du Plan.
+ *
+ * `plan.read` appartient au socle Free (04_ENTITLEMENTS §57) : §41 du moteur
+ * veut que « Free puisse lire le premier Plan généré ». La garde reste
+ * nécessaire parce qu'elle vérifie d'abord la propriété de la participation.
+ */
+export async function authorizePlanRead(
+  context: PlanContext,
+  participantRaceId: string,
+): Promise<void> {
+  await authorize(context, 'plan.read', participantRaceId);
+}
+
 /** Contraintes du Plan actif, ou l'absence de Plan. */
 async function currentState(
   context: PlanContext,

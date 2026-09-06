@@ -58,8 +58,11 @@ export { issueLevel, PlanEngineError, planIssue } from './issues.js';
 export {
   preprocessCourse,
   resampleTrack,
+  snapWaypointsToTrack,
   type CourseTrackPoint,
   type CourseWaypointInput,
+  type DeclaredWaypoint,
+  type GeoTrackPoint,
   type PreprocessCourseInput,
   type PreprocessedCourse,
 } from './preprocessing.js';

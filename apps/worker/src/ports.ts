@@ -1,5 +1,6 @@
 import type { AIProvider, EmailProvider } from '@pluka/contracts';
 import type { ProcessedTrack } from '@pluka/gpx';
+import type { DeclaredWaypoint, PlanMicroSegment, PlanRaceSegmentInput } from '@pluka/plan-engine';
 import type { Capture, ExtractedCandidate, ParsedBlock, ParsedChunk } from '@pluka/sources';
 
 import type { NotificationStore } from './ports-notifications.js';
@@ -213,6 +214,37 @@ export interface GeometryStore {
   }): Promise<string>;
 }
 
+/**
+ * Prétraitement du parcours — PLAN_ENGINE §8.1, étapes 5 à 9.
+ *
+ * `readInput` rend le référentiel en une lecture : waypoints à raccorder,
+ * chaîne de segments, valeurs officielles pour les contrôles qualité de §9. Les
+ * séparer laisserait le prétraitement raisonner sur deux états différents.
+ *
+ * `persist` remplace l'ensemble des micro-segments d'une géométrie ; `block`
+ * les retire et enregistre le motif. §9.1 : un écart au référentiel « produit
+ * un état de qualité à résoudre », pas un silence.
+ */
+export interface CoursePreprocessingInput {
+  readonly waypoints: readonly DeclaredWaypoint[];
+  readonly segments: readonly PlanRaceSegmentInput[];
+  readonly official: {
+    readonly distanceMeters: number | null;
+    readonly elevationGainMeters: number | null;
+  };
+}
+
+export interface CoursePreprocessingStore {
+  readInput(raceId: string): Promise<CoursePreprocessingInput>;
+  /** Rend le nombre de micro-segments écrits. */
+  persist(
+    courseGeometryId: string,
+    preprocessingVersion: string,
+    microSegments: readonly PlanMicroSegment[],
+  ): Promise<number>;
+  block(courseGeometryId: string, issue: string): Promise<void>;
+}
+
 export interface OutboxDispatcher {
   /** Traduit les événements en attente en messages de file. Rend le nombre traité. */
   dispatch(limit: number): Promise<number>;
@@ -246,6 +278,7 @@ export interface WorkerPorts {
   readonly jobs: JobStore;
   readonly objects: ObjectStore;
   readonly geometries: GeometryStore;
+  readonly coursePreprocessing: CoursePreprocessingStore;
   readonly sources: SourceStore;
   readonly parsing: ParsingStore;
   readonly extraction: ExtractionStore;

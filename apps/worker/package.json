@@ -16,6 +16,7 @@
     "@pluka/db": "workspace:*",
     "@pluka/gpx": "workspace:*",
     "@pluka/notifications": "workspace:*",
+    "@pluka/plan-engine": "workspace:*",
     "@pluka/sources": "workspace:*",
     "@supabase/supabase-js": "^2.115.0",
     "zod": "^4.5.4"

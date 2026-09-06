@@ -96,6 +96,17 @@ function createRecorder(): Recorder {
       recordSnapshot: async () => ({ snapshotId: 'snapshot-1', created: true }),
       markFailed: async (): Promise<void> => undefined,
     },
+    // Aucun waypoint : le prétraitement se met de côté sans rien écrire. Ces
+    // tests portent sur l'idempotence du job, pas sur le parcours.
+    coursePreprocessing: {
+      readInput: async () => ({
+        waypoints: [],
+        segments: [],
+        official: { distanceMeters: null, elevationGainMeters: null },
+      }),
+      persist: async () => 0,
+      block: async (): Promise<void> => undefined,
+    },
     geometries: {
       // Reproduit la garantie de `private.persist_race_geometry` : rejouer
       // une clé déjà persistée rend la géométrie existante.
@@ -166,7 +177,13 @@ describe('traitement nominal', () => {
   it('persiste la géométrie et rend son identifiant', async () => {
     const outcome = await handleGpxMessage(recorder.ports, message());
 
-    expect(outcome).toEqual({ kind: 'processed', geometryId: 'geometry-1' });
+    // Sans référentiel de parcours, le prétraitement se met de côté — la
+    // géométrie, elle, est bien enregistrée (PLAN_ENGINE §8).
+    expect(outcome).toEqual({
+      kind: 'processed',
+      geometryId: 'geometry-1',
+      preprocessing: { kind: 'skipped', reason: 'REFERENTIAL_INCOMPLETE' },
+    });
     expect(recorder.persisted.count).toBe(1);
   });
 });

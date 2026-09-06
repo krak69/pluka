@@ -81,6 +81,9 @@ importers:
       '@pluka/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@pluka/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@pluka/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -136,6 +139,9 @@ importers:
       '@pluka/notifications':
         specifier: workspace:*
         version: link:../../packages/notifications
+      '@pluka/plan-engine':
+        specifier: workspace:*
+        version: link:../../packages/plan-engine
       '@pluka/sources':
         specifier: workspace:*
         version: link:../../packages/sources

@@ -262,6 +262,13 @@ export {
   type UpdatePlanStopCommand,
 } from './plan/commands.js';
 export {
+  getPlanOverview,
+  type PlanCutoffView,
+  type PlanOverview,
+  type PlanPointView,
+  type PlanProfileSample,
+} from './plan/overview.js';
+export {
   buildSnapshot,
   loadConstraints,
   loadPlanScope,
@@ -271,6 +278,7 @@ export {
   type PlanScope,
 } from './plan/snapshot.js';
 export {
+  authorizePlanRead,
   changePlanTarget,
   generateRacePlan,
   getActivePlan,

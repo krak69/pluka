@@ -67,6 +67,7 @@ export {
   type PersistedPlan,
   type PersistPlanInput,
   type PlanCourseRepository,
+  type PlanCutoffStatusRecord,
   type PlanFactDependency,
   type PlanRepositories,
   type PlanSegmentRecord,

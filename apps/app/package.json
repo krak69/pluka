@@ -13,6 +13,7 @@
   "dependencies": {
     "@pluka/config": "workspace:*",
     "@pluka/db": "workspace:*",
+    "@pluka/domain": "workspace:*",
     "@pluka/ui": "workspace:*",
     "@supabase/ssr": "^0.12.6",
     "@supabase/supabase-js": "^2.115.0",

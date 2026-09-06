@@ -13,6 +13,7 @@ import {
   SourceDrawer,
   SourceLink,
   StatusBadge,
+  Table,
   TRUST_LEVEL_LABELS,
   TrustBadge,
   type TrustLevel,
@@ -383,5 +384,88 @@ describe('SourceDrawer', () => {
 
     expect(html).toContain('rel="noreferrer noopener"');
     expect(html).toContain('target="_blank"');
+  });
+});
+
+describe('Table', () => {
+  const columns = [
+    { key: 'name', label: 'Point' },
+    { key: 'distance', label: 'Distance', align: 'numeric' as const, unit: 'km' },
+  ];
+
+  const rows = [
+    { key: 'wp0', cells: { name: 'Départ', distance: '0,0' } },
+    { key: 'wp1', cells: { name: 'Col du Test', distance: '5,0' }, emphasis: true },
+  ];
+
+  it('nomme la table par une légende', () => {
+    // §51 : jamais une seule source visuelle. Sans légende, la table n'existe
+    // que pour qui voit la mise en page.
+    const html = renderToStaticMarkup(
+      <Table caption="Points du parcours" columns={columns} rows={rows} />,
+    );
+
+    expect(html).toContain('<caption');
+    expect(html).toContain('Points du parcours');
+  });
+
+  it('aligne les chiffres et les passe en tabulaires', () => {
+    // §16 : les chiffres se comparent en colonne. C'est la colonne qui décide,
+    // pas l'appelant — deux écrans ne peuvent donc pas diverger.
+    const html = renderToStaticMarkup(
+      <Table caption="Points du parcours" columns={columns} rows={rows} />,
+    );
+
+    expect(html).toContain('pk-table-numeric');
+    // La colonne de noms reste en Hanken : aucune classe numérique dessus.
+    expect(html).toContain('>Départ<');
+  });
+
+  it('affiche l’unité une fois, sous l’en-tête', () => {
+    // §54, point 6 : l'unité accompagne la colonne, pas chaque cellule.
+    const html = renderToStaticMarkup(
+      <Table caption="Points du parcours" columns={columns} rows={rows} />,
+    );
+
+    expect(html.match(/km/g)).toHaveLength(1);
+  });
+
+  it('met en avant une ligne sans lui donner une carte', () => {
+    // §3 range la « carte flottante pour chaque ligne » parmi les anti-patterns.
+    const html = renderToStaticMarkup(
+      <Table caption="Points du parcours" columns={columns} rows={rows} />,
+    );
+
+    expect(html).toContain('pk-table-row-emphasis');
+    expect(html).not.toContain('pk-card');
+  });
+
+  it('rend un tiret pour une cellule absente', () => {
+    // Une colonne déclarée mais sans valeur ne laisse pas un blanc muet.
+    const html = renderToStaticMarkup(
+      <Table
+        caption="Points du parcours"
+        columns={columns}
+        rows={[{ key: 'wp2', cells: { name: 'Arrivée' } }]}
+      />,
+    );
+
+    expect(html).toContain('—');
+  });
+
+  it('ne colle son en-tête que sur demande', () => {
+    const plain = renderToStaticMarkup(<Table caption="Points" columns={columns} rows={rows} />);
+    const sticky = renderToStaticMarkup(
+      <Table caption="Points" columns={columns} rows={rows} stickyHeader />,
+    );
+
+    expect(plain).not.toContain('pk-table-sticky');
+    expect(sticky).toContain('pk-table-sticky');
+  });
+
+  it('associe chaque en-tête à sa colonne', () => {
+    const html = renderToStaticMarkup(<Table caption="Points" columns={columns} rows={rows} />);
+
+    expect(html.match(/scope="col"/g)).toHaveLength(2);
   });
 });

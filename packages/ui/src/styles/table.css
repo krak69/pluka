@@ -1,0 +1,77 @@
+/*
+ * Table de données denses — 06_DESIGN_SYSTEM.md §53.
+ *
+ * Bordures fines, aucun fond alterné, aucune ombre. §3 range la « carte
+ * flottante pour chaque ligne » parmi les anti-patterns du dashboard SaaS
+ * générique : une ligne de Plan est une ligne, pas une carte.
+ */
+.pk-table-scroll {
+  overflow-x: auto;
+}
+
+.pk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: 15px;
+}
+
+/*
+ * La légende et les en-têtes portent `.pk-label` : §14 réserve les capitales
+ * au micro-label, et le redéclarer ici en ferait une seconde définition qui
+ * finirait par diverger.
+ */
+.pk-table-caption {
+  caption-side: top;
+  text-align: left;
+  color: var(--pk-text-muted);
+  padding-bottom: var(--space-2);
+}
+
+.pk-table th,
+.pk-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--pk-hairline);
+  text-align: left;
+  vertical-align: baseline;
+}
+
+.pk-table th {
+  color: var(--pk-text-muted);
+  white-space: nowrap;
+}
+
+/* §54, point 6 : l'unité accompagne la colonne, une fois, pas chaque cellule. */
+.pk-table-unit {
+  margin-left: 0.4em;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.pk-table-name {
+  font-family: var(--font-sans);
+}
+
+/* §16 : chiffres tabulaires et alignés à droite, pour se comparer en colonne. */
+.pk-table-numeric {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pk-table-sticky thead th {
+  position: sticky;
+  top: 0;
+  background: var(--pk-surface);
+  z-index: var(--layer-sticky);
+}
+
+/*
+ * Mise en avant d'une ligne : un filet Aube (--pk-dawn) à gauche, pas un fond coloré.
+ * §7.2 réserve Aube au prochain jalon et à l'échéance ; §185 veut qu'un état
+ * ne se devine pas à la seule couleur, d'où le libellé porté par la cellule.
+ */
+.pk-table-row-emphasis td {
+  box-shadow: inset 2px 0 0 0 var(--pk-dawn);
+}
