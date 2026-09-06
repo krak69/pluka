@@ -5792,13 +5792,7 @@ export type Database = {
         | "other"
       plan_status: "active" | "superseded" | "archived"
       platform_role: "user" | "pluka_admin"
-      preparation_state:
-        | "to_prepare"
-        | "preparing"
-        | "ready"
-        | "completed"
-        | "dns"
-        | "dnf"
+      preparation_state: "to_prepare" | "preparing" | "ready"
       profile_comfort: "low" | "medium" | "high"
       proposal_status: "pending" | "applied" | "dismissed" | "expired"
       proposal_target_module: "nutrition" | "preparation"
@@ -6180,14 +6174,7 @@ export const Constants = {
       ],
       plan_status: ["active", "superseded", "archived"],
       platform_role: ["user", "pluka_admin"],
-      preparation_state: [
-        "to_prepare",
-        "preparing",
-        "ready",
-        "completed",
-        "dns",
-        "dnf",
-      ],
+      preparation_state: ["to_prepare", "preparing", "ready"],
       profile_comfort: ["low", "medium", "high"],
       proposal_status: ["pending", "applied", "dismissed", "expired"],
       proposal_target_module: ["nutrition", "preparation"],

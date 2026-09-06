@@ -48,7 +48,6 @@ export {
   participantRaceRepository,
   participantRaceSettingsRepository,
   type AccountRepository,
-  type ParticipantRaceLifecyclePatch,
   type ParticipantRaceRepository,
   type ParticipantRaceSettingsRepository,
   type ParticipationRepositories,

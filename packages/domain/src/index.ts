@@ -123,6 +123,7 @@ export {
   getParticipationQuerySchema,
   listRaceRosterQuerySchema,
   MAX_TARGET_DURATION_SECONDS,
+  setParticipationStatusCommandSchema,
   setPreparationStateCommandSchema,
   setRaceGoalCommandSchema,
   type ClaimParticipantRaceCommand,
@@ -130,6 +131,7 @@ export {
   type GetParticipationForRaceQuery,
   type GetParticipationQuery,
   type ListRaceRosterQuery,
+  type SetParticipationStatusCommand,
   type SetPreparationStateCommand,
   type SetRaceGoalCommand,
 } from './participation/commands.js';
@@ -139,11 +141,11 @@ export {
   type AttachmentVerdict,
 } from './participation/invariants.js';
 export {
-  isOutcomeState,
-  participationStatusFor,
   PREPARATION_STATES,
+  RUNNER_PARTICIPATION_STATUSES,
   type ParticipationStatus,
   type PreparationState,
+  type RunnerParticipationStatus,
 } from './participation/lifecycle.js';
 export {
   claimParticipantRace,
@@ -151,6 +153,7 @@ export {
   getParticipation,
   getParticipationForRace,
   listRaceRoster,
+  setParticipationStatus,
   setPreparationState,
   setRaceGoal,
   type ParticipationContext,

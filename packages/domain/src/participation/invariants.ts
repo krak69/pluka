@@ -42,26 +42,22 @@ export type AttachmentVerdict =
     };
 
 /**
- * Conditions d'un nouveau rattachement — 00_PRODUCT_SPEC §4.1.
+ * Conditions d'une **nouvelle** participation — 00_PRODUCT_SPEC §4.1,
+ * 02_DATA_MODEL §9.4.
  *
  * Le tableau des statuts ne décrit qu'une seule épreuve comme « visible et
  * **préparable** » : `published`. Une course en brouillon n'est pas lisible,
  * une course terminée ou archivée appartient au passé.
  *
- * `race_cancelled` est distingué volontairement. §4.1 laisse la question
- * ouverte :
+ * « Une course `cancelled` n'accepte aucune nouvelle participation. » Le refus
+ * garde sa propre branche parce qu'il mérite son propre message : une course
+ * annulée est visible, et répondre « n'accepte pas de rattachement » sans dire
+ * pourquoi laisserait le coureur chercher.
  *
- * > « Point ouvert. Une course annulée reste-t-elle inscriptible ? La réponse
- * > évidente est non, mais le mécanisme d'inscription n'est pas encore
- * > spécifié — à trancher au lot B2B. »
- *
- * Le refus suit ici la réponse « évidente » du document, et il est isolé dans
- * sa propre branche : le jour où le lot B2B tranche, une seule ligne change,
- * et le test qui la couvre nomme la décision.
- *
- * Ce verdict ne porte que sur la *création*. Une participation existante n'est
- * jamais dégradée par une annulation : §4.1 est explicite — « les données
- * personnelles rattachées restent accessibles et modifiables ».
+ * Ce verdict ne gouverne que la création. Il n'est jamais consulté par
+ * `claimParticipantRace` : §9.4 autorise explicitement la réclamation d'une
+ * invitation envoyée avant l'annulation, et §4.1 protège l'accès du coureur à
+ * sa propre préparation.
  */
 export function checkRaceAttachment(
   race: RaceRecord,

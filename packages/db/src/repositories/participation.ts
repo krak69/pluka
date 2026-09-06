@@ -160,19 +160,6 @@ function toSettings(row: SettingsRow): ParticipantRaceSettingsRecord {
   };
 }
 
-/**
- * Les deux colonnes de cycle de vie, écrites ensemble.
- *
- * Elles décrivent le même fait sous deux angles — `status` la participation,
- * `preparation_state` l'avancement de « Ma saison » (02_DATA_MODEL §9.3). Les
- * exposer séparément permettrait de les faire diverger ; le patch les impose
- * ensemble, et c'est le domaine qui les accorde.
- */
-export interface ParticipantRaceLifecyclePatch {
-  readonly status: ParticipantRaceRecord['status'];
-  readonly preparationState: ParticipantRaceRecord['preparationState'];
-}
-
 export interface ParticipantRaceRepository {
   findById(participantRaceId: string): Promise<ParticipantRaceRecord | null>;
   /** Le rattachement d'un coureur à une course est unique (`ux_participant_race_user`). */
@@ -180,9 +167,21 @@ export interface ParticipantRaceRepository {
   /** Lecture opérationnelle destinée à l'organisation — 03_PRIVACY_RLS §27. */
   listRoster(raceId: string, limit: number): Promise<readonly ParticipantRosterEntry[]>;
   insert(input: InsertRow<'participant_races'>): Promise<ParticipantRaceRecord>;
-  updateLifecycle(
+  /*
+   * Deux écritures, deux axes — 02_DATA_MODEL §9.3.
+   *
+   * « Aucun chemin d'écriture ne calcule l'une à partir de l'autre. » Une
+   * méthode unique portant les deux colonnes suffirait à faire renaître la
+   * dérivation : elle obligerait chaque appelant à fournir une valeur pour
+   * l'axe qu'il ne touche pas, donc à l'inventer.
+   */
+  updatePreparationState(
     participantRaceId: string,
-    patch: ParticipantRaceLifecyclePatch,
+    preparationState: ParticipantRaceRecord['preparationState'],
+  ): Promise<ParticipantRaceRecord>;
+  updateStatus(
+    participantRaceId: string,
+    status: ParticipantRaceRecord['status'],
   ): Promise<ParticipantRaceRecord>;
   /**
    * Réclamation d'une participation importée — 01_ARCHITECTURE §10.2.
@@ -259,16 +258,30 @@ export const participantRaceRepository = defineRepository<ParticipantRaceReposit
     );
   },
 
-  async updateLifecycle(participantRaceId, patch) {
+  async updatePreparationState(participantRaceId, preparationState) {
     return toParticipantRace(
       unwrap(
         await context.client
           .from('participant_races')
-          .update({ status: patch.status, preparation_state: patch.preparationState })
+          .update({ preparation_state: preparationState })
           .eq('id', participantRaceId)
           .select(selectColumns('participant_races', PARTICIPANT_RACE_COLUMNS))
           .single(),
-        'participant_races.updateLifecycle',
+        'participant_races.updatePreparationState',
+      ),
+    );
+  },
+
+  async updateStatus(participantRaceId, status) {
+    return toParticipantRace(
+      unwrap(
+        await context.client
+          .from('participant_races')
+          .update({ status })
+          .eq('id', participantRaceId)
+          .select(selectColumns('participant_races', PARTICIPANT_RACE_COLUMNS))
+          .single(),
+        'participant_races.updateStatus',
       ),
     );
   },

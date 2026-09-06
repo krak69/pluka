@@ -561,7 +561,8 @@ Il contient uniquement la couche d'inscription / rattachement :
 - dossard ;
 - vague ;
 - départ personnel ;
-- état de préparation.
+- état de préparation (`preparation_state`) ;
+- devenir de la participation (`status`).
 
 Il ne contient pas le Plan, la Nutrition ou l'Assistance.
 
@@ -585,29 +586,40 @@ La préférence ne coupe que l'envoi. `participant_change_impacts` continue d'ê
 reste lisible dans l'application, qui est le canal ne dépendant ni d'un fournisseur email,
 ni d'un réglage. Couper la notification coupe le message, jamais l'information.
 
-## 9.3 Cycle de vie
+## 9.3 Cycle de vie — deux axes distincts
 
-Une participation peut passer par :
+Une participation porte deux informations qui ne décrivent pas la même chose, et qui ne
+sont jamais dérivées l'une de l'autre.
 
-- à préparer ;
-- en préparation ;
-- prête ;
-- terminée ;
-- DNS ;
-- DNF.
+| Colonne | Question à laquelle elle répond | Valeurs |
+| --- | --- | --- |
+| `preparation_state` | Où en est le coureur dans sa préparation ? | `to_prepare`, `preparing`, `ready` |
+| `status` | Qu'est devenue sa participation ? | `active`, `finished`, `dns`, `dnf`, `archived` |
 
-Cette information alimente `Ma saison` ; aucune table « season » spécifique n'est nécessaire dans la V1.
+Un coureur peut être `ready` et finir en `dnf` : sa préparation était complète, sa course ne
+s'est pas terminée. Dériver une colonne de l'autre écraserait cette distinction et ferait
+perdre l'information « il était prêt ».
 
-Ces six états sont ceux de `participant_races.preparation_state`. La colonne voisine
-`status` décrit le même fait sous l'angle de la participation, et n'est jamais écrite
-indépendamment : le domaine la dérive de l'état de préparation — `terminée` → `finished`,
-`DNS` → `dns`, `DNF` → `dnf`, les trois autres → `active`. Deux colonnes pour un même fait
-ne doivent pas pouvoir se contredire. `archived` n'est atteignable par aucun état de
-préparation : sortir une participation de la circulation est un geste d'administration,
-pas une étape de préparation.
+`dns`, `dnf` et `finished` sont des faits de course, pas des états de préparation. Ils
+appartiennent exclusivement à `status`. Symétriquement, `archived` n'a rien à voir avec la
+préparation : sortir une participation de la circulation est un geste d'administration.
 
-L'ordre des états n'est pas contraint. §11 de `00_PRODUCT_SPEC.md` décrit une vue, pas un
-workflow : un coureur qui a saisi un DNF par erreur doit pouvoir le corriger.
+### Écritures
+
+- `preparation_state` est écrit par le coureur, au fil de sa préparation.
+- `status` est écrit à l'inscription (`active`), après la course (`finished`, `dns`, `dnf`),
+  puis à l'archivage.
+- Aucun chemin d'écriture ne calcule l'une à partir de l'autre.
+
+L'ordre des états n'est contraint sur aucun des deux axes. §11 de `00_PRODUCT_SPEC.md` décrit
+une vue, pas un workflow : un coureur qui a saisi un DNF par erreur doit pouvoir le corriger.
+
+### Affichage
+
+`Ma saison` combine les deux axes. Une participation `archived`, `dns` ou `dnf` n'affiche plus
+son état de préparation : il n'a plus d'objet.
+
+Aucune table « season » spécifique n'est nécessaire dans la V1.
 
 ## 9.4 Création d'une participation
 
@@ -617,10 +629,17 @@ réserve les participations à un import ou à une invitation organisateur
 (`03_PRIVACY_RLS.md` §17). Une épreuve inatteignable répond « introuvable », jamais
 « interdit ».
 
-Le refus sur une course `cancelled` suit la réponse « évidente » du point ouvert de
-`00_PRODUCT_SPEC.md` §4.1, et reste **provisoire jusqu'au lot B2B** qui spécifiera le
-mécanisme d'inscription. Il ne concerne que la création : une participation existante n'est
-jamais dégradée par une annulation, objectif et état de préparation compris.
+Une course `cancelled` n'accepte **aucune nouvelle participation** : `createParticipantRace`
+est refusé (`00_PRODUCT_SPEC.md` §4.1).
+
+La réclamation d'une invitation reste en revanche autorisée. Un coureur invité avant
+l'annulation peut encore rattacher son compte : la participation existe déjà, et la
+réclamation ne fait que la relier à un utilisateur. La bloquer laisserait des données
+orphelines et priverait le coureur de l'accès à sa propre préparation, que §4.1 protège
+explicitement.
+
+Le refus ne concerne donc que la création. Une participation existante n'est jamais dégradée
+par une annulation — objectif, état de préparation, Plan, Nutrition et Assistance compris.
 
 ---
 

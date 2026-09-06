@@ -202,14 +202,29 @@ export function createFakeParticipationRepositories(
         return record;
       },
 
-      updateLifecycle: async (id, patch) => {
+      // Deux écritures, deux axes (§9.3) : chacune ne touche que sa colonne,
+      // et le fake ne recompose rien — sinon les tests d'indépendance
+      // passeraient sur une dérivation cachée dans la fixture.
+      updatePreparationState: async (id, preparationState) => {
         const index = state.participants.findIndex((row) => row.id === id);
         if (index < 0) throw new Error(`participation absente du fake : ${id}`);
 
         const updated: ParticipantRaceRecord = {
           ...(state.participants[index] as ParticipantRaceRecord),
-          status: patch.status,
-          preparationState: patch.preparationState,
+          preparationState,
+        };
+
+        state.participants[index] = updated;
+        return updated;
+      },
+
+      updateStatus: async (id, status) => {
+        const index = state.participants.findIndex((row) => row.id === id);
+        if (index < 0) throw new Error(`participation absente du fake : ${id}`);
+
+        const updated: ParticipantRaceRecord = {
+          ...(state.participants[index] as ParticipantRaceRecord),
+          status,
         };
 
         state.participants[index] = updated;

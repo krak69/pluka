@@ -1,79 +1,56 @@
 import type { Enum } from '@pluka/db';
 
 /**
- * Cycle de vie d'une participation — 02_DATA_MODEL §9.3, 00_PRODUCT_SPEC §11.
+ * Cycle de vie d'une participation — 02_DATA_MODEL §9.3.
  *
- * « Une participation peut passer par : à préparer ; en préparation ; prête ;
- * terminée ; DNS ; DNF. » Ces six états sont ceux de `preparation_state`, et
- * ce sont ceux que « Ma saison » affiche.
+ * Deux axes distincts, qui ne répondent pas à la même question :
  *
- * Aucune table de transitions n'est écrite ici. §9.3 et §11 décrivent une
- * vue, pas un workflow : ni l'ordre des états, ni leur réversibilité ne sont
- * spécifiés, et les inventer figerait un comportement produit que personne
- * n'a décidé. §4.1 donne d'ailleurs le précédent inverse pour la course
- * elle-même — « `completed` n'est jamais déclenché par le passage de la
- * date » : c'est une déclaration, pas une déduction. Un coureur qui corrige
- * un DNF saisi par erreur doit pouvoir le faire.
+ * - `preparation_state` — où en est le coureur dans sa préparation ;
+ * - `status` — ce qu'est devenue sa participation.
+ *
+ * Aucun n'est calculé à partir de l'autre. Un coureur peut être `ready` et
+ * finir en `dnf` : sa préparation était complète, sa course ne s'est pas
+ * terminée. Dériver une colonne de l'autre écraserait cette distinction et
+ * ferait perdre l'information « il était prêt ».
+ *
+ * La migration 0018 a resserré `preparation_state` en conséquence : `dns`,
+ * `dnf` et `completed` en sont sortis, ce sont des faits de course.
+ *
+ * L'ordre des états n'est contraint sur aucun des deux axes. §11 de
+ * 00_PRODUCT_SPEC décrit une vue, pas un workflow : un coureur qui a saisi un
+ * DNF par erreur doit pouvoir le corriger.
  */
 export type PreparationState = Enum<'preparation_state'>;
 export type ParticipationStatus = Enum<'participant_race_status'>;
 
-export const PREPARATION_STATES = [
-  'to_prepare',
-  'preparing',
-  'ready',
-  'completed',
-  'dns',
-  'dnf',
-] as const;
+export const PREPARATION_STATES = ['to_prepare', 'preparing', 'ready'] as const;
 
 /**
- * Garde de complétude, vérifiée à la compilation.
+ * Statuts qu'un coureur déclare lui-même.
  *
- * Les deux affectations échouent si la liste et l'enum PostgreSQL divergent —
- * dans un sens comme dans l'autre. Un septième état ajouté en migration sans
- * décision produit devient une erreur de build, pas un état muet.
+ * §9.3 : « `status` est écrit à l'inscription (`active`), après la course
+ * (`finished`, `dns`, `dnf`), puis à l'archivage. » Les trois premiers moments
+ * appartiennent au coureur ; l'archivage est un geste d'administration, et
+ * `archived` reste donc hors de cette liste. Aucun use case de ce lot ne
+ * l'écrit.
+ */
+export const RUNNER_PARTICIPATION_STATUSES = ['active', 'finished', 'dns', 'dnf'] as const;
+
+export type RunnerParticipationStatus = (typeof RUNNER_PARTICIPATION_STATUSES)[number];
+
+/**
+ * Gardes de complétude, vérifiées à la compilation.
+ *
+ * Les affectations échouent si une liste et l'enum PostgreSQL divergent — dans
+ * un sens comme dans l'autre pour `preparation_state`, dans le seul sens utile
+ * pour les statuts, puisque `archived` est volontairement absent. Une valeur
+ * ajoutée en migration sans décision produit devient une erreur de build, pas
+ * un état muet.
  */
 const _statesCoverEnum: readonly (typeof PREPARATION_STATES)[number][] =
   [] as readonly PreparationState[];
 const _enumCoversStates: readonly PreparationState[] = PREPARATION_STATES;
+const _runnerStatusesAreStatuses: readonly ParticipationStatus[] = RUNNER_PARTICIPATION_STATUSES;
 void _statesCoverEnum;
 void _enumCoversStates;
-
-/**
- * États qui disent que la course est derrière le coureur.
- *
- * Ce sont exactement les trois derniers de §9.3. Les trois premiers décrivent
- * un travail de préparation en cours.
- */
-const OUTCOME_STATES: readonly PreparationState[] = ['completed', 'dns', 'dnf'];
-
-export function isOutcomeState(state: PreparationState): boolean {
-  return OUTCOME_STATES.includes(state);
-}
-
-/**
- * Statut de participation correspondant à un état de préparation.
- *
- * `participant_races` porte deux colonnes qui parlent du même fait :
- * `preparation_state`, que la documentation spécifie, et `status`, que seul le
- * schéma nomme. Les laisser écrire séparément permettrait qu'une
- * participation soit `finished` en base tout en restant « à préparer » à
- * l'écran, et rien ne dirait laquelle des deux a raison.
- *
- * `status` est donc dérivé, et jamais reçu de l'appelant. C'est une décision
- * d'implémentation, prise faute de règle documentée pour la colonne `status` :
- * elle évite deux sources de vérité pour un même fait.
- *
- * `archived` n'est atteignable par aucun état de préparation : sortir une
- * participation de la circulation n'est pas une étape de préparation, et §4.1
- * réserve l'archivage à un geste d'administration. Aucun use case de ce lot ne
- * l'écrit.
- */
-export function participationStatusFor(state: PreparationState): ParticipationStatus {
-  if (state === 'completed') return 'finished';
-  if (state === 'dns') return 'dns';
-  if (state === 'dnf') return 'dnf';
-
-  return 'active';
-}
+void _runnerStatusesAreStatuses;

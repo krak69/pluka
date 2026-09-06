@@ -16,12 +16,9 @@
 --
 -- CE QUE LA MIGRATION NE FAIT PAS
 --
--- Elle n'ajoute aucune contrainte de cohérence entre `status` et
--- `preparation_state`. Ces deux colonnes décrivent le même fait sous deux
--- angles, et le domaine les écrit ensemble (`participationStatusFor`) ; mais
--- 02_DATA_MODEL ne spécifie que `preparation_state` (§9.3), et graver en SQL
--- une correspondance qu'aucun document ne pose reviendrait à décider une règle
--- produit dans une migration.
+-- Elle ne touche pas à `participant_races`. La portée respective de `status` et
+-- de `preparation_state` est traitée par 0018, qui applique la décision de
+-- 02_DATA_MODEL §9.3 : deux axes distincts, jamais dérivés l'un de l'autre.
 
 begin;
 

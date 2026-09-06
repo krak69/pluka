@@ -275,8 +275,15 @@ L'archivage est réversible par `pluka_admin`, qui la ramène à son statut ant�
 - Une transition non listée ci-dessus est refusée avec `invalid_state`.
 - Un changement de statut est journalisé : qui, quand, depuis quel statut.
 
-> **Point ouvert.** Une course annulée reste-t-elle inscriptible ? La réponse évidente est non,
-> mais le mécanisme d'inscription n'est pas encore spécifié — à trancher au lot B2B.
+### Inscription sur une course annulée
+
+Une course `cancelled` n'accepte aucune nouvelle participation.
+
+Une participation existante reste pleinement fonctionnelle, y compris la réclamation d'une
+invitation envoyée avant l'annulation : la participation existe déjà, et la bloquer priverait
+le coureur de l'accès à sa propre préparation.
+
+Voir `02_DATA_MODEL.md` §9.4.
 
 ---
 

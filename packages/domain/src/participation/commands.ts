@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { PREPARATION_STATES } from './lifecycle.js';
+import { PREPARATION_STATES, RUNNER_PARTICIPATION_STATUSES } from './lifecycle.js';
 
 /**
  * Entrées des commandes de participation.
@@ -9,9 +9,12 @@ import { PREPARATION_STATES } from './lifecycle.js';
  *
  * Aucun schéma n'accepte de `userId`, de rôle ni de statut d'entitlement :
  * l'acteur est passé séparément et ses droits sont relus en base
- * (03_PRIVACY_RLS §11, §25). Aucun n'accepte non plus de `status` de
- * participation : il est dérivé de l'état de préparation
- * (`participationStatusFor`).
+ * (03_PRIVACY_RLS §11, §25).
+ *
+ * Les deux axes de 02_DATA_MODEL §9.3 ont chacun leur commande. Aucune n'écrit
+ * les deux colonnes : « aucun chemin d'écriture ne calcule l'une à partir de
+ * l'autre », et une commande qui les porterait ensemble rouvrirait la porte à
+ * une dérivation implicite côté appelant.
  */
 
 const uuid = z.uuid();
@@ -53,12 +56,26 @@ export const setRaceGoalCommandSchema = z.object({
 
 export type SetRaceGoalCommand = z.infer<typeof setRaceGoalCommandSchema>;
 
+/** Axe préparation — où en est le coureur (§9.3). */
 export const setPreparationStateCommandSchema = z.object({
   participantRaceId: uuid,
   preparationState: z.enum(PREPARATION_STATES),
 });
 
 export type SetPreparationStateCommand = z.infer<typeof setPreparationStateCommandSchema>;
+
+/**
+ * Axe participation — ce qu'est devenue la course (§9.3).
+ *
+ * `archived` n'est pas proposé : c'est un geste d'administration, pas une
+ * déclaration de coureur.
+ */
+export const setParticipationStatusCommandSchema = z.object({
+  participantRaceId: uuid,
+  status: z.enum(RUNNER_PARTICIPATION_STATUSES),
+});
+
+export type SetParticipationStatusCommand = z.infer<typeof setParticipationStatusCommandSchema>;
 
 /**
  * Liste d'inscrits vue par l'organisation — 03_PRIVACY_RLS §27.

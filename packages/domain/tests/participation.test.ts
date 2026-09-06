@@ -7,11 +7,11 @@ import {
   DomainError,
   getParticipation,
   getParticipationForRace,
-  isOutcomeState,
   isRaceReachableByRunner,
   listRaceRoster,
-  participationStatusFor,
   PREPARATION_STATES,
+  RUNNER_PARTICIPATION_STATUSES,
+  setParticipationStatus,
   setPreparationState,
   setRaceGoal,
   type ParticipationContext,
@@ -109,35 +109,23 @@ beforeEach(() => {
 // Invariants purs
 // ============================================================
 
-describe('états de préparation (02_DATA_MODEL §9.3)', () => {
-  it('couvre exactement les six états de « Ma saison »', () => {
-    expect([...PREPARATION_STATES]).toEqual([
-      'to_prepare',
-      'preparing',
-      'ready',
-      'completed',
-      'dns',
-      'dnf',
-    ]);
+describe('les deux axes du cycle de vie (02_DATA_MODEL §9.3)', () => {
+  it('borne la préparation à l’avancement du coureur', () => {
+    expect([...PREPARATION_STATES]).toEqual(['to_prepare', 'preparing', 'ready']);
   });
 
-  it('distingue les issues de course du travail en cours', () => {
-    expect(PREPARATION_STATES.filter(isOutcomeState)).toEqual(['completed', 'dns', 'dnf']);
+  it('n’y laisse aucun fait de course', () => {
+    // « `dns`, `dnf` et `finished` sont des faits de course, pas des états de
+    // préparation. » La migration 0018 les a retirés de l'enum ; la liste du
+    // domaine doit dire la même chose.
+    for (const courseFact of ['completed', 'dns', 'dnf', 'finished']) {
+      expect(PREPARATION_STATES as readonly string[]).not.toContain(courseFact);
+    }
   });
 
-  it('dérive un statut de participation qui ne peut pas contredire l’état', () => {
-    expect(participationStatusFor('to_prepare')).toBe('active');
-    expect(participationStatusFor('preparing')).toBe('active');
-    expect(participationStatusFor('ready')).toBe('active');
-    expect(participationStatusFor('completed')).toBe('finished');
-    expect(participationStatusFor('dns')).toBe('dns');
-    expect(participationStatusFor('dnf')).toBe('dnf');
-  });
-
-  it('n’archive jamais une participation par un état de préparation', () => {
-    // §4.1 réserve l'archivage à un geste d'administration : aucun état de
-    // « Ma saison » ne doit pouvoir y mener.
-    expect(PREPARATION_STATES.map(participationStatusFor)).not.toContain('archived');
+  it('laisse le coureur déclarer l’inscription et l’issue, pas l’archivage', () => {
+    expect([...RUNNER_PARTICIPATION_STATUSES]).toEqual(['active', 'finished', 'dns', 'dnf']);
+    expect(RUNNER_PARTICIPATION_STATUSES as readonly string[]).not.toContain('archived');
   });
 });
 
@@ -180,10 +168,10 @@ describe('conditions de rattachement (00_PRODUCT_SPEC §4.1)', () => {
     expect(attachmentVerdict(PRIVATE_RACE)).toEqual({ ok: false, reason: 'race_unreachable' });
   });
 
-  it('nomme séparément l’annulation, point laissé ouvert par §4.1', () => {
-    // « Une course annulée reste-t-elle inscriptible ? La réponse évidente est
-    // non […] à trancher au lot B2B. » La branche est isolée pour que la
-    // décision, quand elle viendra, tienne en une ligne.
+  it('nomme séparément l’annulation, qui a son propre motif', () => {
+    // §4.1 : « Une course `cancelled` n'accepte aucune nouvelle
+    // participation. » Le motif reste distinct pour que le message le dise —
+    // une course annulée est visible, et le coureur doit comprendre pourquoi.
     expect(attachmentVerdict(CANCELLED_RACE)).toEqual({ ok: false, reason: 'race_cancelled' });
   });
 
@@ -307,6 +295,40 @@ describe('claimParticipantRace (01_ARCHITECTURE §10.2)', () => {
     await expect(
       claimParticipantRace(contextFor(RUNNER_A), { participantRaceId: imported.id }),
     ).resolves.toMatchObject({ userId: RUNNER_A });
+  });
+
+  it('reste autorisée sur une course annulée (02_DATA_MODEL §9.4)', async () => {
+    // La création est refusée, la réclamation non : la participation existe
+    // déjà, et la bloquer priverait le coureur de l'accès à sa préparation.
+    const imported = seedParticipation(state, {
+      raceId: CANCELLED_RACE,
+      registrationSource: 'organizer_invitation',
+      inviteEmail: 'runner-a@test.pluka',
+    });
+
+    await expect(
+      claimParticipantRace(contextFor(RUNNER_A), { participantRaceId: imported.id }),
+    ).resolves.toMatchObject({ userId: RUNNER_A, raceId: CANCELLED_RACE });
+  });
+
+  it('sépare bien les deux chemins sur la même course annulée', async () => {
+    // Le contraste est l'assertion : même épreuve, même coureur, deux réponses.
+    seedParticipation(state, {
+      raceId: CANCELLED_RACE,
+      registrationSource: 'organizer_invitation',
+      inviteEmail: 'runner-b@test.pluka',
+    });
+
+    await expectDomainError(
+      createParticipantRace(contextFor(RUNNER_B), { raceId: CANCELLED_RACE }),
+      'invalid_state',
+    );
+
+    await expect(
+      claimParticipantRace(contextFor(RUNNER_B), {
+        participantRaceId: state.participants[0]?.id as string,
+      }),
+    ).resolves.toMatchObject({ userId: RUNNER_B });
   });
 
   it('ne laisse pas un autre coureur réclamer l’invitation', async () => {
@@ -522,11 +544,11 @@ describe('setRaceGoal', () => {
 });
 
 // ============================================================
-// État de préparation
+// Les deux axes du cycle de vie — 02_DATA_MODEL §9.3
 // ============================================================
 
 describe('setPreparationState', () => {
-  it('avance dans la préparation sans changer le statut de participation', async () => {
+  it('avance dans la préparation', async () => {
     const mine = seedParticipation(state, { userId: RUNNER_A });
 
     const updated = await setPreparationState(contextFor(RUNNER_A), {
@@ -535,42 +557,32 @@ describe('setPreparationState', () => {
     });
 
     expect(updated.preparationState).toBe('ready');
-    expect(updated.status).toBe('active');
   });
 
-  it('accorde les deux colonnes quand la course est derrière le coureur', async () => {
+  it('ne touche pas au statut de participation', async () => {
+    const mine = seedParticipation(state, { userId: RUNNER_A, status: 'dnf' });
+
+    const updated = await setPreparationState(contextFor(RUNNER_A), {
+      participantRaceId: mine.id,
+      preparationState: 'ready',
+    });
+
+    // « Un coureur peut être `ready` et finir en `dnf`. » Le statut posé avant
+    // survit intact : rien ne le recalcule à partir de l'axe préparation.
+    expect(updated.status).toBe('dnf');
+  });
+
+  it('rejette un fait de course sur l’axe préparation', async () => {
     const mine = seedParticipation(state, { userId: RUNNER_A });
 
-    for (const [preparationState, status] of [
-      ['completed', 'finished'],
-      ['dns', 'dns'],
-      ['dnf', 'dnf'],
-    ] as const) {
-      const updated = await setPreparationState(contextFor(RUNNER_A), {
-        participantRaceId: mine.id,
-        preparationState,
-      });
-
-      expect(updated.preparationState).toBe(preparationState);
-      expect(updated.status).toBe(status);
+    for (const courseFact of ['completed', 'dns', 'dnf', 'finished', 'archived']) {
+      await expect(
+        setPreparationState(contextFor(RUNNER_A), {
+          participantRaceId: mine.id,
+          preparationState: courseFact,
+        }),
+      ).rejects.toThrow();
     }
-  });
-
-  it('laisse corriger une issue saisie par erreur', async () => {
-    // §9.3 décrit une vue, pas un workflow : rien n'y rend un DNF définitif.
-    const mine = seedParticipation(state, { userId: RUNNER_A });
-
-    await setPreparationState(contextFor(RUNNER_A), {
-      participantRaceId: mine.id,
-      preparationState: 'dnf',
-    });
-
-    const corrected = await setPreparationState(contextFor(RUNNER_A), {
-      participantRaceId: mine.id,
-      preparationState: 'preparing',
-    });
-
-    expect(corrected.status).toBe('active');
   });
 
   it('reste possible sur une course annulée (§4.1)', async () => {
@@ -579,20 +591,9 @@ describe('setPreparationState', () => {
     await expect(
       setPreparationState(contextFor(RUNNER_A), {
         participantRaceId: mine.id,
-        preparationState: 'dns',
+        preparationState: 'ready',
       }),
-    ).resolves.toMatchObject({ status: 'dns' });
-  });
-
-  it('rejette un état inconnu', async () => {
-    const mine = seedParticipation(state, { userId: RUNNER_A });
-
-    await expect(
-      setPreparationState(contextFor(RUNNER_A), {
-        participantRaceId: mine.id,
-        preparationState: 'archived',
-      }),
-    ).rejects.toThrow();
+    ).resolves.toMatchObject({ preparationState: 'ready' });
   });
 
   it('refuse de toucher la participation d’un autre coureur', async () => {
@@ -601,12 +602,107 @@ describe('setPreparationState', () => {
     await expectDomainError(
       setPreparationState(contextFor(RUNNER_B), {
         participantRaceId: other.id,
-        preparationState: 'dnf',
+        preparationState: 'ready',
       }),
       'not_found',
     );
 
     expect(state.participants[0]?.preparationState).toBe('to_prepare');
+  });
+});
+
+describe('setParticipationStatus', () => {
+  it('déclare le devenir de la participation', async () => {
+    const mine = seedParticipation(state, { userId: RUNNER_A });
+
+    for (const status of RUNNER_PARTICIPATION_STATUSES) {
+      const updated = await setParticipationStatus(contextFor(RUNNER_A), {
+        participantRaceId: mine.id,
+        status,
+      });
+
+      expect(updated.status).toBe(status);
+    }
+  });
+
+  it('ne touche pas à l’état de préparation', async () => {
+    const mine = seedParticipation(state, { userId: RUNNER_A, preparationState: 'ready' });
+
+    const updated = await setParticipationStatus(contextFor(RUNNER_A), {
+      participantRaceId: mine.id,
+      status: 'dnf',
+    });
+
+    // L'information « il était prêt » survit à l'abandon : c'est exactement ce
+    // que la dérivation aurait écrasé.
+    expect(updated.preparationState).toBe('ready');
+    expect(updated.status).toBe('dnf');
+  });
+
+  it('laisse corriger une issue saisie par erreur', async () => {
+    // §9.3 ne contraint l'ordre sur aucun des deux axes.
+    const mine = seedParticipation(state, { userId: RUNNER_A });
+
+    await setParticipationStatus(contextFor(RUNNER_A), {
+      participantRaceId: mine.id,
+      status: 'dnf',
+    });
+
+    const corrected = await setParticipationStatus(contextFor(RUNNER_A), {
+      participantRaceId: mine.id,
+      status: 'active',
+    });
+
+    expect(corrected.status).toBe('active');
+  });
+
+  it('n’archive pas : c’est un geste d’administration', async () => {
+    const mine = seedParticipation(state, { userId: RUNNER_A });
+
+    await expect(
+      setParticipationStatus(contextFor(RUNNER_A), {
+        participantRaceId: mine.id,
+        status: 'archived',
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('rejette un état de préparation sur l’axe participation', async () => {
+    const mine = seedParticipation(state, { userId: RUNNER_A });
+
+    for (const preparationState of PREPARATION_STATES) {
+      await expect(
+        setParticipationStatus(contextFor(RUNNER_A), {
+          participantRaceId: mine.id,
+          status: preparationState,
+        }),
+      ).rejects.toThrow();
+    }
+  });
+
+  it('reste possible sur une course annulée (§4.1)', async () => {
+    const mine = seedParticipation(state, { userId: RUNNER_A, raceId: CANCELLED_RACE });
+
+    await expect(
+      setParticipationStatus(contextFor(RUNNER_A), {
+        participantRaceId: mine.id,
+        status: 'dns',
+      }),
+    ).resolves.toMatchObject({ status: 'dns' });
+  });
+
+  it('refuse de toucher la participation d’un autre coureur', async () => {
+    const other = seedParticipation(state, { userId: RUNNER_A });
+
+    await expectDomainError(
+      setParticipationStatus(contextFor(RUNNER_B), {
+        participantRaceId: other.id,
+        status: 'dnf',
+      }),
+      'not_found',
+    );
+
+    expect(state.participants[0]?.status).toBe('active');
   });
 });
 

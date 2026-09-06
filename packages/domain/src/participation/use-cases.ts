@@ -14,11 +14,11 @@ import {
   getParticipationForRaceQuerySchema,
   getParticipationQuerySchema,
   listRaceRosterQuerySchema,
+  setParticipationStatusCommandSchema,
   setPreparationStateCommandSchema,
   setRaceGoalCommandSchema,
 } from './commands.js';
 import { checkRaceAttachment, type AttachmentVerdict } from './invariants.js';
-import { participationStatusFor } from './lifecycle.js';
 
 /**
  * Use cases de participation — 02_DATA_MODEL §9, 01_ARCHITECTURE §7.
@@ -177,6 +177,11 @@ export async function createParticipantRace(
  *
  * Le jeton d'invitation viendra avec `participant_invitations` au lot B2B ;
  * ce use case ne le remplace pas et n'en invente pas un.
+ *
+ * L'état de l'épreuve n'est pas consulté, et c'est délibéré — 02_DATA_MODEL
+ * §9.4 : « la réclamation d'une invitation reste autorisée » sur une course
+ * annulée. La participation existe déjà ; la bloquer laisserait une ligne
+ * orpheline et priverait le coureur de l'accès à sa propre préparation.
  */
 export async function claimParticipantRace(
   context: ParticipationContext,
@@ -275,14 +280,15 @@ export async function setRaceGoal(
 }
 
 /**
- * État de préparation — 02_DATA_MODEL §9.3, 00_PRODUCT_SPEC §11.
+ * Axe préparation — 02_DATA_MODEL §9.3.
  *
- * Le statut de participation n'est pas dans la commande : il est dérivé, pour
- * que les deux colonnes ne puissent pas se contredire
- * (`participationStatusFor`).
+ * « Où en est le coureur dans sa préparation ? » Cette commande n'écrit que
+ * cette colonne. Le devenir de la participation a la sienne, et rien ici ne
+ * l'infère : un coureur `ready` peut finir en `dnf`, et le contraire d'un
+ * `dnf` n'est pas un retour à `to_prepare`.
  *
  * Comme pour l'objectif, le statut de l'épreuve n'entre pas en ligne de
- * compte : déclarer un DNS sur une course annulée reste le droit du coureur.
+ * compte : une annulation ne verrouille aucune donnée personnelle (§4.1).
  */
 export async function setPreparationState(
   context: ParticipationContext,
@@ -293,10 +299,37 @@ export async function setPreparationState(
 
   await loadOwnParticipation(context, command.participantRaceId, useCase);
 
-  return context.repositories.participantRaces.updateLifecycle(command.participantRaceId, {
-    preparationState: command.preparationState,
-    status: participationStatusFor(command.preparationState),
-  });
+  return context.repositories.participantRaces.updatePreparationState(
+    command.participantRaceId,
+    command.preparationState,
+  );
+}
+
+/**
+ * Axe participation — 02_DATA_MODEL §9.3.
+ *
+ * « Qu'est devenue sa participation ? » `finished`, `dns` et `dnf` sont des
+ * faits de course, déclarés par le coureur et jamais déduits : ni de son état
+ * de préparation, ni du passage de la date — §4.1 pose déjà la règle pour
+ * l'épreuve elle-même, « `completed` n'est jamais déclenché par le passage de
+ * la date ».
+ *
+ * Le retour à `active` est ouvert : §9.3 ne contraint l'ordre sur aucun des
+ * deux axes, et un DNF saisi par erreur doit pouvoir être corrigé.
+ */
+export async function setParticipationStatus(
+  context: ParticipationContext,
+  input: unknown,
+): Promise<ParticipantRaceRecord> {
+  const useCase = 'setParticipationStatus';
+  const command = setParticipationStatusCommandSchema.parse(input);
+
+  await loadOwnParticipation(context, command.participantRaceId, useCase);
+
+  return context.repositories.participantRaces.updateStatus(
+    command.participantRaceId,
+    command.status,
+  );
 }
 
 /**

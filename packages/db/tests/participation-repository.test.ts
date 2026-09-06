@@ -109,6 +109,11 @@ function projections(calls: readonly string[]): readonly string[] {
   return calls.filter((call) => call.startsWith('select:'));
 }
 
+/** Charges écrites, à l'exclusion des projections de relecture. */
+function writes(calls: readonly string[]): readonly string[] {
+  return calls.filter((call) => call.startsWith('update:'));
+}
+
 describe('participantRaceRepository', () => {
   it('lit une participation par sa projection nommée', async () => {
     const { client, calls } = fakeClient(PARTICIPANT_ROW);
@@ -157,15 +162,24 @@ describe('participantRaceRepository', () => {
     await expect(participantRaceRepository({ client }).findById('inconnu')).resolves.toBeNull();
   });
 
-  it('écrit les deux colonnes de cycle de vie ensemble', async () => {
+  it('écrit l’axe préparation sans toucher au statut', async () => {
     const { client, calls } = fakeClient(PARTICIPANT_ROW);
 
-    await participantRaceRepository({ client }).updateLifecycle('pr-1', {
-      status: 'finished',
-      preparationState: 'completed',
-    });
+    await participantRaceRepository({ client }).updatePreparationState('pr-1', 'ready');
 
-    expect(calls).toContain('update:{"status":"finished","preparation_state":"completed"}');
+    // La projection de relecture porte bien les deux colonnes ; c'est la
+    // *charge écrite* qui ne doit en nommer qu'une.
+    expect(writes(calls)).toEqual(['update:{"preparation_state":"ready"}']);
+  });
+
+  it('écrit l’axe participation sans toucher à la préparation', async () => {
+    // 02_DATA_MODEL §9.3 : « aucun chemin d'écriture ne calcule l'une à partir
+    // de l'autre ». Chaque update ne nomme que sa colonne.
+    const { client, calls } = fakeClient(PARTICIPANT_ROW);
+
+    await participantRaceRepository({ client }).updateStatus('pr-1', 'dnf');
+
+    expect(writes(calls)).toEqual(['update:{"status":"dnf"}']);
   });
 
   it('garde la réclamation atomique : libre, et le bon email', async () => {
