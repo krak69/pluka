@@ -598,6 +598,30 @@ Une participation peut passer par :
 
 Cette information alimente `Ma saison` ; aucune table « season » spécifique n'est nécessaire dans la V1.
 
+Ces six états sont ceux de `participant_races.preparation_state`. La colonne voisine
+`status` décrit le même fait sous l'angle de la participation, et n'est jamais écrite
+indépendamment : le domaine la dérive de l'état de préparation — `terminée` → `finished`,
+`DNS` → `dns`, `DNF` → `dnf`, les trois autres → `active`. Deux colonnes pour un même fait
+ne doivent pas pouvoir se contredire. `archived` n'est atteignable par aucun état de
+préparation : sortir une participation de la circulation est un geste d'administration,
+pas une étape de préparation.
+
+L'ordre des états n'est pas contraint. §11 de `00_PRODUCT_SPEC.md` décrit une vue, pas un
+workflow : un coureur qui a saisi un DNF par erreur doit pouvoir le corriger.
+
+## 9.4 Création d'une participation
+
+Un coureur ne peut se rattacher lui-même qu'à une épreuve `published` dont l'édition et
+l'événement sont diffusés, et dont la visibilité est `public` ou `unlisted` — `private`
+réserve les participations à un import ou à une invitation organisateur
+(`03_PRIVACY_RLS.md` §17). Une épreuve inatteignable répond « introuvable », jamais
+« interdit ».
+
+Le refus sur une course `cancelled` suit la réponse « évidente » du point ouvert de
+`00_PRODUCT_SPEC.md` §4.1, et reste **provisoire jusqu'au lot B2B** qui spécifiera le
+mécanisme d'inscription. Il ne concerne que la création : une participation existante n'est
+jamais dégradée par une annulation, objectif et état de préparation compris.
+
 ---
 
 # 10. Entitlements

@@ -5,8 +5,9 @@
  * l'inverse, et ne connaît ni Next.js ni provider externe
  * (01_ARCHITECTURE §4.5, §5).
  *
- * Périmètre de ce lot : Event / Edition / Race, dont le cycle de vie de
- * 00_PRODUCT_SPEC §4.1. Aucune UI, aucun job asynchrone, aucune IA.
+ * Périmètre : Event / Edition / Race et leur cycle de vie (00_PRODUCT_SPEC
+ * §4.1), la revue et la publication de facts, et le rattachement d'un coureur
+ * à une course (02_DATA_MODEL §9). Aucune UI, aucun job asynchrone, aucune IA.
  */
 
 export {
@@ -17,6 +18,7 @@ export {
   resolveAuthority,
   type Actor,
   type Authority,
+  type AuthorizationRepositories,
   type OrganizationRole,
 } from './authorization/organization-role.js';
 
@@ -92,12 +94,14 @@ export {
   createRace,
   getRaceOverview,
   listRaceStatusHistory,
+  loadRaceScope,
   publishRace,
   setRaceVisibility,
   updateRace,
   type CourseContext,
   type RaceOverview,
   type RaceScope,
+  type RaceScopeRepositories,
 } from './course/use-cases.js';
 
 export {
@@ -111,6 +115,47 @@ export {
   type DomainErrorCode,
   type DomainErrorParams,
 } from './errors.js';
+
+export {
+  claimParticipantRaceCommandSchema,
+  createParticipantRaceCommandSchema,
+  getParticipationForRaceQuerySchema,
+  getParticipationQuerySchema,
+  listRaceRosterQuerySchema,
+  MAX_TARGET_DURATION_SECONDS,
+  setPreparationStateCommandSchema,
+  setRaceGoalCommandSchema,
+  type ClaimParticipantRaceCommand,
+  type CreateParticipantRaceCommand,
+  type GetParticipationForRaceQuery,
+  type GetParticipationQuery,
+  type ListRaceRosterQuery,
+  type SetPreparationStateCommand,
+  type SetRaceGoalCommand,
+} from './participation/commands.js';
+export {
+  checkRaceAttachment,
+  isRaceReachableByRunner,
+  type AttachmentVerdict,
+} from './participation/invariants.js';
+export {
+  isOutcomeState,
+  participationStatusFor,
+  PREPARATION_STATES,
+  type ParticipationStatus,
+  type PreparationState,
+} from './participation/lifecycle.js';
+export {
+  claimParticipantRace,
+  createParticipantRace,
+  getParticipation,
+  getParticipationForRace,
+  listRaceRoster,
+  setPreparationState,
+  setRaceGoal,
+  type ParticipationContext,
+  type ParticipationDetail,
+} from './participation/use-cases.js';
 
 export {
   decideFactCandidateCommandSchema,

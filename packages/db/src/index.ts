@@ -42,6 +42,17 @@ export {
   type FactReviewRepository,
   type PublishFactInput,
 } from './repositories/facts.js';
+export {
+  accountRepository,
+  createParticipationRepositories,
+  participantRaceRepository,
+  participantRaceSettingsRepository,
+  type AccountRepository,
+  type ParticipantRaceLifecyclePatch,
+  type ParticipantRaceRepository,
+  type ParticipantRaceSettingsRepository,
+  type ParticipationRepositories,
+} from './repositories/participation.js';
 export type {
   EditionRecord,
   EventRecord,
@@ -51,6 +62,9 @@ export type {
   FactPublicationActRecord,
   FactReviewAction,
   MembershipRecord,
+  ParticipantRaceRecord,
+  ParticipantRaceSettingsRecord,
+  ParticipantRosterEntry,
   PlatformIdentityRecord,
   PublishedFactRecord,
   RaceRecord,

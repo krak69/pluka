@@ -1,4 +1,4 @@
-import type { CourseRepositories } from '@pluka/db';
+import type { IdentityRepository } from '@pluka/db';
 
 import { forbiddenError } from '../errors.js';
 
@@ -22,6 +22,17 @@ export type OrganizationRole = keyof typeof ORGANIZATION_ROLE_RANK;
 
 export function hasOrganizationRole(actual: OrganizationRole, minimum: OrganizationRole): boolean {
   return ORGANIZATION_ROLE_RANK[actual] >= ORGANIZATION_ROLE_RANK[minimum];
+}
+
+/**
+ * Dépendance minimale des gardes d'autorisation.
+ *
+ * Structurelle plutôt que nominale : tout bundle de repositories portant une
+ * identité — course, participation — passe ici sans que la garde ait à
+ * connaître le lot qui l'appelle. Elle n'a besoin que de relire un rôle.
+ */
+export interface AuthorizationRepositories {
+  readonly identity: IdentityRepository;
 }
 
 /**
@@ -55,7 +66,7 @@ export type Authority =
  * `organizationId` est nul.
  */
 export async function resolveAuthority(
-  repositories: CourseRepositories,
+  repositories: AuthorizationRepositories,
   actor: Actor,
   organizationId: string | null,
 ): Promise<Authority | null> {
@@ -78,7 +89,7 @@ export async function resolveAuthority(
  * barrière (03_PRIVACY_RLS §8).
  */
 export async function assertOrganizationRole(
-  repositories: CourseRepositories,
+  repositories: AuthorizationRepositories,
   actor: Actor,
   organizationId: string | null,
   minimum: OrganizationRole,
@@ -95,7 +106,7 @@ export async function assertOrganizationRole(
 
 /** Garde des transitions que §4.1 réserve à `pluka_admin`. */
 export async function assertPlatformAdmin(
-  repositories: CourseRepositories,
+  repositories: AuthorizationRepositories,
   actor: Actor,
   useCase: string,
 ): Promise<Authority> {

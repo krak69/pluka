@@ -208,3 +208,74 @@ export interface FactPublicationActRecord {
   readonly note: string | null;
   readonly createdAt: string;
 }
+
+/**
+ * Rattachement d'un coureur à une course — 02_DATA_MODEL §9.1.
+ *
+ * « Il contient uniquement la couche d'inscription / rattachement. » Ni Plan,
+ * ni Nutrition, ni Assistance : c'est cette séparation qui permet à une
+ * organisation de gérer une liste d'inscrits sans toucher à la préparation
+ * privée.
+ *
+ * `inviteEmail` n'y figure pas. 03_PRIVACY_RLS §28 minimise l'email
+ * participant, et le seul workflow qui en a besoin — la réclamation d'une
+ * participation importée — le compare en base sans le faire remonter
+ * (voir `ParticipantRaceRepository.claimForUser`).
+ */
+export interface ParticipantRaceRecord {
+  readonly id: string;
+  readonly raceId: string;
+  /** Nul tant que la participation importée n'a pas été réclamée (§10.2). */
+  readonly userId: string | null;
+  readonly firstNameSnapshot: string | null;
+  readonly lastNameSnapshot: string | null;
+  readonly registrationSource: Enum<'registration_source'>;
+  readonly externalRegistrationId: string | null;
+  readonly bibNumber: string | null;
+  readonly startWaveId: string | null;
+  readonly personalStartDatetime: string | null;
+  readonly status: Enum<'participant_race_status'>;
+  readonly preparationState: Enum<'preparation_state'>;
+  readonly joinedAt: string | null;
+}
+
+/**
+ * Préférences personnelles propres à une course — §9.2.
+ *
+ * `targetDurationSeconds` est l'objectif du coureur. Il ne sort jamais vers
+ * une organisation : aucune lecture B2B de ce paquet ne le projette
+ * (03_PRIVACY_RLS §29).
+ */
+export interface ParticipantRaceSettingsRecord {
+  readonly participantRaceId: string;
+  readonly targetDurationSeconds: number | null;
+  readonly assistanceStatus: Enum<'assistance_status'>;
+  readonly nutritionEnabled: boolean;
+  readonly nutritionWaypointsVisible: boolean;
+  readonly repereVisible: boolean;
+  readonly notificationsEnabled: boolean;
+}
+
+/**
+ * Une ligne de la liste des inscrits vue par l'organisation —
+ * 03_PRIVACY_RLS §27.
+ *
+ * « Ne pas donner au BO un `SELECT *` arbitraire. » Le champ retenu est donc
+ * la liste de §27, moins l'email que §28 réserve au workflow d'invitation.
+ *
+ * Ce qui en est volontairement absent : l'objectif, l'état de préparation, le
+ * `user_id` du coureur. §26 accorde un accès *opérationnel* — inscrits,
+ * dossard, vague, activation — et §29 refuse les préférences de préparation.
+ * `activated` répond à la seule question opérationnelle légitime : ce
+ * participant a-t-il rejoint PLUKA.
+ */
+export interface ParticipantRosterEntry {
+  readonly participantRaceId: string;
+  readonly firstName: string | null;
+  readonly lastName: string | null;
+  readonly bibNumber: string | null;
+  readonly startWaveId: string | null;
+  readonly registrationSource: Enum<'registration_source'>;
+  readonly externalRegistrationId: string | null;
+  readonly activated: boolean;
+}

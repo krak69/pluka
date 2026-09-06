@@ -68,9 +68,21 @@ export interface RaceScope {
   readonly event: EventRecord;
 }
 
+/**
+ * Dépendances de lecture de la hiérarchie de course.
+ *
+ * Structurelle : le lot participation remonte la même chaîne pour savoir quelle
+ * organisation gère une épreuve, sans dépendre du bundle de ce lot-ci.
+ */
+export interface RaceScopeRepositories {
+  readonly races: Pick<CourseRepositories['races'], 'findById'>;
+  readonly editions: Pick<CourseRepositories['editions'], 'findById'>;
+  readonly events: Pick<CourseRepositories['events'], 'findById'>;
+}
+
 /** Remonte la hiérarchie complète d'une épreuve (02_DATA_MODEL §3.1). */
-async function loadRaceScope(
-  repositories: CourseRepositories,
+export async function loadRaceScope(
+  repositories: RaceScopeRepositories,
   raceId: string,
   useCase: string,
 ): Promise<RaceScope> {
