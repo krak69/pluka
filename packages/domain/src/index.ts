@@ -7,8 +7,8 @@
  *
  * Périmètre : Event / Edition / Race et leur cycle de vie (00_PRODUCT_SPEC
  * §4.1), la revue et la publication de facts, le rattachement d'un coureur à
- * une course (02_DATA_MODEL §9) et son Profil trailer (§4.2). Aucune UI, aucun
- * job asynchrone, aucune IA.
+ * une course (02_DATA_MODEL §9), son Profil trailer (§4.2) et son onboarding
+ * (00_PRODUCT_SPEC §7). Aucune UI, aucun job asynchrone, aucune IA.
  */
 
 export {
@@ -116,6 +116,30 @@ export {
   type DomainErrorCode,
   type DomainErrorParams,
 } from './errors.js';
+
+export {
+  computeOnboarding,
+  resolveOnboardingFlow,
+  type OnboardingBlocker,
+  type OnboardingSnapshot,
+  type OnboardingState,
+  type OnboardingStepState,
+  type OnboardingStepStatus,
+} from './onboarding/progress.js';
+export {
+  ONBOARDING_FLOWS,
+  ONBOARDING_STEPS,
+  ORGANIZER_REGISTRATION_SOURCES,
+  stepsForFlow,
+  type OnboardingFlow,
+  type OnboardingStep,
+} from './onboarding/steps.js';
+export {
+  getOnboardingState,
+  getOnboardingStateQuerySchema,
+  type GetOnboardingStateQuery,
+  type OnboardingContext,
+} from './onboarding/use-cases.js';
 
 export {
   claimParticipantRaceCommandSchema,
