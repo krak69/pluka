@@ -1237,6 +1237,49 @@ strategy.reuse               ✗
 season.memory                ✗
 ```
 
+## Décisions de complétion
+
+La matrice ci-dessus et celles de §58 à §61 laissent trois points ouverts. Ils sont tranchés
+ici, et le resolver les applique.
+
+### Les capabilities `.read` appartiennent au socle Free
+
+`nutrition.read`, `preparation.read`, `assistance.read`, `outing.read`, `season.read`,
+`library.read` et `postrace.read` sont Free, au même titre que `plan.read`.
+
+Raison : §54 pose que « l'expiration retire les nouvelles actions premium, pas la propriété
+des données déjà créées », et l'illustre par « une ancienne Outing PLUKA+ peut rester
+consultable ». §53 le dit dans l'autre sens — un PLUKA+ expiré « conserve ses données, peut
+les consulter, ne perd jamais silencieusement ses données ». Sans ces lectures au socle, une
+expiration reprendrait la vue de ce que le coureur a lui-même écrit.
+
+Ce qui reste premium est donc l'écriture et l'avancé : `*.edit`, `*.edit_advanced`,
+`assistance.share`, `conditions.*`, `outing.create_*`, `strategy.reuse`, `season.memory`.
+
+### `outing.edit` suit `outing.create_linked`
+
+Race Pass et Organizer Included possèdent `outing.edit` sur la participation couverte, en
+plus de PLUKA+ (§59).
+
+Raison : §58 et §60 accordent `outing.create_linked` sans se prononcer sur l'édition. Une
+sortie qu'on peut créer mais pas modifier n'est pas une capacité cohérente. L'édition suit
+donc la création, et reste bornée au même scope — elle ne donne aucun droit sur une sortie
+personnelle, que §12 exclut explicitement.
+
+### L'accès bêta n'a pas de quota de sorties liées
+
+Un `BETA_FULL_ACCESS`, global ou limité à une course, crée des sorties liées sans limite
+commerciale. Il ne consomme pas le ledger.
+
+Raison : §29 pose le quota comme une règle **commerciale** — « illimité signifie : pas de
+quota commercial V1 » — et §14 fait de la bêta « un override temporaire », délibérément séparé
+des trois produits. Le modèle le confirme : `entitlement_usage.entitlement_id` est `not null`
+et référence `entitlements`, table où un grant bêta n'a par construction aucune ligne
+(`02_DATA_MODEL.md` §10.2). Compter un usage bêta supposerait de lui inventer un droit
+commercial.
+
+Cela ne dispense pas des limites techniques raisonnables contre l'abus, que §29 réserve déjà.
+
 ---
 
 # 58. Race Pass

@@ -43,6 +43,13 @@ export {
   type PublishFactInput,
 } from './repositories/facts.js';
 export {
+  createEntitlementRepositories,
+  entitlementRepository,
+  type EntitlementRepositories,
+  type EntitlementRepository,
+  type RecordUsageInput,
+} from './repositories/entitlements.js';
+export {
   accountRepository,
   createParticipationRepositories,
   participantRaceRepository,
@@ -59,12 +66,14 @@ export {
   type TrailProfileRepository,
 } from './repositories/profile.js';
 export type {
+  BetaAccessGrantRecord,
   EditionRecord,
   EventRecord,
   FactCandidateReviewRecord,
   FactCandidateScopeRecord,
   FactCandidateStatus,
   FactPublicationActRecord,
+  EntitlementRecord,
   FactReviewAction,
   MembershipRecord,
   ParticipantRaceRecord,

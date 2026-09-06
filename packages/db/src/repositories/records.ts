@@ -318,3 +318,46 @@ export interface TrailProfileRecord {
    */
   readonly profileCompletedAt: string | null;
 }
+
+/**
+ * Droit commercial — 02_DATA_MODEL §10.1, 04_ENTITLEMENTS §68.
+ *
+ * La ligne est rendue telle qu'elle est en base : ni filtrée sur son statut,
+ * ni comparée à l'horloge. Décider si elle donne accès est le travail du
+ * resolver (§16), et lui seul distingue « expiré » de « révoqué » de
+ * « mauvais scope » — trois refus que §18 veut différenciés, et qu'une
+ * projection filtrée rendrait indiscernables.
+ *
+ * Free n'a pas de ligne : §8, « Free est implicite ».
+ */
+export interface EntitlementRecord {
+  readonly id: string;
+  readonly kind: Enum<'entitlement_kind'>;
+  readonly source: Enum<'entitlement_source'>;
+  readonly status: Enum<'entitlement_status'>;
+  readonly scopeType: Enum<'entitlement_scope_type'>;
+  readonly userId: string | null;
+  readonly participantRaceId: string | null;
+  readonly organizationId: string | null;
+  readonly startsAt: string;
+  readonly endsAt: string | null;
+  readonly revokedAt: string | null;
+}
+
+/**
+ * Accès testeur — 02_DATA_MODEL §10.2, 04_ENTITLEMENTS §14.
+ *
+ * Volontairement séparé des trois produits commerciaux : « cette séparation
+ * évite de modifier artificiellement Free ou de créer un faux produit
+ * commercial `beta` ».
+ */
+export interface BetaAccessGrantRecord {
+  readonly id: string;
+  readonly userId: string;
+  readonly scopeType: Enum<'entitlement_scope_type'>;
+  readonly participantRaceId: string | null;
+  readonly status: Enum<'entitlement_status'>;
+  readonly startsAt: string;
+  readonly endsAt: string | null;
+  readonly revokedAt: string | null;
+}

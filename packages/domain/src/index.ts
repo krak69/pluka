@@ -7,8 +7,9 @@
  *
  * Périmètre : Event / Edition / Race et leur cycle de vie (00_PRODUCT_SPEC
  * §4.1), la revue et la publication de facts, le rattachement d'un coureur à
- * une course (02_DATA_MODEL §9), son Profil trailer (§4.2) et son onboarding
- * (00_PRODUCT_SPEC §7). Aucune UI, aucun job asynchrone, aucune IA.
+ * une course (02_DATA_MODEL §9), son Profil trailer (§4.2), son onboarding
+ * (00_PRODUCT_SPEC §7) et ses droits commerciaux (04_ENTITLEMENTS). Aucune UI,
+ * aucun job asynchrone, aucune IA.
  */
 
 export {
@@ -116,6 +117,53 @@ export {
   type DomainErrorCode,
   type DomainErrorParams,
 } from './errors.js';
+
+export {
+  CAPABILITIES,
+  requiresParticipantRaceScope,
+  type Capability,
+} from './entitlements/capabilities.js';
+export {
+  ENTITLEMENT_ERROR_CODES,
+  EntitlementError,
+  entitlementErrorCode,
+  type EntitlementErrorCode,
+} from './entitlements/errors.js';
+export {
+  can,
+  LINKED_OUTING_QUOTA,
+  linkedOutingUsageKey,
+  QUOTA_CAPABILITY,
+  resolveEntitlementContext,
+  type ActiveGrant,
+  type DecisionReason,
+  type EntitlementContext,
+  type EntitlementDecision,
+  type ResolveContextInput,
+  type UnavailableGrant,
+  type UnavailableReason,
+} from './entitlements/resolver.js';
+export {
+  ACCESS_TIERS,
+  capabilitiesForRaceScopedBeta,
+  capabilitiesForTier,
+  capabilitiesMissingFromPlus,
+  isBroaderTier,
+  TIERS_BY_PRIORITY,
+  type AccessTier,
+} from './entitlements/tiers.js';
+export {
+  authorizeCapability,
+  authorizeCapabilityCommandSchema,
+  consumeLinkedOutingQuota,
+  consumeLinkedOutingQuotaCommandSchema,
+  resolveEntitlements,
+  resolveEntitlementsQuerySchema,
+  type AuthorizeCapabilityCommand,
+  type ConsumeLinkedOutingQuotaCommand,
+  type EntitlementServiceContext,
+  type ResolveEntitlementsQuery,
+} from './entitlements/use-cases.js';
 
 export {
   computeOnboarding,
