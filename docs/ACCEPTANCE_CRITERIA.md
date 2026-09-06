@@ -283,6 +283,13 @@ PLUKA V1 Core peut être ouvert à des utilisateurs réels lorsque les briques s
 | API ITRA / UTMB | Non requise |
 | Live / PC course | Hors scope |
 
+« Obligatoire » qualifie la **présence de la brique dans le Core**, pas son remplissage par
+chaque coureur avant son Plan. Le Profil trailer doit exister, être renseignable et
+persistant ; il n'est pas pour autant un préalable universel. `00_PRODUCT_SPEC.md` §7.3 ne le
+demande pas dans l'onboarding d'un participant invité — §3.2 veut ce parcours « plus court,
+car les informations de course sont déjà connues » — et le profil se renseigne plus tard, comme
+l'Assistance de §15.1.
+
 ---
 
 # 6. Gate “pas de faux produit”
