@@ -2762,6 +2762,7 @@ export type Database = {
           race_waypoint_id: string
           sort_order: number
           stop_duration_seconds: number
+          stop_origin: Database["public"]["Enums"]["plan_stop_origin"]
         }
         Insert: {
           id?: string
@@ -2774,6 +2775,7 @@ export type Database = {
           race_waypoint_id: string
           sort_order: number
           stop_duration_seconds?: number
+          stop_origin?: Database["public"]["Enums"]["plan_stop_origin"]
         }
         Update: {
           id?: string
@@ -2786,6 +2788,7 @@ export type Database = {
           race_waypoint_id?: string
           sort_order?: number
           stop_duration_seconds?: number
+          stop_origin?: Database["public"]["Enums"]["plan_stop_origin"]
         }
         Relationships: [
           {
@@ -3586,8 +3589,85 @@ export type Database = {
           },
         ]
       }
+      race_course_micro_segments: {
+        Row: {
+          course_geometry_id: string
+          created_at: string
+          distance_m: number
+          elevation_delta_m: number
+          elevation_gain_m: number
+          elevation_loss_m: number
+          id: string
+          model_grade: number
+          preprocessing_version: string
+          progress: number
+          race_id: string
+          race_segment_id: string
+          raw_grade: number
+          sort_order: number
+          technicality: string | null
+        }
+        Insert: {
+          course_geometry_id: string
+          created_at?: string
+          distance_m: number
+          elevation_delta_m: number
+          elevation_gain_m: number
+          elevation_loss_m: number
+          id?: string
+          model_grade: number
+          preprocessing_version: string
+          progress: number
+          race_id: string
+          race_segment_id: string
+          raw_grade: number
+          sort_order: number
+          technicality?: string | null
+        }
+        Update: {
+          course_geometry_id?: string
+          created_at?: string
+          distance_m?: number
+          elevation_delta_m?: number
+          elevation_gain_m?: number
+          elevation_loss_m?: number
+          id?: string
+          model_grade?: number
+          preprocessing_version?: string
+          progress?: number
+          race_id?: string
+          race_segment_id?: string
+          raw_grade?: number
+          sort_order?: number
+          technicality?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "race_course_micro_segments_course_geometry_id_fkey"
+            columns: ["course_geometry_id"]
+            isOneToOne: false
+            referencedRelation: "race_course_geometries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "race_course_micro_segments_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "race_course_micro_segments_race_segment_id_fkey"
+            columns: ["race_segment_id"]
+            isOneToOne: false
+            referencedRelation: "race_segments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       race_cutoffs: {
         Row: {
+          basis: Database["public"]["Enums"]["cutoff_basis"]
           cutoff_datetime: string
           cutoff_type: Database["public"]["Enums"]["cutoff_type"]
           description: string | null
@@ -3597,6 +3677,7 @@ export type Database = {
           race_waypoint_id: string
         }
         Insert: {
+          basis?: Database["public"]["Enums"]["cutoff_basis"]
           cutoff_datetime: string
           cutoff_type?: Database["public"]["Enums"]["cutoff_type"]
           description?: string | null
@@ -3606,6 +3687,7 @@ export type Database = {
           race_waypoint_id: string
         }
         Update: {
+          basis?: Database["public"]["Enums"]["cutoff_basis"]
           cutoff_datetime?: string
           cutoff_type?: Database["public"]["Enums"]["cutoff_type"]
           description?: string | null
@@ -5300,6 +5382,29 @@ export type Database = {
           trust_level: Database["public"]["Enums"]["trust_level"]
         }[]
       }
+      list_plan_fact_dependencies: {
+        Args: { p_race_id: string }
+        Returns: {
+          dependency_key: string
+          dependency_type: Database["public"]["Enums"]["plan_dependency_type"]
+          race_fact_version_id: string
+        }[]
+      }
+      persist_race_plan: {
+        Args: {
+          p_actor_user_id: string
+          p_cutoff_statuses: Json
+          p_dependencies: Json
+          p_participant_race_id: string
+          p_segments: Json
+          p_summary: Json
+          p_waypoints: Json
+        }
+        Returns: {
+          race_plan_id: string
+          version: number
+        }[]
+      }
       publish_fact_candidate: {
         Args: {
           p_actor_user_id: string
@@ -5629,6 +5734,7 @@ export type Database = {
         | "strategy_template"
       condition_source: "weather" | "astronomy"
       coverage_label: "limited" | "partial" | "good"
+      cutoff_basis: "arrival" | "departure"
       cutoff_margin_status: "comfortable" | "watch" | "critical" | "beyond"
       cutoff_type: "hard" | "soft"
       detected_condition_type:
@@ -5791,6 +5897,7 @@ export type Database = {
         | "rule"
         | "other"
       plan_status: "active" | "superseded" | "archived"
+      plan_stop_origin: "default" | "manual"
       platform_role: "user" | "pluka_admin"
       preparation_state: "to_prepare" | "preparing" | "ready"
       profile_comfort: "low" | "medium" | "high"
@@ -6005,6 +6112,7 @@ export const Constants = {
       ],
       condition_source: ["weather", "astronomy"],
       coverage_label: ["limited", "partial", "good"],
+      cutoff_basis: ["arrival", "departure"],
       cutoff_margin_status: ["comfortable", "watch", "critical", "beyond"],
       cutoff_type: ["hard", "soft"],
       detected_condition_type: [
@@ -6173,6 +6281,7 @@ export const Constants = {
         "other",
       ],
       plan_status: ["active", "superseded", "archived"],
+      plan_stop_origin: ["default", "manual"],
       platform_role: ["user", "pluka_admin"],
       preparation_state: ["to_prepare", "preparing", "ready"],
       profile_comfort: ["low", "medium", "high"],

@@ -60,6 +60,24 @@ export {
   type ParticipationRepositories,
 } from './repositories/participation.js';
 export {
+  createPlanRepositories,
+  planCourseRepository,
+  racePlanRepository,
+  type CourseMicroSegmentRecord,
+  type PersistedPlan,
+  type PersistPlanInput,
+  type PlanCourseRepository,
+  type PlanFactDependency,
+  type PlanRepositories,
+  type PlanSegmentRecord,
+  type PlanWaypointRecord,
+  type RaceCutoffRecord,
+  type RacePlanRecord,
+  type RacePlanRepository,
+  type RaceSegmentRecord,
+  type RaceWaypointRecord,
+} from './repositories/plan.js';
+export {
   createProfileRepositories,
   trailProfileRepository,
   type ProfileRepositories,

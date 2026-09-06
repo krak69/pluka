@@ -24,6 +24,7 @@
   "dependencies": {
     "@pluka/contracts": "workspace:*",
     "@pluka/db": "workspace:*",
+    "@pluka/plan-engine": "workspace:*",
     "zod": "^4.5.4"
   },
   "devDependencies": {

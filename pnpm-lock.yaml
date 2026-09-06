@@ -237,6 +237,9 @@ importers:
       '@pluka/db':
         specifier: workspace:*
         version: link:../db
+      '@pluka/plan-engine':
+        specifier: workspace:*
+        version: link:../plan-engine
       zod:
         specifier: ^4.5.4
         version: 4.5.4

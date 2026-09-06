@@ -8,8 +8,8 @@
  * Périmètre : Event / Edition / Race et leur cycle de vie (00_PRODUCT_SPEC
  * §4.1), la revue et la publication de facts, le rattachement d'un coureur à
  * une course (02_DATA_MODEL §9), son Profil trailer (§4.2), son onboarding
- * (00_PRODUCT_SPEC §7) et ses droits commerciaux (04_ENTITLEMENTS). Aucune UI,
- * aucun job asynchrone, aucune IA.
+ * (00_PRODUCT_SPEC §7), ses droits commerciaux (04_ENTITLEMENTS) et son Plan de
+ * course (PLAN_ENGINE §63). Aucune UI, aucun job asynchrone, aucune IA.
  */
 
 export {
@@ -232,6 +232,62 @@ export {
   type ParticipationContext,
   type ParticipationDetail,
 } from './participation/use-cases.js';
+
+export {
+  changePlanTargetCommandSchema,
+  generateRacePlanCommandSchema,
+  getActivePlanQuerySchema,
+  listPlanVersionsQuerySchema,
+  lockPlanWaypointCommandSchema,
+  preserveCurrentPlanCommandSchema,
+  previewPlanQuerySchema,
+  rebalancePlanToTargetCommandSchema,
+  removePlanSegmentOverrideCommandSchema,
+  resetPlanScopeCommandSchema,
+  unlockPlanWaypointCommandSchema,
+  updatePlanSegmentDurationCommandSchema,
+  updatePlanStopCommandSchema,
+  type ChangePlanTargetCommand,
+  type GenerateRacePlanCommand,
+  type GetActivePlanQuery,
+  type ListPlanVersionsQuery,
+  type LockPlanWaypointCommand,
+  type PreserveCurrentPlanCommand,
+  type PreviewPlanQuery,
+  type RebalancePlanToTargetCommand,
+  type RemovePlanSegmentOverrideCommand,
+  type ResetPlanScopeCommand,
+  type UnlockPlanWaypointCommand,
+  type UpdatePlanSegmentDurationCommand,
+  type UpdatePlanStopCommand,
+} from './plan/commands.js';
+export {
+  buildSnapshot,
+  loadConstraints,
+  loadPlanScope,
+  resolveStartAt,
+  type BuildSnapshotOptions,
+  type PlanConstraints,
+  type PlanScope,
+} from './plan/snapshot.js';
+export {
+  changePlanTarget,
+  generateRacePlan,
+  getActivePlan,
+  listPlanVersions,
+  lockPlanWaypoint,
+  preserveCurrentPlan,
+  previewPlan,
+  rebalancePlanToTarget,
+  removePlanSegmentOverride,
+  resetPlanScope,
+  unlockPlanWaypoint,
+  updatePlanSegmentDuration,
+  updatePlanStop,
+  type ActivePlanView,
+  type PlanCommandResult,
+  type PlanContext,
+} from './plan/use-cases.js';
 
 export {
   getTrailProfileQuerySchema,
