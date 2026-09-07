@@ -1,4 +1,4 @@
-import type { RaceGpxImport, RaceGpxImportStage } from '@pluka/domain';
+import { divergenceRatio, type RaceGpxImport, type RaceGpxImportStage } from '@pluka/domain';
 import { Badge, DataValue } from '@pluka/ui';
 
 /**
@@ -42,8 +42,21 @@ const STAGE_TONE: Readonly<Record<RaceGpxImportStage, 'glacier' | 'neutral'>> = 
   completed: 'glacier',
 };
 
+/** Un écart relatif, tel qu'un administrateur le lit. */
+function gap(measured: number | null, official: number | null): string | null {
+  const ratio = divergenceRatio(measured, official);
+
+  return ratio === null ? null : `${(ratio * 100).toFixed(1)} % d’écart`;
+}
+
 export function GpxImportStatus({ status }: { readonly status: RaceGpxImport }) {
   const { stage, job, snapshot, geometry, quality } = status;
+  const distanceGap =
+    geometry === null ? null : gap(geometry.lengthMeters, status.officialDistanceMeters);
+  const gainGap =
+    geometry === null
+      ? null
+      : gap(geometry.elevationGainMeters, status.officialElevationGainMeters);
 
   return (
     <div style={{ display: 'grid', gap: 'var(--space-5)' }}>
@@ -70,20 +83,88 @@ export function GpxImportStatus({ status }: { readonly status: RaceGpxImport }) 
       )}
 
       {geometry === null ? null : (
-        <div style={{ display: 'flex', gap: 'var(--space-10)', flexWrap: 'wrap' }}>
-          <DataValue label="Points" value={geometry.pointCount} />
-          {geometry.lengthMeters === null ? (
-            <DataValue label="Longueur mesurée" value="—" />
-          ) : (
-            <DataValue
-              label="Longueur mesurée"
-              value={(geometry.lengthMeters / 1000).toFixed(2)}
-              unit="km"
-            />
-          )}
-          <DataValue label="Micro-segments" value={geometry.microSegmentCount} />
-          <DataValue label="Processeur" value={geometry.processorVersion} />
-        </div>
+        <>
+          <div style={{ display: 'flex', gap: 'var(--space-10)', flexWrap: 'wrap' }}>
+            <DataValue label="Points" value={geometry.pointCount} />
+            <DataValue label="Micro-segments" value={geometry.microSegmentCount} />
+            <DataValue label="Processeur" value={geometry.processorVersion} />
+          </div>
+
+          {/* §9 : le mesuré face au déclaré. L'écart est montré, jamais résorbé
+              — §9.1 « ne falsifie pas le GPX, ne modifie pas artificiellement
+              le D+ ». Les deux valeurs restent celles de leur source. */}
+          <table className="pk-body" style={{ borderCollapse: 'collapse', textAlign: 'left' }}>
+            <caption
+              className="pk-label"
+              style={{ textAlign: 'left', paddingBottom: 'var(--space-2)' }}
+            >
+              Mesuré sur la trace, face à l’annonce officielle
+            </caption>
+            <thead>
+              <tr>
+                <th
+                  scope="col"
+                  style={{ padding: 'var(--space-2) var(--space-6) var(--space-2) 0' }}
+                />
+                <th
+                  scope="col"
+                  style={{ padding: 'var(--space-2) var(--space-6) var(--space-2) 0' }}
+                >
+                  Mesuré
+                </th>
+                <th
+                  scope="col"
+                  style={{ padding: 'var(--space-2) var(--space-6) var(--space-2) 0' }}
+                >
+                  Officiel
+                </th>
+                <th scope="col" style={{ padding: 'var(--space-2) 0' }}>
+                  Écart
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style={{ borderTop: '1px solid var(--pk-hairline)' }}>
+                <th
+                  scope="row"
+                  style={{ padding: 'var(--space-2) var(--space-6) var(--space-2) 0' }}
+                >
+                  Distance
+                </th>
+                <td style={{ padding: 'var(--space-2) var(--space-6) var(--space-2) 0' }}>
+                  {geometry.lengthMeters === null
+                    ? '—'
+                    : `${(geometry.lengthMeters / 1000).toFixed(2)} km`}
+                </td>
+                <td style={{ padding: 'var(--space-2) var(--space-6) var(--space-2) 0' }}>
+                  {status.officialDistanceMeters === null
+                    ? '—'
+                    : `${(status.officialDistanceMeters / 1000).toFixed(2)} km`}
+                </td>
+                <td style={{ padding: 'var(--space-2) 0' }}>{distanceGap ?? '—'}</td>
+              </tr>
+              <tr style={{ borderTop: '1px solid var(--pk-hairline)' }}>
+                <th
+                  scope="row"
+                  style={{ padding: 'var(--space-2) var(--space-6) var(--space-2) 0' }}
+                >
+                  D+
+                </th>
+                <td style={{ padding: 'var(--space-2) var(--space-6) var(--space-2) 0' }}>
+                  {geometry.elevationGainMeters === null
+                    ? '—'
+                    : `${geometry.elevationGainMeters} m`}
+                </td>
+                <td style={{ padding: 'var(--space-2) var(--space-6) var(--space-2) 0' }}>
+                  {status.officialElevationGainMeters === null
+                    ? '—'
+                    : `${status.officialElevationGainMeters} m`}
+                </td>
+                <td style={{ padding: 'var(--space-2) 0' }}>{gainGap ?? '—'}</td>
+              </tr>
+            </tbody>
+          </table>
+        </>
       )}
 
       {quality.length === 0 ? null : (
@@ -104,7 +185,9 @@ export function GpxImportStatus({ status }: { readonly status: RaceGpxImport }) 
                   borderTop: '1px solid var(--pk-hairline)',
                 }}
               >
-                <span className="pk-label">{finding.code}</span>
+                <span className="pk-label">
+                  {finding.level === 'error' ? 'Erreur' : 'Avertissement'} · {finding.code}
+                </span>
                 <br />
                 {finding.message}
               </li>

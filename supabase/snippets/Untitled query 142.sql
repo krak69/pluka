@@ -1,1 +1,1 @@
-select count(*) from public.race_course_micro_segments;
+select * from public.race_course_geometries;

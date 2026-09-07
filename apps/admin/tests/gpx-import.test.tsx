@@ -54,10 +54,13 @@ function geometry(overrides: Record<string, unknown> = {}): RaceGpxImport['geome
     versionNumber: 1,
     pointCount: 4820,
     lengthMeters: 42150,
+    elevationGainMeters: 2050,
+    elevationLossMeters: 2050,
     processorVersion: 'gpx-processor-1',
     processedAt: '2026-03-01T08:01:00Z',
     preprocessingStatus: 'completed',
     preprocessingIssue: null,
+    preprocessingWarnings: [],
     preprocessedAt: '2026-03-01T08:01:00Z',
     microSegmentCount: 421,
     ...overrides,
@@ -168,6 +171,7 @@ describe('état du traitement', () => {
           quality: [
             {
               code: 'PREPROCESSING_BLOCKED',
+              level: 'error',
               message: 'waypoint « Ravito 2 » à 312 m de la trace',
             },
           ],
@@ -194,6 +198,54 @@ describe('état du traitement', () => {
   });
 });
 
+describe('mesuré face au déclaré — §9', () => {
+  const markup = renderToStaticMarkup(
+    <GpxImportStatus
+      status={importState({ stage: 'completed', job: job(), geometry: geometry() })}
+    />,
+  );
+
+  it('montre le D+ mesuré à côté du D+ officiel', () => {
+    // Le contrôle « D+ GPX vs officiel > 15 % » n'était pas constatable : le
+    // D+ mesuré n'était persisté nulle part.
+    expect(markup).toContain('2050 m');
+    expect(markup).toContain('2000 m');
+  });
+
+  it('montre la distance mesurée à côté de la distance officielle', () => {
+    expect(markup).toContain('42.15 km');
+    expect(markup).toContain('42.00 km');
+  });
+
+  it('chiffre l’écart sans le résorber', () => {
+    // 2050 contre 2000 : 2.5 %. Sous le seuil de §9, donc aucun warning — mais
+    // l'écart reste lisible.
+    expect(markup).toContain('2.5 % d’écart');
+    expect(markup).not.toContain('Contrôles qualité');
+  });
+
+  it('ne prétend aucun écart quand la mesure manque', () => {
+    // Une géométrie d'avant 0026 n'a pas de D+ : un tiret, pas un zéro.
+    const older = renderToStaticMarkup(
+      <GpxImportStatus
+        status={importState({
+          stage: 'completed',
+          job: job(),
+          geometry: geometry({ elevationGainMeters: null }),
+        })}
+      />,
+    );
+
+    expect(older).toContain('—');
+  });
+
+  it('ne compare rien tant qu’aucune géométrie n’existe', () => {
+    expect(renderToStaticMarkup(<GpxImportStatus status={importState()} />)).not.toContain(
+      'Mesuré sur la trace',
+    );
+  });
+});
+
 describe('contrôles qualité — §9.1', () => {
   it('nomme l’écart constaté, sans le corriger', () => {
     const markup = renderToStaticMarkup(
@@ -205,6 +257,7 @@ describe('contrôles qualité — §9.1', () => {
           quality: [
             {
               code: 'GPX_DISTANCE_MISMATCH',
+              level: 'warning',
               message: 'écart de 42.9 % entre la distance GPX et la distance officielle',
             },
           ],
@@ -230,6 +283,7 @@ describe('contrôles qualité — §9.1', () => {
           quality: [
             {
               code: 'PREPROCESSING_BLOCKED',
+              level: 'error',
               message: 'waypoint « Ravito 2 » à 312 m de la trace',
             },
           ],
@@ -238,6 +292,60 @@ describe('contrôles qualité — §9.1', () => {
     );
 
     expect(markup).toContain('waypoint « Ravito 2 » à 312 m de la trace');
+  });
+
+  it('affiche le contrôle de D+ de §9', () => {
+    const markup = renderToStaticMarkup(
+      <GpxImportStatus
+        status={importState({
+          stage: 'completed',
+          job: job(),
+          geometry: geometry({ elevationGainMeters: 3200 }),
+          quality: [
+            {
+              code: 'GPX_GAIN_MISMATCH',
+              level: 'warning',
+              message: 'écart de 60.0 % entre le D+ GPX et le D+ officiel',
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(markup).toContain('GPX_GAIN_MISMATCH');
+    expect(markup).toContain('60.0 %');
+    // Le D+ mesuré reste celui du fichier : §9.1 interdit de le corriger.
+    expect(markup).toContain('3200 m');
+  });
+
+  it('distingue un avertissement d’une erreur sans compter sur la couleur — §185', () => {
+    const blocked = renderToStaticMarkup(
+      <GpxImportStatus
+        status={importState({
+          stage: 'blocked',
+          job: job(),
+          geometry: geometry({ preprocessingStatus: 'blocked' }),
+          quality: [
+            { code: 'PREPROCESSING_BLOCKED', level: 'error', message: 'waypoint hors trace' },
+          ],
+        })}
+      />,
+    );
+
+    expect(blocked).toContain('Erreur');
+
+    const warned = renderToStaticMarkup(
+      <GpxImportStatus
+        status={importState({
+          stage: 'completed',
+          job: job(),
+          geometry: geometry(),
+          quality: [{ code: 'GPX_GAIN_MISMATCH', level: 'warning', message: 'écart de 60.0 %' }],
+        })}
+      />,
+    );
+
+    expect(warned).toContain('Avertissement');
   });
 
   it('ne montre aucune section quand rien ne remonte', () => {

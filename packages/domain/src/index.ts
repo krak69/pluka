@@ -84,6 +84,7 @@ export {
 
 export {
   courseQuality,
+  divergenceRatio,
   getRaceGpxImport,
   getRaceGpxImportQuerySchema,
   importRaceGpx,

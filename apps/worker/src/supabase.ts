@@ -231,6 +231,10 @@ export function createGeometryStore(client: PlukaClient): GeometryStore {
           // La colonne est `numeric(12,2)` : arrondir ici évite un écart de
           // représentation entre ce qui est calculé et ce qui est relu.
           p_length_m: Number(track.lengthMeters.toFixed(2)),
+          // §9 compare ces deux valeurs aux valeurs officielles. Elles sont
+          // arrondies au mètre : la colonne est entière, comme `races`.
+          p_elevation_gain_m: Math.round(track.elevationGainMeters),
+          p_elevation_loss_m: Math.round(track.elevationLossMeters),
           p_processor_version: track.processorVersion,
           p_idempotency_key: idempotencyKey,
         }),
@@ -278,7 +282,7 @@ export function createCoursePreprocessingStore(client: PlukaClient): CoursePrepr
       );
     },
 
-    async persist(courseGeometryId, preprocessingVersion, microSegments) {
+    async persist(courseGeometryId, preprocessingVersion, microSegments, warnings) {
       const written = unwrapRpc(
         await rpc(client).rpc('worker_persist_course_micro_segments', {
           p_course_geometry_id: courseGeometryId,
@@ -296,6 +300,11 @@ export function createCoursePreprocessingStore(client: PlukaClient): CoursePrepr
             model_grade: round(micro.modelGrade, 6),
             progress: round(micro.progress, 8),
             technicality: micro.technicality,
+          })),
+          p_warnings: warnings.map((warning) => ({
+            code: warning.code,
+            level: warning.level,
+            message: warning.message,
           })),
         }),
         'worker_persist_course_micro_segments',

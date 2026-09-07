@@ -106,6 +106,7 @@ export {
 } from './repositories/profile.js';
 export type {
   BetaAccessGrantRecord,
+  CourseQualityWarningRecord,
   EditionRecord,
   EditionStatusTransitionRecord,
   EventRecord,

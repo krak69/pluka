@@ -3621,6 +3621,8 @@ export type Database = {
       }
       race_course_geometries: {
         Row: {
+          elevation_gain_m: number | null
+          elevation_loss_m: number | null
           geometry: unknown
           id: string
           length_m: number | null
@@ -3628,6 +3630,7 @@ export type Database = {
           preprocessed_at: string | null
           preprocessing_issue: string | null
           preprocessing_status: Database["public"]["Enums"]["course_preprocessing_status"]
+          preprocessing_warnings: Json
           processed_at: string
           processor_version: string
           race_id: string
@@ -3636,6 +3639,8 @@ export type Database = {
           version_number: number
         }
         Insert: {
+          elevation_gain_m?: number | null
+          elevation_loss_m?: number | null
           geometry: unknown
           id?: string
           length_m?: number | null
@@ -3643,6 +3648,7 @@ export type Database = {
           preprocessed_at?: string | null
           preprocessing_issue?: string | null
           preprocessing_status?: Database["public"]["Enums"]["course_preprocessing_status"]
+          preprocessing_warnings?: Json
           processed_at?: string
           processor_version: string
           race_id: string
@@ -3651,6 +3657,8 @@ export type Database = {
           version_number?: number
         }
         Update: {
+          elevation_gain_m?: number | null
+          elevation_loss_m?: number | null
           geometry?: unknown
           id?: string
           length_m?: number | null
@@ -3658,6 +3666,7 @@ export type Database = {
           preprocessed_at?: string | null
           preprocessing_issue?: string | null
           preprocessing_status?: Database["public"]["Enums"]["course_preprocessing_status"]
+          preprocessing_warnings?: Json
           processed_at?: string
           processor_version?: string
           race_id?: string
@@ -5626,11 +5635,14 @@ export type Database = {
           p_course_geometry_id: string
           p_micro_segments: Json
           p_preprocessing_version: string
+          p_warnings?: Json
         }
         Returns: number
       }
       worker_persist_race_geometry: {
         Args: {
+          p_elevation_gain_m: number
+          p_elevation_loss_m: number
           p_geometry_ewkt: string
           p_idempotency_key: string
           p_length_m: number

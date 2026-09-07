@@ -254,15 +254,21 @@ export async function preprocessCourseGeometry(
       config: PLAN_ENGINE_V1,
     });
 
+    // §9.1 : les écarts au référentiel officiel sont constatés, jamais
+    // corrigés — et persistés avec le prétraitement, dans la même écriture.
+    // Les journaliser suffisait à les perdre : un écran ne lit pas les logs, et
+    // « un état de qualité à résoudre » doit survivre à leur rotation.
     const written = await ports.coursePreprocessing.persist(
       geometryId,
       course.preprocessingVersion,
       course.microSegments,
+      course.warnings.map((warning) => ({
+        code: warning.code,
+        level: warning.level,
+        message: warning.message,
+      })),
     );
 
-    // §9.1 : les écarts au référentiel officiel sont constatés, jamais
-    // corrigés. Ils sortent en logs — un fait de course, sans donnée
-    // personnelle (§60).
     for (const warning of course.warnings) {
       ports.logger.warn('qualité de parcours', {
         geometryId,

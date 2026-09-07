@@ -130,14 +130,31 @@ export interface RaceGpxImportRecord {
     readonly versionNumber: number;
     readonly pointCount: number;
     readonly lengthMeters: number | null;
+    /** Dénivelé mesuré sur la trace — ce que §9 compare au déclaré (0026). */
+    readonly elevationGainMeters: number | null;
+    readonly elevationLossMeters: number | null;
     readonly processorVersion: string;
     readonly processedAt: string;
     /** §9.1 : l'état de qualité à résoudre, tel que 0021 le persiste. */
     readonly preprocessingStatus: Enum<'course_preprocessing_status'>;
     readonly preprocessingIssue: string | null;
+    /** Contrôles qualité de §9, rendus par le moteur et persistés (0026). */
+    readonly preprocessingWarnings: readonly CourseQualityWarningRecord[];
     readonly preprocessedAt: string | null;
     readonly microSegmentCount: number;
   } | null;
+}
+
+/**
+ * Un constat de §9.
+ *
+ * Le niveau vient du moteur — `warning` pour les écarts au référentiel
+ * officiel, qui laissent le calcul possible mais doivent être exposés (§48).
+ */
+export interface CourseQualityWarningRecord {
+  readonly code: string;
+  readonly level: string;
+  readonly message: string;
 }
 
 /** Rôle d'un utilisateur dans une organisation, ou son absence. */

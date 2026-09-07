@@ -225,6 +225,13 @@ export interface GeometryStore {
  * les retire et enregistre le motif. §9.1 : un écart au référentiel « produit
  * un état de qualité à résoudre », pas un silence.
  */
+/** Un constat de §9, réduit à ce qui se persiste et s'affiche. */
+export interface CourseQualityWarning {
+  readonly code: string;
+  readonly level: string;
+  readonly message: string;
+}
+
 export interface CoursePreprocessingInput {
   readonly waypoints: readonly DeclaredWaypoint[];
   readonly segments: readonly PlanRaceSegmentInput[];
@@ -255,6 +262,13 @@ export interface CoursePreprocessingStore {
     courseGeometryId: string,
     preprocessingVersion: string,
     microSegments: readonly PlanMicroSegment[],
+    /**
+     * Contrôles qualité de §9, tels que le moteur les a rendus.
+     *
+     * Persistés avec le prétraitement plutôt que journalisés : §9.1 en fait
+     * « un état de qualité à résoudre », et un écran doit pouvoir le relire.
+     */
+    warnings: readonly CourseQualityWarning[],
   ): Promise<number>;
   block(courseGeometryId: string, issue: string): Promise<void>;
 }

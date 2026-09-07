@@ -1,5 +1,4 @@
 import type { GpxRepositories, RaceGpxImportRecord } from '@pluka/db';
-import { PLAN_ENGINE_V1 } from '@pluka/plan-engine';
 import { z } from 'zod';
 
 import type { Actor } from '../authorization/organization-role.js';
@@ -184,50 +183,62 @@ export function importStage(record: RaceGpxImportRecord): RaceGpxImportStage {
 }
 
 /**
- * Contrôles qualité constatables — PLAN_ENGINE §9, §9.1.
+ * Contrôles qualité — PLAN_ENGINE §9, §9.1.
  *
- * Deux seulement, et c'est une limite de ce qui est persisté, pas un choix :
+ * Ils sont **lus**, pas recalculés. Le moteur les produit pendant le
+ * prétraitement — `qualityWarnings` compare la distance et le D+ mesurés aux
+ * valeurs officielles, avec ses propres seuils — et 0026 les persiste avec les
+ * micro-segments. Les refaire ici donnerait deux verdicts pour le même écart :
+ * le domaine mesurerait sur `length_m`, la longueur brute de la trace, quand
+ * le moteur mesure sur le parcours ré-échantillonné. Ils divergeraient.
  *
- * - l'écart entre la longueur mesurée et la distance officielle se calcule,
- *   `race_course_geometries.length_m` étant enregistré ;
- * - l'état de qualité de §9.1 est lu tel quel — le worker l'a écrit.
+ * S'y ajoute l'état de blocage de §9.1, qui n'est pas un warning du moteur mais
+ * un refus du prétraitement : la géométrie est bonne, le référentiel non.
  *
- * Le D+ mesuré n'est stocké nulle part : la ligne « D+ GPX vs officiel > 15 % »
- * de §9 ne peut donc pas être constatée après coup. §9.1 interdit d'inventer
- * une valeur pour combler ce vide.
- *
- * Le seuil vient de la configuration du moteur Plan, jamais recopié : c'est lui
- * qui produit le même warning pendant le prétraitement.
+ * Ce que l'écran montre à côté — D+ mesuré face au D+ déclaré — n'est pas un
+ * contrôle mais le fait brut. §9.1 veut que l'écart soit visible, pas résolu.
  */
 export interface CourseQualityFinding {
-  readonly code: 'GPX_DISTANCE_MISMATCH' | 'PREPROCESSING_BLOCKED';
+  readonly code: string;
+  readonly level: 'warning' | 'error';
   readonly message: string;
 }
 
 export function courseQuality(record: RaceGpxImportRecord): readonly CourseQualityFinding[] {
-  const findings: CourseQualityFinding[] = [];
-  const official = record.officialDistanceMeters;
-  const measured = record.geometry?.lengthMeters ?? null;
-
-  if (official !== null && official > 0 && measured !== null) {
-    const gap = Math.abs(measured - official) / official;
-
-    if (gap > PLAN_ENGINE_V1.preprocessing.distanceMismatchRatio) {
-      findings.push({
-        code: 'GPX_DISTANCE_MISMATCH',
-        message: `écart de ${(gap * 100).toFixed(1)} % entre la distance GPX et la distance officielle`,
-      });
-    }
-  }
+  const findings: CourseQualityFinding[] = (record.geometry?.preprocessingWarnings ?? []).map(
+    (warning) => ({
+      code: warning.code,
+      level: warning.level === 'error' ? 'error' : 'warning',
+      message: warning.message,
+    }),
+  );
 
   if (record.geometry?.preprocessingStatus === 'blocked') {
     findings.push({
       code: 'PREPROCESSING_BLOCKED',
+      level: 'error',
       message: record.geometry.preprocessingIssue ?? 'prétraitement bloqué, motif non enregistré',
     });
   }
 
   return findings;
+}
+
+/**
+ * Écart entre une valeur mesurée et la valeur officielle, en pourcentage.
+ *
+ * Rendu pour l'affichage, jamais pour décider : le verdict appartient aux
+ * warnings du moteur. `null` quand la comparaison n'a pas de sens — valeur
+ * officielle absente ou nulle, mesure absente.
+ */
+export function divergenceRatio(
+  measured: number | null | undefined,
+  official: number | null | undefined,
+): number | null {
+  if (measured === null || measured === undefined) return null;
+  if (official === null || official === undefined || official <= 0) return null;
+
+  return Math.abs(measured - official) / official;
 }
 
 export interface RaceGpxImport extends RaceGpxImportRecord {

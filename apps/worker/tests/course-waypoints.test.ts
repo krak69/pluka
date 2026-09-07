@@ -47,7 +47,11 @@ const TRACK_POINTS = [
 ] as const;
 
 interface Recorded {
-  readonly persisted: { count: number; version: string | null };
+  readonly persisted: {
+    count: number;
+    version: string | null;
+    warnings: readonly { code: string; message: string }[];
+  };
   readonly blocked: string[];
   readonly downloaded: string[];
 }
@@ -65,7 +69,11 @@ function message(payload: Record<string, unknown>): QueueMessage {
 function createPorts(
   source: RaceCourseSource | null,
   recorded: Recorded,
-  options: { readonly waypoints?: number; readonly downloadFails?: boolean } = {},
+  options: {
+    readonly waypoints?: number;
+    readonly downloadFails?: boolean;
+    readonly officialDistanceMeters?: number;
+  } = {},
 ): WorkerPorts {
   const waypointCount = options.waypoints ?? 3;
 
@@ -96,11 +104,20 @@ function createPorts(
           fromWaypointId: `waypoint-${index}`,
           toWaypointId: `waypoint-${index + 1}`,
         })),
-        official: { distanceMeters: null, elevationGainMeters: null },
+        official: {
+          distanceMeters: options.officialDistanceMeters ?? null,
+          elevationGainMeters: null,
+        },
       }),
-      persist: async (_geometryId: string, version: string): Promise<number> => {
+      persist: async (
+        _geometryId: string,
+        version: string,
+        _micro: unknown,
+        warnings: readonly { code: string; message: string }[],
+      ): Promise<number> => {
         recorded.persisted.count += 1;
         recorded.persisted.version = version;
+        recorded.persisted.warnings = warnings;
         return 42;
       },
       block: async (_geometryId: string, issue: string): Promise<void> => {
@@ -112,7 +129,7 @@ function createPorts(
 }
 
 function recorder(): Recorded {
-  return { persisted: { count: 0, version: null }, blocked: [], downloaded: [] };
+  return { persisted: { count: 0, version: null, warnings: [] }, blocked: [], downloaded: [] };
 }
 
 const SOURCE: RaceCourseSource = {
@@ -152,6 +169,35 @@ describe('relance', () => {
     expect(recorded.downloaded).toEqual([SOURCE.storagePath]);
     expect(recorded.persisted.count).toBe(1);
     expect(recorded.persisted.version).not.toBeNull();
+  });
+
+  it('persiste les contrôles qualité avec le prétraitement — §9.1', async () => {
+    // Ils étaient journalisés : un écran ne lit pas les logs, et « un état de
+    // qualité à résoudre » doit survivre à leur rotation. Ici la trace mesure
+    // environ 2 km face à 1 km annoncé — §9 veut un warning, et il doit partir
+    // avec les micro-segments, dans la même écriture.
+    const recorded = recorder();
+
+    await handleCourseWaypointsMessage(
+      createPorts(SOURCE, recorded, { officialDistanceMeters: 1000 }),
+      message({ eventType: 'course.waypoints.changed', raceId: RACE_ID }),
+    );
+
+    expect(recorded.persisted.count).toBe(1);
+    expect(recorded.persisted.warnings.map((warning) => warning.code)).toContain(
+      'GPX_DISTANCE_MISMATCH',
+    );
+  });
+
+  it('ne persiste aucun constat quand rien ne diverge', async () => {
+    const recorded = recorder();
+
+    await handleCourseWaypointsMessage(
+      createPorts(SOURCE, recorded),
+      message({ eventType: 'course.waypoints.changed', raceId: RACE_ID }),
+    );
+
+    expect(recorded.persisted.warnings).toEqual([]);
   });
 
   it('ne crée aucune version de géométrie', async () => {

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   courseQuality,
+  divergenceRatio,
   DomainError,
   getRaceGpxImport,
   importRaceGpx,
@@ -288,14 +289,22 @@ function geometry(overrides: Record<string, unknown> = {}): Record<string, unkno
     versionNumber: 1,
     pointCount: 1000,
     lengthMeters: 42000,
+    elevationGainMeters: 2050,
+    elevationLossMeters: 2050,
     processorVersion: 'gpx-1',
     processedAt: '2026-03-01T08:00:00Z',
     preprocessingStatus: 'completed',
     preprocessingIssue: null,
+    preprocessingWarnings: [],
     preprocessedAt: '2026-03-01T08:00:00Z',
     microSegmentCount: 420,
     ...overrides,
   };
+}
+
+/** Un constat tel que le moteur le rend et que 0026 le persiste. */
+function warning(code: string, message: string): Record<string, unknown> {
+  return { code, level: 'warning', message };
 }
 
 describe('étape lisible — `importStage`', () => {
@@ -345,74 +354,115 @@ describe('étape lisible — `importStage`', () => {
 });
 
 describe('contrôles qualité — §9, §9.1', () => {
-  it('ne signale rien quand la trace colle à la distance officielle', () => {
-    expect(
-      courseQuality(
-        record({ officialDistanceMeters: 42000, geometry: geometry({ lengthMeters: 42500 }) }),
-      ),
-    ).toEqual([]);
+  it('ne signale rien quand le moteur n’a rien constaté', () => {
+    expect(courseQuality(record({ geometry: geometry() }))).toEqual([]);
   });
 
-  it('signale un écart de distance au-delà du seuil du moteur', () => {
-    // §9 : « Distance GPX vs officielle > 10 % → warning qualité ». Le seuil
-    // est celui de `PLAN_ENGINE_V1`, jamais recopié ici.
+  it('reprend les constats du moteur tels quels', () => {
+    // Ils ne sont pas recalculés ici : le moteur compare le parcours
+    // ré-échantillonné, le domaine ne verrait que la longueur brute, et les
+    // deux verdicts divergeraient.
     const findings = courseQuality(
-      record({ officialDistanceMeters: 42000, geometry: geometry({ lengthMeters: 60000 }) }),
+      record({
+        officialDistanceMeters: 42000,
+        geometry: geometry({
+          lengthMeters: 60000,
+          preprocessingWarnings: [
+            warning(
+              'GPX_DISTANCE_MISMATCH',
+              'écart de 42.9 % entre la distance GPX et la distance officielle',
+            ),
+          ],
+        }),
+      }),
     );
 
-    expect(findings).toHaveLength(1);
-    expect(findings[0]?.code).toBe('GPX_DISTANCE_MISMATCH');
-    expect(findings[0]?.message).toContain('%');
+    expect(findings).toEqual([
+      {
+        code: 'GPX_DISTANCE_MISMATCH',
+        level: 'warning',
+        message: 'écart de 42.9 % entre la distance GPX et la distance officielle',
+      },
+    ]);
+  });
+
+  it('remonte le contrôle de D+ de §9', () => {
+    // « D+ GPX vs officiel > 15 % → warning qualité ». Il était perdu : le D+
+    // mesuré n'était persisté nulle part, et le warning partait en logs.
+    const findings = courseQuality(
+      record({
+        officialElevationGainMeters: 2000,
+        geometry: geometry({
+          elevationGainMeters: 3200,
+          preprocessingWarnings: [
+            warning('GPX_GAIN_MISMATCH', 'écart de 60.0 % entre le D+ GPX et le D+ officiel'),
+          ],
+        }),
+      }),
+    );
+
+    expect(findings.map((finding) => finding.code)).toEqual(['GPX_GAIN_MISMATCH']);
   });
 
   it('constate sans corriger — §9.1', () => {
-    // La longueur mesurée reste celle du fichier : le contrôle produit un
-    // constat, il ne réaligne rien.
-    const measured = 60000;
+    // Les valeurs mesurées restent celles du fichier : un constat n'est pas un
+    // réalignement.
     const status = record({
-      officialDistanceMeters: 42000,
-      geometry: geometry({ lengthMeters: measured }),
+      officialElevationGainMeters: 2000,
+      geometry: geometry({
+        elevationGainMeters: 3200,
+        preprocessingWarnings: [warning('GPX_GAIN_MISMATCH', 'écart de 60.0 %')],
+      }),
     });
 
     expect(courseQuality(status)).toHaveLength(1);
-    expect((status as { geometry: { lengthMeters: number } }).geometry.lengthMeters).toBe(measured);
+    expect(
+      (status as { geometry: { elevationGainMeters: number } }).geometry.elevationGainMeters,
+    ).toBe(3200);
   });
 
-  it('reprend le motif du blocage tel que le worker l’a écrit', () => {
+  it('ajoute le blocage de §9.1 aux constats du moteur', () => {
+    // Le blocage n'est pas un warning du moteur : c'est son refus. Les deux se
+    // lisent au même endroit.
     const findings = courseQuality(
       record({
         geometry: geometry({
           preprocessingStatus: 'blocked',
           preprocessingIssue: 'waypoint « Ravito 2 » à 312 m de la trace',
+          preprocessingWarnings: [],
         }),
       }),
     );
 
-    expect(findings).toContainEqual({
-      code: 'PREPROCESSING_BLOCKED',
-      message: 'waypoint « Ravito 2 » à 312 m de la trace',
-    });
+    expect(findings).toEqual([
+      {
+        code: 'PREPROCESSING_BLOCKED',
+        level: 'error',
+        message: 'waypoint « Ravito 2 » à 312 m de la trace',
+      },
+    ]);
   });
 
-  it('n’invente aucun contrôle sans géométrie', () => {
+  it('n’invente aucun constat sans géométrie', () => {
     expect(courseQuality(record({ officialDistanceMeters: 42000 }))).toEqual([]);
   });
+});
 
-  it('ne compare pas à une distance officielle absente', () => {
-    expect(courseQuality(record({ geometry: geometry({ lengthMeters: 999999 }) }))).toEqual([]);
+describe('écart affichable', () => {
+  it('rend l’écart relatif entre mesuré et déclaré', () => {
+    // Pour l'affichage seulement : le verdict appartient au moteur.
+    expect(divergenceRatio(2300, 2000)).toBeCloseTo(0.15, 5);
+    expect(divergenceRatio(1700, 2000)).toBeCloseTo(0.15, 5);
   });
 
-  it('ne prétend rien sur le D+', () => {
-    // La géométrie ne stocke pas le D+ mesuré : §9.1 interdit de combler ce
-    // vide par une valeur inventée, donc aucun contrôle ne le nomme.
-    const findings = courseQuality(
-      record({
-        officialElevationGainMeters: 2000,
-        officialDistanceMeters: 42000,
-        geometry: geometry(),
-      }),
-    );
+  it('ne compare pas à une valeur officielle absente ou nulle', () => {
+    expect(divergenceRatio(2300, null)).toBeNull();
+    expect(divergenceRatio(2300, 0)).toBeNull();
+  });
 
-    expect(findings.map((finding) => finding.code)).not.toContain('GPX_GAIN_MISMATCH');
+  it('ne compare pas une mesure absente', () => {
+    // Une géométrie d'avant 0026 n'a pas de D+ : ne rien dire vaut mieux que
+    // laisser croire à un écart nul.
+    expect(divergenceRatio(null, 2000)).toBeNull();
   });
 });
