@@ -29,8 +29,22 @@ import {
  * Le fournisseur IA est le seul à pouvoir manquer, et c'est prévu : sans lui,
  * l'extraction reste déterministe (SOURCES_EXTRACTION §29).
  */
+/**
+ * Ce que les ports ont besoin de savoir du monde extérieur.
+ *
+ * Reçu plutôt que lu : `appUrl` venait de `process.env.NEXT_PUBLIC_APP_URL`,
+ * avec un `?? 'http://localhost:3001'` qui fabriquait une valeur en production
+ * dès que la variable manquait — un courriel serait parti vers localhost sans
+ * que rien ne le signale (AGENTS §38).
+ */
+export interface PortsConfig {
+  /** Base des liens envoyés au coureur. */
+  readonly appUrl: string;
+}
+
 export function createPorts(
   client: PlukaClient,
+  config: PortsConfig,
   ai: ConfiguredAI | null = createAI(process.env),
 ): WorkerPorts {
   return {
@@ -45,7 +59,7 @@ export function createPorts(
     impacts: createImpactStore(client),
     notifications: createNotificationStore(client),
     email: createEmail(process.env),
-    appUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3001',
+    appUrl: config.appUrl,
     ai,
     outbox: createOutboxDispatcher(client),
     logger: createLogger(),

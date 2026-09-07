@@ -10,6 +10,9 @@ import { tick } from '../src/loop.js';
 import { createPorts } from '../src/ports-supabase.js';
 import type { WorkerPorts } from '../src/ports.js';
 
+/** Base des liens dans les courriels de test — le worker la reçoit, il ne la devine pas. */
+const TEST_APP_URL = 'http://localhost:3001';
+
 /**
  * Un PDF de bout en bout contre la base locale — §13.
  *
@@ -115,7 +118,7 @@ beforeAll(async () => {
       contentType: 'application/pdf',
     });
 
-  const base = createPorts(client);
+  const base = createPorts(client, { appUrl: TEST_APP_URL });
   ports = { ...base, sources: { ...base.sources, fetch: capture } };
 
   await client.from('organizations').delete().eq('id', ORG_ID);

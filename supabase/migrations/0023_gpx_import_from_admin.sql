@@ -101,11 +101,11 @@ comment on function private.race_of_source_object(text) is
 -- la garde de `enqueue_race_gpx` : `editor` de l'organisation gestionnaire, ou
 -- `pluka_admin`. Trois barrières superposées, aucune ne délègue à l'autre.
 --
--- Aucun `select` n'est accordé : l'application dépose, elle ne relit pas les
--- fichiers. Le worker les télécharge sous clé de service, et une URL signée
--- reste le seul chemin de lecture (§84).
+-- La relecture est ouverte par 0024, et elle n'est pas facultative : l'API
+-- Storage écrit avec `returning`, et PostgreSQL applique les policies `select`
+-- aux lignes rendues. Sans elle, aucun dépôt n'aboutit.
 --
--- Aucun `delete` non plus. Un GPX déposé est la source d'une géométrie
+-- Aucun `delete` en revanche. Un GPX déposé est la source d'une géométrie
 -- persistée et d'un snapshot référencé : l'effacer laisserait une géométrie
 -- sans provenance.
 

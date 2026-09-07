@@ -291,7 +291,7 @@ export interface WorkerPorts {
    * persistée et soit retentée, pas qu'elle disparaisse.
    */
   readonly email: EmailProvider | null;
-  /** Base des liens envoyés au coureur — `NEXT_PUBLIC_APP_URL`. */
+  /** Base des liens envoyés au coureur — `APP_URL`, reçue au démarrage. */
   readonly appUrl: string;
   readonly ai: ConfiguredAI | null;
   readonly outbox: OutboxDispatcher;

@@ -1,4 +1,4 @@
-import { loadPublicEnv, parseEnv, supabaseServiceEnvSchema } from '@pluka/config';
+import { loadWorkerEnv } from '@pluka/config';
 import { createServiceRoleClient } from '@pluka/db/server';
 
 import { DEFAULT_LOOP_OPTIONS, run } from './loop.js';
@@ -16,26 +16,21 @@ import { createPorts } from './ports-supabase.js';
  *
  * Il est le seul processus à porter la clé de service (03_PRIVACY_RLS §8), et
  * n'est jamais invoqué depuis une requête HTTP.
+ *
+ * Sa configuration est lue une fois, ici, et transmise ensuite : `createPorts`
+ * ne lit plus `process.env` de son côté. Un port dont la valeur dépend d'un
+ * global est un port qu'on ne peut ni tester ni auditer.
  */
 
 function main(): void {
-  const publicEnv = loadPublicEnv({
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-    NEXT_PUBLIC_ADMIN_URL: process.env.NEXT_PUBLIC_ADMIN_URL,
-    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  });
-
-  const service = parseEnv(supabaseServiceEnvSchema, process.env, 'worker');
+  const env = loadWorkerEnv(process.env);
 
   const client = createServiceRoleClient({
-    url: publicEnv.NEXT_PUBLIC_SUPABASE_URL,
-    secretKey: service.SUPABASE_SERVICE_ROLE_KEY,
+    url: env.SUPABASE_URL,
+    secretKey: env.SUPABASE_SERVICE_ROLE_KEY,
   });
 
-  const ports = createPorts(client);
+  const ports = createPorts(client, { appUrl: env.APP_URL });
   const controller = new AbortController();
 
   // Arrêt propre : le tour en cours va à son terme, aucun message n'est

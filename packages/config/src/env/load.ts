@@ -8,11 +8,13 @@ import {
   providerEnvSchema,
   publicEnvSchema,
   supabaseServiceEnvSchema,
+  workerEnvSchema,
   type DatabaseEnv,
   type ObservabilityEnv,
   type ProviderEnv,
   type PublicEnv,
   type SupabaseServiceEnv,
+  type WorkerEnv,
 } from './schemas.js';
 
 /**
@@ -46,6 +48,18 @@ export function parseEnv<T>(schema: z.ZodType<T>, source: EnvSource, context: st
 /** Variables publiques uniquement — la seule lecture autorisée côté navigateur. */
 export function loadPublicEnv(source: EnvSource): PublicEnv {
   return parseEnv(publicEnvSchema, source, 'environnement public');
+}
+
+/**
+ * Configuration du worker — 01_ARCHITECTURE §4.4.
+ *
+ * Volontairement distincte de `loadPublicEnv` : un processus qui ne rend
+ * aucune page n'a pas à déclarer les variables du navigateur. Voir
+ * `workerEnvSchema` pour le détail de ce qu'il lui faut, et de ce dont il n'a
+ * que faire.
+ */
+export function loadWorkerEnv(source: EnvSource): WorkerEnv {
+  return parseEnv(workerEnvSchema, source, 'environnement worker');
 }
 
 /**

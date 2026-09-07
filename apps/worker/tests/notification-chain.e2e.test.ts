@@ -7,6 +7,9 @@ import { tick } from '../src/loop.js';
 import { createPorts } from '../src/ports-supabase.js';
 import type { QueueMessage, WorkerPorts } from '../src/ports.js';
 
+/** Base des liens dans les courriels de test — le worker la reçoit, il ne la devine pas. */
+const TEST_APP_URL = 'http://localhost:3001';
+
 /**
  * Notification du coureur, de bout en bout contre la base locale — §46.
  *
@@ -140,7 +143,7 @@ beforeAll(async () => {
 
   client = createServiceRoleClient({ url: SUPABASE_URL, secretKey: SERVICE_KEY });
 
-  const base = createPorts(client);
+  const base = createPorts(client, { appUrl: TEST_APP_URL });
   ports = { ...base, email: fakeEmail, appUrl: 'https://app.pluka.test' };
 
   await client.from('organizations').delete().eq('id', ORG_ID);

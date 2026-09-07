@@ -6,6 +6,9 @@ import { tick } from '../src/loop.js';
 import { createPorts } from '../src/ports-supabase.js';
 import type { QueueMessage, WorkerPorts } from '../src/ports.js';
 
+/** Base des liens dans les courriels de test — le worker la reçoit, il ne la devine pas. */
+const TEST_APP_URL = 'http://localhost:3001';
+
 /**
  * Impact Analyzer de bout en bout contre la base locale — §44.
  *
@@ -123,7 +126,7 @@ beforeAll(async () => {
   if (!available) return;
 
   client = createServiceRoleClient({ url: SUPABASE_URL, secretKey: SERVICE_KEY });
-  ports = createPorts(client);
+  ports = createPorts(client, { appUrl: TEST_APP_URL });
 
   await client.from('organizations').delete().eq('id', ORG_ID);
 

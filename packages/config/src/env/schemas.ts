@@ -34,6 +34,41 @@ export const supabaseServiceEnvSchema = z.object({
 
 export type SupabaseServiceEnv = z.infer<typeof supabaseServiceEnvSchema>;
 
+/**
+ * Contrat d'environnement du worker — 01_ARCHITECTURE §4.4, §38.
+ *
+ * Le worker « ne rend aucune page » : aucune de ses variables n'a de raison de
+ * porter le préfixe `NEXT_PUBLIC_`, qui ne veut dire qu'une chose — « Next
+ * inline cette valeur dans le bundle navigateur ». Lui faire valider le
+ * contrat public l'obligeait à déclarer une URL de site, une URL d'admin et
+ * une clé anonyme dont il ne fait rien, et le faisait échouer au démarrage sur
+ * l'absence de l'une d'elles.
+ *
+ * §38 dit exactement cela pour les surfaces web : « une surface qui n'a pas
+ * besoin de la clé `service_role` ni de `DATABASE_URL` […] plutôt que de se
+ * voir imposer des secrets dont elle n'a pas l'usage ». La règle vaut dans les
+ * deux sens.
+ *
+ * Trois variables, et rien d'autre :
+ *
+ * - `SUPABASE_URL` : le point d'accès. Même valeur que celle des applications
+ *   web, sans le préfixe qui n'a de sens que pour elles ;
+ * - `SUPABASE_SERVICE_ROLE_KEY` : son unique secret (03_PRIVACY_RLS §8) ;
+ * - `APP_URL` : la base des liens envoyés au coureur. Le worker n'affiche rien
+ *   mais il écrit des courriels, et un lien y est une donnée de production —
+ *   pas une valeur à deviner quand la variable manque (AGENTS §38).
+ *
+ * Les providers externes n'y figurent pas : ils sont facultatifs par
+ * construction et se désactivent proprement (`providerEnvSchema`).
+ */
+export const workerEnvSchema = z.object({
+  SUPABASE_URL: httpUrl('SUPABASE_URL'),
+  SUPABASE_SERVICE_ROLE_KEY: requiredText('SUPABASE_SERVICE_ROLE_KEY'),
+  APP_URL: httpUrl('APP_URL'),
+});
+
+export type WorkerEnv = z.infer<typeof workerEnvSchema>;
+
 /** Accès PostgreSQL direct : migrations, worker, tests d'intégration. */
 export const databaseEnvSchema = z.object({
   DATABASE_URL: postgresUrl('DATABASE_URL'),

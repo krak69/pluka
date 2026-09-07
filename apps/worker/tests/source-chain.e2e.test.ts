@@ -7,6 +7,9 @@ import { tick } from '../src/loop.js';
 import { createPorts } from '../src/ports-supabase.js';
 import type { QueueMessage, WorkerPorts } from '../src/ports.js';
 
+/** Base des liens dans les courriels de test — le worker la reçoit, il ne la devine pas. */
+const TEST_APP_URL = 'http://localhost:3001';
+
 /**
  * Ingestion de sources, étape 1, contre la base locale.
  *
@@ -81,8 +84,8 @@ beforeAll(async () => {
 
   // Seule la capture réseau est remplacée.
   ports = {
-    ...createPorts(client),
-    sources: { ...createPorts(client).sources, fetch: fakeCapture },
+    ...createPorts(client, { appUrl: TEST_APP_URL }),
+    sources: { ...createPorts(client, { appUrl: TEST_APP_URL }).sources, fetch: fakeCapture },
   };
 
   await cleanup().catch(() => undefined);
@@ -247,7 +250,10 @@ describe.runIf(process.env.SUPABASE_SERVICE_ROLE_KEY !== undefined)('ingestion d
     // identifiants machine et les stockerait comme contenu de source.
     const blocked: WorkerPorts = {
       ...ports,
-      sources: { ...ports.sources, fetch: createPorts(client).sources.fetch },
+      sources: {
+        ...ports.sources,
+        fetch: createPorts(client, { appUrl: TEST_APP_URL }).sources.fetch,
+      },
     };
 
     const outcome = await handleSourceMessage(blocked, {

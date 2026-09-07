@@ -7,6 +7,9 @@ import { tick } from '../src/loop.js';
 import { createPorts } from '../src/ports-supabase.js';
 import type { QueueMessage, WorkerPorts } from '../src/ports.js';
 
+/** Base des liens dans les courriels de test — le worker la reçoit, il ne la devine pas. */
+const TEST_APP_URL = 'http://localhost:3001';
+
 /**
  * Étape 2 contre la base locale : parsing et chunking.
  *
@@ -92,7 +95,7 @@ beforeAll(async () => {
       contentType: 'text/html; charset=utf-8',
     });
 
-  const base = createPorts(client);
+  const base = createPorts(client, { appUrl: TEST_APP_URL });
   ports = { ...base, sources: { ...base.sources, fetch: capture } };
 
   await client.from('organizations').delete().eq('id', ORG_ID);

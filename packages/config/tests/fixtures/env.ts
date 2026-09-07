@@ -18,6 +18,20 @@ export function publicEnvFixture(overrides: EnvSource = {}): EnvSource {
   };
 }
 
+/**
+ * Environnement du worker.
+ *
+ * Aucune variable `NEXT_PUBLIC_*` : c'est le sujet du contrat, pas un oubli.
+ */
+export function workerEnvFixture(overrides: EnvSource = {}): EnvSource {
+  return {
+    SUPABASE_URL: 'http://127.0.0.1:54321',
+    SUPABASE_SERVICE_ROLE_KEY: 'service-role-de-test',
+    APP_URL: 'http://localhost:3001',
+    ...overrides,
+  };
+}
+
 export function serverEnvFixture(overrides: EnvSource = {}): EnvSource {
   return {
     ...publicEnvFixture(),
