@@ -463,6 +463,20 @@ objectif
 
 Un parcours avec relief ne peut pas produire une répartition strictement proportionnelle à la distance si les pentes diffèrent.
 
+## AC-PLAN-02b — D+ mesuré absent
+
+Une épreuve dont la géométrie courante n'a pas de D+ mesuré
+(`race_course_geometries.elevation_gain_m is null`) ne peut pas produire de
+Plan : la création est refusée, et le motif nomme `GPX_GAIN_MISSING`.
+
+Le refus n'est pas silencieux : le même constat apparaît sur l'écran
+d'administration de l'épreuve, sans qu'il faille tenter un calcul pour le
+découvrir.
+
+Un `null` n'est jamais présenté comme « aucun écart détecté » — PLAN_ENGINE §9,
+§9.1. Le contrôle « D+ GPX vs officiel > 15 % » n'a alors aucune valeur à
+comparer, et ne doit pas conclure.
+
 ## AC-PLAN-03 — Aucun moteur physiologique caché
 
 Le moteur ne lit pas directement :

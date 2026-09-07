@@ -129,6 +129,15 @@ export type PlanIssueCode =
   | 'FIXED_DURATION_CONFLICT'
   | 'GPX_DISTANCE_MISMATCH'
   | 'GPX_GAIN_MISMATCH'
+  /**
+   * D+ mesuré absent sur la géométrie courante — §9.
+   *
+   * Le moteur ne l'émet pas : il ne voit pas la ligne stockée. Le code vit ici
+   * parce que le vocabulaire des constats de parcours est unique — et parce
+   * qu'un `GPX_GAIN_MISSING` classé ailleurs finirait par diverger de
+   * `GPX_GAIN_MISMATCH`, qu'il complète.
+   */
+  | 'GPX_GAIN_MISSING'
   | 'CUTOFF_CRITICAL'
   | 'CUTOFF_MISSED'
   | 'EXTREME_REBALANCE';

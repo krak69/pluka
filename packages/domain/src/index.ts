@@ -83,6 +83,7 @@ export {
 } from './course/waypoints.js';
 
 export {
+  checkCourseMeasurement,
   courseQuality,
   divergenceRatio,
   getRaceGpxImport,
@@ -91,6 +92,7 @@ export {
   importRaceGpxCommandSchema,
   importStage,
   MAX_GPX_BYTES,
+  type CourseMeasurementVerdict,
   type CourseQualityFinding,
   type GetRaceGpxImportQuery,
   type GpxImportContext,

@@ -24,6 +24,10 @@ const LEVEL_BY_CODE: Readonly<Record<PlanIssueCode, PlanIssueLevel>> = {
   FIXED_DURATION_CONFLICT: 'conflict',
   GPX_DISTANCE_MISMATCH: 'warning',
   GPX_GAIN_MISMATCH: 'warning',
+  // Sans D+ mesuré, le contrôle d'écart ne se dégrade pas : il ne s'exécute
+  // pas. Un parcours qu'on ne peut pas contrôler n'est pas un parcours
+  // approximatif (§9.0).
+  GPX_GAIN_MISSING: 'error',
   CUTOFF_CRITICAL: 'warning',
   CUTOFF_MISSED: 'warning',
   EXTREME_REBALANCE: 'warning',

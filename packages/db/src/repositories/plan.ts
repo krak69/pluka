@@ -272,6 +272,16 @@ export interface PlanCourseRepository {
   listFactDependencies(raceId: string): Promise<readonly PlanFactDependency[]>;
   /** Géométrie courante d'une course : celle dont les micro-segments font foi. */
   findCurrentCourseGeometryId(raceId: string): Promise<string | null>;
+  /**
+   * Géométrie courante et sa mesure de dénivelé.
+   *
+   * Le D+ mesuré est lu ici parce que §9 en fait une condition d'éligibilité :
+   * absent, le contrôle d'écart n'a rien à comparer. Le lire à part de
+   * l'identifiant obligerait l'appelant à deux requêtes pour une seule ligne.
+   */
+  findCurrentCourseGeometry(
+    raceId: string,
+  ): Promise<{ readonly id: string; readonly elevationGainMeters: number | null } | null>;
   /** Heure de départ d'une vague — deuxième niveau de la priorité de §5.2. */
   findStartWaveDatetime(startWaveId: string): Promise<string | null>;
 }
@@ -374,6 +384,33 @@ export const planCourseRepository = defineRepository<PlanCourseRepository>((cont
     );
 
     return row?.current_course_geometry_id ?? null;
+  },
+
+  async findCurrentCourseGeometry(raceId) {
+    const race = unwrapMaybe(
+      await context.client
+        .from('races')
+        .select(selectColumns('races', ['id', 'current_course_geometry_id']))
+        .eq('id', raceId)
+        .maybeSingle(),
+      'races.findCurrentCourseGeometry',
+    );
+
+    const geometryId = race?.current_course_geometry_id ?? null;
+    if (geometryId === null) return null;
+
+    const geometry = unwrapMaybe(
+      await context.client
+        .from('race_course_geometries')
+        .select(selectColumns('race_course_geometries', ['id', 'elevation_gain_m']))
+        .eq('id', geometryId)
+        .maybeSingle(),
+      'race_course_geometries.findCurrent',
+    );
+
+    return geometry === null
+      ? null
+      : { id: geometry.id, elevationGainMeters: geometry.elevation_gain_m };
   },
 
   async findStartWaveDatetime(startWaveId) {

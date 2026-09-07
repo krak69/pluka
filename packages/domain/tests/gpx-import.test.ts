@@ -2,6 +2,7 @@ import { raceGpxStoragePath } from '@pluka/db';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  checkCourseMeasurement,
   courseQuality,
   divergenceRatio,
   DomainError,
@@ -445,6 +446,69 @@ describe('contrôles qualité — §9, §9.1', () => {
 
   it('n’invente aucun constat sans géométrie', () => {
     expect(courseQuality(record({ officialDistanceMeters: 42000 }))).toEqual([]);
+  });
+});
+
+describe('D+ mesuré absent — §9.0', () => {
+  it('le signale comme une erreur, pas comme un silence', () => {
+    // Le défaut d'origine : rien ne remontait, et il a fallu une requête SQL
+    // manuelle pour découvrir le `null`.
+    const findings = courseQuality(
+      record({
+        officialElevationGainMeters: 2000,
+        geometry: geometry({ elevationGainMeters: null }),
+      }),
+    );
+
+    expect(findings).toEqual([
+      {
+        code: 'GPX_GAIN_MISSING',
+        level: 'error',
+        message: expect.stringContaining('D+ mesuré manque') as unknown as string,
+      },
+    ]);
+  });
+
+  it('dit la même chose que la porte du Plan', () => {
+    // Une seule règle, deux consommateurs : l'écran et `buildSnapshot`. Sans
+    // ça, le refus ne se découvrirait qu'en tentant un calcul.
+    const sansMesure = { elevationGainMeters: null };
+    const mesuree = { elevationGainMeters: 2050 };
+
+    expect(checkCourseMeasurement(sansMesure).ok).toBe(false);
+    expect(checkCourseMeasurement(mesuree).ok).toBe(true);
+
+    expect(
+      courseQuality(record({ geometry: geometry(sansMesure) })).map((finding) => finding.code),
+    ).toContain(checkCourseMeasurement(sansMesure).code);
+  });
+
+  it('ne double pas le refus quand il n’y a pas de parcours du tout', () => {
+    // `buildSnapshot` refuse déjà l'absence de géométrie, avec son propre
+    // message. Deux motifs pour le même état embrouilleraient la lecture.
+    expect(checkCourseMeasurement(null).ok).toBe(true);
+    expect(courseQuality(record())).toEqual([]);
+  });
+
+  it('n’empêche pas les constats du moteur de remonter', () => {
+    const findings = courseQuality(
+      record({
+        geometry: geometry({
+          elevationGainMeters: null,
+          preprocessingWarnings: [warning('GPX_DISTANCE_MISMATCH', 'écart de 42.9 %')],
+        }),
+      }),
+    );
+
+    expect(findings.map((finding) => finding.code)).toEqual([
+      'GPX_DISTANCE_MISMATCH',
+      'GPX_GAIN_MISSING',
+    ]);
+  });
+
+  it('ne prétend aucun écart quand la mesure manque', () => {
+    // §9.1 : le contrôle d'écart ne se dégrade pas, il ne s'exécute pas.
+    expect(divergenceRatio(null, 2000)).toBeNull();
   });
 });
 

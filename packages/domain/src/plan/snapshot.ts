@@ -16,6 +16,7 @@ import {
 } from '@pluka/plan-engine';
 
 import { invalidStateError, notFoundError } from '../errors.js';
+import { checkCourseMeasurement } from '../course/gpx.js';
 
 /**
  * Assemblage du snapshot moteur — docs/engines/PLAN_ENGINE.md §6.
@@ -188,10 +189,21 @@ export async function buildSnapshot(options: BuildSnapshotOptions): Promise<Plan
   const { repositories, scope, constraints } = options;
   const config = options.engineConfig ?? PLAN_ENGINE_V1;
 
-  const geometryId = await repositories.planCourse.findCurrentCourseGeometryId(scope.race.id);
-  if (geometryId === null) {
+  const geometry = await repositories.planCourse.findCurrentCourseGeometry(scope.race.id);
+  if (geometry === null) {
     throw invalidStateError(useCase, 'cette épreuve n’a pas encore de parcours prétraité');
   }
+
+  // §9 : sans D+ mesuré, le contrôle d'écart n'a rien à comparer, et §9.1
+  // interdit d'en conclure « aucun écart ». Le parcours n'est donc pas
+  // éligible — la porte est ici, où l'incomplétude du parcours enregistré se
+  // constate déjà, et non dans le moteur, qui ne voit que son snapshot.
+  const measurement = checkCourseMeasurement(geometry);
+  if (!measurement.ok) {
+    throw invalidStateError(useCase, measurement.message, { code: measurement.code });
+  }
+
+  const geometryId = geometry.id;
 
   const [waypoints, segments, cutoffs, microSegments] = await Promise.all([
     repositories.planCourse.listWaypoints(scope.race.id),

@@ -348,6 +348,33 @@ describe('contrôles qualité — §9.1', () => {
     expect(warned).toContain('Avertissement');
   });
 
+  it('signale un D+ mesuré absent — §9.0', () => {
+    // C'est ce que l'écran ne disait pas : il a fallu une requête SQL manuelle
+    // pour découvrir le `null`. Le refus du Plan seul ne suffisait pas — il
+    // n'arriverait qu'au moment où quelqu'un tente un calcul.
+    const markup = renderToStaticMarkup(
+      <GpxImportStatus
+        status={importState({
+          stage: 'completed',
+          job: job(),
+          geometry: geometry({ elevationGainMeters: null }),
+          quality: [
+            {
+              code: 'GPX_GAIN_MISSING',
+              level: 'error',
+              message: 'le D+ mesuré manque sur la géométrie courante',
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(markup).toContain('GPX_GAIN_MISSING');
+    expect(markup).toContain('Erreur');
+    // Et la case du D+ mesuré porte un tiret, pas un zéro.
+    expect(markup).toContain('—');
+  });
+
   it('ne montre aucune section quand rien ne remonte', () => {
     const markup = renderToStaticMarkup(
       <GpxImportStatus

@@ -183,6 +183,45 @@ export function importStage(record: RaceGpxImportRecord): RaceGpxImportStage {
 }
 
 /**
+ * Éligibilité d'un parcours au moteur Plan, du point de vue de sa mesure — §9.
+ *
+ * Une seule règle pour l'instant, et une seule définition : `buildSnapshot`
+ * s'en sert pour refuser, `courseQuality` pour afficher. Les deux répondent
+ * donc toujours la même chose, ce qui est le point — le défaut d'origine était
+ * qu'un `null` passait partout sans que rien ne le nomme.
+ *
+ * Le D+ mesuré manque quand la géométrie a été persistée avant la migration
+ * 0026. Ce n'est pas une mesure imprécise, c'est une mesure absente : le
+ * contrôle « D+ GPX vs officiel > 15 % » n'a alors rien à comparer, et §9.1
+ * interdit de conclure « aucun écart » de ce silence.
+ *
+ * Le verdict porte sur ce qui est stocké, pas sur ce qu'on pourrait
+ * recalculer : la relance du prétraitement comble la valeur (0027), et le
+ * parcours redevient éligible sans que cette fonction ait à le savoir.
+ */
+export interface CourseMeasurementVerdict {
+  readonly ok: boolean;
+  readonly code: 'GPX_GAIN_MISSING';
+  readonly message: string;
+}
+
+const GAIN_MISSING_MESSAGE =
+  'le D+ mesuré manque sur la géométrie courante : le contrôle d’écart de §9 ne peut pas s’exécuter';
+
+/**
+ * `geometry` nul rend `ok` : l'absence de parcours est un autre refus, que
+ * `buildSnapshot` prononce déjà — « cette épreuve n'a pas encore de parcours
+ * prétraité ». Deux messages pour le même état embrouilleraient la lecture.
+ */
+export function checkCourseMeasurement(
+  geometry: { readonly elevationGainMeters: number | null } | null,
+): CourseMeasurementVerdict {
+  const ok = geometry === null || geometry.elevationGainMeters !== null;
+
+  return { ok, code: 'GPX_GAIN_MISSING', message: GAIN_MISSING_MESSAGE };
+}
+
+/**
  * Contrôles qualité — PLAN_ENGINE §9, §9.1.
  *
  * Ils sont **lus**, pas recalculés. Le moteur les produit pendant le
@@ -212,6 +251,13 @@ export function courseQuality(record: RaceGpxImportRecord): readonly CourseQuali
       message: warning.message,
     }),
   );
+
+  // Le même verdict que celui qui refuse le Plan (§9.0) : sans quoi l'écran
+  // resterait muet, et le refus ne se découvrirait qu'en tentant un calcul.
+  const measurement = checkCourseMeasurement(record.geometry);
+  if (!measurement.ok) {
+    findings.push({ code: measurement.code, level: 'error', message: measurement.message });
+  }
 
   if (record.geometry?.preprocessingStatus === 'blocked') {
     findings.push({

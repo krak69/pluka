@@ -157,6 +157,59 @@ describe('generateRacePlan', () => {
     ).resolves.toMatchObject({ persisted: { version: 1 } });
   });
 
+  it('refuse un parcours dont le D+ mesuré manque — §9, §9.0', async () => {
+    // Le défaut d'origine : une géométrie d'avant 0026 portait `null`, et le
+    // contrôle d'écart de §9 le lisait comme « aucun écart détecté ». Il n'y a
+    // rien à dégrader — il n'y a rien à comparer.
+    plan.courseElevationGainM = null;
+
+    const error = await generateRacePlan(contextFor(RUNNER_A), {
+      participantRaceId: ownParticipation,
+      targetDurationSeconds: TARGET,
+    }).catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(DomainError);
+    expect((error as DomainError).code).toBe('invalid_state');
+    expect((error as DomainError).details['code']).toBe('GPX_GAIN_MISSING');
+  });
+
+  it('nomme le refus autrement que l’absence de parcours', async () => {
+    // Deux incomplétudes distinctes, deux messages : « pas encore de parcours
+    // prétraité » ne dit pas ce qu'il faut corriger quand la trace est là.
+    const refusal = async (): Promise<DomainError> =>
+      generateRacePlan(contextFor(RUNNER_A), {
+        participantRaceId: ownParticipation,
+        targetDurationSeconds: TARGET,
+      }).then(
+        () => {
+          throw new Error('un refus était attendu');
+        },
+        (thrown: unknown) => thrown as DomainError,
+      );
+
+    plan.courseElevationGainM = null;
+    const sansMesure = await refusal();
+
+    plan.courseGeometryId = null;
+    const sansParcours = await refusal();
+
+    expect(sansMesure.message).not.toBe(sansParcours.message);
+    expect(sansParcours.details['code']).toBeUndefined();
+  });
+
+  it('laisse passer un parcours mesuré', async () => {
+    // Contrepartie : la porte ne doit pas refuser ce qui est complet. Le
+    // rattrapage de 0027 comble la valeur, et le parcours redevient éligible.
+    plan.courseElevationGainM = 4600;
+
+    await expect(
+      generateRacePlan(contextFor(RUNNER_A), {
+        participantRaceId: ownParticipation,
+        targetDurationSeconds: TARGET,
+      }),
+    ).resolves.toMatchObject({ persisted: { version: 1 } });
+  });
+
   it('archive la version précédente : une seule reste active (§36)', async () => {
     await withInitialPlan();
     await generateRacePlan(contextFor(RUNNER_A), {

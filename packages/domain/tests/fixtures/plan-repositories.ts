@@ -48,6 +48,8 @@ export interface PlanState {
   microSegments: CourseMicroSegmentRecord[];
   factDependencies: PlanFactDependency[];
   courseGeometryId: string | null;
+  /** D+ mesuré de la géométrie courante. `null` rend le parcours inéligible (§9). */
+  courseElevationGainM: number | null;
   startWaves: Map<string, string>;
   plans: StoredPlan[];
 }
@@ -130,6 +132,7 @@ export function planBaseState(participation: ParticipationState, raceId: string)
       { raceFactVersionId: 'fv-wp-1', dependencyType: 'waypoint', dependencyKey: 'col-du-test' },
     ],
     courseGeometryId: 'geometry-1',
+    courseElevationGainM: 1000,
     startWaves: new Map(),
     plans: [],
   };
@@ -162,6 +165,12 @@ export function createFakePlanRepositories(state: PlanState): PlanRepositories {
           : [],
       listFactDependencies: async () => state.factDependencies,
       findCurrentCourseGeometryId: async () => state.courseGeometryId,
+      // Le D+ mesuré est présent par défaut : ces tests portent sur le calcul,
+      // pas sur l'éligibilité. Les tests de §9 le retirent explicitement.
+      findCurrentCourseGeometry: async () =>
+        state.courseGeometryId === null
+          ? null
+          : { id: state.courseGeometryId, elevationGainMeters: state.courseElevationGainM },
       findStartWaveDatetime: async (waveId) => state.startWaves.get(waveId) ?? null,
     },
 

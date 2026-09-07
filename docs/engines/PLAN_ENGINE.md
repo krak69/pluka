@@ -325,13 +325,44 @@ Les valeurs 50 m / 25 m / 100 m sont des constantes de preprocessing V1 et doive
 
 # 9. Contrôles qualité GPX V1
 
-| Contrôle | Seuil V1 | Comportement |
-|---|---:|---|
-| Waypoint ↔ GPX | > 200 m | Erreur / validation requise avant Plan |
-| Distance GPX vs officielle | > 10 % | Warning qualité |
-| D+ GPX vs officiel | > 15 % | Warning qualité |
-| Altitude manquante | > 5 % des points | Parcours non éligible au modèle relief V1 |
-| Pente brute extrême | `|grade| > 60 %` | Conserver le signal mais caper le modèle à ±40 % |
+| Contrôle | Seuil V1 | Comportement | État |
+|---|---:|---|---|
+| Waypoint ↔ GPX | > 200 m | Erreur / validation requise avant Plan | appliqué |
+| Distance GPX vs officielle | > 10 % | Warning qualité | appliqué |
+| D+ GPX vs officiel | > 15 % | Warning qualité | appliqué |
+| **D+ mesuré absent** | `elevation_gain_m is null` sur la géométrie courante | **Parcours non éligible au moteur Plan** (`GPX_GAIN_MISSING`) | appliqué |
+| Altitude manquante | > 5 % des points | Parcours non éligible au modèle relief V1 | **non appliqué à ce jour** |
+| Pente brute extrême | `|grade| > 60 %` | Conserver le signal mais caper le modèle à ±40 % | **non appliqué à ce jour** |
+
+## 9.0 D+ mesuré absent
+
+Le contrôle « D+ GPX vs officiel » compare deux nombres. Si le D+ mesuré
+manque, il ne se dégrade pas : il ne s'exécute pas. Un `null` n'est pas
+« aucun écart détecté », et le traiter comme tel est exactement le silence que
+§9.1 refuse — c'est arrivé, et il a fallu une requête SQL manuelle pour s'en
+apercevoir.
+
+D'où un refus, et non un avertissement : une géométrie sans D+ mesuré rend le
+parcours **non éligible au moteur Plan**. La portée est plus large que celle de
+l'altitude manquante, qui ne dégrade que le modèle relief — ici, ce n'est pas
+un modèle qui perd en précision, c'est un contrôle qui n'a rien à contrôler.
+
+Le refus se prononce à l'assemblage du snapshot, et le même constat s'affiche
+sur l'écran de l'épreuve : sans quoi il ne se découvrirait qu'au moment où
+quelqu'un tente de créer un Plan.
+
+### État des contrôles
+
+La colonne « État » dit si le contrôle est réellement appliqué par le code, et
+non seulement spécifié. Deux ne le sont pas : « Altitude manquante » et
+« Pente brute extrême » sont calculés par `packages/gpx` — `eligibleForReliefModel`
+et `extremeGradeCount` — puis journalisés et abandonnés. Ni persistés, ni
+consultés, ni opposables.
+
+Ce sont deux instances du même défaut que §9.1 décrit, et elles restent
+ouvertes : les traiter demande de persister ces constats et de les exposer, pas
+de bloquer un calcul. Tant que la colonne dit « non appliqué », ces deux lignes
+ne doivent pas être relues comme des garanties.
 
 ## 9.1 Ne pas corriger silencieusement
 
