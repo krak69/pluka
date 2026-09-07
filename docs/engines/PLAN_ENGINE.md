@@ -327,7 +327,7 @@ Les valeurs 50 m / 25 m / 100 m sont des constantes de preprocessing V1 et doive
 
 | Contrôle | Seuil V1 | Comportement | État |
 |---|---:|---|---|
-| Waypoint ↔ GPX | > 200 m | Erreur / validation requise avant Plan | appliqué |
+| Waypoint ↔ GPX | > 200 m | Erreur / validation requise avant Plan | appliqué si le waypoint est positionné — **inerte depuis l'admin** |
 | Distance GPX vs officielle | > 10 % | Warning qualité | appliqué |
 | D+ GPX vs officiel | > 15 % | Warning qualité | appliqué |
 | **D+ mesuré absent** | `elevation_gain_m is null` sur la géométrie courante | **Parcours non éligible au moteur Plan** (`GPX_GAIN_MISSING`) | appliqué |
@@ -351,18 +351,52 @@ Le refus se prononce à l'assemblage du snapshot, et le même constat s'affiche
 sur l'écran de l'épreuve : sans quoi il ne se découvrirait qu'au moment où
 quelqu'un tente de créer un Plan.
 
+## 9.0.1 Waypoint sans coordonnées
+
+Le contrôle « Waypoint ↔ GPX > 200 m » ne s'applique qu'à un waypoint qui a une
+position. `snapWaypointsToTrack` traite l'absence de coordonnées comme un cas
+prévu, et il a raison de le faire — « sans position, le waypoint garde sa
+distance déclarée et un écart nul : on ne mesure pas ce qu'on n'a pas » :
+
+```ts
+if (waypoint.latitude === null || waypoint.longitude === null) {
+  return { …, alongDistanceMeters: waypoint.declaredDistanceMeters, offRouteMeters: 0 };
+}
+```
+
+**`offRouteMeters: 0` signifie donc « non mesuré », pas « accroché à la
+trace ».** La valeur traverse ensuite la comparaison au seuil de 200 m sans
+jamais la déclencher.
+
+Conséquence aujourd'hui : l'écran de saisie du référentiel collecte le nom, le
+type, le kilomètre annoncé et la barrière — **pas les coordonnées** — et
+`set_race_waypoints` n'écrit ni `latitude` ni `longitude`. Tout waypoint créé
+depuis l'administration est donc hors de portée de ce contrôle. Le parcours est
+découpé sur les distances déclarées, sans que rien ne vérifie qu'elles
+correspondent à la trace.
+
+Ce n'est pas un défaut du moteur : il fait exactement ce que la donnée permet.
+C'est la saisie qui ne fournit pas de position, et la corriger touche l'UX du
+formulaire autant que le contrôle. Même lot que les deux lignes non appliquées
+ci-dessous.
+
 ### État des contrôles
 
 La colonne « État » dit si le contrôle est réellement appliqué par le code, et
-non seulement spécifié. Deux ne le sont pas : « Altitude manquante » et
-« Pente brute extrême » sont calculés par `packages/gpx` — `eligibleForReliefModel`
-et `extremeGradeCount` — puis journalisés et abandonnés. Ni persistés, ni
-consultés, ni opposables.
+non seulement spécifié. Trois ne le sont pas, de deux façons différentes.
 
-Ce sont deux instances du même défaut que §9.1 décrit, et elles restent
-ouvertes : les traiter demande de persister ces constats et de les exposer, pas
-de bloquer un calcul. Tant que la colonne dit « non appliqué », ces deux lignes
-ne doivent pas être relues comme des garanties.
+« Altitude manquante » et « Pente brute extrême » sont calculés par
+`packages/gpx` — `eligibleForReliefModel` et `extremeGradeCount` — puis
+journalisés et abandonnés. Ni persistés, ni consultés, ni opposables.
+
+« Waypoint ↔ GPX » est bien appliqué, mais sur une donnée que la saisie ne
+produit pas : sans coordonnées, il n'a rien à mesurer (§9.0.1).
+
+Les trois sont des instances du même défaut que §9.1 décrit — un constat absent
+lu comme un constat rassurant — et elles restent ouvertes. Les traiter demande
+de persister et d'exposer, pour les deux premières, et de collecter une position
+à la saisie, pour la troisième. Tant que la colonne ne dit pas « appliqué », ces
+lignes ne doivent pas être relues comme des garanties.
 
 ## 9.1 Ne pas corriger silencieusement
 
