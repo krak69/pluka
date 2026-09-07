@@ -1,15 +1,26 @@
-import { allowedRaceTransitions, getRaceAdministration, getRaceGpxImport } from '@pluka/domain';
+import {
+  allowedRaceTransitions,
+  getRaceAdministration,
+  getRaceGpxImport,
+  getRaceWaypoints,
+} from '@pluka/domain';
 import { DataValue, Divider, MicroLabel } from '@pluka/ui';
 import Link from 'next/link';
 
 import { RaceStatusPanel, UpdateRaceForm } from '@/app/courses/[raceId]/forms';
 import { GpxImportStatus } from '@/app/courses/[raceId]/gpx-import-status';
 import { ImportGpxForm } from '@/app/courses/[raceId]/import-gpx-form';
+import { WaypointsForm } from '@/app/courses/[raceId]/waypoints-form';
 import { StatusHistory } from '@/app/status-history';
 import { redirectOnDomainError, requireAdminContext, requireGpxImportContext } from '@/lib/admin';
 
 /**
  * Écran d'édition d'une épreuve, et transitions de statut de §4.1.
+ *
+ * L'écran porte le référentiel de parcours — waypoints, ordre, kilomètres,
+ * barrières — dont le prétraitement a besoin. Sans lui, `preprocessCourse` se
+ * met de côté en `skipped` et aucun Plan n'est calculable, quelle que soit la
+ * qualité de la trace. Enregistrer la chaîne enfile la relance.
  *
  * L'écran porte aussi l'import du GPX — 01_ARCHITECTURE §15. C'est le seul
  * point d'entrée du parcours : sans lui, aucune géométrie, donc aucun
@@ -41,6 +52,8 @@ export default async function RacePage({
   const gpx = await getRaceGpxImport(await requireGpxImportContext(`/courses/${raceId}`), {
     raceId,
   }).catch(redirectOnDomainError);
+
+  const waypoints = await getRaceWaypoints(context, { raceId }).catch(redirectOnDomainError);
 
   return (
     <main
@@ -95,6 +108,20 @@ export default async function RacePage({
 
       <div style={{ marginTop: 'var(--space-6)' }}>
         <ImportGpxForm raceId={race.id} />
+      </div>
+
+      <Divider spaced />
+
+      <h2 className="pk-h2" style={{ marginBottom: 'var(--space-2)' }}>
+        Référentiel de parcours
+      </h2>
+      <p className="pk-body" style={{ color: 'var(--pk-text-muted)' }}>
+        Les points de passage découpent le parcours. Sans eux, le prétraitement reste en attente et
+        aucun Plan ne peut être calculé (PLAN_ENGINE §8.1). Les segments en sont déduits.
+      </p>
+
+      <div style={{ marginTop: 'var(--space-5)' }}>
+        <WaypointsForm raceId={race.id} waypoints={waypoints} />
       </div>
 
       <Divider spaced />

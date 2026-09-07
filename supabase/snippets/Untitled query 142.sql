@@ -1,1 +1,1 @@
-select * from pgmq.metrics('pluka_geo');
+select count(*) from public.race_course_micro_segments;

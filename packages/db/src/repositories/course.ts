@@ -1,4 +1,5 @@
 import { selectColumns } from '../columns.js';
+import { raceWaypointRepository, type RaceWaypointRepository } from './waypoints.js';
 import { defineRepository, type RepositoryContext } from '../repository.js';
 import { unwrap, unwrapMaybe } from '../results.js';
 import type { InsertRow, UpdateRow } from '../types.js';
@@ -676,6 +677,7 @@ export interface CourseRepositories {
   readonly editions: EditionRepository;
   readonly races: RaceRepository;
   readonly raceStatusTransitions: RaceStatusTransitionRepository;
+  readonly waypoints: RaceWaypointRepository;
   readonly eventStatusTransitions: EventStatusTransitionRepository;
   readonly editionStatusTransitions: EditionStatusTransitionRepository;
   readonly identity: IdentityRepository;
@@ -687,6 +689,7 @@ export function createCourseRepositories(context: RepositoryContext): CourseRepo
     editions: editionRepository(context),
     races: raceRepository(context),
     raceStatusTransitions: raceStatusTransitionRepository(context),
+    waypoints: raceWaypointRepository(context),
     eventStatusTransitions: eventStatusTransitionRepository(context),
     editionStatusTransitions: editionStatusTransitionRepository(context),
     identity: identityRepository(context),

@@ -40,6 +40,12 @@ export {
   type RaceStatusTransitionRepository,
 } from './repositories/course.js';
 export {
+  raceWaypointRepository,
+  type RaceWaypointInput,
+  type RaceWaypointRepository,
+  type SetRaceWaypointsResult,
+} from './repositories/waypoints.js';
+export {
   createGpxRepositories,
   RACE_SOURCES_BUCKET,
   raceGpxRepository,

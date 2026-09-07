@@ -54,6 +54,8 @@ export interface RaceWaypointRecord {
   readonly name: string;
   readonly sortOrder: number;
   readonly distanceKm: number;
+  /** Départ, ravitaillement, base de vie, arrivée… — 02_DATA_MODEL §6.6. */
+  readonly waypointType: Enum<'waypoint_type'>;
   /** Altitude officielle, quand elle est connue. Ancre le profil altimétrique. */
   readonly altitudeM: number | null;
 }
@@ -193,6 +195,7 @@ const WAYPOINT_COLUMNS = [
   'name',
   'sort_order',
   'distance_km',
+  'waypoint_type',
   'altitude_m',
 ] as const;
 const SEGMENT_COLUMNS = [
@@ -290,6 +293,7 @@ export const planCourseRepository = defineRepository<PlanCourseRepository>((cont
       name: row.name,
       sortOrder: row.sort_order,
       distanceKm: row.distance_km,
+      waypointType: row.waypoint_type,
       altitudeM: row.altitude_m,
     }));
   },

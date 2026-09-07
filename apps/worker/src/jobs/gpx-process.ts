@@ -46,7 +46,7 @@ interface GpxJobPayload {
   readonly idempotencyKey: string;
 }
 
-const SOURCES_BUCKET = 'race-sources';
+export const SOURCES_BUCKET = 'race-sources';
 
 function readPayload(message: QueueMessage): GpxJobPayload {
   const { raceId, sourceSnapshotId, storagePath, idempotencyKey } = message.payload;
@@ -143,7 +143,7 @@ export async function handleGpxMessage(
   }
 }
 
-async function downloadGpx(ports: WorkerPorts, storagePath: string): Promise<string> {
+export async function downloadGpx(ports: WorkerPorts, storagePath: string): Promise<string> {
   try {
     return await ports.objects.downloadText(SOURCES_BUCKET, storagePath);
   } catch (error) {
@@ -205,7 +205,7 @@ async function failJob(
  * et cinq tentatives n'y changeraient rien : le problème est dans le
  * référentiel, pas dans le fichier.
  */
-async function preprocessCourseGeometry(
+export async function preprocessCourseGeometry(
   ports: WorkerPorts,
   raceId: string,
   geometryId: string,

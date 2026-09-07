@@ -252,6 +252,17 @@ export function createGeometryStore(client: PlukaClient): GeometryStore {
  */
 export function createCoursePreprocessingStore(client: PlukaClient): CoursePreprocessingStore {
   return {
+    async findCourseSource(raceId) {
+      const data = unwrapRpc(
+        await rpc(client).rpc('worker_race_course_source', { p_race_id: raceId }),
+        'worker_race_course_source',
+      ) as { courseGeometryId: string; storagePath: string | null } | null;
+
+      if (data === null || data.storagePath === null) return null;
+
+      return { courseGeometryId: data.courseGeometryId, storagePath: data.storagePath };
+    },
+
     async readInput(raceId) {
       const data = unwrapRpc(
         await rpc(client).rpc('worker_course_preprocessing_input', { p_race_id: raceId }),

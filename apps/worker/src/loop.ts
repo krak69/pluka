@@ -1,3 +1,4 @@
+import { handleCourseWaypointsMessage, isCourseWaypointsMessage } from './jobs/course-waypoints.js';
 import { GPX_QUEUE, handleGpxMessage } from './jobs/gpx-process.js';
 import { IMPACT_QUEUE, handleImpactMessage, isImpactMessage } from './jobs/change-impact.js';
 import {
@@ -71,7 +72,16 @@ const CONSUMERS: readonly {
   readonly queue: string;
   readonly handle: (ports: WorkerPorts, message: QueueMessage) => Promise<{ kind: string }>;
 }[] = [
-  { queue: GPX_QUEUE, handle: handleGpxMessage },
+  // La file `pluka_geo` porte l'import d'une trace et la relance du
+  // prétraitement quand le référentiel change : le routage se fait sur le type
+  // d'événement, pas sur la file (migration 0002).
+  {
+    queue: GPX_QUEUE,
+    handle: (ports, message) =>
+      isCourseWaypointsMessage(message)
+        ? handleCourseWaypointsMessage(ports, message)
+        : handleGpxMessage(ports, message),
+  },
   // La file `pluka_sources` porte les deux étapes : capture puis parsing. Le
   // groupement est par domaine, pas par type de job (migration 0002), donc le
   // routage se fait sur la forme de la charge utile.

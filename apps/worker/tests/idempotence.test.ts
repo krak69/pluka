@@ -106,6 +106,7 @@ function createRecorder(): Recorder {
       }),
       persist: async () => 0,
       block: async (): Promise<void> => undefined,
+      findCourseSource: async () => null,
     },
     geometries: {
       // Reproduit la garantie de `private.persist_race_geometry` : rejouer

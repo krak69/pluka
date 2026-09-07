@@ -6,6 +6,7 @@ import {
   changeRaceStatus,
   createEdition,
   importRaceGpx,
+  setRaceWaypoints,
   createEvent,
   createRace,
   decideFactCandidate,
@@ -17,7 +18,7 @@ import { redirect } from 'next/navigation';
 
 import { actionFailure, courseContext, factReviewContext, gpxImportContext } from '@/lib/admin';
 import { publicEnv } from '@/lib/env';
-import { createEventCommand, file, optionalNumber, text } from '@/lib/form';
+import { createEventCommand, file, optionalNumber, raceWaypointsCommand, text } from '@/lib/form';
 import { safeReturnTo } from '@/lib/return-to';
 import { requireSession } from '@/lib/session';
 import { createAuthClient } from '@/lib/supabase/auth';
@@ -253,6 +254,31 @@ export async function importRaceGpxAction(
       content,
       contentHash: content === undefined ? undefined : await sha256Hex(content),
     });
+  } catch (error) {
+    return actionFailure(error);
+  }
+
+  revalidatePath(`/courses/${raceId}`);
+  return {};
+}
+
+/**
+ * Réécriture du référentiel de parcours — PLAN_ENGINE §7, §8.1.
+ *
+ * L'action ne fait que lire les champs répétés et transmettre. Elle ne teste
+ * ni l'ordre, ni la croissance des kilomètres, ni la présence d'un départ :
+ * `setRaceWaypoints` les vérifie, et la base réécrit la chaîne et enfile la
+ * relance du prétraitement dans la même transaction.
+ */
+export async function setRaceWaypointsAction(
+  _previous: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const context = courseContext(await requireSession('/'));
+  const raceId = text(form, 'raceId');
+
+  try {
+    await setRaceWaypoints(context, raceWaypointsCommand(form));
   } catch (error) {
     return actionFailure(error);
   }

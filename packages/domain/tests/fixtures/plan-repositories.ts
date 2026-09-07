@@ -69,9 +69,33 @@ export const SEG1 = 'ffff0000-0000-4000-8000-000000000021';
  */
 export function planBaseState(participation: ParticipationState, raceId: string): PlanState {
   const waypoints: RaceWaypointRecord[] = [
-    { id: WP0, raceId, name: 'Départ', sortOrder: 0, distanceKm: 0, altitudeM: 900 },
-    { id: WP1, raceId, name: 'Col du Test', sortOrder: 1, distanceKm: 5, altitudeM: 1400 },
-    { id: WP2, raceId, name: 'Arrivée', sortOrder: 2, distanceKm: 10, altitudeM: 900 },
+    {
+      id: WP0,
+      raceId,
+      name: 'Départ',
+      sortOrder: 0,
+      distanceKm: 0,
+      waypointType: 'start',
+      altitudeM: 900,
+    },
+    {
+      id: WP1,
+      raceId,
+      name: 'Col du Test',
+      sortOrder: 1,
+      distanceKm: 5,
+      waypointType: 'aid_station',
+      altitudeM: 1400,
+    },
+    {
+      id: WP2,
+      raceId,
+      name: 'Arrivée',
+      sortOrder: 2,
+      distanceKm: 10,
+      waypointType: 'finish',
+      altitudeM: 900,
+    },
   ];
 
   const segments: RaceSegmentRecord[] = [

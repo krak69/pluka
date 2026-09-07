@@ -234,8 +234,22 @@ export interface CoursePreprocessingInput {
   };
 }
 
+/**
+ * Géométrie courante d'une épreuve et fichier dont elle provient.
+ *
+ * Le prétraitement repart de la trace, que 0008 ne persiste pas point par
+ * point : rejouer l'étape 9 de §8.1 — le raccordement des waypoints — suppose
+ * de relire le GPX.
+ */
+export interface RaceCourseSource {
+  readonly courseGeometryId: string;
+  readonly storagePath: string;
+}
+
 export interface CoursePreprocessingStore {
   readInput(raceId: string): Promise<CoursePreprocessingInput>;
+  /** Nul quand l'épreuve n'a pas encore de géométrie : rien à prétraiter. */
+  findCourseSource(raceId: string): Promise<RaceCourseSource | null>;
   /** Rend le nombre de micro-segments écrits. */
   persist(
     courseGeometryId: string,

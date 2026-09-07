@@ -68,6 +68,21 @@ export {
 } from './course/commands.js';
 
 export {
+  AUTHORED_WAYPOINT_TYPES,
+  checkWaypointChain,
+  getRaceWaypoints,
+  getRaceWaypointsQuerySchema,
+  setRaceWaypoints,
+  setRaceWaypointsCommandSchema,
+  type AuthoredWaypointType,
+  type GetRaceWaypointsQuery,
+  type RaceWaypointCommandEntry,
+  type RaceWaypointView,
+  type SetRaceWaypointsCommand,
+  type WaypointChainVerdict,
+} from './course/waypoints.js';
+
+export {
   courseQuality,
   getRaceGpxImport,
   getRaceGpxImportQuerySchema,

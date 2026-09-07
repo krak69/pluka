@@ -1,6 +1,9 @@
 import { raceGpxStoragePath } from '@pluka/db';
 import type {
   CourseRepositories,
+  RaceCutoffRecord,
+  RaceWaypointRecord,
+  SetRaceWaypointsResult,
   GpxRepositories,
   RaceGpxImportRecord,
   EditionRecord,
@@ -36,6 +39,8 @@ export interface FakeState {
   events: EventRecord[];
   editions: EditionRecord[];
   races: RaceRecord[];
+  waypoints: RaceWaypointRecord[];
+  cutoffs: RaceCutoffRecord[];
   transitions: RaceStatusTransitionRecord[];
   eventTransitions: EventStatusTransitionRecord[];
   editionTransitions: EditionStatusTransitionRecord[];
@@ -133,6 +138,8 @@ export function baseState(overrides: Partial<FakeState> = {}): FakeState {
         publicVisibility: 'private',
       },
     ],
+    waypoints: [],
+    cutoffs: [],
     transitions: [],
     eventTransitions: [],
     editionTransitions: [],
@@ -343,6 +350,67 @@ export function createFakeRepositories(state: FakeState): CourseRepositories {
         });
 
         return updated;
+      },
+    },
+
+    waypoints: {
+      listByRace: async (raceId) =>
+        state.waypoints
+          .filter((waypoint) => waypoint.raceId === raceId)
+          .sort((left, right) => left.sortOrder - right.sortOrder),
+      listCutoffsByRace: async (raceId) =>
+        state.cutoffs.filter((cutoff) => cutoff.raceId === raceId),
+      replace: async (raceId, wanted) => {
+        // `set_race_waypoints` réécrit la chaîne entière : le fake fait de
+        // même, sans quoi les tests d'ordre ne prouveraient rien. Les segments
+        // n'y figurent pas — ils sont dérivés côté base, et aucun use case ne
+        // les lit.
+        const kept = new Set(
+          wanted.map((entry) => entry.id).filter((id): id is string => id !== undefined),
+        );
+
+        state.waypoints = state.waypoints.filter(
+          (waypoint) => waypoint.raceId !== raceId || kept.has(waypoint.id),
+        );
+        state.cutoffs = state.cutoffs.filter((cutoff) => cutoff.raceId !== raceId);
+
+        wanted.forEach((entry, index) => {
+          const id = entry.id ?? nextId('cafe0000-0000-4000-8000-');
+          const record: RaceWaypointRecord = {
+            id,
+            raceId,
+            name: entry.name,
+            waypointType: entry.waypointType,
+            distanceKm: entry.distanceKm,
+            sortOrder: index + 1,
+            altitudeM: null,
+          };
+
+          const existing = state.waypoints.findIndex((waypoint) => waypoint.id === id);
+          if (existing < 0) state.waypoints.push(record);
+          else state.waypoints[existing] = record;
+
+          if (entry.cutoffAt !== null && entry.cutoffAt !== undefined) {
+            state.cutoffs.push({
+              id: nextId('beef0000-0000-4000-8000-'),
+              raceId,
+              raceWaypointId: id,
+              cutoffDatetime: entry.cutoffAt,
+              cutoffType: 'hard',
+              basis: 'arrival',
+            });
+          }
+        });
+
+        const geometryId = null;
+        const result: SetRaceWaypointsResult = {
+          raceId,
+          waypointCount: wanted.length,
+          courseGeometryId: geometryId,
+          preprocessingRequested: geometryId !== null,
+        };
+
+        return result;
       },
     },
 

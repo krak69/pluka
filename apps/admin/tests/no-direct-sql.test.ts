@@ -78,6 +78,9 @@ describe('aucune requête directe', () => {
       'source_snapshots',
       'race_course_geometries',
       'race_course_micro_segments',
+      'race_waypoints',
+      'race_segments',
+      'race_cutoffs',
       'ingestion_jobs',
       'outbox_events',
     ];
@@ -142,6 +145,7 @@ describe('autorisations', () => {
       'app/courses/[raceId]/page.tsx',
       'app/courses/[raceId]/revue/page.tsx',
       'app/courses/[raceId]/gpx-import-status.tsx',
+      'app/courses/[raceId]/waypoints-form.tsx',
     ];
 
     for (const screen of screens) {
@@ -168,6 +172,10 @@ describe('fonctions SQL', () => {
       'enqueue_race_gpx',
       'get_race_gpx_import',
       'get_course_preprocessing_input',
+      // 0025 : la réécriture du référentiel de parcours est atomique côté
+      // base. Un écran qui l'appellerait par son nom aurait court-circuité les
+      // invariants de chaîne de PLAN_ENGINE §7.
+      'set_race_waypoints',
     ];
 
     const offenders = sourceFiles().flatMap((moduleId) => {
@@ -177,6 +185,29 @@ describe('fonctions SQL', () => {
     });
 
     expect(offenders, 'fonction SQL appelée depuis l’application').toEqual([]);
+  });
+});
+
+describe('référentiel de parcours', () => {
+  it('ne dérive aucun segment dans l’application', () => {
+    // Les segments sont les intervalles entre waypoints consécutifs, et
+    // `set_race_waypoints` les produit. Les recalculer ici créerait une
+    // seconde vérité, qui divergerait de celle que le moteur relit (§7.5).
+    const offenders = sourceFiles().filter((moduleId) =>
+      /fromWaypointId|toWaypointId|segment_type/.test(withoutComments(read(moduleId))),
+    );
+
+    expect(offenders, 'segment construit dans l’application').toEqual([]);
+  });
+
+  it('ne fabrique aucun rang de waypoint', () => {
+    // L'ordre du document fait le rang. Un `sortOrder` calculé côté écran
+    // serait une seconde façon d'exprimer l'ordre — et la première à diverger.
+    const offenders = sourceFiles().filter((moduleId) =>
+      /sortOrder\s*[:=]|sort_order/.test(withoutComments(read(moduleId))),
+    );
+
+    expect(offenders, 'rang calculé dans l’application').toEqual([]);
   });
 });
 

@@ -5523,6 +5523,10 @@ export type Database = {
           version_number: number
         }[]
       }
+      set_race_waypoints: {
+        Args: { p_race_id: string; p_waypoints: Json }
+        Returns: Json
+      }
       worker_analyze_change_impact: {
         Args: { p_change_event_id: string }
         Returns: number
@@ -5637,6 +5641,7 @@ export type Database = {
         }
         Returns: string
       }
+      worker_race_course_source: { Args: { p_race_id: string }; Returns: Json }
       worker_read_blocks: {
         Args: { p_snapshot_id: string }
         Returns: {
