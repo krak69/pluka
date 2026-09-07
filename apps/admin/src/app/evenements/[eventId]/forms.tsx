@@ -31,10 +31,36 @@ export function CreateEditionForm({ eventId }: { readonly eventId: string }) {
     <form action={action} style={{ display: 'grid', gap: 'var(--space-5)', maxWidth: '32rem' }}>
       <input type="hidden" name="eventId" value={eventId} />
 
-      <Input id="edition-year" name="year" label="Année" type="number" required />
-      <Input id="edition-slug" name="slug" label="Slug" required />
-      <Input id="edition-start" name="startDate" label="Date de début" type="date" required />
-      <Input id="edition-end" name="endDate" label="Date de fin" type="date" />
+      <Input
+        id="edition-year"
+        name="year"
+        label="Année"
+        type="number"
+        required
+        error={state.fieldErrors?.['year']}
+      />
+      <Input
+        id="edition-slug"
+        name="slug"
+        label="Slug"
+        required
+        error={state.fieldErrors?.['slug']}
+      />
+      <Input
+        id="edition-start"
+        name="startDate"
+        label="Date de début"
+        type="date"
+        required
+        error={state.fieldErrors?.['startDate']}
+      />
+      <Input
+        id="edition-end"
+        name="endDate"
+        label="Date de fin"
+        type="date"
+        error={state.fieldErrors?.['endDate']}
+      />
 
       <div>
         <button type="submit" className="pk-btn pk-button-primary" disabled={pending}>
@@ -61,8 +87,20 @@ export function CreateRaceForm({
       <input type="hidden" name="editionId" value={editionId} />
       <input type="hidden" name="eventId" value={eventId} />
 
-      <Input id={`race-name-${editionId}`} name="name" label="Nom" required />
-      <Input id={`race-slug-${editionId}`} name="slug" label="Slug" required />
+      <Input
+        id={`race-name-${editionId}`}
+        name="name"
+        label="Nom"
+        required
+        error={state.fieldErrors?.['name']}
+      />
+      <Input
+        id={`race-slug-${editionId}`}
+        name="slug"
+        label="Slug"
+        required
+        error={state.fieldErrors?.['slug']}
+      />
       <Input
         id={`race-distance-${editionId}`}
         name="distanceKm"
@@ -70,6 +108,7 @@ export function CreateRaceForm({
         type="number"
         step="0.01"
         required
+        error={state.fieldErrors?.['distanceKm']}
       />
       <Input
         id={`race-start-${editionId}`}
@@ -77,12 +116,14 @@ export function CreateRaceForm({
         label="Départ (ISO 8601 avec décalage)"
         required
         hint="Exemple : 2026-06-20T04:00:00Z"
+        error={state.fieldErrors?.['startDatetime']}
       />
       <Input
         id={`race-cutoff-${editionId}`}
         name="cutoffDatetime"
         label="Barrière finale"
         hint="Facultative. Doit suivre le départ."
+        error={state.fieldErrors?.['cutoffDatetime']}
       />
       <Input
         id={`race-timezone-${editionId}`}
@@ -91,9 +132,22 @@ export function CreateRaceForm({
         defaultValue="Europe/Paris"
         required
         hint="Structurant pour les heures de passage et les Conditions."
+        error={state.fieldErrors?.['timezone']}
       />
-      <Input id={`race-gain-${editionId}`} name="elevationGainM" label="D+ (m)" type="number" />
-      <Input id={`race-loss-${editionId}`} name="elevationLossM" label="D- (m)" type="number" />
+      <Input
+        id={`race-gain-${editionId}`}
+        name="elevationGainM"
+        label="D+ (m)"
+        type="number"
+        error={state.fieldErrors?.['elevationGainM']}
+      />
+      <Input
+        id={`race-loss-${editionId}`}
+        name="elevationLossM"
+        label="D- (m)"
+        type="number"
+        error={state.fieldErrors?.['elevationLossM']}
+      />
 
       <div>
         <button type="submit" className="pk-btn pk-button-primary" disabled={pending}>

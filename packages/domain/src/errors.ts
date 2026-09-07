@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 /**
  * Erreurs de domaine.
  *
@@ -54,6 +56,75 @@ export function validationError(
     message,
     ...(details === undefined ? {} : { details }),
   });
+}
+
+/**
+ * Messages de validation en français.
+ *
+ * Passé à chaque `safeParse` plutôt qu'installé globalement par `z.config()` :
+ * ce paquet est une bibliothèque, et changer une configuration partagée
+ * depuis un import affecterait tout le processus — worker compris.
+ *
+ * Un message écrit dans un schéma reste prioritaire : Zod préfère toujours
+ * l'`error` du schéma à celui de la locale. « slug attendu en minuscules,
+ * tirets simples » survit donc à cette traduction.
+ */
+const FRENCH_ISSUES = z.locales.fr().localeError;
+
+/**
+ * Valide l'entrée d'un use case — étape 1 de 01_ARCHITECTURE §7.
+ *
+ * Remplace `schema.parse()`, dont la `ZodError` n'est pas une erreur de
+ * domaine : elle traverse la couche appelante sans être reconnue, et celle-ci,
+ * qui ne sait traduire que des codes de refus, la reçoit comme une panne. Un
+ * formulaire dont un champ est invalide affichait donc « une erreur inattendue
+ * est survenue », sans dire lequel.
+ *
+ * Le refus rendu ici est un `validation` ordinaire, et son `details` nomme le
+ * champ fautif — c'est ce qui permet à un écran de rattacher le message à
+ * l'`Input` concerné plutôt qu'au formulaire entier.
+ */
+export function parseCommand<TSchema extends z.ZodType>(
+  schema: TSchema,
+  input: unknown,
+  useCase: string,
+): z.output<TSchema> {
+  const result = schema.safeParse(input, { error: FRENCH_ISSUES });
+  if (result.success) return result.data;
+
+  throw validationErrorOf(useCase, result.error.issues);
+}
+
+/**
+ * Refus de validation construit à partir des problèmes signalés par Zod.
+ *
+ * Un seul message par champ : Zod en produit parfois plusieurs pour la même
+ * saisie — type, puis longueur — et les empiler n'aide personne. Le premier
+ * est celui qui décrit la cause.
+ *
+ * Les problèmes sans chemin — un `refine` porté par l'objet entier, comme
+ * « aucune modification demandée » — n'ont aucun champ à nommer : ils entrent
+ * dans le message, pas dans `details`.
+ */
+function validationErrorOf(useCase: string, issues: readonly z.core.$ZodIssue[]): DomainError {
+  const details: Record<string, string> = {};
+  const parts: string[] = [];
+
+  for (const issue of issues) {
+    const field = issue.path.map(String).join('.');
+
+    if (field === '') {
+      parts.push(issue.message);
+      continue;
+    }
+
+    if (details[field] !== undefined) continue;
+
+    details[field] = issue.message;
+    parts.push(`${field} : ${issue.message}`);
+  }
+
+  return validationError(useCase, parts.join(' ; '), details);
 }
 
 /**

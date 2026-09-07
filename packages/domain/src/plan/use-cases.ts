@@ -18,7 +18,7 @@ import {
 import type { Actor } from '../authorization/organization-role.js';
 import type { Capability } from '../entitlements/capabilities.js';
 import { authorizeCapability } from '../entitlements/use-cases.js';
-import { invalidStateError, notFoundError } from '../errors.js';
+import { invalidStateError, notFoundError, parseCommand } from '../errors.js';
 import {
   changePlanTargetCommandSchema,
   generateRacePlanCommandSchema,
@@ -284,7 +284,7 @@ export async function generateRacePlan(
   input: unknown,
 ): Promise<PlanCommandResult> {
   const useCase = 'generateRacePlan';
-  const command = generateRacePlanCommandSchema.parse(input);
+  const command = parseCommand(generateRacePlanCommandSchema, input, useCase);
 
   await authorize(context, 'plan.generate_initial', command.participantRaceId);
 
@@ -323,7 +323,7 @@ export async function changePlanTarget(
   input: unknown,
 ): Promise<PlanCommandResult> {
   const useCase = 'changePlanTarget';
-  const command = changePlanTargetCommandSchema.parse(input);
+  const command = parseCommand(changePlanTargetCommandSchema, input, useCase);
 
   await authorize(context, 'plan.edit', command.participantRaceId);
 
@@ -351,7 +351,7 @@ export async function updatePlanSegmentDuration(
   input: unknown,
 ): Promise<PlanCommandResult> {
   const useCase = 'updatePlanSegmentDuration';
-  const command = updatePlanSegmentDurationCommandSchema.parse(input);
+  const command = parseCommand(updatePlanSegmentDurationCommandSchema, input, useCase);
 
   return editPlan(context, useCase, command.participantRaceId, command.mode, (constraints) => ({
     ...constraints,
@@ -370,7 +370,7 @@ export async function removePlanSegmentOverride(
   input: unknown,
 ): Promise<PlanCommandResult> {
   const useCase = 'removePlanSegmentOverride';
-  const command = removePlanSegmentOverrideCommandSchema.parse(input);
+  const command = parseCommand(removePlanSegmentOverrideCommandSchema, input, useCase);
 
   return editPlan(context, useCase, command.participantRaceId, command.mode, (constraints) => ({
     ...constraints,
@@ -386,7 +386,7 @@ export async function updatePlanStop(
   input: unknown,
 ): Promise<PlanCommandResult> {
   const useCase = 'updatePlanStop';
-  const command = updatePlanStopCommandSchema.parse(input);
+  const command = parseCommand(updatePlanStopCommandSchema, input, useCase);
 
   return editPlan(context, useCase, command.participantRaceId, command.mode, (constraints) => ({
     ...constraints,
@@ -411,7 +411,7 @@ export async function lockPlanWaypoint(
   input: unknown,
 ): Promise<PlanCommandResult> {
   const useCase = 'lockPlanWaypoint';
-  const command = lockPlanWaypointCommandSchema.parse(input);
+  const command = parseCommand(lockPlanWaypointCommandSchema, input, useCase);
 
   return editPlan(context, useCase, command.participantRaceId, command.mode, (constraints) => ({
     ...constraints,
@@ -431,7 +431,7 @@ export async function unlockPlanWaypoint(
   input: unknown,
 ): Promise<PlanCommandResult> {
   const useCase = 'unlockPlanWaypoint';
-  const command = unlockPlanWaypointCommandSchema.parse(input);
+  const command = parseCommand(unlockPlanWaypointCommandSchema, input, useCase);
 
   return editPlan(context, useCase, command.participantRaceId, command.mode, (constraints) => ({
     ...constraints,
@@ -449,7 +449,7 @@ export async function rebalancePlanToTarget(
   context: PlanContext,
   input: unknown,
 ): Promise<PlanCommandResult> {
-  const command = rebalancePlanToTargetCommandSchema.parse(input);
+  const command = parseCommand(rebalancePlanToTargetCommandSchema, input, 'rebalancePlanToTarget');
 
   return recalculate(
     context,
@@ -471,7 +471,7 @@ export async function preserveCurrentPlan(
   context: PlanContext,
   input: unknown,
 ): Promise<PlanCommandResult> {
-  const command = preserveCurrentPlanCommandSchema.parse(input);
+  const command = parseCommand(preserveCurrentPlanCommandSchema, input, 'preserveCurrentPlan');
 
   return recalculate(
     context,
@@ -493,7 +493,7 @@ export async function resetPlanScope(
   input: unknown,
 ): Promise<PlanCommandResult> {
   const useCase = 'resetPlanScope';
-  const command = resetPlanScopeCommandSchema.parse(input);
+  const command = parseCommand(resetPlanScopeCommandSchema, input, useCase);
   const { scope } = command;
 
   return editPlan(context, useCase, command.participantRaceId, command.mode, (constraints) => {
@@ -537,7 +537,7 @@ export async function previewPlan(
   input: unknown,
 ): Promise<PlanCommandResult> {
   const useCase = 'previewPlan';
-  const query = previewPlanQuerySchema.parse(input);
+  const query = parseCommand(previewPlanQuerySchema, input, useCase);
 
   await authorize(context, 'plan.read', query.participantRaceId);
 
@@ -565,7 +565,7 @@ export async function previewPlan(
 /** Lecture du Plan actif et de ses dépendances de faits (§36, §38.5). */
 export async function getActivePlan(context: PlanContext, input: unknown): Promise<ActivePlanView> {
   const useCase = 'getActivePlan';
-  const query = getActivePlanQuerySchema.parse(input);
+  const query = parseCommand(getActivePlanQuerySchema, input, useCase);
 
   await authorize(context, 'plan.read', query.participantRaceId);
 
@@ -586,7 +586,7 @@ export async function listPlanVersions(
   context: PlanContext,
   input: unknown,
 ): Promise<readonly RacePlanRecord[]> {
-  const query = listPlanVersionsQuerySchema.parse(input);
+  const query = parseCommand(listPlanVersionsQuerySchema, input, 'listPlanVersions');
 
   await authorize(context, 'plan.read', query.participantRaceId);
 

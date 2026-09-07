@@ -19,6 +19,7 @@ import {
   forbiddenError,
   invalidStateError,
   notFoundError,
+  parseCommand,
   validationError,
 } from '../errors.js';
 import {
@@ -100,7 +101,7 @@ export async function loadRaceScope(
 
 export async function createEvent(context: CourseContext, input: unknown): Promise<EventRecord> {
   const useCase = 'createEvent';
-  const command = createEventCommandSchema.parse(input);
+  const command = parseCommand(createEventCommandSchema, input, useCase);
 
   await assertOrganizationRole(
     context.repositories,
@@ -125,7 +126,7 @@ export async function createEdition(
   input: unknown,
 ): Promise<EditionRecord> {
   const useCase = 'createEdition';
-  const command = createEditionCommandSchema.parse(input);
+  const command = parseCommand(createEditionCommandSchema, input, useCase);
 
   const event = await context.repositories.events.findById(command.eventId);
   if (event === null) throw notFoundError(useCase, 'événement');
@@ -158,7 +159,7 @@ export async function createEdition(
 
 export async function createRace(context: CourseContext, input: unknown): Promise<RaceRecord> {
   const useCase = 'createRace';
-  const command = createRaceCommandSchema.parse(input);
+  const command = parseCommand(createRaceCommandSchema, input, useCase);
 
   const edition = await context.repositories.editions.findById(command.editionId);
   if (edition === null) throw notFoundError(useCase, 'édition');
@@ -208,7 +209,7 @@ export async function createRace(context: CourseContext, input: unknown): Promis
 
 export async function updateRace(context: CourseContext, input: unknown): Promise<RaceRecord> {
   const useCase = 'updateRace';
-  const command = updateRaceCommandSchema.parse(input);
+  const command = parseCommand(updateRaceCommandSchema, input, useCase);
 
   const scope = await loadRaceScope(context.repositories, command.raceId, useCase);
 
@@ -294,7 +295,7 @@ export async function changeRaceStatus(
   input: unknown,
 ): Promise<RaceRecord> {
   const useCase = 'changeRaceStatus';
-  const command = changeRaceStatusCommandSchema.parse(input);
+  const command = parseCommand(changeRaceStatusCommandSchema, input, useCase);
 
   const scope = await loadRaceScope(context.repositories, command.raceId, useCase);
 
@@ -384,7 +385,7 @@ async function assertRestoresPreviousStatus(
 
 /** Raccourci de `changeRaceStatus` vers `published`, transition la plus courante. */
 export async function publishRace(context: CourseContext, input: unknown): Promise<RaceRecord> {
-  const command = publishRaceCommandSchema.parse(input);
+  const command = parseCommand(publishRaceCommandSchema, input, 'publishRace');
 
   return changeRaceStatus(context, { raceId: command.raceId, status: 'published' });
 }
@@ -394,7 +395,7 @@ export async function setRaceVisibility(
   input: unknown,
 ): Promise<RaceRecord> {
   const useCase = 'setRaceVisibility';
-  const command = setRaceVisibilityCommandSchema.parse(input);
+  const command = parseCommand(setRaceVisibilityCommandSchema, input, useCase);
 
   const scope = await loadRaceScope(context.repositories, command.raceId, useCase);
 
@@ -427,7 +428,7 @@ export async function getRaceOverview(
   input: unknown,
 ): Promise<RaceOverview> {
   const useCase = 'getRaceOverview';
-  const query = getRaceOverviewQuerySchema.parse(input);
+  const query = parseCommand(getRaceOverviewQuerySchema, input, useCase);
 
   const scope = await loadRaceScope(context.repositories, query.raceId, useCase);
   const publiclyReadable = isRacePubliclyReadable(scope.race, scope.edition, scope.event);
@@ -456,7 +457,7 @@ export async function listRaceStatusHistory(
   input: unknown,
 ): Promise<readonly RaceStatusTransitionRecord[]> {
   const useCase = 'listRaceStatusHistory';
-  const query = listRaceStatusHistoryQuerySchema.parse(input);
+  const query = parseCommand(listRaceStatusHistoryQuerySchema, input, useCase);
 
   const scope = await loadRaceScope(context.repositories, query.raceId, useCase);
 

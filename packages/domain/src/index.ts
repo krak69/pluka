@@ -113,6 +113,7 @@ export {
   forbiddenError,
   invalidStateError,
   notFoundError,
+  parseCommand,
   validationError,
   type DomainErrorCode,
   type DomainErrorParams,

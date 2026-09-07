@@ -3,7 +3,7 @@ import type { ParticipationRepositories, ProfileRepositories } from '@pluka/db';
 
 import type { Actor } from '../authorization/organization-role.js';
 import { loadRaceScope } from '../course/use-cases.js';
-import { notFoundError } from '../errors.js';
+import { notFoundError, parseCommand } from '../errors.js';
 import { checkRaceAttachment } from '../participation/invariants.js';
 import { computeOnboarding, type OnboardingSnapshot, type OnboardingState } from './progress.js';
 
@@ -54,7 +54,7 @@ export async function getOnboardingState(
   input: unknown,
 ): Promise<OnboardingState> {
   const useCase = 'getOnboardingState';
-  const query = getOnboardingStateQuerySchema.parse(input);
+  const query = parseCommand(getOnboardingStateQuerySchema, input, useCase);
 
   const scope = await loadRaceScope(context.repositories, query.raceId, useCase);
 

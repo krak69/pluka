@@ -1,7 +1,7 @@
 import type { EditionRecord, EventRecord, RaceRecord, RaceStatusTransitionRecord } from '@pluka/db';
 
 import { assertPlatformAdmin } from '../authorization/organization-role.js';
-import { notFoundError } from '../errors.js';
+import { notFoundError, parseCommand } from '../errors.js';
 import {
   getEditionAdministrationQuerySchema,
   getEventAdministrationQuerySchema,
@@ -44,7 +44,7 @@ export async function listEventsForAdministration(
   input: unknown,
 ): Promise<readonly EventRecord[]> {
   const useCase = 'listEventsForAdministration';
-  const query = listEventsForAdministrationQuerySchema.parse(input);
+  const query = parseCommand(listEventsForAdministrationQuerySchema, input, useCase);
 
   await assertPlatformAdmin(context.repositories, context.actor, useCase);
 
@@ -56,7 +56,7 @@ export async function getEventAdministration(
   input: unknown,
 ): Promise<EventAdministration> {
   const useCase = 'getEventAdministration';
-  const query = getEventAdministrationQuerySchema.parse(input);
+  const query = parseCommand(getEventAdministrationQuerySchema, input, useCase);
 
   await assertPlatformAdmin(context.repositories, context.actor, useCase);
 
@@ -71,7 +71,7 @@ export async function getEditionAdministration(
   input: unknown,
 ): Promise<EditionAdministration> {
   const useCase = 'getEditionAdministration';
-  const query = getEditionAdministrationQuerySchema.parse(input);
+  const query = parseCommand(getEditionAdministrationQuerySchema, input, useCase);
 
   await assertPlatformAdmin(context.repositories, context.actor, useCase);
 
@@ -105,7 +105,7 @@ export async function getRaceAdministration(
   input: unknown,
 ): Promise<RaceAdministration> {
   const useCase = 'getRaceAdministration';
-  const query = getRaceAdministrationQuerySchema.parse(input);
+  const query = parseCommand(getRaceAdministrationQuerySchema, input, useCase);
 
   await assertPlatformAdmin(context.repositories, context.actor, useCase);
 

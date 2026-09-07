@@ -19,8 +19,14 @@ import { classNames } from '../internal/class-names.js';
 export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> {
   readonly id: string;
   readonly label: string;
-  readonly hint?: string;
-  readonly error?: string;
+  readonly hint?: string | undefined;
+  /**
+   * `| undefined` explicite : sous `exactOptionalPropertyTypes`, un écran qui
+   * lit son erreur dans un état d'action — `state.fieldErrors?.[name]` — passe
+   * une valeur qui peut être absente. Sans cette signature, il devrait
+   * construire ses props conditionnellement pour dire « ce champ va bien ».
+   */
+  readonly error?: string | undefined;
 }
 
 export function Input({ id, label, hint, error, className, ...rest }: InputProps) {

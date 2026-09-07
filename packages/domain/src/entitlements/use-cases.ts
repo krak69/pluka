@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { EntitlementRepositories } from '@pluka/db';
 
 import type { Actor } from '../authorization/organization-role.js';
-import { notFoundError } from '../errors.js';
+import { notFoundError, parseCommand } from '../errors.js';
 import { CAPABILITIES, type Capability } from './capabilities.js';
 import { EntitlementError } from './errors.js';
 import {
@@ -145,7 +145,7 @@ export async function resolveEntitlements(
   input: unknown = {},
 ): Promise<EntitlementContext> {
   const useCase = 'resolveEntitlements';
-  const query = resolveEntitlementsQuerySchema.parse(input);
+  const query = parseCommand(resolveEntitlementsQuerySchema, input, useCase);
 
   return loadContext(context, query.participantRaceId, useCase);
 }
@@ -166,7 +166,7 @@ export async function authorizeCapability(
   input: unknown,
 ): Promise<EntitlementDecision> {
   const useCase = 'authorizeCapability';
-  const command = authorizeCapabilityCommandSchema.parse(input);
+  const command = parseCommand(authorizeCapabilityCommandSchema, input, useCase);
 
   const resolved = await loadContext(context, command.participantRaceId, useCase);
   const decision = can(resolved, command.capability);
@@ -196,7 +196,7 @@ export async function consumeLinkedOutingQuota(
   input: unknown,
 ): Promise<EntitlementDecision> {
   const useCase = 'consumeLinkedOutingQuota';
-  const command = consumeLinkedOutingQuotaCommandSchema.parse(input);
+  const command = parseCommand(consumeLinkedOutingQuotaCommandSchema, input, useCase);
 
   const resolved = await loadContext(context, command.participantRaceId, useCase);
   const decision = can(resolved, QUOTA_CAPABILITY);

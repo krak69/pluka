@@ -6,7 +6,13 @@ import type {
 } from '@pluka/db';
 
 import type { Actor } from '../authorization/organization-role.js';
-import { conflictError, forbiddenError, invalidStateError, notFoundError } from '../errors.js';
+import {
+  conflictError,
+  forbiddenError,
+  invalidStateError,
+  notFoundError,
+  parseCommand,
+} from '../errors.js';
 import {
   decideFactCandidateCommandSchema,
   listCandidatesForReviewQuerySchema,
@@ -87,7 +93,7 @@ export async function listCandidatesForReview(
   context: FactReviewContext,
   input: unknown,
 ): Promise<readonly FactCandidateReviewRecord[]> {
-  const parsed = listCandidatesForReviewQuerySchema.parse(input);
+  const parsed = parseCommand(listCandidatesForReviewQuerySchema, input, 'listCandidatesForReview');
 
   return context.repositories.factReview.listForReview(parsed.raceId, parsed.limit);
 }
@@ -103,7 +109,7 @@ export async function publishFactCandidate(
   input: unknown,
 ): Promise<PublishedFactRecord> {
   const useCase = 'publishFactCandidate';
-  const parsed = publishFactCommandSchema.parse(input);
+  const parsed = parseCommand(publishFactCommandSchema, input, useCase);
 
   const { scope, authority } = await loadReviewScope(context, parsed.candidateId, useCase);
 
@@ -162,7 +168,7 @@ export async function decideFactCandidate(
   input: unknown,
 ): Promise<FactCandidateScopeRecord['status']> {
   const useCase = 'decideFactCandidate';
-  const parsed = decideFactCandidateCommandSchema.parse(input);
+  const parsed = parseCommand(decideFactCandidateCommandSchema, input, useCase);
 
   const { scope } = await loadReviewScope(context, parsed.candidateId, useCase);
 

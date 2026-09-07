@@ -1,5 +1,15 @@
-import { createCourseRepositories, createFactRepositories } from '@pluka/db';
-import { DomainError, type CourseContext, type FactReviewContext } from '@pluka/domain';
+import {
+  DbError,
+  createCourseRepositories,
+  createFactRepositories,
+  type DbErrorCode,
+} from '@pluka/db';
+import {
+  DomainError,
+  type CourseContext,
+  type DomainErrorCode,
+  type FactReviewContext,
+} from '@pluka/domain';
 import { notFound, redirect } from 'next/navigation';
 
 import { requireSession, type Session } from '@/lib/session';
@@ -64,21 +74,101 @@ export function redirectOnDomainError(error: unknown): never {
   throw error;
 }
 
-/** Message affichable d'une erreur de domaine, sans détail interne. */
+const UNEXPECTED = 'Une erreur inattendue est survenue.';
+
+/**
+ * Refus du domaine, par code.
+ *
+ * `forbidden` ne se complète d'aucun détail : `forbiddenError` n'en porte
+ * volontairement pas — dire *sur quoi* le droit manque confirmerait
+ * l'existence de l'objet visé (03_PRIVACY_RLS §120). La phrase dit donc quoi
+ * faire, pas ce qui a été refusé.
+ */
+const DOMAIN_MESSAGES: Readonly<Record<DomainErrorCode, string>> = {
+  validation: 'Les informations saisies sont invalides.',
+  forbidden: 'Action non autorisée : votre compte n’a pas ce droit.',
+  not_found: 'Objet introuvable.',
+  conflict: 'Cette valeur est déjà utilisée.',
+  invalid_state: 'Cette transition n’est pas autorisée dans l’état actuel.',
+};
+
+/**
+ * Refus de la base — 03_PRIVACY_RLS §8.
+ *
+ * Une `DbError` n'est pas une panne : une policy RLS qui refuse une écriture,
+ * une contrainte d'unicité violée, sont des réponses. Les laisser tomber dans
+ * le message générique rendait indiscernables « la base a dit non » et « le
+ * serveur a cassé » — c'est-à-dire précisément le diagnostic qu'un écran doit
+ * permettre.
+ *
+ * Les codes absents de cette table — `unknown`, `invalid_configuration` — sont
+ * les seuls qui restent génériques, et ce sont bien des pannes.
+ */
+const DB_MESSAGES: Partial<Readonly<Record<DbErrorCode, string>>> = {
+  permission_denied: 'Action non autorisée : la base a refusé l’opération.',
+  conflict: 'Cette valeur est déjà utilisée.',
+  constraint_violation: 'Les informations saisies violent une contrainte de la base.',
+  not_found: 'Objet introuvable.',
+  unavailable: 'Base de données momentanément indisponible. Réessayez.',
+};
+
+/** Message affichable d'une erreur, sans détail interne. */
 export function domainErrorMessage(error: unknown): string {
-  if (!(error instanceof DomainError)) return 'Une erreur inattendue est survenue.';
+  if (error instanceof DomainError) {
+    return `${DOMAIN_MESSAGES[error.code]} ${reason(error)}`.trim();
+  }
 
-  const messages: Readonly<Record<DomainError['code'], string>> = {
-    validation: 'Les informations saisies sont invalides.',
-    forbidden: 'Action non autorisée.',
-    not_found: 'Objet introuvable.',
-    conflict: 'Cette valeur est déjà utilisée.',
-    invalid_state: 'Cette transition n’est pas autorisée dans l’état actuel.',
-  };
+  if (error instanceof DbError) return DB_MESSAGES[error.code] ?? UNEXPECTED;
 
-  // Le message du domaine est déjà rédigé pour être lu — il ne contient ni
-  // requête, ni identifiant technique (AGENTS : jamais d'erreur brute).
-  return `${messages[error.code]} ${error.message.replace(/^\[[^\]]+\]\s*\w+\s*:\s*/, '')}`.trim();
+  return UNEXPECTED;
+}
+
+/**
+ * Partie lisible du message de domaine.
+ *
+ * `DomainError` préfixe son message du use case et du code — utile en logs,
+ * illisible dans un formulaire. Le préfixe saute ; `forbidden`, dont le
+ * message n'est que « action non autorisée », n'ajouterait qu'une redite.
+ */
+function reason(error: DomainError): string {
+  if (error.code === 'forbidden') return '';
+
+  return error.message.replace(/^\[[^\]]+\]\s*\w+\s*:\s*/, '');
+}
+
+/**
+ * Réponse d'une Server Action qui a échoué.
+ *
+ * `fieldErrors` porte les refus de validation champ par champ, tels que
+ * `parseCommand` les a nommés. C'est ce qui permet à un formulaire de poser le
+ * message contre l'`Input` fautif (06_DESIGN_SYSTEM §35) au lieu de renvoyer
+ * l'utilisateur à une phrase unique valable pour tout l'écran.
+ *
+ * Une erreur qu'aucune couche n'a nommée reste générique côté écran, mais elle
+ * est journalisée : sans cette trace, un refus inattendu ne laisse rien à
+ * diagnostiquer.
+ */
+export interface ActionFailure {
+  readonly error: string;
+  readonly fieldErrors?: Readonly<Record<string, string>>;
+}
+
+export function actionFailure(error: unknown): ActionFailure {
+  if (!(error instanceof DomainError) && !(error instanceof DbError)) {
+    console.error('Server Action : erreur non traduite', error);
+  }
+
+  const fieldErrors = validationFields(error);
+
+  return fieldErrors === undefined
+    ? { error: domainErrorMessage(error) }
+    : { error: domainErrorMessage(error), fieldErrors };
+}
+
+function validationFields(error: unknown): Readonly<Record<string, string>> | undefined {
+  if (!(error instanceof DomainError) || error.code !== 'validation') return undefined;
+
+  return Object.keys(error.details).length === 0 ? undefined : error.details;
 }
 
 /**

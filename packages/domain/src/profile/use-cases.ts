@@ -1,7 +1,7 @@
 import type { ProfileRepositories, TrailProfileRecord } from '@pluka/db';
 
 import type { Actor } from '../authorization/organization-role.js';
-import { validationError } from '../errors.js';
+import { parseCommand, validationError } from '../errors.js';
 import { getTrailProfileQuerySchema, updateTrailProfileCommandSchema } from './commands.js';
 import { checkTrailProfile, hasPaceSignal, type ProfileVerdict } from './invariants.js';
 
@@ -117,7 +117,7 @@ export async function getTrailProfile(
   context: ProfileContext,
   input: unknown = {},
 ): Promise<TrailProfileView> {
-  getTrailProfileQuerySchema.parse(input);
+  parseCommand(getTrailProfileQuerySchema, input, 'getTrailProfile');
 
   const profile = await context.repositories.trailProfiles.findByUser(context.actor.userId);
 
@@ -146,7 +146,7 @@ export async function updateTrailProfile(
   input: unknown,
 ): Promise<SavedTrailProfile> {
   const useCase = 'updateTrailProfile';
-  const command = updateTrailProfileCommandSchema.parse(input);
+  const command = parseCommand(updateTrailProfileCommandSchema, input, useCase);
 
   const existing = await context.repositories.trailProfiles.findByUser(context.actor.userId);
   const current: ProfileFields = existing ?? { ...EMPTY_PROFILE };

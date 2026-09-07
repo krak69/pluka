@@ -12,8 +12,9 @@ import {
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-import { courseContext, domainErrorMessage, factReviewContext } from '@/lib/admin';
+import { actionFailure, courseContext, factReviewContext } from '@/lib/admin';
 import { publicEnv } from '@/lib/env';
+import { createEventCommand, optionalNumber, text } from '@/lib/form';
 import { safeReturnTo } from '@/lib/return-to';
 import { requireSession } from '@/lib/session';
 import { createAuthClient } from '@/lib/supabase/auth';
@@ -31,25 +32,17 @@ import { createAuthClient } from '@/lib/supabase/auth';
  * tromperait de bouton obtiendrait un refus, pas un contournement.
  */
 
-/** Champs texte d'un formulaire : `FormData` rend `File | string | null`. */
-function text(form: FormData, field: string): string | undefined {
-  const value = form.get(field);
-  if (typeof value !== 'string') return undefined;
-
-  const trimmed = value.trim();
-  return trimmed === '' ? undefined : trimmed;
-}
-
-function optionalNumber(form: FormData, field: string): number | null | undefined {
-  const value = text(form, field);
-  if (value === undefined) return undefined;
-
-  const parsed = Number(value);
-  return Number.isNaN(parsed) ? undefined : parsed;
-}
-
+/**
+ * Réponse d'une Server Action de formulaire.
+ *
+ * `fieldErrors` est indexé par le `name` de l'`Input` — c'est-à-dire par le
+ * champ de la commande, puisque les deux portent le même nom. Un refus de
+ * validation se lit donc contre le champ fautif, et non en une phrase unique
+ * au bas de l'écran (06_DESIGN_SYSTEM §35).
+ */
 export interface ActionState {
   readonly error?: string;
+  readonly fieldErrors?: Readonly<Record<string, string>>;
 }
 
 export async function createEventAction(
@@ -59,17 +52,9 @@ export async function createEventAction(
   const context = courseContext(await requireSession('/'));
 
   try {
-    const organizationId = text(form, 'organizationId');
-
-    await createEvent(context, {
-      // Champ vide : événement maintenu par PLUKA, sans organisation
-      // gestionnaire (§4.1, 02_DATA_MODEL §3.1).
-      organizationId: organizationId ?? null,
-      name: text(form, 'name'),
-      slug: text(form, 'slug'),
-    });
+    await createEvent(context, createEventCommand(form));
   } catch (error) {
-    return { error: domainErrorMessage(error) };
+    return actionFailure(error);
   }
 
   revalidatePath('/');
@@ -92,7 +77,7 @@ export async function createEditionAction(
       endDate: text(form, 'endDate') ?? null,
     });
   } catch (error) {
-    return { error: domainErrorMessage(error) };
+    return actionFailure(error);
   }
 
   revalidatePath(`/evenements/${eventId}`);
@@ -121,7 +106,7 @@ export async function createRaceAction(
       finishLocationName: text(form, 'finishLocationName') ?? null,
     });
   } catch (error) {
-    return { error: domainErrorMessage(error) };
+    return actionFailure(error);
   }
 
   revalidatePath(`/evenements/${eventId}`);
@@ -149,7 +134,7 @@ export async function updateRaceAction(
       finishLocationName: text(form, 'finishLocationName') ?? null,
     });
   } catch (error) {
-    return { error: domainErrorMessage(error) };
+    return actionFailure(error);
   }
 
   revalidatePath(`/courses/${raceId}`);
@@ -173,7 +158,7 @@ export async function changeRaceStatusAction(
   try {
     await changeRaceStatus(context, { raceId, status: text(form, 'status') });
   } catch (error) {
-    return { error: domainErrorMessage(error) };
+    return actionFailure(error);
   }
 
   revalidatePath(`/courses/${raceId}`);
@@ -252,7 +237,7 @@ export async function publishCandidateAction(
       resolveConflict: form.get('resolveConflict') === 'on',
     });
   } catch (error) {
-    return { error: domainErrorMessage(error) };
+    return actionFailure(error);
   }
 
   revalidatePath(`/courses/${raceId}/revue`);
@@ -273,7 +258,7 @@ export async function decideCandidateAction(
       note: text(form, 'note') ?? null,
     });
   } catch (error) {
-    return { error: domainErrorMessage(error) };
+    return actionFailure(error);
   }
 
   revalidatePath(`/courses/${raceId}/revue`);

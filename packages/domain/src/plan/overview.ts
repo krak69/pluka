@@ -1,6 +1,6 @@
 import type { CutoffMarginStatus } from '@pluka/plan-engine';
 
-import { notFoundError } from '../errors.js';
+import { notFoundError, parseCommand } from '../errors.js';
 import { getActivePlanQuerySchema } from './commands.js';
 import { loadPlanScope } from './snapshot.js';
 import { authorizePlanRead, type PlanContext } from './use-cases.js';
@@ -113,7 +113,7 @@ export interface PlanOverview {
  */
 export async function getPlanOverview(context: PlanContext, input: unknown): Promise<PlanOverview> {
   const useCase = 'getPlanOverview';
-  const query = getActivePlanQuerySchema.parse(input);
+  const query = parseCommand(getActivePlanQuerySchema, input, useCase);
 
   await authorizePlanRead(context, query.participantRaceId);
 

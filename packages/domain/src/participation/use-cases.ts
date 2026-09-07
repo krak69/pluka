@@ -7,7 +7,7 @@ import type {
 
 import { assertOrganizationRole, type Actor } from '../authorization/organization-role.js';
 import { loadRaceScope, type RaceScope } from '../course/use-cases.js';
-import { conflictError, invalidStateError, notFoundError } from '../errors.js';
+import { conflictError, invalidStateError, notFoundError, parseCommand } from '../errors.js';
 import {
   claimParticipantRaceCommandSchema,
   createParticipantRaceCommandSchema,
@@ -139,7 +139,7 @@ export async function createParticipantRace(
   input: unknown,
 ): Promise<ParticipantRaceRecord> {
   const useCase = 'createParticipantRace';
-  const command = createParticipantRaceCommandSchema.parse(input);
+  const command = parseCommand(createParticipantRaceCommandSchema, input, useCase);
 
   const scope: RaceScope = await loadRaceScope(context.repositories, command.raceId, useCase);
 
@@ -188,7 +188,7 @@ export async function claimParticipantRace(
   input: unknown,
 ): Promise<ParticipantRaceRecord> {
   const useCase = 'claimParticipantRace';
-  const command = claimParticipantRaceCommandSchema.parse(input);
+  const command = parseCommand(claimParticipantRaceCommandSchema, input, useCase);
 
   const participation = await context.repositories.participantRaces.findById(
     command.participantRaceId,
@@ -226,7 +226,7 @@ export async function getParticipation(
   input: unknown,
 ): Promise<ParticipationDetail> {
   const useCase = 'getParticipation';
-  const query = getParticipationQuerySchema.parse(input);
+  const query = parseCommand(getParticipationQuerySchema, input, useCase);
 
   return loadDetail(context, await loadOwnParticipation(context, query.participantRaceId, useCase));
 }
@@ -242,7 +242,7 @@ export async function getParticipationForRace(
   context: ParticipationContext,
   input: unknown,
 ): Promise<ParticipationDetail | null> {
-  const query = getParticipationForRaceQuerySchema.parse(input);
+  const query = parseCommand(getParticipationForRaceQuerySchema, input, 'getParticipationForRace');
 
   const participation = await context.repositories.participantRaces.findByRaceAndUser(
     query.raceId,
@@ -269,7 +269,7 @@ export async function setRaceGoal(
   input: unknown,
 ): Promise<ParticipantRaceSettingsRecord> {
   const useCase = 'setRaceGoal';
-  const command = setRaceGoalCommandSchema.parse(input);
+  const command = parseCommand(setRaceGoalCommandSchema, input, useCase);
 
   await loadOwnParticipation(context, command.participantRaceId, useCase);
 
@@ -295,7 +295,7 @@ export async function setPreparationState(
   input: unknown,
 ): Promise<ParticipantRaceRecord> {
   const useCase = 'setPreparationState';
-  const command = setPreparationStateCommandSchema.parse(input);
+  const command = parseCommand(setPreparationStateCommandSchema, input, useCase);
 
   await loadOwnParticipation(context, command.participantRaceId, useCase);
 
@@ -322,7 +322,7 @@ export async function setParticipationStatus(
   input: unknown,
 ): Promise<ParticipantRaceRecord> {
   const useCase = 'setParticipationStatus';
-  const command = setParticipationStatusCommandSchema.parse(input);
+  const command = parseCommand(setParticipationStatusCommandSchema, input, useCase);
 
   await loadOwnParticipation(context, command.participantRaceId, useCase);
 
@@ -349,7 +349,7 @@ export async function listRaceRoster(
   input: unknown,
 ): Promise<readonly ParticipantRosterEntry[]> {
   const useCase = 'listRaceRoster';
-  const query = listRaceRosterQuerySchema.parse(input);
+  const query = parseCommand(listRaceRosterQuerySchema, input, useCase);
 
   const scope = await loadRaceScope(context.repositories, query.raceId, useCase);
 
