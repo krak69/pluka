@@ -74,7 +74,12 @@ describe('aucune requête directe', () => {
       'fact_candidates',
       'fact_candidate_evidence',
       'fact_sources',
+      'sources',
       'source_snapshots',
+      'race_course_geometries',
+      'race_course_micro_segments',
+      'ingestion_jobs',
+      'outbox_events',
     ];
 
     const offenders = sourceFiles().flatMap((moduleId) => {
@@ -136,6 +141,7 @@ describe('autorisations', () => {
       'app/evenements/[eventId]/page.tsx',
       'app/courses/[raceId]/page.tsx',
       'app/courses/[raceId]/revue/page.tsx',
+      'app/courses/[raceId]/gpx-import-status.tsx',
     ];
 
     for (const screen of screens) {
@@ -157,6 +163,11 @@ describe('fonctions SQL', () => {
       'list_fact_candidates_for_review',
       'get_fact_candidate_scope',
       'list_fact_publication_acts',
+      // 0008 et 0023 : le dépôt d'un GPX et la lecture de son état passent par
+      // `@pluka/domain`, jamais par un appel nommé depuis un écran.
+      'enqueue_race_gpx',
+      'get_race_gpx_import',
+      'get_course_preprocessing_input',
     ];
 
     const offenders = sourceFiles().flatMap((moduleId) => {
@@ -166,6 +177,47 @@ describe('fonctions SQL', () => {
     });
 
     expect(offenders, 'fonction SQL appelée depuis l’application').toEqual([]);
+  });
+});
+
+describe('stockage', () => {
+  it('n’atteint jamais le Storage directement', () => {
+    // Déposer un fichier est une écriture. Elle passe par le repository de
+    // `@pluka/db`, sous la policy du bucket — l'application ne construit ni
+    // requête, ni transfert.
+    const offenders = sourceFiles().filter((moduleId) =>
+      /\.storage|\.from\(['"`]race-sources/.test(withoutComments(read(moduleId))),
+    );
+
+    expect(offenders, 'accès Storage depuis l’application').toEqual([]);
+  });
+
+  it('ne nomme ni le bucket ni un chemin d’objet', () => {
+    // Le chemin `races/<race_id>/gpx/<hash>.gpx` est une donnée
+    // d'autorisation : la policy de 0023 en extrait l'épreuve. Le composer
+    // dans un écran mettrait cette règle à deux endroits, et le second
+    // finirait par produire un chemin que la base refuse sans dire pourquoi.
+    const offenders = sourceFiles().flatMap((moduleId) => {
+      const source = withoutComments(read(moduleId));
+      const found = ['race-sources', 'raceGpxStoragePath', 'RACE_SOURCES_BUCKET'].filter((name) =>
+        source.includes(name),
+      );
+      return found.length === 0 ? [] : [`${moduleId} → ${found.join(', ')}`];
+    });
+
+    expect(offenders, 'chemin de stockage construit dans l’application').toEqual([]);
+  });
+
+  it('ne calcule aucune empreinte hors des Server Actions', () => {
+    // L'empreinte rend le dépôt idempotent (§22.1) : elle porte sur le contenu
+    // réellement transmis, et se calcule donc côté serveur. Un composant
+    // client qui la produirait ferait croire au serveur ce que le navigateur
+    // annonce du fichier qu'il envoie.
+    const offenders = sourceFiles()
+      .filter((moduleId) => /crypto\.subtle|createHash/.test(withoutComments(read(moduleId))))
+      .filter((moduleId) => moduleId !== 'app/actions.ts');
+
+    expect(offenders, 'empreinte calculée hors des Server Actions').toEqual([]);
   });
 });
 

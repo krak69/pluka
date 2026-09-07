@@ -1,12 +1,21 @@
-import { allowedRaceTransitions, getRaceAdministration } from '@pluka/domain';
-import { Badge, DataValue, Divider, MicroLabel } from '@pluka/ui';
+import { allowedRaceTransitions, getRaceAdministration, getRaceGpxImport } from '@pluka/domain';
+import { DataValue, Divider, MicroLabel } from '@pluka/ui';
 import Link from 'next/link';
 
 import { RaceStatusPanel, UpdateRaceForm } from '@/app/courses/[raceId]/forms';
-import { redirectOnDomainError, requireAdminContext } from '@/lib/admin';
+import { GpxImportStatus } from '@/app/courses/[raceId]/gpx-import-status';
+import { ImportGpxForm } from '@/app/courses/[raceId]/import-gpx-form';
+import { StatusHistory } from '@/app/status-history';
+import { redirectOnDomainError, requireAdminContext, requireGpxImportContext } from '@/lib/admin';
 
 /**
  * Écran d'édition d'une épreuve, et transitions de statut de §4.1.
+ *
+ * L'écran porte aussi l'import du GPX — 01_ARCHITECTURE §15. C'est le seul
+ * point d'entrée du parcours : sans lui, aucune géométrie, donc aucun
+ * micro-segment et aucun Plan. Le dépôt et la lecture d'état passent par
+ * `@pluka/domain`, qui relit l'autorité en base ; la policy du bucket
+ * `race-sources` la revérifie au moment d'écrire le fichier.
  *
  * Les transitions proposées viennent de `allowedRaceTransitions`, la table
  * pure du domaine : l'écran n'en connaît aucune de son côté et ne peut donc
@@ -25,6 +34,13 @@ export default async function RacePage({
     redirectOnDomainError,
   );
   const transitions = allowedRaceTransitions(race.status);
+
+  // Lecture séparée : l'état d'un import n'est pas une donnée du référentiel
+  // de course, et son use case a ses propres dépendances — le Storage et les
+  // fonctions d'ingestion.
+  const gpx = await getRaceGpxImport(await requireGpxImportContext(`/courses/${raceId}`), {
+    raceId,
+  }).catch(redirectOnDomainError);
 
   return (
     <main
@@ -65,6 +81,24 @@ export default async function RacePage({
 
       <Divider spaced />
 
+      <h2 className="pk-h2" style={{ marginBottom: 'var(--space-2)' }}>
+        Parcours
+      </h2>
+      <p className="pk-body" style={{ color: 'var(--pk-text-muted)' }}>
+        Le GPX est traité de façon asynchrone : géométrie, puis prétraitement du parcours
+        (PLAN_ENGINE §8).
+      </p>
+
+      <div style={{ marginTop: 'var(--space-5)' }}>
+        <GpxImportStatus status={gpx} />
+      </div>
+
+      <div style={{ marginTop: 'var(--space-6)' }}>
+        <ImportGpxForm raceId={race.id} />
+      </div>
+
+      <Divider spaced />
+
       <h2 className="pk-h2" style={{ marginBottom: 'var(--space-4)' }}>
         Statut
       </h2>
@@ -77,33 +111,7 @@ export default async function RacePage({
         Historique
       </h2>
 
-      {history.length === 0 ? (
-        <p className="pk-body" style={{ color: 'var(--pk-text-muted)' }}>
-          Aucun changement de statut journalisé.
-        </p>
-      ) : (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {history.map((entry) => (
-            <li
-              key={entry.id}
-              style={{
-                display: 'flex',
-                gap: 'var(--space-4)',
-                alignItems: 'center',
-                padding: 'var(--space-3) 0',
-                borderTop: '1px solid var(--pk-hairline)',
-              }}
-            >
-              <Badge tone="neutral">{entry.fromStatus}</Badge>
-              <span aria-hidden="true">→</span>
-              <Badge tone="glacier">{entry.toStatus}</Badge>
-              <span className="pk-label" style={{ marginLeft: 'auto' }}>
-                {entry.createdAt}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <StatusHistory entries={history} />
 
       <Divider spaced />
 

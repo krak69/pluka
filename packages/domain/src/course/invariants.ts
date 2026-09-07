@@ -153,3 +153,29 @@ export function checkRacePublication(
 
   return { ok: true };
 }
+
+export type EditionPublicationVerdict =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly reason: 'event_not_published' | 'edition_not_draft' };
+
+/**
+ * Conditions de publication d'une édition.
+ *
+ * Même raisonnement que pour l'épreuve, un cran plus haut : §4.1 fait remonter
+ * la lisibilité publique jusqu'à l'Event, donc diffuser une édition sous un
+ * événement en brouillon produirait une édition inatteignable — et rendrait
+ * ensuite ses épreuves impubliables, `checkRacePublication` exigeant les deux
+ * niveaux.
+ *
+ * C'est cet enchaînement qui fait de la chaîne un ordre : l'événement, puis
+ * l'édition, puis l'épreuve.
+ */
+export function checkEditionPublication(
+  edition: EditionRecord,
+  event: EventRecord,
+): EditionPublicationVerdict {
+  if (!isEventReadable(event)) return { ok: false, reason: 'event_not_published' };
+  if (edition.status !== 'draft') return { ok: false, reason: 'edition_not_draft' };
+
+  return { ok: true };
+}

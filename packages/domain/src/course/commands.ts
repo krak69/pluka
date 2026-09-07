@@ -103,6 +103,28 @@ export const changeRaceStatusCommandSchema = z.object({
 
 export type ChangeRaceStatusCommand = z.infer<typeof changeRaceStatusCommandSchema>;
 
+/**
+ * Transitions d'Event et d'Edition — 00_PRODUCT_SPEC §4.1.
+ *
+ * Chaque schéma n'admet que les statuts de son enum : `record_status` n'a ni
+ * `completed` ni `cancelled`, et demander à un événement de devenir « couru »
+ * est une erreur de saisie, pas une transition illégale. Le refuser ici la
+ * nomme comme telle, plutôt que de la laisser ressortir en `invalid_state`.
+ */
+export const changeEventStatusCommandSchema = z.object({
+  eventId: uuid,
+  status: z.enum(['draft', 'published', 'archived']),
+});
+
+export type ChangeEventStatusCommand = z.infer<typeof changeEventStatusCommandSchema>;
+
+export const changeEditionStatusCommandSchema = z.object({
+  editionId: uuid,
+  status: z.enum(['draft', 'published', 'cancelled', 'completed', 'archived']),
+});
+
+export type ChangeEditionStatusCommand = z.infer<typeof changeEditionStatusCommandSchema>;
+
 export const setRaceVisibilityCommandSchema = z.object({
   raceId: uuid,
   visibility: z.enum(['private', 'unlisted', 'public']),
@@ -134,10 +156,20 @@ export type ListEventsForAdministrationQuery = z.infer<
   typeof listEventsForAdministrationQuerySchema
 >;
 
-export const getEventAdministrationQuerySchema = z.object({ eventId: uuid });
+/**
+ * `limit` borne le journal de statut rendu avec l'objet, comme pour l'épreuve.
+ * Valeur par défaut : l'appelant qui n'en veut pas n'a rien à passer.
+ */
+export const getEventAdministrationQuerySchema = z.object({
+  eventId: uuid,
+  limit: z.number().int().min(1).max(200).default(50),
+});
 export type GetEventAdministrationQuery = z.infer<typeof getEventAdministrationQuerySchema>;
 
-export const getEditionAdministrationQuerySchema = z.object({ editionId: uuid });
+export const getEditionAdministrationQuerySchema = z.object({
+  editionId: uuid,
+  limit: z.number().int().min(1).max(200).default(50),
+});
 export type GetEditionAdministrationQuery = z.infer<typeof getEditionAdministrationQuerySchema>;
 
 export const getRaceAdministrationQuerySchema = z.object({

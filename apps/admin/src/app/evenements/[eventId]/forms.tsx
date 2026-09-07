@@ -1,9 +1,18 @@
 'use client';
 
+import type { EditionRecord, EventRecord } from '@pluka/db';
+import type { EditionTransition, EventTransition } from '@pluka/domain';
 import { Input } from '@pluka/ui';
 import { useActionState } from 'react';
 
-import { createEditionAction, createRaceAction, type ActionState } from '@/app/actions';
+import {
+  changeEditionStatusAction,
+  changeEventStatusAction,
+  createEditionAction,
+  createRaceAction,
+  type ActionState,
+} from '@/app/actions';
+import { StatusPanel } from '@/app/status-panel';
 
 const INITIAL: ActionState = {};
 
@@ -14,6 +23,66 @@ function ErrorMessage({ error }: { readonly error: string | undefined }) {
     <p className="pk-field-error" role="alert">
       {error}
     </p>
+  );
+}
+
+/**
+ * Transitions de statut d'un événement et d'une édition — §4.1.
+ *
+ * Elles manquaient : l'écran Race en avait, les deux niveaux au-dessus non, et
+ * la chaîne était donc impossible à publier depuis l'interface — publier une
+ * épreuve exige une édition diffusée, elle-même sous un événement publié.
+ *
+ * Comme pour la Race, la liste des transitions vient de la table pure du
+ * domaine et l'autorité affichée est celle qu'elle déclare : l'écran propose,
+ * `changeEventStatus` et `changeEditionStatus` disposent.
+ */
+export function EventStatusPanel({
+  eventId,
+  status,
+  transitions,
+}: {
+  readonly eventId: string;
+  readonly status: EventRecord['status'];
+  readonly transitions: readonly EventTransition[];
+}) {
+  return (
+    <StatusPanel
+      action={changeEventStatusAction}
+      idField="eventId"
+      id={eventId}
+      status={status}
+      transitions={transitions}
+      subject="cet événement"
+    />
+  );
+}
+
+/**
+ * L'édition n'a pas de page à elle : ses transitions vivent sous l'écran de
+ * son événement, et c'est cet écran que l'action rafraîchit. Le formulaire ne
+ * transmet pourtant que l'édition — `changeEditionStatus` rend le
+ * `eventId`, et le demander au navigateur n'ajouterait qu'une valeur de plus
+ * à ne pas croire.
+ */
+export function EditionStatusPanel({
+  editionId,
+  status,
+  transitions,
+}: {
+  readonly editionId: string;
+  readonly status: EditionRecord['status'];
+  readonly transitions: readonly EditionTransition[];
+}) {
+  return (
+    <StatusPanel
+      action={changeEditionStatusAction}
+      idField="editionId"
+      id={editionId}
+      status={status}
+      transitions={transitions}
+      subject="cette édition"
+    />
   );
 }
 

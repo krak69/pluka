@@ -1,4 +1,11 @@
-import type { EditionRecord, EventRecord, RaceRecord, RaceStatusTransitionRecord } from '@pluka/db';
+import type {
+  EditionRecord,
+  EditionStatusTransitionRecord,
+  EventRecord,
+  EventStatusTransitionRecord,
+  RaceRecord,
+  RaceStatusTransitionRecord,
+} from '@pluka/db';
 
 import { assertPlatformAdmin } from '../authorization/organization-role.js';
 import { notFoundError, parseCommand } from '../errors.js';
@@ -31,12 +38,15 @@ import type { CourseContext } from './use-cases.js';
 export interface EventAdministration {
   readonly event: EventRecord;
   readonly editions: readonly EditionRecord[];
+  /** Journal des transitions — §4.1, « qui, quand, depuis quel statut ». */
+  readonly history: readonly EventStatusTransitionRecord[];
 }
 
 export interface EditionAdministration {
   readonly event: EventRecord;
   readonly edition: EditionRecord;
   readonly races: readonly RaceRecord[];
+  readonly history: readonly EditionStatusTransitionRecord[];
 }
 
 export async function listEventsForAdministration(
@@ -63,7 +73,11 @@ export async function getEventAdministration(
   const event = await context.repositories.events.findById(query.eventId);
   if (event === null) throw notFoundError(useCase, 'événement');
 
-  return { event, editions: await context.repositories.editions.listByEvent(event.id) };
+  return {
+    event,
+    editions: await context.repositories.editions.listByEvent(event.id),
+    history: await context.repositories.eventStatusTransitions.listByEvent(event.id, query.limit),
+  };
 }
 
 export async function getEditionAdministration(
@@ -81,7 +95,15 @@ export async function getEditionAdministration(
   const event = await context.repositories.events.findById(edition.eventId);
   if (event === null) throw notFoundError(useCase, 'événement');
 
-  return { event, edition, races: await context.repositories.races.listByEdition(edition.id) };
+  return {
+    event,
+    edition,
+    races: await context.repositories.races.listByEdition(edition.id),
+    history: await context.repositories.editionStatusTransitions.listByEdition(
+      edition.id,
+      query.limit,
+    ),
+  };
 }
 
 export interface RaceAdministration {

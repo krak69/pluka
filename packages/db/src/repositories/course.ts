@@ -4,7 +4,9 @@ import { unwrap, unwrapMaybe } from '../results.js';
 import type { InsertRow, UpdateRow } from '../types.js';
 import type {
   EditionRecord,
+  EditionStatusTransitionRecord,
   EventRecord,
+  EventStatusTransitionRecord,
   MembershipRecord,
   PlatformIdentityRecord,
   RaceRecord,
@@ -57,6 +59,24 @@ const TRANSITION_COLUMNS = [
   'created_at',
 ] as const;
 
+const EVENT_TRANSITION_COLUMNS = [
+  'id',
+  'event_id',
+  'from_status',
+  'to_status',
+  'actor_user_id',
+  'created_at',
+] as const;
+
+const EDITION_TRANSITION_COLUMNS = [
+  'id',
+  'edition_id',
+  'from_status',
+  'to_status',
+  'actor_user_id',
+  'created_at',
+] as const;
+
 type EventRow = {
   id: string;
   organization_id: string | null;
@@ -97,6 +117,24 @@ type TransitionRow = {
   race_id: string;
   from_status: RaceRecord['status'];
   to_status: RaceRecord['status'];
+  actor_user_id: string | null;
+  created_at: string;
+};
+
+type EventTransitionRow = {
+  id: string;
+  event_id: string;
+  from_status: EventRecord['status'];
+  to_status: EventRecord['status'];
+  actor_user_id: string | null;
+  created_at: string;
+};
+
+type EditionTransitionRow = {
+  id: string;
+  edition_id: string;
+  from_status: EditionRecord['status'];
+  to_status: EditionRecord['status'];
   actor_user_id: string | null;
   created_at: string;
 };
@@ -153,12 +191,45 @@ function toTransition(row: TransitionRow): RaceStatusTransitionRecord {
   };
 }
 
+function toEventTransition(row: EventTransitionRow): EventStatusTransitionRecord {
+  return {
+    id: row.id,
+    eventId: row.event_id,
+    fromStatus: row.from_status,
+    toStatus: row.to_status,
+    actorUserId: row.actor_user_id,
+    createdAt: row.created_at,
+  };
+}
+
+function toEditionTransition(row: EditionTransitionRow): EditionStatusTransitionRecord {
+  return {
+    id: row.id,
+    editionId: row.edition_id,
+    fromStatus: row.from_status,
+    toStatus: row.to_status,
+    actorUserId: row.actor_user_id,
+    createdAt: row.created_at,
+  };
+}
+
 export interface EventRepository {
   findById(eventId: string): Promise<EventRecord | null>;
   findBySlug(slug: string): Promise<EventRecord | null>;
   /** Liste bornée, triée par nom : la base courses se parcourt, elle ne se déverse pas. */
   list(limit: number): Promise<readonly EventRecord[]>;
   insert(input: InsertRow<'events'>): Promise<EventRecord>;
+  /**
+   * Changement de statut conditionné au statut de départ — même
+   * compare-and-set que `races.changeStatus`, pour la même raison : deux
+   * administrateurs simultanés ne doivent pas enchaîner deux transitions à
+   * partir de la même lecture (00_PRODUCT_SPEC §4.1).
+   */
+  changeStatus(
+    eventId: string,
+    from: EventRecord['status'],
+    to: EventRecord['status'],
+  ): Promise<EventRecord | null>;
 }
 
 export const eventRepository = defineRepository<EventRepository>((context) => ({
@@ -213,6 +284,21 @@ export const eventRepository = defineRepository<EventRepository>((context) => ({
       ),
     );
   },
+
+  async changeStatus(eventId, from, to) {
+    const row = unwrapMaybe(
+      await context.client
+        .from('events')
+        .update({ status: to })
+        .eq('id', eventId)
+        .eq('status', from)
+        .select(selectColumns('events', EVENT_COLUMNS))
+        .maybeSingle(),
+      'events.changeStatus',
+    );
+
+    return row === null ? null : toEvent(row);
+  },
 }));
 
 export interface EditionRepository {
@@ -221,6 +307,12 @@ export interface EditionRepository {
   findByEventAndYear(eventId: string, year: number): Promise<EditionRecord | null>;
   listByEvent(eventId: string): Promise<readonly EditionRecord[]>;
   insert(input: InsertRow<'editions'>): Promise<EditionRecord>;
+  /** Compare-and-set, comme `events.changeStatus` et `races.changeStatus`. */
+  changeStatus(
+    editionId: string,
+    from: EditionRecord['status'],
+    to: EditionRecord['status'],
+  ): Promise<EditionRecord | null>;
 }
 
 export const editionRepository = defineRepository<EditionRepository>((context) => ({
@@ -275,6 +367,21 @@ export const editionRepository = defineRepository<EditionRepository>((context) =
         'editions.insert',
       ),
     );
+  },
+
+  async changeStatus(editionId, from, to) {
+    const row = unwrapMaybe(
+      await context.client
+        .from('editions')
+        .update({ status: to })
+        .eq('id', editionId)
+        .eq('status', from)
+        .select(selectColumns('editions', EDITION_COLUMNS))
+        .maybeSingle(),
+      'editions.changeStatus',
+    );
+
+    return row === null ? null : toEdition(row);
   },
 }));
 
@@ -432,6 +539,95 @@ export const raceStatusTransitionRepository = defineRepository<RaceStatusTransit
 );
 
 /**
+ * Journaux de statut d'un Event et d'une Edition — migration 0022.
+ *
+ * Mêmes garanties que `RaceStatusTransitionRepository` : lecture seule, les
+ * lignes viennent des triggers `events_journal_status_change` et
+ * `editions_journal_status_change`, dans la transaction du changement de
+ * statut.
+ */
+export interface EventStatusTransitionRepository {
+  listByEvent(eventId: string, limit: number): Promise<readonly EventStatusTransitionRecord[]>;
+  /** Dernière entrée vers `archived` : elle porte le statut d'avant l'archivage. */
+  findLastArchival(eventId: string): Promise<EventStatusTransitionRecord | null>;
+}
+
+export const eventStatusTransitionRepository = defineRepository<EventStatusTransitionRepository>(
+  (context) => ({
+    async listByEvent(eventId, limit) {
+      const rows = unwrap(
+        await context.client
+          .from('event_status_transitions')
+          .select(selectColumns('event_status_transitions', EVENT_TRANSITION_COLUMNS))
+          .eq('event_id', eventId)
+          .order('created_at', { ascending: false })
+          .limit(limit),
+        'event_status_transitions.listByEvent',
+      );
+
+      return rows.map(toEventTransition);
+    },
+
+    async findLastArchival(eventId) {
+      const row = unwrapMaybe(
+        await context.client
+          .from('event_status_transitions')
+          .select(selectColumns('event_status_transitions', EVENT_TRANSITION_COLUMNS))
+          .eq('event_id', eventId)
+          .eq('to_status', 'archived')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        'event_status_transitions.findLastArchival',
+      );
+
+      return row === null ? null : toEventTransition(row);
+    },
+  }),
+);
+
+export interface EditionStatusTransitionRepository {
+  listByEdition(
+    editionId: string,
+    limit: number,
+  ): Promise<readonly EditionStatusTransitionRecord[]>;
+  findLastArchival(editionId: string): Promise<EditionStatusTransitionRecord | null>;
+}
+
+export const editionStatusTransitionRepository =
+  defineRepository<EditionStatusTransitionRepository>((context) => ({
+    async listByEdition(editionId, limit) {
+      const rows = unwrap(
+        await context.client
+          .from('edition_status_transitions')
+          .select(selectColumns('edition_status_transitions', EDITION_TRANSITION_COLUMNS))
+          .eq('edition_id', editionId)
+          .order('created_at', { ascending: false })
+          .limit(limit),
+        'edition_status_transitions.listByEdition',
+      );
+
+      return rows.map(toEditionTransition);
+    },
+
+    async findLastArchival(editionId) {
+      const row = unwrapMaybe(
+        await context.client
+          .from('edition_status_transitions')
+          .select(selectColumns('edition_status_transitions', EDITION_TRANSITION_COLUMNS))
+          .eq('edition_id', editionId)
+          .eq('to_status', 'archived')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        'edition_status_transitions.findLastArchival',
+      );
+
+      return row === null ? null : toEditionTransition(row);
+    },
+  }));
+
+/**
  * Identité de l'acteur.
  *
  * Ces deux lectures existent parce que le domaine ne doit jamais croire un
@@ -480,6 +676,8 @@ export interface CourseRepositories {
   readonly editions: EditionRepository;
   readonly races: RaceRepository;
   readonly raceStatusTransitions: RaceStatusTransitionRepository;
+  readonly eventStatusTransitions: EventStatusTransitionRepository;
+  readonly editionStatusTransitions: EditionStatusTransitionRepository;
   readonly identity: IdentityRepository;
 }
 
@@ -489,6 +687,8 @@ export function createCourseRepositories(context: RepositoryContext): CourseRepo
     editions: editionRepository(context),
     races: raceRepository(context),
     raceStatusTransitions: raceStatusTransitionRepository(context),
+    eventStatusTransitions: eventStatusTransitionRepository(context),
+    editionStatusTransitions: editionStatusTransitionRepository(context),
     identity: identityRepository(context),
   };
 }

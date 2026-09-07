@@ -1,27 +1,22 @@
 'use client';
 
 import type { RaceRecord } from '@pluka/db';
-import type { RaceTransition, TransitionAuthority } from '@pluka/domain';
+import type { RaceTransition } from '@pluka/domain';
 import { Input } from '@pluka/ui';
 import { useActionState } from 'react';
 
 import { changeRaceStatusAction, updateRaceAction, type ActionState } from '@/app/actions';
+import { StatusPanel } from '@/app/status-panel';
 
 const INITIAL: ActionState = {};
 
 /**
- * Libellés d'autorité — 00_PRODUCT_SPEC §4.1, colonne « Autorisé ».
+ * Transitions de statut d'une épreuve — §4.1.
  *
- * Affichage seulement. La règle est portée par la table du domaine et
- * appliquée par `changeRaceStatus` ; ce libellé dit à l'administrateur ce
- * qu'il faut être, il ne le vérifie pas.
+ * Enveloppe nommée autour de `StatusPanel`, qui porte le rendu commun aux
+ * trois niveaux de la chaîne. Ce qui reste ici est ce qui distingue
+ * l'épreuve : son action et le champ qui porte son identifiant.
  */
-const AUTHORITY_LABEL: Readonly<Record<TransitionAuthority, string>> = {
-  organization_editor: 'éditeur de l’organisation, ou pluka_admin',
-  organization_admin: 'admin de l’organisation, ou pluka_admin',
-  platform_admin: 'pluka_admin uniquement',
-};
-
 export function RaceStatusPanel({
   raceId,
   status,
@@ -31,54 +26,15 @@ export function RaceStatusPanel({
   readonly status: RaceRecord['status'];
   readonly transitions: readonly RaceTransition[];
 }) {
-  const [state, action, pending] = useActionState(changeRaceStatusAction, INITIAL);
-
-  if (transitions.length === 0) {
-    return (
-      <p className="pk-body" style={{ color: 'var(--pk-text-muted)' }}>
-        Aucune transition possible depuis <strong>{status}</strong>.
-      </p>
-    );
-  }
-
   return (
-    <>
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-        {transitions.map((transition) => (
-          <li
-            key={transition.to}
-            style={{
-              display: 'flex',
-              gap: 'var(--space-4)',
-              alignItems: 'center',
-              padding: 'var(--space-3) 0',
-              borderTop: '1px solid var(--pk-hairline)',
-            }}
-          >
-            <form action={action}>
-              <input type="hidden" name="raceId" value={raceId} />
-              <input type="hidden" name="status" value={transition.to} />
-              <button
-                type="submit"
-                className="pk-btn pk-button-secondary"
-                disabled={pending}
-                style={{ minHeight: '44px' }}
-              >
-                Passer en {transition.to}
-              </button>
-            </form>
-
-            <span className="pk-label">{AUTHORITY_LABEL[transition.authority]}</span>
-          </li>
-        ))}
-      </ul>
-
-      {state.error === undefined ? null : (
-        <p className="pk-field-error" role="alert" style={{ marginTop: 'var(--space-4)' }}>
-          {state.error}
-        </p>
-      )}
-    </>
+    <StatusPanel
+      action={changeRaceStatusAction}
+      idField="raceId"
+      id={raceId}
+      status={status}
+      transitions={transitions}
+      subject="cette épreuve"
+    />
   );
 }
 

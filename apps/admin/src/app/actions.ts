@@ -1,8 +1,11 @@
 'use server';
 
 import {
+  changeEditionStatus,
+  changeEventStatus,
   changeRaceStatus,
   createEdition,
+  importRaceGpx,
   createEvent,
   createRace,
   decideFactCandidate,
@@ -12,9 +15,9 @@ import {
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-import { actionFailure, courseContext, factReviewContext } from '@/lib/admin';
+import { actionFailure, courseContext, factReviewContext, gpxImportContext } from '@/lib/admin';
 import { publicEnv } from '@/lib/env';
-import { createEventCommand, optionalNumber, text } from '@/lib/form';
+import { createEventCommand, file, optionalNumber, text } from '@/lib/form';
 import { safeReturnTo } from '@/lib/return-to';
 import { requireSession } from '@/lib/session';
 import { createAuthClient } from '@/lib/supabase/auth';
@@ -163,6 +166,106 @@ export async function changeRaceStatusAction(
 
   revalidatePath(`/courses/${raceId}`);
   return {};
+}
+
+/**
+ * Transitions d'un Event et d'une Edition — §4.1.
+ *
+ * Mêmes principes que `changeRaceStatusAction` : l'action nomme la cible et
+ * laisse le use case refuser une transition illégale (`invalid_state`) ou une
+ * autorité insuffisante (`forbidden`). Elle ne relit aucun rôle et ne connaît
+ * aucune table de transitions.
+ *
+ * `revalidatePath` vise l'écran de l'événement dans les deux cas : c'est là
+ * que le statut de l'un et de l'autre s'affiche. Le chemin est construit à
+ * partir de l'objet rendu par le use case, jamais d'un champ du formulaire —
+ * l'édition connaît son événement, et le demander au navigateur ferait
+ * dépendre le rafraîchissement d'une valeur qu'il peut réécrire.
+ */
+export async function changeEventStatusAction(
+  _previous: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const context = courseContext(await requireSession('/'));
+
+  try {
+    const event = await changeEventStatus(context, {
+      eventId: text(form, 'eventId'),
+      status: text(form, 'status'),
+    });
+
+    revalidatePath(`/evenements/${event.id}`);
+  } catch (error) {
+    return actionFailure(error);
+  }
+
+  // La liste des événements affiche aussi leur statut.
+  revalidatePath('/');
+  return {};
+}
+
+export async function changeEditionStatusAction(
+  _previous: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const context = courseContext(await requireSession('/'));
+
+  try {
+    const edition = await changeEditionStatus(context, {
+      editionId: text(form, 'editionId'),
+      status: text(form, 'status'),
+    });
+
+    revalidatePath(`/evenements/${edition.eventId}`);
+  } catch (error) {
+    return actionFailure(error);
+  }
+
+  return {};
+}
+
+/**
+ * Import d'un GPX — 01_ARCHITECTURE §15, PLAN_ENGINE §8.
+ *
+ * L'action ne fait que trois choses : lire le fichier, en calculer
+ * l'empreinte, et passer l'intention au use case. Elle ne dépose rien
+ * elle-même, n'enfile aucun job et ne teste aucun rôle — `importRaceGpx`
+ * relit l'autorité en base, et la policy du bucket la revérifie.
+ *
+ * L'empreinte est calculée ici parce qu'elle porte sur le contenu transmis :
+ * c'est elle qui rend le dépôt idempotent (§22.1), et la faire déclarer par le
+ * navigateur reviendrait à croire ce qu'il annonce du fichier qu'il envoie.
+ */
+export async function importRaceGpxAction(
+  _previous: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const context = gpxImportContext(await requireSession('/'));
+  const raceId = text(form, 'raceId');
+  const upload = file(form, 'gpx');
+
+  try {
+    const content = upload === undefined ? undefined : await upload.text();
+
+    await importRaceGpx(context, {
+      raceId,
+      fileName: upload?.name,
+      content,
+      contentHash: content === undefined ? undefined : await sha256Hex(content),
+    });
+  } catch (error) {
+    return actionFailure(error);
+  }
+
+  revalidatePath(`/courses/${raceId}`);
+  return {};
+}
+
+/** Empreinte SHA-256 du contenu, en hexadécimal minuscule — la forme qu'attend le schéma. */
+async function sha256Hex(content: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(content));
+
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 export async function signOutAction(): Promise<void> {

@@ -22,6 +22,20 @@ export function text(form: FormData, field: string): string | undefined {
   return trimmed === '' ? undefined : trimmed;
 }
 
+/**
+ * Fichier déposé, ou `undefined` si le champ est vide.
+ *
+ * `FormData` rend un `File` de taille nulle quand aucun fichier n'a été
+ * choisi : sans cette borne, un formulaire soumis vide produirait un dépôt
+ * vide au lieu d'un refus nommé.
+ */
+export function file(form: FormData, field: string): File | undefined {
+  const value = form.get(field);
+  if (!(value instanceof File) || value.size === 0) return undefined;
+
+  return value;
+}
+
 export function optionalNumber(form: FormData, field: string): number | null | undefined {
   const value = text(form, field);
   if (value === undefined) return undefined;

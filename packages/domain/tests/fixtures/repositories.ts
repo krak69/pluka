@@ -1,7 +1,12 @@
+import { raceGpxStoragePath } from '@pluka/db';
 import type {
   CourseRepositories,
+  GpxRepositories,
+  RaceGpxImportRecord,
   EditionRecord,
+  EditionStatusTransitionRecord,
   EventRecord,
+  EventStatusTransitionRecord,
   MembershipRecord,
   PlatformIdentityRecord,
   RaceRecord,
@@ -20,8 +25,9 @@ import type {
  *
  * - `changeStatus` est un compare-and-set : il ne rend rien si le statut de
  *   départ ne correspond plus ;
- * - un changement de statut alimente le journal, comme le trigger
- *   `races_journal_status_change` de la migration 0006.
+ * - un changement de statut alimente le journal, comme les triggers
+ *   `races_journal_status_change` (0006), `events_journal_status_change` et
+ *   `editions_journal_status_change` (0022).
  *
  * Sans le second, les tests de désarchivage passeraient sur un journal vide
  * et ne prouveraient rien.
@@ -31,6 +37,8 @@ export interface FakeState {
   editions: EditionRecord[];
   races: RaceRecord[];
   transitions: RaceStatusTransitionRecord[];
+  eventTransitions: EventStatusTransitionRecord[];
+  editionTransitions: EditionStatusTransitionRecord[];
   memberships: MembershipRecord[];
   identities: PlatformIdentityRecord[];
 }
@@ -126,6 +134,8 @@ export function baseState(overrides: Partial<FakeState> = {}): FakeState {
       },
     ],
     transitions: [],
+    eventTransitions: [],
+    editionTransitions: [],
     memberships: [
       { organizationId: ORG_A, userId: OWNER_A, role: 'owner' },
       { organizationId: ORG_A, userId: ADMIN_A, role: 'admin' },
@@ -181,6 +191,28 @@ export function createFakeRepositories(state: FakeState): CourseRepositories {
         state.events.push(record);
         return record;
       },
+      changeStatus: async (eventId, from, to) => {
+        const index = state.events.findIndex((event) => event.id === eventId);
+        if (index < 0) return null;
+
+        const current = state.events[index] as EventRecord;
+        if (current.status !== from) return null;
+
+        const updated: EventRecord = { ...current, status: to };
+        state.events[index] = updated;
+
+        // Le trigger `events_journal_status_change` de la migration 0022.
+        state.eventTransitions.push({
+          id: nextId('ffffffff-0000-4000-8000-'),
+          eventId,
+          fromStatus: from,
+          toStatus: to,
+          actorUserId: null,
+          createdAt: nextInstant(),
+        });
+
+        return updated;
+      },
     },
 
     editions: {
@@ -204,6 +236,28 @@ export function createFakeRepositories(state: FakeState): CourseRepositories {
         };
         state.editions.push(record);
         return record;
+      },
+      changeStatus: async (editionId, from, to) => {
+        const index = state.editions.findIndex((edition) => edition.id === editionId);
+        if (index < 0) return null;
+
+        const current = state.editions[index] as EditionRecord;
+        if (current.status !== from) return null;
+
+        const updated: EditionRecord = { ...current, status: to };
+        state.editions[index] = updated;
+
+        // Le trigger `editions_journal_status_change` de la migration 0022.
+        state.editionTransitions.push({
+          id: nextId('99999999-0000-4000-8000-'),
+          editionId,
+          fromStatus: from,
+          toStatus: to,
+          actorUserId: null,
+          createdAt: nextInstant(),
+        });
+
+        return updated;
       },
     },
 
@@ -306,6 +360,35 @@ export function createFakeRepositories(state: FakeState): CourseRepositories {
           .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0] ?? null,
     },
 
+    eventStatusTransitions: {
+      listByEvent: async (eventId, limit) =>
+        state.eventTransitions
+          .filter((transition) => transition.eventId === eventId)
+          .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+          .slice(0, limit),
+      findLastArchival: async (eventId) =>
+        state.eventTransitions
+          .filter(
+            (transition) => transition.eventId === eventId && transition.toStatus === 'archived',
+          )
+          .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0] ?? null,
+    },
+
+    editionStatusTransitions: {
+      listByEdition: async (editionId, limit) =>
+        state.editionTransitions
+          .filter((transition) => transition.editionId === editionId)
+          .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+          .slice(0, limit),
+      findLastArchival: async (editionId) =>
+        state.editionTransitions
+          .filter(
+            (transition) =>
+              transition.editionId === editionId && transition.toStatus === 'archived',
+          )
+          .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0] ?? null,
+    },
+
     identity: {
       findMembership: async (userId, organizationId) =>
         state.memberships.find(
@@ -314,6 +397,104 @@ export function createFakeRepositories(state: FakeState): CourseRepositories {
         ) ?? null,
       findPlatformIdentity: async (userId) =>
         state.identities.find((identity) => identity.id === userId) ?? null,
+    },
+  };
+}
+
+/**
+ * Dépôt GPX en mémoire — migrations 0008 et 0023.
+ *
+ * Il reproduit trois comportements que le use case tient pour acquis, et qui
+ * viennent en réalité de la base et du Storage :
+ *
+ * - le dépôt écrit à un chemin dérivé du contenu, et le réécrire est
+ *   inoffensif — c'est ce que fait `upsert: true` sous la policy du bucket ;
+ * - `enqueue_race_gpx` est idempotent par (épreuve, empreinte) : redéposer le
+ *   même fichier rend le snapshot existant plutôt qu'un second ;
+ * - l'état d'import se lit d'un bloc, comme `get_race_gpx_import` le rend.
+ *
+ * Le fake ne rejoue aucune autorisation : la policy du bucket et la garde de
+ * la fonction SQL sont des barrières de la base, et les simuler ici ferait
+ * croire que le use case les porte. C'est `assertOrganizationRole` qui est
+ * testé.
+ */
+export interface FakeGpxState {
+  /** Objets du bucket, par chemin. */
+  objects: Map<string, string>;
+  /** Snapshots enfilés, par clé d'idempotence `gpx.process:<race>:<hash>`. */
+  snapshots: Map<string, string>;
+  imports: Map<string, RaceGpxImportRecord>;
+}
+
+export function baseGpxState(): FakeGpxState {
+  return { objects: new Map(), snapshots: new Map(), imports: new Map() };
+}
+
+export function createFakeGpxRepositories(state: FakeState, gpx: FakeGpxState): GpxRepositories {
+  const course = createFakeRepositories(state);
+
+  return {
+    races: course.races,
+    editions: course.editions,
+    events: course.events,
+    identity: course.identity,
+
+    raceGpx: {
+      upload: async (input) => {
+        const path = raceGpxStoragePath(input.raceId, input.contentHash);
+        gpx.objects.set(path, input.content);
+
+        return path;
+      },
+
+      enqueue: async (input) => {
+        const key = `gpx.process:${input.raceId}:${input.contentHash}`;
+        const existing = gpx.snapshots.get(key);
+        if (existing !== undefined) return existing;
+
+        const snapshotId = nextId('77777777-0000-4000-8000-');
+        gpx.snapshots.set(key, snapshotId);
+
+        gpx.imports.set(input.raceId, {
+          raceId: input.raceId,
+          officialDistanceMeters: null,
+          officialElevationGainMeters: null,
+          source: {
+            id: nextId('66666666-0000-4000-8000-'),
+            title: input.title,
+            status: 'uploaded',
+            importedAt: nextInstant(),
+          },
+          snapshot: {
+            id: snapshotId,
+            versionNumber: 1,
+            contentHash: input.contentHash,
+            retrievedAt: nextInstant(),
+          },
+          job: {
+            status: 'queued',
+            attempts: 0,
+            maxAttempts: 5,
+            lastError: null,
+            startedAt: null,
+            completedAt: null,
+          },
+          geometry: null,
+        });
+
+        return snapshotId;
+      },
+
+      findImport: async (raceId) =>
+        gpx.imports.get(raceId) ?? {
+          raceId,
+          officialDistanceMeters: null,
+          officialElevationGainMeters: null,
+          source: null,
+          snapshot: null,
+          job: null,
+          geometry: null,
+        },
     },
   };
 }

@@ -23,6 +23,8 @@ import {
   validationError,
 } from '../errors.js';
 import {
+  changeEditionStatusCommandSchema,
+  changeEventStatusCommandSchema,
   changeRaceStatusCommandSchema,
   createEditionCommandSchema,
   createEventCommandSchema,
@@ -33,8 +35,19 @@ import {
   setRaceVisibilityCommandSchema,
   updateRaceCommandSchema,
 } from './commands.js';
-import { checkRacePublication, checkRaceSchedule, isRacePubliclyReadable } from './invariants.js';
-import { findRaceTransition, isUnarchiving, type RaceStatus } from './lifecycle.js';
+import {
+  checkEditionPublication,
+  checkRacePublication,
+  checkRaceSchedule,
+  isRacePubliclyReadable,
+} from './invariants.js';
+import {
+  findEditionTransition,
+  findEventTransition,
+  findRaceTransition,
+  isUnarchiving,
+  type TransitionAuthority,
+} from './lifecycle.js';
 
 /**
  * Use cases Event / Edition / Race.
@@ -261,10 +274,8 @@ export async function updateRace(context: CourseContext, input: unknown): Promis
  */
 async function assertTransitionAuthority(
   context: CourseContext,
-  scope: RaceScope,
-  transition: {
-    readonly authority: 'organization_editor' | 'organization_admin' | 'platform_admin';
-  },
+  organizationId: string | null,
+  transition: { readonly authority: TransitionAuthority },
   useCase: string,
 ): Promise<Authority> {
   if (transition.authority === 'platform_admin') {
@@ -276,7 +287,7 @@ async function assertTransitionAuthority(
   return assertOrganizationRole(
     context.repositories,
     context.actor,
-    scope.event.organizationId,
+    organizationId,
     minimum,
     useCase,
   );
@@ -316,7 +327,7 @@ export async function changeRaceStatus(
     );
   }
 
-  await assertTransitionAuthority(context, scope, transition, useCase);
+  await assertTransitionAuthority(context, scope.event.organizationId, transition, useCase);
 
   if (command.status === 'published') {
     const verdict = checkRacePublication(scope.race, scope.edition, scope.event);
@@ -324,7 +335,11 @@ export async function changeRaceStatus(
   }
 
   if (isUnarchiving(transition)) {
-    await assertRestoresPreviousStatus(context, command.raceId, command.status, useCase);
+    await assertRestoresPreviousStatus(
+      () => context.repositories.raceStatusTransitions.findLastArchival(command.raceId),
+      command.status,
+      useCase,
+    );
   }
 
   const updated = await context.repositories.races.changeStatus(
@@ -361,12 +376,11 @@ function publicationMessage(
  * réapparaîtrait comme ayant eu lieu.
  */
 async function assertRestoresPreviousStatus(
-  context: CourseContext,
-  raceId: string,
-  target: RaceStatus,
+  findLastArchival: () => Promise<{ readonly fromStatus: string } | null>,
+  target: string,
   useCase: string,
 ): Promise<void> {
-  const archival = await context.repositories.raceStatusTransitions.findLastArchival(raceId);
+  const archival = await findLastArchival();
 
   if (archival === null) {
     throw invalidStateError(
@@ -381,6 +395,139 @@ async function assertRestoresPreviousStatus(
       `le désarchivage ramène à ${archival.fromStatus}, pas à ${target}`,
     );
   }
+}
+
+/**
+ * Changement de statut d'un Event — 00_PRODUCT_SPEC §4.1.
+ *
+ * Même séquence que `changeRaceStatus`, et le même ordre de vérifications
+ * pour la même raison : le périmètre d'abord, sinon le code d'erreur
+ * renseignerait un inconnu sur le statut d'un événement qu'il n'a pas le
+ * droit de voir (03_PRIVACY_RLS §120).
+ *
+ * L'événement est la racine de la chaîne : c'est par lui que la publication
+ * commence, et sans lui ni ses éditions ni ses épreuves ne peuvent être
+ * diffusées (`checkEditionPublication`, `checkRacePublication`).
+ */
+export async function changeEventStatus(
+  context: CourseContext,
+  input: unknown,
+): Promise<EventRecord> {
+  const useCase = 'changeEventStatus';
+  const command = parseCommand(changeEventStatusCommandSchema, input, useCase);
+
+  const event = await context.repositories.events.findById(command.eventId);
+  if (event === null) throw notFoundError(useCase, 'événement');
+
+  const authority = await resolveAuthority(
+    context.repositories,
+    context.actor,
+    event.organizationId,
+  );
+  if (authority === null) throw forbiddenError(useCase);
+
+  const transition = findEventTransition(event.status, command.status);
+  if (transition === null) {
+    throw invalidStateError(
+      useCase,
+      `transition ${event.status} → ${command.status} non autorisée`,
+    );
+  }
+
+  await assertTransitionAuthority(context, event.organizationId, transition, useCase);
+
+  // Aucun invariant de chaîne ici : l'événement est la racine, rien au-dessus
+  // ne conditionne sa diffusion, et la table dit déjà que `published` ne
+  // s'atteint que depuis `draft` ou un désarchivage.
+  if (isUnarchiving(transition)) {
+    await assertRestoresPreviousStatus(
+      () => context.repositories.eventStatusTransitions.findLastArchival(command.eventId),
+      command.status,
+      useCase,
+    );
+  }
+
+  const updated = await context.repositories.events.changeStatus(
+    command.eventId,
+    event.status,
+    command.status,
+  );
+
+  if (updated === null) {
+    throw conflictError(useCase, 'le statut de l’événement a changé entre-temps');
+  }
+
+  return updated;
+}
+
+/**
+ * Changement de statut d'une Edition — 00_PRODUCT_SPEC §4.1.
+ *
+ * L'événement est relu pour deux raisons distinctes : il porte l'organisation
+ * gestionnaire, donc l'autorité, et il conditionne la diffusion de l'édition.
+ * C'est ce second point qui impose l'ordre de publication — l'événement, puis
+ * l'édition, puis l'épreuve.
+ */
+export async function changeEditionStatus(
+  context: CourseContext,
+  input: unknown,
+): Promise<EditionRecord> {
+  const useCase = 'changeEditionStatus';
+  const command = parseCommand(changeEditionStatusCommandSchema, input, useCase);
+
+  const edition = await context.repositories.editions.findById(command.editionId);
+  if (edition === null) throw notFoundError(useCase, 'édition');
+
+  const event = await context.repositories.events.findById(edition.eventId);
+  if (event === null) throw notFoundError(useCase, 'événement');
+
+  const authority = await resolveAuthority(
+    context.repositories,
+    context.actor,
+    event.organizationId,
+  );
+  if (authority === null) throw forbiddenError(useCase);
+
+  const transition = findEditionTransition(edition.status, command.status);
+  if (transition === null) {
+    throw invalidStateError(
+      useCase,
+      `transition ${edition.status} → ${command.status} non autorisée`,
+    );
+  }
+
+  await assertTransitionAuthority(context, event.organizationId, transition, useCase);
+
+  if (command.status === 'published') {
+    const verdict = checkEditionPublication(edition, event);
+    if (!verdict.ok) throw invalidStateError(useCase, editionPublicationMessage(verdict.reason));
+  }
+
+  if (isUnarchiving(transition)) {
+    await assertRestoresPreviousStatus(
+      () => context.repositories.editionStatusTransitions.findLastArchival(command.editionId),
+      command.status,
+      useCase,
+    );
+  }
+
+  const updated = await context.repositories.editions.changeStatus(
+    command.editionId,
+    edition.status,
+    command.status,
+  );
+
+  if (updated === null) {
+    throw conflictError(useCase, 'le statut de l’édition a changé entre-temps');
+  }
+
+  return updated;
+}
+
+function editionPublicationMessage(reason: 'event_not_published' | 'edition_not_draft'): string {
+  if (reason === 'event_not_published') return 'l’événement doit être publié avant ses éditions';
+
+  return 'seule une édition en brouillon peut être publiée';
 }
 
 /** Raccourci de `changeRaceStatus` vers `published`, transition la plus courante. */

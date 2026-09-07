@@ -1,8 +1,19 @@
-import { getEditionAdministration, getEventAdministration } from '@pluka/domain';
+import {
+  allowedEditionTransitions,
+  allowedEventTransitions,
+  getEditionAdministration,
+  getEventAdministration,
+} from '@pluka/domain';
 import { Badge, DataValue, Divider, MicroLabel } from '@pluka/ui';
 import Link from 'next/link';
 
-import { CreateEditionForm, CreateRaceForm } from '@/app/evenements/[eventId]/forms';
+import {
+  CreateEditionForm,
+  CreateRaceForm,
+  EditionStatusPanel,
+  EventStatusPanel,
+} from '@/app/evenements/[eventId]/forms';
+import { StatusHistory } from '@/app/status-history';
 import { redirectOnDomainError, requireAdminContext } from '@/lib/admin';
 
 /**
@@ -12,6 +23,11 @@ import { redirectOnDomainError, requireAdminContext } from '@/lib/admin';
  * `getEditionAdministration` — un aller-retour par édition. C'est assumé pour
  * un écran d'administration : la jointure exigerait soit une requête depuis
  * l'application, soit un use case taillé pour une seule vue.
+ *
+ * L'écran porte aussi les transitions de statut de §4.1, pour l'événement et
+ * pour chacune de ses éditions. Sans elles, la chaîne restait impubliable :
+ * une épreuve ne se publie que sous une édition diffusée, elle-même sous un
+ * événement publié.
  */
 export default async function EventPage({
   params,
@@ -21,7 +37,7 @@ export default async function EventPage({
   const { eventId } = await params;
   const context = await requireAdminContext(`/evenements/${eventId}`);
 
-  const { event, editions } = await getEventAdministration(context, { eventId }).catch(
+  const { event, editions, history } = await getEventAdministration(context, { eventId }).catch(
     redirectOnDomainError,
   );
 
@@ -56,6 +72,23 @@ export default async function EventPage({
 
       <Divider spaced />
 
+      <h2 className="pk-h2" style={{ marginBottom: 'var(--space-4)' }}>
+        Statut
+      </h2>
+
+      <EventStatusPanel
+        eventId={event.id}
+        status={event.status}
+        transitions={allowedEventTransitions(event.status)}
+      />
+
+      <h3 className="pk-label" style={{ margin: 'var(--space-6) 0 var(--space-2)' }}>
+        Historique
+      </h3>
+      <StatusHistory entries={history} />
+
+      <Divider spaced />
+
       <h2 className="pk-h2">Éditions</h2>
 
       {editionsWithRaces.length === 0 ? (
@@ -63,7 +96,7 @@ export default async function EventPage({
           Aucune édition.
         </p>
       ) : (
-        editionsWithRaces.map(({ edition, races }) => (
+        editionsWithRaces.map(({ edition, races, history: editionHistory }) => (
           <section key={edition.id} style={{ marginTop: 'var(--space-6)' }}>
             <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'baseline' }}>
               <h3 className="pk-h2" style={{ fontSize: '20px' }}>
@@ -103,6 +136,24 @@ export default async function EventPage({
                 ))}
               </ul>
             )}
+
+            <details style={{ marginTop: 'var(--space-4)' }}>
+              <summary className="pk-label" style={{ cursor: 'pointer' }}>
+                Statut de l’édition
+              </summary>
+              <div style={{ marginTop: 'var(--space-4)' }}>
+                <EditionStatusPanel
+                  editionId={edition.id}
+                  status={edition.status}
+                  transitions={allowedEditionTransitions(edition.status)}
+                />
+
+                <h4 className="pk-label" style={{ margin: 'var(--space-6) 0 var(--space-2)' }}>
+                  Historique
+                </h4>
+                <StatusHistory entries={editionHistory} />
+              </div>
+            </details>
 
             <details style={{ marginTop: 'var(--space-4)' }}>
               <summary className="pk-label" style={{ cursor: 'pointer' }}>

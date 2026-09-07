@@ -2,6 +2,7 @@ import {
   DbError,
   createCourseRepositories,
   createFactRepositories,
+  createGpxRepositories,
   type DbErrorCode,
 } from '@pluka/db';
 import {
@@ -9,6 +10,7 @@ import {
   type CourseContext,
   type DomainErrorCode,
   type FactReviewContext,
+  type GpxImportContext,
 } from '@pluka/domain';
 import { notFound, redirect } from 'next/navigation';
 
@@ -28,6 +30,27 @@ export function courseContext(session: Session): CourseContext {
     repositories: createCourseRepositories({ client: createDataClient(session.accessToken) }),
     actor: { userId: session.userId },
   };
+}
+
+/**
+ * Contexte d'import GPX.
+ *
+ * Même principe que `courseContext` : l'acteur n'est qu'un `userId`, et le
+ * client de données porte le jeton de la session. Le dépôt du fichier passe
+ * donc par la policy du bucket `race-sources` sous l'identité de
+ * l'administrateur — aucune clé de service n'entre ici (03_PRIVACY_RLS §8).
+ */
+export function gpxImportContext(session: Session): GpxImportContext {
+  return {
+    repositories: createGpxRepositories({ client: createDataClient(session.accessToken) }),
+    actor: { userId: session.userId },
+  };
+}
+
+export async function requireGpxImportContext(returnTo: string): Promise<GpxImportContext> {
+  const session = await requireSession(returnTo);
+
+  return gpxImportContext(session);
 }
 
 /**

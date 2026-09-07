@@ -35,6 +35,8 @@ export {
 } from './course/administration.js';
 
 export {
+  changeEditionStatusCommandSchema,
+  changeEventStatusCommandSchema,
   changeRaceStatusCommandSchema,
   createEditionCommandSchema,
   createEventCommandSchema,
@@ -48,6 +50,8 @@ export {
   publishRaceCommandSchema,
   setRaceVisibilityCommandSchema,
   updateRaceCommandSchema,
+  type ChangeEditionStatusCommand,
+  type ChangeEventStatusCommand,
   type ChangeRaceStatusCommand,
   type CreateEditionCommand,
   type CreateEventCommand,
@@ -64,32 +68,64 @@ export {
 } from './course/commands.js';
 
 export {
+  courseQuality,
+  getRaceGpxImport,
+  getRaceGpxImportQuerySchema,
+  importRaceGpx,
+  importRaceGpxCommandSchema,
+  importStage,
+  MAX_GPX_BYTES,
+  type CourseQualityFinding,
+  type GetRaceGpxImportQuery,
+  type GpxImportContext,
+  type ImportRaceGpxCommand,
+  type RaceGpxImport,
+  type RaceGpxImportReceipt,
+  type RaceGpxImportStage,
+} from './course/gpx.js';
+
+export {
   belongsToEdition,
   belongsToEvent,
+  checkEditionPublication,
   checkRacePublication,
   checkRaceSchedule,
   isEditionReadable,
   isEventReadable,
   isRacePubliclyReadable,
   isValidSlug,
+  type EditionPublicationVerdict,
   type PublicationVerdict,
   type RaceSchedule,
   type ScheduleVerdict,
 } from './course/invariants.js';
 
 export {
+  allowedEditionTransitions,
+  allowedEventTransitions,
   allowedRaceTransitions,
   canStillBeCancelled,
+  EDITION_TRANSITIONS,
+  EVENT_TRANSITIONS,
+  findEditionTransition,
+  findEventTransition,
   findRaceTransition,
   isPubliclyReadableStatus,
   isUnarchiving,
   RACE_TRANSITIONS,
+  type EditionStatus,
+  type EditionTransition,
+  type EventStatus,
+  type EventTransition,
   type RaceStatus,
   type RaceTransition,
+  type StatusTransition,
   type TransitionAuthority,
 } from './course/lifecycle.js';
 
 export {
+  changeEditionStatus,
+  changeEventStatus,
   changeRaceStatus,
   createEdition,
   createEvent,

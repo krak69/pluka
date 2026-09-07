@@ -761,6 +761,48 @@ export type Database = {
           },
         ]
       }
+      edition_status_transitions: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          edition_id: string
+          from_status: Database["public"]["Enums"]["edition_status"]
+          id: string
+          to_status: Database["public"]["Enums"]["edition_status"]
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          edition_id: string
+          from_status: Database["public"]["Enums"]["edition_status"]
+          id?: string
+          to_status: Database["public"]["Enums"]["edition_status"]
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          edition_id?: string
+          from_status?: Database["public"]["Enums"]["edition_status"]
+          id?: string
+          to_status?: Database["public"]["Enums"]["edition_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edition_status_transitions_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edition_status_transitions_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       editions: {
         Row: {
           created_at: string
@@ -1192,6 +1234,48 @@ export type Database = {
             columns: ["edition_id"]
             isOneToOne: false
             referencedRelation: "editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_status_transitions: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_id: string
+          from_status: Database["public"]["Enums"]["record_status"]
+          id: string
+          to_status: Database["public"]["Enums"]["record_status"]
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_id: string
+          from_status: Database["public"]["Enums"]["record_status"]
+          id?: string
+          to_status: Database["public"]["Enums"]["record_status"]
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_id?: string
+          from_status?: Database["public"]["Enums"]["record_status"]
+          id?: string
+          to_status?: Database["public"]["Enums"]["record_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_status_transitions_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_status_transitions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
             referencedColumns: ["id"]
           },
         ]
@@ -5337,6 +5421,7 @@ export type Database = {
           value_text: string
         }[]
       }
+      get_race_gpx_import: { Args: { p_race_id: string }; Returns: Json }
       list_fact_candidates_for_review: {
         Args: { p_limit?: number; p_race_id: string }
         Returns: {
@@ -5446,6 +5531,10 @@ export type Database = {
         Args: { p_msg_id: number; p_queue: string }
         Returns: boolean
       }
+      worker_block_course_preprocessing: {
+        Args: { p_course_geometry_id: string; p_issue: string }
+        Returns: undefined
+      }
       worker_claim_ingestion_job: {
         Args: { p_idempotency_key: string }
         Returns: {
@@ -5503,6 +5592,10 @@ export type Database = {
         }
         Returns: number
       }
+      worker_course_preprocessing_input: {
+        Args: { p_race_id: string }
+        Returns: Json
+      }
       worker_dispatch_outbox: { Args: { p_limit?: number }; Returns: number }
       worker_fail_extraction_run: {
         Args: { p_error: string; p_error_code: string; p_run_id: string }
@@ -5523,6 +5616,14 @@ export type Database = {
       worker_mark_source_failed: {
         Args: { p_source_id: string }
         Returns: undefined
+      }
+      worker_persist_course_micro_segments: {
+        Args: {
+          p_course_geometry_id: string
+          p_micro_segments: Json
+          p_preprocessing_version: string
+        }
+        Returns: number
       }
       worker_persist_race_geometry: {
         Args: {

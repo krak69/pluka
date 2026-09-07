@@ -66,6 +66,80 @@ export interface RaceStatusTransitionRecord {
   readonly createdAt: string;
 }
 
+/**
+ * Journal de statut d'un Event et d'une Edition — migration 0022.
+ *
+ * Trois enregistrements plutôt qu'un seul générique : chaque niveau a son
+ * enum de statut, et `record_status` n'a ni `completed` ni `cancelled`. Un
+ * type commun rendrait exprimable une entrée qu'aucune table n'accepte.
+ */
+export interface EventStatusTransitionRecord {
+  readonly id: string;
+  readonly eventId: string;
+  readonly fromStatus: Enum<'record_status'>;
+  readonly toStatus: Enum<'record_status'>;
+  readonly actorUserId: string | null;
+  readonly createdAt: string;
+}
+
+export interface EditionStatusTransitionRecord {
+  readonly id: string;
+  readonly editionId: string;
+  readonly fromStatus: Enum<'edition_status'>;
+  readonly toStatus: Enum<'edition_status'>;
+  readonly actorUserId: string | null;
+  readonly createdAt: string;
+}
+
+/**
+ * État d'un import GPX — migrations 0008, 0021 et 0023.
+ *
+ * Chaque bloc est nul tant que l'étape n'a pas eu lieu : pas de source avant
+ * un dépôt, pas de géométrie avant que le worker n'ait traité le fichier. Un
+ * écran lit donc l'avancement dans ce qui est présent, sans avoir à
+ * l'inférer.
+ */
+export interface RaceGpxImportRecord {
+  readonly raceId: string;
+  /** Ce que l'épreuve déclare, face à quoi §9 compare la trace mesurée. */
+  readonly officialDistanceMeters: number | null;
+  readonly officialElevationGainMeters: number | null;
+  readonly source: {
+    readonly id: string;
+    readonly title: string;
+    readonly status: Enum<'source_status'>;
+    readonly importedAt: string;
+  } | null;
+  readonly snapshot: {
+    readonly id: string;
+    readonly versionNumber: number;
+    readonly contentHash: string;
+    readonly retrievedAt: string;
+  } | null;
+  /** Job d'ingestion. Vit dans `private` : il ne sort que par la fonction de 0023. */
+  readonly job: {
+    readonly status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+    readonly attempts: number;
+    readonly maxAttempts: number;
+    readonly lastError: string | null;
+    readonly startedAt: string | null;
+    readonly completedAt: string | null;
+  } | null;
+  readonly geometry: {
+    readonly id: string;
+    readonly versionNumber: number;
+    readonly pointCount: number;
+    readonly lengthMeters: number | null;
+    readonly processorVersion: string;
+    readonly processedAt: string;
+    /** §9.1 : l'état de qualité à résoudre, tel que 0021 le persiste. */
+    readonly preprocessingStatus: Enum<'course_preprocessing_status'>;
+    readonly preprocessingIssue: string | null;
+    readonly preprocessedAt: string | null;
+    readonly microSegmentCount: number;
+  } | null;
+}
+
 /** Rôle d'un utilisateur dans une organisation, ou son absence. */
 export interface MembershipRecord {
   readonly organizationId: string;
