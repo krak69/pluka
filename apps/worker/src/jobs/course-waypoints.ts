@@ -21,6 +21,12 @@ import { downloadGpx, preprocessCourseGeometry, type PreprocessingOutcome } from
  * Rejouer un message est sans conséquence : `persist_course_micro_segments`
  * remplace l'ensemble plutôt que d'y ajouter (§22.1), et `processGpx` est une
  * fonction pure — le même fichier rend exactement la même trace.
+ *
+ * Cette pureté est aussi ce qui permet le rattrapage de 0027. Une géométrie
+ * persistée avant 0026 n'a pas de dénivelé mesuré, et redéposer le même GPX ne
+ * relancerait rien — le job est `completed`, et l'idempotence par empreinte
+ * refuse un doublon. Le job repasse déjà le fichier dans `processGpx` : la
+ * mesure est là, il n'y a qu'à la déposer où elle manque.
  */
 
 export const COURSE_QUEUE = 'pluka_geo';
@@ -85,6 +91,25 @@ export async function handleCourseWaypointsMessage(
 
   try {
     const track = processGpx(await downloadGpx(ports, source.storagePath));
+
+    // Rattrapage de 0027, avant le prétraitement : le dénivelé est un fait de
+    // la trace, il ne dépend ni du référentiel ni de l'issue du découpage.
+    if (source.needsElevation) {
+      const filled = await ports.geometries.backfillElevation(
+        source.courseGeometryId,
+        Math.round(track.elevationGainMeters),
+        Math.round(track.elevationLossMeters),
+      );
+
+      if (filled) {
+        ports.logger.info('dénivelé mesuré comblé sur une géométrie d’avant 0026', {
+          raceId: payload.raceId,
+          geometryId: source.courseGeometryId,
+          elevationGainM: Math.round(track.elevationGainMeters),
+          elevationLossM: Math.round(track.elevationLossMeters),
+        });
+      }
+    }
 
     const preprocessing = await preprocessCourseGeometry(
       ports,

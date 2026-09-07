@@ -212,6 +212,18 @@ export interface GeometryStore {
     readonly track: ProcessedTrack;
     readonly idempotencyKey: string;
   }): Promise<string>;
+  /**
+   * Comble le dénivelé d'une géométrie qui n'en a pas — et rien d'autre.
+   *
+   * Rend `true` si la ligne a été complétée, `false` si elle était déjà
+   * mesurée : la borne est dans le `where` de 0027, pas dans l'appelant. Aucune
+   * version n'est créée, la trace n'a pas changé.
+   */
+  backfillElevation(
+    courseGeometryId: string,
+    elevationGainM: number,
+    elevationLossM: number,
+  ): Promise<boolean>;
 }
 
 /**
@@ -251,6 +263,12 @@ export interface CoursePreprocessingInput {
 export interface RaceCourseSource {
   readonly courseGeometryId: string;
   readonly storagePath: string;
+  /**
+   * Vrai pour une géométrie persistée avant 0026, dont le dénivelé n'a jamais
+   * été enregistré. La relance le comble au passage : elle a déjà la trace en
+   * main (0027).
+   */
+  readonly needsElevation: boolean;
 }
 
 export interface CoursePreprocessingStore {

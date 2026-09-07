@@ -243,6 +243,19 @@ export function createGeometryStore(client: PlukaClient): GeometryStore {
 
       return String(geometryId);
     },
+
+    async backfillElevation(courseGeometryId, elevationGainM, elevationLossM) {
+      const filled = unwrapRpc(
+        await rpc(client).rpc('worker_backfill_geometry_elevation', {
+          p_course_geometry_id: courseGeometryId,
+          p_elevation_gain_m: elevationGainM,
+          p_elevation_loss_m: elevationLossM,
+        }),
+        'worker_backfill_geometry_elevation',
+      );
+
+      return filled === true;
+    },
   };
 }
 
@@ -260,11 +273,19 @@ export function createCoursePreprocessingStore(client: PlukaClient): CoursePrepr
       const data = unwrapRpc(
         await rpc(client).rpc('worker_race_course_source', { p_race_id: raceId }),
         'worker_race_course_source',
-      ) as { courseGeometryId: string; storagePath: string | null } | null;
+      ) as {
+        courseGeometryId: string;
+        storagePath: string | null;
+        needsElevation: boolean;
+      } | null;
 
       if (data === null || data.storagePath === null) return null;
 
-      return { courseGeometryId: data.courseGeometryId, storagePath: data.storagePath };
+      return {
+        courseGeometryId: data.courseGeometryId,
+        storagePath: data.storagePath,
+        needsElevation: data.needsElevation === true,
+      };
     },
 
     async readInput(raceId) {

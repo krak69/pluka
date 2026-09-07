@@ -47,6 +47,7 @@ const TRACK_POINTS = [
 ] as const;
 
 interface Recorded {
+  backfilled: { geometryId: string; gain: number; loss: number }[];
   readonly persisted: {
     count: number;
     version: string | null;
@@ -78,6 +79,23 @@ function createPorts(
   const waypointCount = options.waypoints ?? 3;
 
   return {
+    geometries: {
+      persist: async (): Promise<string> => {
+        throw new Error('la relance ne persiste aucune géométrie');
+      },
+      // Reproduit la borne de 0027 : une géométrie déjà mesurée n'est pas
+      // réécrite, et l'appelant le sait par le `false`.
+      backfillElevation: async (
+        courseGeometryId: string,
+        gain: number,
+        loss: number,
+      ): Promise<boolean> => {
+        if (source === null || !source.needsElevation) return false;
+
+        recorded.backfilled.push({ geometryId: courseGeometryId, gain, loss });
+        return true;
+      },
+    },
     objects: {
       downloadText: async (_bucket: string, path: string): Promise<string> => {
         recorded.downloaded.push(path);
@@ -129,13 +147,22 @@ function createPorts(
 }
 
 function recorder(): Recorded {
-  return { persisted: { count: 0, version: null, warnings: [] }, blocked: [], downloaded: [] };
+  return {
+    backfilled: [],
+    persisted: { count: 0, version: null, warnings: [] },
+    blocked: [],
+    downloaded: [],
+  };
 }
 
 const SOURCE: RaceCourseSource = {
   courseGeometryId: 'geometry-1',
   storagePath: `races/${RACE_ID}/gpx/abc.gpx`,
+  needsElevation: false,
 };
+
+/** Une géométrie d'avant 0026 : sa mesure de dénivelé manque encore. */
+const SOURCE_SANS_DENIVELE: RaceCourseSource = { ...SOURCE, needsElevation: true };
 
 describe('reconnaissance du message', () => {
   it('reconnaît une relance de référentiel', () => {
@@ -239,6 +266,77 @@ describe('relance', () => {
     expect(outcome).toMatchObject({ kind: 'preprocessed' });
     expect(recorded.persisted.count).toBe(0);
     expect(recorded.blocked).toEqual([]);
+  });
+});
+
+describe('rattrapage du dénivelé — 0027', () => {
+  it('comble la mesure d’une géométrie d’avant 0026', async () => {
+    // Redéposer le GPX ne relancerait rien : le job est `completed` et
+    // l'empreinte est la même. La relance par référentiel est le seul chemin
+    // qui repasse le fichier dans le moteur.
+    const recorded = recorder();
+
+    await handleCourseWaypointsMessage(
+      createPorts(SOURCE_SANS_DENIVELE, recorded),
+      message({ eventType: 'course.waypoints.changed', raceId: RACE_ID }),
+    );
+
+    expect(recorded.backfilled).toHaveLength(1);
+    expect(recorded.backfilled[0]?.geometryId).toBe(SOURCE.courseGeometryId);
+  });
+
+  it('mesure sur la trace, jamais sur la géométrie stockée', async () => {
+    // Les valeurs sortent de `processGpx` — altitude lissée sur 50 m (§8.1,
+    // étape 4). La trace de référence monte de 1000 m à 1200 m puis redescend
+    // à 1100 m : un D+ et un D- non nuls, et un D+ supérieur au D-.
+    const recorded = recorder();
+
+    await handleCourseWaypointsMessage(
+      createPorts(SOURCE_SANS_DENIVELE, recorded),
+      message({ eventType: 'course.waypoints.changed', raceId: RACE_ID }),
+    );
+
+    const filled = recorded.backfilled[0];
+
+    expect(filled?.gain).toBeGreaterThan(0);
+    expect(Number.isInteger(filled?.gain)).toBe(true);
+    expect(Number.isInteger(filled?.loss)).toBe(true);
+  });
+
+  it('ne touche pas une géométrie déjà mesurée', async () => {
+    const recorded = recorder();
+
+    await handleCourseWaypointsMessage(
+      createPorts(SOURCE, recorded),
+      message({ eventType: 'course.waypoints.changed', raceId: RACE_ID }),
+    );
+
+    expect(recorded.backfilled).toEqual([]);
+  });
+
+  it('comble même si le prétraitement se met de côté ensuite', async () => {
+    // Le dénivelé est un fait de la trace : il ne dépend ni du référentiel, ni
+    // de l'issue du découpage. D'où le rattrapage avant le prétraitement.
+    const recorded = recorder();
+
+    await handleCourseWaypointsMessage(
+      createPorts(SOURCE_SANS_DENIVELE, recorded, { waypoints: 1 }),
+      message({ eventType: 'course.waypoints.changed', raceId: RACE_ID }),
+    );
+
+    expect(recorded.backfilled).toHaveLength(1);
+    expect(recorded.persisted.count).toBe(0);
+  });
+
+  it('ne tente rien quand l’épreuve n’a pas de trace', async () => {
+    const recorded = recorder();
+
+    await handleCourseWaypointsMessage(
+      createPorts(null, recorded),
+      message({ eventType: 'course.waypoints.changed', raceId: RACE_ID }),
+    );
+
+    expect(recorded.backfilled).toEqual([]);
   });
 });
 

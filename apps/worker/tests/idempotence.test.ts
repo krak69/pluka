@@ -121,6 +121,8 @@ function createRecorder(): Recorder {
         geometryByKey.set(idempotencyKey, id);
         return id;
       },
+      // Ces tests portent sur l'idempotence de l'import, pas sur le rattrapage.
+      backfillElevation: async (): Promise<boolean> => false,
     },
     parsing: {
       startRun: async () => ({ runId: 'run-1', alreadyCompleted: false }),

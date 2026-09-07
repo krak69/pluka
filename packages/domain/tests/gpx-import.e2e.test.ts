@@ -8,6 +8,7 @@ import {
   importRaceGpx,
   type GpxImportContext,
 } from '../src/index.js';
+import { e2eName, e2eSlug } from './fixtures/e2e-marker.js';
 
 /**
  * Dépôt d'un GPX contre la base locale.
@@ -181,7 +182,7 @@ beforeAll(async () => {
 
   await service
     .from('organizations')
-    .insert({ id: ORG_ID, name: 'Org GPX', slug: `org-gpx-${SUFFIX}` });
+    .insert({ id: ORG_ID, name: e2eName('Org GPX'), slug: e2eSlug('org-gpx', SUFFIX) });
 
   await service.from('organization_members').insert([
     { organization_id: ORG_ID, user_id: editor.userId, role: 'editor' },
@@ -192,15 +193,15 @@ beforeAll(async () => {
     {
       id: EVENT_ID,
       organization_id: ORG_ID,
-      name: 'Trail GPX',
-      slug: `trail-gpx-${SUFFIX}`,
+      name: e2eName('Trail GPX'),
+      slug: e2eSlug('trail-gpx', SUFFIX),
       status: 'published',
     },
     {
       id: ORPHAN_EVENT_ID,
       organization_id: null,
-      name: 'Trail Maintenu PLUKA',
-      slug: `trail-pluka-${SUFFIX}`,
+      name: e2eName('Trail Maintenu PLUKA'),
+      slug: e2eSlug('trail-pluka', SUFFIX),
       status: 'published',
     },
   ]);
@@ -210,7 +211,7 @@ beforeAll(async () => {
       id: EDITION_ID,
       event_id: EVENT_ID,
       year: 2026,
-      slug: `trail-gpx-2026-${SUFFIX}`,
+      slug: e2eSlug('trail-gpx-2026', SUFFIX),
       start_date: '2026-06-20',
       status: 'published',
     },
@@ -218,7 +219,7 @@ beforeAll(async () => {
       id: ORPHAN_EDITION_ID,
       event_id: ORPHAN_EVENT_ID,
       year: 2026,
-      slug: `trail-pluka-2026-${SUFFIX}`,
+      slug: e2eSlug('trail-pluka-2026', SUFFIX),
       start_date: '2026-08-15',
       status: 'published',
     },
@@ -228,8 +229,8 @@ beforeAll(async () => {
     {
       id: RACE_ID,
       edition_id: EDITION_ID,
-      name: '70K',
-      slug: '70k',
+      name: e2eName('70K'),
+      slug: e2eSlug('70k', SUFFIX),
       distance_km: 70,
       start_datetime: '2026-06-20T05:00:00Z',
       status: 'draft',
@@ -237,8 +238,8 @@ beforeAll(async () => {
     {
       id: ORPHAN_RACE_ID,
       edition_id: ORPHAN_EDITION_ID,
-      name: '30K',
-      slug: '30k',
+      name: e2eName('30K'),
+      slug: e2eSlug('30k', SUFFIX),
       distance_km: 30,
       start_datetime: '2026-08-15T05:00:00Z',
       status: 'draft',
@@ -296,8 +297,12 @@ describe.runIf(process.env.SUPABASE_SERVICE_ROLE_KEY !== undefined)('dépôt d�
     // le chemin réel de l'écran.
     const status = await getRaceGpxImport(editor.context, { raceId: RACE_ID });
 
-    expect(status.stage).toBe('queued');
-    expect(status.job?.status).toBe('queued');
+    // Ce qui se vérifie est l'existence du job, pas son statut à l'instant de
+    // la lecture : un worker qui tourne pendant la suite l'aura peut-être déjà
+    // réclamé. Exiger `queued` faisait échouer le test une fois sur deux, selon
+    // qu'un worker consommait la file ou non.
+    expect(status.job).not.toBeNull();
+    expect(status.stage).not.toBe('none');
     expect(status.snapshot?.contentHash).toBe(await sha256Hex(TRACE));
   }, 30000);
 

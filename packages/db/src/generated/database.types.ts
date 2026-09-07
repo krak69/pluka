@@ -5544,6 +5544,14 @@ export type Database = {
         Args: { p_msg_id: number; p_queue: string }
         Returns: boolean
       }
+      worker_backfill_geometry_elevation: {
+        Args: {
+          p_course_geometry_id: string
+          p_elevation_gain_m: number
+          p_elevation_loss_m: number
+        }
+        Returns: boolean
+      }
       worker_block_course_preprocessing: {
         Args: { p_course_geometry_id: string; p_issue: string }
         Returns: undefined

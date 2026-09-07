@@ -8,6 +8,7 @@ import {
   publishFactCandidate,
   type FactReviewContext,
 } from '../src/index.js';
+import { e2eName, e2eSlug } from './fixtures/e2e-marker.js';
 
 /**
  * Étape 4 contre la base locale : publication d'un fact.
@@ -207,7 +208,7 @@ beforeAll(async () => {
 
   await service
     .from('organizations')
-    .insert({ id: ORG_ID, name: 'Org Publication', slug: `org-pub-${SUFFIX}` });
+    .insert({ id: ORG_ID, name: e2eName('Org Publication'), slug: e2eSlug('org-pub', SUFFIX) });
 
   await service.from('organization_members').insert([
     { organization_id: ORG_ID, user_id: editor.userId, role: 'editor' },
@@ -217,23 +218,23 @@ beforeAll(async () => {
   await service.from('events').insert({
     id: EVENT_ID,
     organization_id: ORG_ID,
-    name: 'Trail Publication',
-    slug: `trail-pub-${SUFFIX}`,
+    name: e2eName('Trail Publication'),
+    slug: e2eSlug('trail-pub', SUFFIX),
     status: 'published',
   });
   await service.from('editions').insert({
     id: EDITION_ID,
     event_id: EVENT_ID,
     year: 2026,
-    slug: `trail-pub-2026-${SUFFIX}`,
+    slug: e2eSlug('trail-pub-2026', SUFFIX),
     start_date: '2026-06-20',
     status: 'published',
   });
   await service.from('races').insert({
     id: RACE_ID,
     edition_id: EDITION_ID,
-    name: 'Grand Parcours',
-    slug: 'grand-parcours',
+    name: e2eName('Grand Parcours'),
+    slug: e2eSlug('grand-parcours', SUFFIX),
     distance_km: 70,
     start_datetime: '2026-06-20T05:10:00Z',
     status: 'published',
