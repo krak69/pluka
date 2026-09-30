@@ -120,6 +120,18 @@ export type {
   MembershipRecord,
   ParticipantRaceRecord,
   ParticipantRaceSettingsRecord,
+  AdminAuditEntryRecord,
+  AdminFactCandidateRecord,
+  AdminJobRecord,
+  AdminNutritionProductRecord,
+  AdminOrganizationRecord,
+  AdminPlatformCountersRecord,
+  AdminReportDetailRecord,
+  AdminReportRecord,
+  AdminSourceRecord,
+  AdminUserDetailRecord,
+  AdminUserEntitlement,
+  AdminUserRecord,
   ParticipantRaceEntry,
   PublishedFactSource,
   PublishedRaceFactRecord,
@@ -131,6 +143,12 @@ export type {
   RaceStatusTransitionRecord,
   TrailProfileRecord,
 } from './repositories/records.js';
+export {
+  adminConsoleRepository,
+  createAdminConsoleRepositories,
+  type AdminConsoleRepositories,
+  type AdminConsoleRepository,
+} from './repositories/admin-console.js';
 export {
   createRaceInformationRepositories,
   publishedFactRepository,

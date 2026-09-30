@@ -513,3 +513,181 @@ export interface BetaAccessGrantRecord {
   readonly endsAt: string | null;
   readonly revokedAt: string | null;
 }
+
+/*
+ * Console d'administration — migration 0028, 03_PRIVACY_RLS §104.
+ *
+ * Ces DTO sont volontairement plus étroits que leurs tables. §104 : « le simple
+ * statut `pluka_admin` ne doit pas transformer toutes les données en contenu
+ * courant de l'admin UI » — ce que ces types ne portent pas est la moitié de
+ * leur raison d'être.
+ */
+
+/** Cardinalités de la vue d'ensemble. Aucune donnée personnelle. */
+export interface AdminPlatformCountersRecord {
+  readonly eventsTotal: number;
+  readonly eventsPublished: number;
+  readonly editionsTotal: number;
+  readonly racesTotal: number;
+  readonly racesPublished: number;
+  readonly organizationsTotal: number;
+  readonly organizationsActive: number;
+  readonly participationsActive: number;
+  readonly candidatesPending: number;
+  readonly jobsFailed: number;
+  readonly reportsOpen: number;
+  readonly productsDraft: number;
+  readonly sourcesFailed: number;
+}
+
+export interface AdminOrganizationRecord {
+  readonly organizationId: string;
+  readonly name: string;
+  readonly slug: string;
+  readonly status: Enum<'organization_status'>;
+  /** Adresse d'organisation, pas de personne : §28 minimise l'email participant. */
+  readonly contactEmail: string | null;
+  readonly eventsCount: number;
+  readonly racesCount: number;
+  readonly membersCount: number;
+  readonly createdAt: string;
+}
+
+export interface AdminSourceRecord {
+  readonly sourceId: string;
+  readonly title: string;
+  readonly sourceType: Enum<'source_type'>;
+  readonly status: Enum<'source_status'>;
+  readonly url: string | null;
+  readonly eventName: string;
+  readonly editionYear: number;
+  readonly snapshotRetrievedAt: string | null;
+  readonly chunksCount: number;
+  readonly importedAt: string;
+}
+
+export interface AdminNutritionProductRecord {
+  readonly productId: string;
+  readonly brand: string | null;
+  readonly name: string;
+  readonly variant: string | null;
+  readonly category: Enum<'nutrition_product_category'>;
+  readonly status: Enum<'nutrition_product_status'>;
+  readonly carbsG: number;
+  readonly sodiumMg: number;
+  readonly caffeineMg: number;
+  readonly hydrationMl: number;
+  readonly sourceUrl: string | null;
+  readonly verifiedAt: string | null;
+  readonly updatedAt: string;
+}
+
+/**
+ * Une ligne de la file de triage.
+ *
+ * Ni contenu signalé, ni déclarant : un signalement met en cause deux
+ * personnes, et la file n'a besoin d'aucune des deux pour être triée. Le
+ * contenu vit dans `AdminReportDetailRecord`, dont la lecture est auditée.
+ */
+export interface AdminReportRecord {
+  readonly reportId: string;
+  readonly reason: Enum<'report_reason'>;
+  readonly status: Enum<'report_status'>;
+  readonly targetKind: 'post' | 'thread';
+  readonly createdAt: string;
+  readonly resolvedAt: string | null;
+}
+
+export interface AdminReportDetailRecord extends AdminReportRecord {
+  readonly details: string | null;
+  readonly reporterEmail: string | null;
+  readonly targetContent: string | null;
+  readonly targetAuthorEmail: string | null;
+}
+
+/**
+ * Un utilisateur vu par l'administration.
+ *
+ * Identité, niveau de droit, nombre de courses. Aucun Plan, aucune Nutrition,
+ * aucune Assistance, aucune sortie, aucun profil trailer : la suite pgTAP 07
+ * l'affirme pour les tables, et 17 le rejoue pour ces fonctions.
+ *
+ * `racesCount` est un compteur, jamais la liste : savoir combien de courses une
+ * personne prépare est une information de support ; savoir lesquelles n'en est
+ * pas une.
+ */
+export interface AdminUserRecord {
+  readonly userId: string;
+  readonly email: string;
+  readonly firstName: string | null;
+  readonly lastName: string | null;
+  readonly platformRole: Enum<'platform_role'>;
+  /** Résolu par priorité — 04_ENTITLEMENTS §21, « le droit le plus large gagne ». */
+  readonly entitlementLevel: 'free' | 'race_pass' | 'organizer_included' | 'plus';
+  readonly racesCount: number;
+  readonly createdAt: string;
+}
+
+export interface AdminUserEntitlement {
+  readonly kind: string;
+  readonly source: string;
+  readonly status: string;
+  readonly startsAt: string | null;
+  readonly endsAt: string | null;
+}
+
+export interface AdminUserDetailRecord extends AdminUserRecord {
+  readonly locale: string;
+  readonly timezone: string;
+  readonly entitlements: readonly AdminUserEntitlement[];
+}
+
+/**
+ * Un traitement de la file d'ingestion.
+ *
+ * `idempotencyKey` est rendue : c'est une clé technique, et c'est elle qui
+ * permet de rapprocher un job d'un autre essai sans ouvrir psql.
+ */
+export interface AdminJobRecord {
+  readonly jobId: string;
+  readonly jobType: string;
+  readonly status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+  readonly idempotencyKey: string;
+  readonly attempts: number;
+  readonly maxAttempts: number;
+  readonly lastError: string | null;
+  readonly availableAt: string | null;
+  readonly startedAt: string | null;
+  readonly completedAt: string | null;
+  readonly createdAt: string;
+  readonly sourceTitle: string | null;
+  readonly eventName: string | null;
+}
+
+/** Une entrée du journal. `before_data` n'est pas rendu — aucun écran ne le demande. */
+export interface AdminAuditEntryRecord {
+  readonly entryId: number;
+  readonly action: string;
+  readonly entityTable: string;
+  readonly entityId: string | null;
+  readonly afterData: Readonly<Record<string, unknown>> | null;
+  readonly actorEmail: string | null;
+  readonly organizationName: string | null;
+  readonly requestId: string | null;
+  readonly createdAt: string;
+}
+
+/** Une ligne de la file de validation, toutes courses confondues. */
+export interface AdminFactCandidateRecord {
+  readonly candidateId: string;
+  readonly raceId: string;
+  readonly raceName: string;
+  readonly eventName: string;
+  readonly category: string;
+  readonly factKey: string;
+  readonly valueText: string | null;
+  readonly status: string;
+  readonly conflictStatus: string | null;
+  readonly confidenceLabel: string | null;
+  readonly extractedAt: string | null;
+}
