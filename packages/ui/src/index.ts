@@ -25,6 +25,13 @@ export { Divider, type DividerProps } from './components/Divider.js';
 export { IconButton, type IconButtonProps } from './components/IconButton.js';
 export { Input, type InputProps } from './components/Input.js';
 export { Link, type LinkProps } from './components/Link.js';
+export {
+  Logo,
+  type LogoLockupTone,
+  type LogoMarkTone,
+  type LogoProps,
+  type LogoWordmarkTone,
+} from './components/Logo.js';
 export { MicroLabel, type MicroLabelProps } from './components/MicroLabel.js';
 export { NavItem, type NavItemProps } from './components/NavItem.js';
 export { NavList, type NavListProps } from './components/NavList.js';

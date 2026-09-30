@@ -6,10 +6,9 @@ import {
   ListIcon,
   SneakerMoveIcon,
 } from '@phosphor-icons/react/ssr';
+import { Logo } from '@pluka/ui';
 import Link from 'next/link';
 import { useState } from 'react';
-
-import { BrandLockup } from '@/components/brand-lockup';
 
 /**
  * En-tête des deux pages d'atterrissage.
@@ -100,8 +99,12 @@ export function SiteHeader({
       </div>
 
       <div className="lp-bar">
+        {/*
+          Le logo nomme le lien : il n'est donc pas décoratif ici. `primary`
+          est la déclinaison du fond Calcaire (§143).
+        */}
         <Link href={homeHref} className="lp-logo">
-          <BrandLockup />
+          <Logo height={26} />
         </Link>
 
         <nav aria-label="Navigation principale" className="lp-nav">

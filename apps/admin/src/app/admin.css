@@ -1,0 +1,27 @@
+/*
+ * Barre d'administration — 06_DESIGN_SYSTEM.md §69.
+ *
+ * Une seule bande, sur fond Ardoise, pour dire où l'on est. L'administration
+ * n'a pas de navigation globale à ce stade : en inventer une ici anticiperait
+ * un lot qui n'est pas fait.
+ *
+ * Aucune couleur littérale : tout passe par les tokens `--pk-*`.
+ */
+.ad-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  background: var(--pk-ink);
+}
+
+.ad-bar-logo {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* Le micro-label par défaut est sur fond clair ; ici le fond est sombre. */
+.ad-bar-scope {
+  color: var(--pk-lichen);
+}

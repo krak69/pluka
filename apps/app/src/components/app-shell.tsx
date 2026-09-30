@@ -1,7 +1,7 @@
 'use client';
 
 import type { OwnParticipationSummary } from '@pluka/domain';
-import { EmptyState, NavItem, NavList } from '@pluka/ui';
+import { EmptyState, Logo, NavItem, NavList } from '@pluka/ui';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
@@ -94,8 +94,9 @@ export function AppShell({ races, children }: AppShellProps) {
 
       <aside className="ap-sidebar">
         <div className="ap-brand">
-          <Link href="/" className="ap-wordmark">
-            PLUKA
+          {/* Le logo nomme le lien : pas décoratif. Fond blanc → `primary`. */}
+          <Link href="/" className="ap-logo">
+            <Logo height={24} />
           </Link>
         </div>
 
@@ -159,8 +160,13 @@ export function AppShell({ races, children }: AppShellProps) {
 
       <div className="ap-frame">
         <header className="ap-topbar">
-          <Link href="/" className="ap-topbar-mark">
-            PLUKA
+          {/*
+            Barre mobile sur fond Ardoise, et place comptée : le symbole seul,
+            en Lichen — c'est le couple de marque sur fond sombre, et c'est ce
+            que le prototype y place (`#pk-mark`).
+          */}
+          <Link href="/" className="ap-topbar-logo" aria-label="Accueil PLUKA">
+            <Logo variant="mark" tone="lichen" height={24} decorative />
           </Link>
 
           <div className="ap-topbar-race">

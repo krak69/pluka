@@ -10,6 +10,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./brand": {
+      "types": "./dist/brand/logo-paths.d.ts",
+      "default": "./dist/brand/logo-paths.js"
+    },
     "./styles.css": "./src/styles/index.css",
     "./tokens.css": "./src/tokens/index.css"
   },

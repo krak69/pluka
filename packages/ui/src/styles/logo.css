@@ -1,0 +1,15 @@
+/*
+ * Logo — 06_DESIGN_SYSTEM.md §143.
+ *
+ * La feuille ne colore rien : les encres sont des attributs `fill` portés par
+ * le composant, en tokens `--pk-*`. Elle ne fixe que le comportement de boîte.
+ *
+ * `width: auto` avec une `height` donnée laisse le rapport du dessin décider
+ * de la largeur. Un logo étiré est un logo abîmé, et c'est l'erreur la plus
+ * facile à commettre dans une grille.
+ */
+.pk-logo {
+  display: block;
+  width: auto;
+  flex: none;
+}

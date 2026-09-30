@@ -1,6 +1,5 @@
+import { Logo } from '@pluka/ui';
 import Link from 'next/link';
-
-import { BrandLockup } from '@/components/brand-lockup';
 
 /**
  * Pied de page des deux pages d'atterrissage.
@@ -56,8 +55,9 @@ export function SiteFooter({ layout, tagline, columns, domain, disclaimer }: Sit
         {layout === 'grid' ? (
           <div className="lp-auto-180" style={{ marginBottom: 'var(--space-8)' }}>
             <div>
+              {/* Répétition du logo de l'en-tête : décoratif (§101). */}
               <div style={{ marginBottom: 'var(--space-4)' }}>
-                <BrandLockup />
+                <Logo height={26} decorative />
               </div>
               <p className="lp-footer-tagline lp-measure-26">{tagline}</p>
             </div>
@@ -70,7 +70,7 @@ export function SiteFooter({ layout, tagline, columns, domain, disclaimer }: Sit
           <div className="lp-footer-cols" style={{ marginBottom: 'var(--space-8)' }}>
             <div className="lp-footer-brand">
               <div style={{ marginBottom: 'var(--space-4)' }}>
-                <BrandLockup />
+                <Logo height={26} decorative />
               </div>
               <p className="lp-footer-tagline lp-measure-30">{tagline}</p>
             </div>

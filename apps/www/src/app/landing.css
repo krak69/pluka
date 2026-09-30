@@ -96,8 +96,7 @@ html {
    */
   --lp-ring: 0 0 0 1px var(--pk-hairline);
   --lp-lift:
-    0 22px 56px color-mix(in srgb, var(--pk-ink) 20%, transparent),
-    0 0 0 1px var(--pk-hairline);
+    0 22px 56px color-mix(in srgb, var(--pk-ink) 20%, transparent), 0 0 0 1px var(--pk-hairline);
   --lp-lift-on-dark: 0 20px 50px color-mix(in srgb, var(--pk-ink) 30%, transparent);
 
   /*
@@ -667,10 +666,18 @@ html {
   padding: 11px var(--space-5);
 }
 
+/*
+ * Boîte du lien qui porte le logo.
+ *
+ * Le lockup provisoire composé dans Archivo a disparu : `Logo` de `@pluka/ui`
+ * rend les tracés officiels (§143). Cette règle ne porte que la boîte — le
+ * dessin et ses encres appartiennent au composant.
+ */
 .lp-logo {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   flex: none;
+  min-height: 44px;
 }
 
 .lp-nav {
@@ -767,26 +774,6 @@ html {
   margin-top: 2px;
   font-size: 13px;
   color: var(--pk-text-secondary);
-}
-
-/* ── Marque ──────────────────────────────────────────────────────────────*/
-
-/*
- * 06_DESIGN_SYSTEM.md §143 : « Le SVG doit être importé / rendu comme asset de
- * marque. Ne pas redessiner le logo manuellement en CSS. » Le lockup n'est pas
- * dans le dépôt — voir `public/brand/README.md`. En attendant, le nom est
- * composé dans la police de titre de la Charte, ce qui n'est pas un dessin du
- * logo et se remplace par le SVG en un seul endroit.
- */
-.lp-wordmark {
-  display: inline-block;
-  font-family: var(--font-heading);
-  font-variation-settings: 'wdth' 125;
-  font-weight: 800;
-  font-size: 23px;
-  line-height: 26px;
-  letter-spacing: 0.02em;
-  color: var(--pk-ink);
 }
 
 /* ── Panneaux de démonstration ───────────────────────────────────────────*/

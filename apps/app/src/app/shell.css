@@ -83,20 +83,14 @@
 }
 
 /*
- * 06_DESIGN_SYSTEM.md §143 interdit de redessiner le logo. Le SVG de marque
- * n'est pas dans le dépôt — voir `apps/www/public/brand/README.md`. Le nom est
- * donc composé dans Archivo, comme sur le site public, et se remplacera au même
- * endroit.
+ * Le logo officiel, rendu par `Logo` de `@pluka/ui` (§143). Ces règles ne
+ * portent que la boîte du lien : le dessin et ses encres appartiennent au
+ * composant.
  */
-.ap-wordmark {
-  display: inline-block;
-  color: var(--pk-ink);
-  font-family: var(--font-heading);
-  font-variation-settings: 'wdth' 125;
-  font-weight: 800;
-  font-size: 20px;
-  letter-spacing: 0.02em;
-  text-decoration: none;
+.ap-logo {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
 
 .ap-nav-groups {
@@ -262,15 +256,13 @@
   background: var(--pk-ink);
 }
 
-.ap-topbar-mark {
+.ap-topbar-logo {
+  display: inline-flex;
   flex: none;
-  color: var(--pk-text-on-dark);
-  font-family: var(--font-heading);
-  font-variation-settings: 'wdth' 125;
-  font-weight: 800;
-  font-size: 17px;
-  letter-spacing: 0.02em;
-  text-decoration: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .ap-topbar-race {
