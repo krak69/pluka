@@ -14,6 +14,12 @@ import { classNames } from '../internal/class-names.js';
  * appartient à `NavList`.
  *
  * §15 : pas de capitales forcées ici. Ce ne sont pas des micro-labels.
+ *
+ * `tone` existe pour une seule raison : la console d'administration pose ses
+ * onglets sur l'Ardoise (§69), où les couleurs de texte par défaut
+ * disparaîtraient. Le contraste appartient donc au composant plutôt qu'à
+ * l'application — sinon chaque bande sombre redéfinirait `.pk-tab` à sa façon,
+ * et elles divergeraient au premier changement du Design System.
  */
 export interface NavTab {
   readonly href: string;
@@ -21,15 +27,23 @@ export interface NavTab {
   readonly current?: boolean;
 }
 
+export type NavTabsTone = 'default' | 'inverse';
+
 export interface NavTabsProps extends Omit<HTMLAttributes<HTMLElement>, 'children'> {
   /** Nom du groupe d'onglets, pour l'arbre d'accessibilité. */
   readonly label: string;
   readonly tabs: readonly NavTab[];
+  /** `inverse` pour une bande sombre — Ardoise ou Forêt. */
+  readonly tone?: NavTabsTone;
 }
 
-export function NavTabs({ label, tabs, className, ...rest }: NavTabsProps) {
+export function NavTabs({ label, tabs, tone = 'default', className, ...rest }: NavTabsProps) {
   return (
-    <nav aria-label={label} className={classNames('pk-tabs', className)} {...rest}>
+    <nav
+      aria-label={label}
+      className={classNames('pk-tabs', tone === 'inverse' && 'pk-tabs-inverse', className)}
+      {...rest}
+    >
       {tabs.map((tab) => (
         <a
           key={tab.href}

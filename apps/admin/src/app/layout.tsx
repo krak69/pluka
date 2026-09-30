@@ -1,7 +1,7 @@
-import { Logo, MicroLabel } from '@pluka/ui';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import type { ReactNode } from 'react';
+
+import { AdminChrome } from '@/components/admin-chrome';
 
 import '@pluka/ui/styles.css';
 import '@/app/admin.css';
@@ -24,18 +24,7 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
   return (
     <html lang="fr">
       <body className="pk-surface-page">
-        <header className="ad-bar">
-          {/*
-            Fond Ardoise : `inverse` est la déclinaison prévue pour un fond
-            sombre — symbole Lichen, mot Calcaire, accent Aube (§143).
-          */}
-          <Link href="/" className="ad-bar-logo" aria-label="Administration PLUKA">
-            <Logo tone="inverse" height={22} decorative />
-          </Link>
-
-          <MicroLabel className="ad-bar-scope">Administration</MicroLabel>
-        </header>
-
+        <AdminChrome />
         {children}
       </body>
     </html>

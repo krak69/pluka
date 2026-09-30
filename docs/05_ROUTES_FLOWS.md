@@ -396,36 +396,52 @@ Mais la landing organisateurs promet explicitement : « Partagez-le avec votre �
 /auth/callback
 /refuse
 
-/                                Vue d'ensemble
+/                                Liste des événements
+/vue-d-ensemble                  Vue d'ensemble
 /validation                      File de validation globale
 /organisations
-/organisations/[organizationId]
-/evenements
+/organisations/[organizationId]  pas d’écran — voir §7.2
+/evenements                      → redirige vers /
 /evenements/[eventId]
 /courses/[raceId]                Administration d'une course
 /courses/[raceId]/revue          Revue des extractions de cette course
 /sources
-/sources/[sourceId]
-/produits                        → redirige vers /catalogue
+/sources/[sourceId]              pas d’écran — voir §7.2
+/produits                        → redirige vers /produits/catalogue
 /produits/catalogue
 /produits/a-verifier
-/produits/signalements
+/produits/signalements           état vide explicite — voir §7.2
 /signalements
+/signalements/[reportId]         lecture journalisée
 /utilisateurs
-/utilisateurs/[userId]
+/utilisateurs/[userId]           lecture journalisée
 /traitements                     Imports et traitements
 /journal                         Journal d'audit
 ```
 
 Les dix entrées de l'`adminNav` du prototype y sont toutes présentes. Les trois sous-onglets de Produits nutrition (`bankTab`) sont des onglets, donc des routes (§1.2).
 
-**L'index de l'application n'est pas tranché — voir §12.5.** **Le rattachement de `/courses/[raceId]` non plus — voir §12.6.**
+La vue d'ensemble a pris `/vue-d-ensemble` et la liste des événements est restée à `/` : c'est l'état livré, pas une décision. `/evenements` redirige vers `/` pour qu'un lien écrit d'après ce document ne casse pas. **L'index de l'application n'est pas tranché — voir §12.5.**
 
-## 7.2 Tables `private.*`
+`/courses/[raceId]` se rejoint par Événements → événement → épreuve, et `adminNav` ne change pas (§12.6 tranché).
+
+Deux routes de détail ouvrent des données personnelles — `/signalements/[reportId]` et `/utilisateurs/[userId]`. Leur lecture s'inscrit dans `private.audit_logs` avant de rendre quoi que ce soit, ainsi que la recherche d'`/utilisateurs` (migration 0028). Les lectures opérationnelles — compteurs, sources, produits, traitements, journal — ne s'y inscrivent pas : chaque visite du journal y ajouterait une ligne, et le bruit masquerait les accès que §104 veut rendre visibles.
+
+## 7.2 Ce qui n'a pas d'écran
+
+Trois adresses de §7.1 ne rendent pas d'écran de données, et pour trois raisons différentes :
+
+| Route                          | Raison                                                                                                                                                          |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/organisations/[organizationId]` | La migration 0028 ne porte que la liste. Une fiche demanderait une RPC de plus, qu'aucun écran du prototype ne réclame.                                      |
+| `/sources/[sourceId]`          | Idem. Le détail d'une source vit aujourd'hui dans le tiroir de provenance de la revue, qui montre snapshot, bloc, page et extrait.                               |
+| `/produits/signalements`       | Signaler une fiche nutrition n'existe pas en base : `community_reports` ne porte que `thread_id` et `post_id`, avec une contrainte qui en exige exactement une. L'écran le dit, plutôt que de recycler une autre file. |
+
+## 7.3 Tables `private.*`
 
 Aucune route ne lit une table `private.*` depuis un client. `03_PRIVACY_RLS.md` §8 les réserve au `service_role` : `/traitements` et `/journal` passent par un use case serveur.
 
-## 7.3 Redirections héritées de l'organisateur
+## 7.4 Redirections héritées de l'organisateur
 
 `ORG_LEGACY` du prototype porte onze identifiants. Aucun n'est une route ; chacun redirige.
 
@@ -574,13 +590,13 @@ Deux arborescences s'ensuivent : `/communaute` ou `/courses/[participantRaceId]/
 
 Le prototype ouvre l'administration sur une vue d'ensemble (`adminTab: 'overview'`). Le code existant place la liste des événements à `/`.
 
-§7.1 écrit les deux, l'une à `/` et l'autre à `/evenements`. Laquelle est l'index reste à décider.
+§7.1 écrit les deux. L'état livré par le lot 4a : la vue d'ensemble est à `/vue-d-ensemble`, la liste des événements est restée à `/`, et `/evenements` redirige vers `/`. Laquelle des deux est l'index reste à décider — la trancher dans l'autre sens consiste à échanger les deux pages et à retourner la redirection.
 
-## 12.6 Rattachement de `/courses/[raceId]` dans `apps/admin`
+## 12.6 Rattachement de `/courses/[raceId]` dans `apps/admin` — tranché
 
 C'est la partie la plus aboutie du code actuel — statut, visibilité, import GPX, waypoints, contrôles qualité — et elle n'a aucun équivalent dans l'`adminNav` du prototype, qui traite la course sous Événements et sous Validation.
 
-La route existe et fonctionne. Son point d'entrée dans la navigation n'est pas décidé.
+**Décision du lot 4 :** la route se rejoint par Événements → événement → épreuve. Elle n'entre pas dans `adminNav`, qui garde ses dix entrées. La file de validation globale y renvoie aussi, épreuve par épreuve.
 
 ## 12.7 Demander à PLUKA
 

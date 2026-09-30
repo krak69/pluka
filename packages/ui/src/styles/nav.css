@@ -132,6 +132,37 @@
   color: var(--pk-ink);
 }
 
+/*
+ * Onglets sur bande sombre — §69.
+ *
+ * La console d'administration porte ses destinations sur l'Ardoise, où les
+ * couleurs de texte par défaut disparaîtraient. Le contraste se reprend au
+ * niveau du groupe et non onglet par onglet : deux écrans ne peuvent donc pas
+ * traiter la même bande différemment, et l'application n'a rien à redéfinir.
+ *
+ * L'anneau de focus bascule sur `--pk-focus-dark` : le vert Forêt se perdrait
+ * sur ce fond.
+ */
+.pk-tabs-inverse .pk-tab {
+  border-color: color-mix(in oklab, var(--pk-text-on-dark) 30%, transparent);
+  color: var(--pk-text-on-dark);
+}
+
+.pk-tabs-inverse .pk-tab:hover {
+  border-color: var(--pk-lichen);
+  color: var(--pk-lichen);
+}
+
+.pk-tabs-inverse .pk-tab-current {
+  border-color: var(--pk-lichen);
+  background: color-mix(in oklab, var(--pk-lichen) 18%, transparent);
+  color: var(--pk-lichen);
+}
+
+.pk-tabs-inverse .pk-tab:focus-visible {
+  outline-color: var(--pk-focus-dark);
+}
+
 /* En-tête de page — §69 : « page header contextualisé ». */
 .pk-section-header {
   display: flex;

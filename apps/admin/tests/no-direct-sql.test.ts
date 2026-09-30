@@ -146,6 +146,21 @@ describe('autorisations', () => {
       'app/courses/[raceId]/revue/page.tsx',
       'app/courses/[raceId]/gpx-import-status.tsx',
       'app/courses/[raceId]/waypoints-form.tsx',
+      // Les onglets de la console — migration 0028. Leurs onze lectures sont
+      // des fonctions `security definer` : l'écran doit passer par le use
+      // case, sinon il nomme une fonction SQL, ce que le test suivant refuse.
+      'app/vue-d-ensemble/page.tsx',
+      'app/validation/page.tsx',
+      'app/organisations/page.tsx',
+      'app/sources/page.tsx',
+      'app/produits/catalogue/page.tsx',
+      'app/produits/a-verifier/page.tsx',
+      'app/signalements/page.tsx',
+      'app/signalements/[reportId]/page.tsx',
+      'app/utilisateurs/page.tsx',
+      'app/utilisateurs/[userId]/page.tsx',
+      'app/traitements/page.tsx',
+      'app/journal/page.tsx',
     ];
 
     for (const screen of screens) {
@@ -176,6 +191,22 @@ describe('fonctions SQL', () => {
       // base. Un écran qui l'appellerait par son nom aurait court-circuité les
       // invariants de chaîne de PLAN_ENGINE §7.
       'set_race_waypoints',
+      // 0028 : les onze lectures de la console. Elles contournent la RLS et
+      // portent leur propre garde — raison de plus pour qu'un écran ne les
+      // nomme jamais directement.
+      'admin_platform_counters',
+      'admin_list_organizations',
+      'admin_list_sources',
+      'admin_list_nutrition_products',
+      'admin_list_reports',
+      'admin_get_report',
+      'admin_search_users',
+      'admin_get_user',
+      'admin_list_jobs',
+      'admin_list_audit',
+      'admin_list_fact_candidates',
+      'assert_pluka_admin',
+      'record_audit',
     ];
 
     const offenders = sourceFiles().flatMap((moduleId) => {

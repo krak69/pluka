@@ -121,10 +121,7 @@ export interface AdminConsoleRepository {
 export const adminConsoleRepository = defineRepository<AdminConsoleRepository>((context) => ({
   async platformCounters() {
     const operation = 'admin_platform_counters';
-    const data = rows(
-      unwrapRpc(await rpc(context.client).rpc(operation), operation),
-      operation,
-    );
+    const data = rows(unwrapRpc(await rpc(context.client).rpc(operation), operation), operation);
     const row = data[0];
 
     if (row === undefined) {
@@ -208,11 +205,7 @@ export const adminConsoleRepository = defineRepository<AdminConsoleRepository>((
       brand: text(row, 'brand'),
       name: requiredText(row, 'name', operation),
       variant: text(row, 'variant'),
-      category: requiredText(
-        row,
-        'category',
-        operation,
-      ) as AdminNutritionProductRecord['category'],
+      category: requiredText(row, 'category', operation) as AdminNutritionProductRecord['category'],
       status: requiredText(row, 'status', operation) as AdminNutritionProductRecord['status'],
       carbsG: integer(row, 'carbs_g') ?? 0,
       sodiumMg: integer(row, 'sodium_mg') ?? 0,
@@ -244,10 +237,7 @@ export const adminConsoleRepository = defineRepository<AdminConsoleRepository>((
   async getReport(reportId) {
     const operation = 'admin_get_report';
     const data = rows(
-      unwrapRpc(
-        await rpc(context.client).rpc(operation, { p_report_id: reportId }),
-        operation,
-      ),
+      unwrapRpc(await rpc(context.client).rpc(operation, { p_report_id: reportId }), operation),
       operation,
     );
     const row = data[0];

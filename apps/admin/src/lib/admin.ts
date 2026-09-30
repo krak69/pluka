@@ -1,5 +1,6 @@
 import {
   DbError,
+  createAdminConsoleRepositories,
   createCourseRepositories,
   createFactRepositories,
   createGpxRepositories,
@@ -7,6 +8,8 @@ import {
 } from '@pluka/db';
 import {
   DomainError,
+  getAdminPlatformCounters,
+  type AdminConsoleContext,
   type CourseContext,
   type DomainErrorCode,
   type FactReviewContext,
@@ -77,6 +80,50 @@ export async function requireAdminContext(returnTo: string): Promise<CourseConte
 }
 
 /**
+ * Contexte des lectures de la console — migration 0028.
+ *
+ * Même principe, avec une nuance : ces onze lectures passent par des fonctions
+ * `security definer` qui portent elles-mêmes leur condition d'accès
+ * (03_PRIVACY_RLS §8). La troisième barrière n'est donc pas la RLS mais la
+ * garde de la fonction, et le refus remonte en `42501` plutôt qu'en résultat
+ * vide — c'est `redirectOnReadError` qui le
+ * traduit.
+ */
+export function adminConsoleContext(session: Session): AdminConsoleContext {
+  return {
+    repositories: createAdminConsoleRepositories({
+      client: createDataClient(session.accessToken),
+    }),
+    actor: { userId: session.userId },
+  };
+}
+
+export async function requireAdminConsoleContext(returnTo: string): Promise<AdminConsoleContext> {
+  const session = await requireSession(returnTo);
+
+  return adminConsoleContext(session);
+}
+
+/**
+ * Garde d'un onglet de console qui ne lit rien.
+ *
+ * `/produits/signalements` est un état vide : la fonctionnalité n'existe pas en
+ * base, et la page n'a donc aucune lecture à faire. Sans garde, elle serait le
+ * seul onglet de la console qu'un compte sans droit pourrait ouvrir — les neuf
+ * autres se refusent d'eux-mêmes, parce que leur RPC lève `42501`.
+ *
+ * La garde passe donc par la lecture la moins chère de la console, celle des
+ * compteurs : elle ne touche aucune donnée personnelle et n'est pas
+ * journalisée (décision du lot 4a). Son résultat est jeté — ce qu'on cherche
+ * est le refus, pas les chiffres.
+ */
+export async function requireAdminConsoleGate(returnTo: string): Promise<void> {
+  const context = await requireAdminConsoleContext(returnTo);
+
+  await getAdminPlatformCounters(context).catch(redirectOnReadError);
+}
+
+/**
  * Traduit un refus du domaine en réponse d'écran.
  *
  * `forbidden` renvoie vers une page qui n'en dit pas plus que « réservé » :
@@ -91,6 +138,34 @@ export function redirectOnDomainError(error: unknown): never {
   }
 
   if (error instanceof DomainError && error.code === 'not_found') {
+    notFound();
+  }
+
+  throw error;
+}
+
+/**
+ * Traduit le refus d'une lecture de console.
+ *
+ * Les fonctions de 0028 lèvent `42501` quand l'appelant n'est pas
+ * `pluka_admin`, et `mapPostgrestError` en fait un `DbError` de code
+ * `permission_denied`. Sans ce cas, l'écran rendrait une erreur serveur là où
+ * la réponse juste est « réservé » : un non-administrateur n'a pas à apprendre
+ * ce que l'écran aurait montré.
+ *
+ * `not_found` reste un 404 — un identifiant inexistant dans une URL est un cas
+ * ordinaire.
+ */
+export function redirectOnReadError(error: unknown): never {
+  if (error instanceof DbError && error.code === 'permission_denied') {
+    redirect('/refuse');
+  }
+
+  if (error instanceof DomainError && error.code === 'forbidden') {
+    redirect('/refuse');
+  }
+
+  if ((error instanceof DomainError || error instanceof DbError) && error.code === 'not_found') {
     notFound();
   }
 

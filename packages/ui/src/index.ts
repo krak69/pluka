@@ -35,7 +35,7 @@ export {
 export { MicroLabel, type MicroLabelProps } from './components/MicroLabel.js';
 export { NavItem, type NavItemProps } from './components/NavItem.js';
 export { NavList, type NavListProps } from './components/NavList.js';
-export { NavTabs, type NavTab, type NavTabsProps } from './components/NavTabs.js';
+export { NavTabs, type NavTab, type NavTabsProps, type NavTabsTone } from './components/NavTabs.js';
 export { SectionHeader, type SectionHeaderProps } from './components/SectionHeader.js';
 export { SourceDrawer, type SourceDrawerProps } from './components/SourceDrawer.js';
 export { SourceLink, type SourceLinkProps } from './components/SourceLink.js';

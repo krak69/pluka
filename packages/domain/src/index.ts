@@ -289,6 +289,21 @@ export {
   type RunnerParticipationStatus,
 } from './participation/lifecycle.js';
 export {
+  getAdminPlatformCounters,
+  getAdminReport,
+  getAdminUser,
+  listAdminAudit,
+  listAdminFactCandidates,
+  listAdminJobs,
+  listAdminNutritionProducts,
+  listAdminOrganizations,
+  listAdminReports,
+  listAdminSources,
+  searchAdminUsers,
+  type AdminConsoleContext,
+} from './admin/console.js';
+
+export {
   claimParticipantRace,
   createParticipantRace,
   getParticipation,

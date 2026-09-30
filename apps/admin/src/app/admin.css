@@ -1,18 +1,31 @@
 /*
- * Barre d'administration — 06_DESIGN_SYSTEM.md §69.
+ * Console d'administration — 06_DESIGN_SYSTEM.md §69, §1841.
  *
- * Une seule bande, sur fond Ardoise, pour dire où l'on est. L'administration
- * n'a pas de navigation globale à ce stade : en inventer une ici anticiperait
- * un lot qui n'est pas fait.
+ * Une bande sombre porte la marque et les dix destinations ; les écrans en
+ * dessous sont des tables denses et des listes. §3 range la « carte flottante
+ * par ligne » parmi les anti-patterns du dashboard SaaS générique : rien ici ne
+ * flotte, tout se délimite au filet.
  *
- * Aucune couleur littérale : tout passe par les tokens `--pk-*`.
+ * Aucune couleur littérale : tout passe par les tokens `--pk-*`, au besoin
+ * dérivés par `color-mix()`.
  */
+
+/* ============================================================
+   Barre d'administration
+   ============================================================ */
+
 .ad-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  background: var(--pk-ink);
+}
+
+.ad-bar-top {
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  padding: var(--space-3) var(--space-5);
-  background: var(--pk-ink);
 }
 
 .ad-bar-logo {
@@ -24,4 +37,196 @@
 /* Le micro-label par défaut est sur fond clair ; ici le fond est sombre. */
 .ad-bar-scope {
   color: var(--pk-lichen);
+}
+
+/* ============================================================
+   Gabarit d'écran
+   ============================================================ */
+
+.ad-page {
+  max-width: var(--content-wide);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* Une mesure de lecture : §12 veut une prose qui ne traverse pas l'écran. */
+.ad-measure {
+  max-width: var(--content-reading);
+  color: var(--pk-text-secondary);
+  margin: 0;
+}
+
+.ad-section-title {
+  margin: 0;
+}
+
+/*
+ * Avertissement d'écran : cette consultation est auditée.
+ *
+ * Un filet à gauche, pas une carte : l'information est un cadre posé sur la
+ * lecture, pas un objet séparé.
+ */
+.ad-notice {
+  max-width: var(--content-reading);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 2px solid var(--pk-warning-signal);
+  background: var(--pk-warning-bg);
+  color: var(--pk-text);
+}
+
+/* ============================================================
+   Vue d'ensemble
+   ============================================================ */
+
+.ad-todo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ad-todo-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--pk-hairline);
+  color: var(--pk-text);
+  text-decoration: none;
+  min-height: 44px;
+}
+
+.ad-todo-row:hover .ad-todo-label {
+  text-decoration: underline;
+}
+
+/*
+ * Un compte non nul se distingue par le poids du chiffre, jamais par la seule
+ * couleur — §51 refuse « une seule source visuelle ».
+ */
+.ad-todo-count {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 22px;
+  min-width: 3ch;
+  text-align: right;
+  color: var(--pk-text-muted);
+}
+
+.ad-todo-row-warn .ad-todo-count {
+  color: var(--pk-warning-signal);
+  font-weight: 600;
+}
+
+.ad-todo-label {
+  flex: 1;
+}
+
+.ad-counters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+
+/* ============================================================
+   Fiches
+   ============================================================ */
+
+.ad-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+
+/*
+ * Citation d'un contenu signalé.
+ *
+ * Le texte vient d'un tiers : il est cadré pour qu'on ne le confonde pas avec
+ * la prose de l'écran, et `white-space: pre-wrap` conserve ses retours à la
+ * ligne — un message reformaté n'est plus tout à fait le message.
+ */
+.ad-quote {
+  max-width: var(--content-reading);
+  margin: 0;
+  padding: var(--space-4);
+  border-left: 2px solid var(--pk-hairline);
+  background: var(--pk-limestone);
+  white-space: pre-wrap;
+}
+
+.ad-search {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+/* ============================================================
+   Cellules de table
+   ============================================================ */
+
+/*
+ * Ligne secondaire d'une cellule : le slug sous le nom, l'événement sous
+ * l'épreuve. Deux informations de rang différent dans une même colonne, plutôt
+ * qu'une colonne de plus qui n'aurait pas d'en-tête utile.
+ */
+.ad-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--pk-text-muted);
+}
+
+.ad-mono {
+  font-family: var(--font-mono);
+}
+
+.ad-muted {
+  color: var(--pk-text-muted);
+  font-style: italic;
+}
+
+/*
+ * Clé d'idempotence : longue, technique, faite pour être copiée. Elle casse où
+ * elle peut plutôt que d'élargir la table au-delà de l'écran.
+ */
+.ad-key {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  color: var(--pk-text-secondary);
+}
+
+.ad-error {
+  display: block;
+  max-width: 44ch;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--pk-error-signal);
+  overflow-wrap: anywhere;
+}
+
+/* Charge utile d'une entrée de journal, en clé-valeur. */
+.ad-payload {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ad-payload div {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.ad-payload dd {
+  margin: 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
