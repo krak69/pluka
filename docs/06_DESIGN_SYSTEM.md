@@ -3239,9 +3239,57 @@ Ajouter progressivement des garde-fous :
 - token colors plutôt que hex arbitraires ;
 - interdiction des gros `border-radius` ;
 - interdiction d’ombres non tokenisées ;
-- pas de couleur inline hors cas dataviz.
+- pas de couleur inline hors cas dataviz ;
+- pas de pixel en dur là où un token d’espacement existe déjà.
 
 Ne pas créer une usine à gaz dès le bootstrap.
+
+### État de l’implémentation
+
+`packages/ui/tests/design-rules.test.ts` porte ces garde-fous. Sa portée couvre
+`packages/ui/src` **et** `apps/*/src`, feuilles CSS comme styles inline des
+`.tsx` : les écrans portent la majeure partie du CSS du produit, et une règle
+qui ne s’y applique pas ne protège rien.
+
+Il refuse :
+
+- toute couleur littérale — `#hex`, `rgb()`, `rgba()` — hors de `tokens/` ;
+- tout token `--pk-*` employé sans être déclaré ;
+- tout `border-radius` au-delà de 3 px, coin par coin ;
+- toute ombre portée sur une surface standard ;
+- tout `outline: none` sans anneau de remplacement ;
+- toute cible interactive ou destination de navigation sous 44 px ;
+- les capitales hors micro-label et badge ;
+- **tout pixel en dur dans une propriété d’espacement lorsqu’un token
+  `--space-*` porte exactement la même valeur.**
+
+### Pourquoi la règle d’espacement est souple
+
+Elle n’interdit pas le pixel en dur. Elle interdit de contourner un token qui
+existe : écrire `padding: 16px` au lieu de `var(--space-4)` est une dérive, et
+c’est ainsi qu’une échelle meurt. Écrire `padding: 18px` n’en est pas une.
+
+La raison est dans §20 : « La Charte ne fournit pas une échelle numérique
+complète », et la grille de 4 px est une **convention d’implémentation V1**, pas
+une valeur de la Charte. Le prototype figé, lui, compose sur une trame de 2 px —
+18, 22, 26, 30, 34 px y sont partout. Une règle stricte rendrait donc impossible
+la reprise fidèle des maquettes que §58 dit faire foi sur l’intention d’écran,
+et opposerait deux documents qui n’ont jamais été en désaccord.
+
+Au relevé de l’extension de la règle, les applications contenaient 301 pixels en
+dur dans des propriétés d’espacement, dont 64 recouvraient exactement un token :
+ce sont ces 64 qui ont été corrigés.
+
+### Ce qu’il faudrait pour la rendre stricte
+
+Interdire tout pixel en dur suppose d’abord que l’échelle couvre ce que les
+écrans demandent. Cela passe par **l’ajout des pas de 2 px du prototype à
+l’échelle d’espacement** — 2, 6, 10, 14, 18, 22, 26, 30, 34 px — soit une
+échelle de base 2 px plutôt que 4 px.
+
+C’est une décision de Design System, pas de lint, et elle a un coût : une
+échelle à dix-neuf pas cesse de contraindre, ce qui est précisément la fonction
+d’une échelle. Tant qu’elle n’est pas prise, la règle reste souple.
 
 ---
 

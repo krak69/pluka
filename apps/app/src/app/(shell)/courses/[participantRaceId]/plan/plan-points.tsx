@@ -22,6 +22,7 @@ import {
   updateStopAction,
   type ActionState,
 } from '@/app/actions';
+import { lockWaypointAction, resetPlanAction } from '@/app/profile-actions';
 import {
   formatClock,
   formatDistance,
@@ -154,6 +155,8 @@ export function PlanPoints({ participantRaceId, overview, timezone }: PlanPoints
             point={point}
           />
         ))}
+
+        <ResetPlan participantRaceId={participantRaceId} />
       </div>
     </>
   );
@@ -274,6 +277,7 @@ function PointEditor({
   const [segmentState, updateSegment] = useActionState(updateSegmentDurationAction, INITIAL);
   const [removeState, removeOverride] = useActionState(removeSegmentOverrideAction, INITIAL);
   const [stopState, updateStop] = useActionState(updateStopAction, INITIAL);
+  const [lockState, lockWaypoint] = useActionState(lockWaypointAction, INITIAL);
 
   return (
     <section
@@ -337,6 +341,66 @@ function PointEditor({
           Enregistrer l’arrêt
         </Button>
       </form>
+
+      {/*
+        Verrou de passage — PLAN_ENGINE §26.
+
+        Le verrou s'exprime en temps écoulé depuis le départ, comme le reste du
+        Plan : une heure d'horloge dépendrait du fuseau et de l'heure de départ
+        réelle, que le coureur ne maîtrise pas.
+
+        Un champ vidé déverrouille. C'est le même geste, donc le même
+        formulaire, et §24 veut que le bouton qui retire une contrainte soit
+        présent et nommé.
+      */}
+      <form action={lockWaypoint} style={{ marginTop: 'var(--space-4)' }}>
+        <input type="hidden" name="participantRaceId" value={participantRaceId} />
+        <input type="hidden" name="raceWaypointId" value={point.raceWaypointId} />
+        <Input
+          id={`lock-${point.raceWaypointId}`}
+          name="elapsed"
+          label="Passage verrouillé"
+          hint="Format HH:MM depuis le départ. Vide, le passage redevient estimé."
+          defaultValue={
+            point.lockedElapsedSeconds === null ? '' : formatElapsed(point.lockedElapsedSeconds)
+          }
+          {...(lockState.error === undefined ? {} : { error: lockState.error })}
+        />
+        <Button type="submit" variant="secondary">
+          {point.isLocked ? 'Mettre à jour le verrou' : 'Verrouiller ce passage'}
+        </Button>
+      </form>
+    </section>
+  );
+}
+
+/**
+ * Remise à zéro — PLAN_ENGINE §28.
+ *
+ * Effacer arrêts, durées imposées et verrous d'un coup, puis rééquilibrer sur
+ * l'objectif. Le bouton est volontairement isolé et secondaire : §28 du Design
+ * System refuse qu'une action destructive prenne le Lichen d'un CTA.
+ */
+function ResetPlan({ participantRaceId }: { readonly participantRaceId: string }) {
+  const [state, reset] = useActionState(resetPlanAction, INITIAL);
+
+  return (
+    <section style={{ borderTop: '1px solid var(--pk-hairline)', paddingTop: 'var(--space-4)' }}>
+      <MicroLabel>Repartir de zéro</MicroLabel>
+
+      <p className="pk-body" style={{ color: 'var(--pk-text-muted)', maxWidth: '62ch' }}>
+        Retire tous tes ajustements — arrêts, durées imposées et passages verrouillés — et
+        reconstruit le Plan sur ton objectif.
+      </p>
+
+      <form action={reset} style={{ marginTop: 'var(--space-3)' }}>
+        <input type="hidden" name="participantRaceId" value={participantRaceId} />
+        <Button type="submit" variant="secondary">
+          Effacer mes ajustements
+        </Button>
+      </form>
+
+      <ActionError state={state} />
     </section>
   );
 }

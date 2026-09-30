@@ -684,7 +684,11 @@ export default function HomePage() {
 
                 <div
                   className="lp-device-row"
-                  style={{ borderBottom: 0, padding: '13px 0 var(--space-1)', gap: 'var(--space-3)' }}
+                  style={{
+                    borderBottom: 0,
+                    padding: '13px 0 var(--space-1)',
+                    gap: 'var(--space-3)',
+                  }}
                 >
                   <Icon name="Backpack" size={17} className="lp-icon-forest" />
                   <span

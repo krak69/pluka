@@ -217,6 +217,15 @@ function toEditionTransition(row: EditionTransitionRow): EditionStatusTransition
 export interface EventRepository {
   findById(eventId: string): Promise<EventRecord | null>;
   findBySlug(slug: string): Promise<EventRecord | null>;
+  /**
+   * Recherche par nom — sert l'écran « Trouver ma course ».
+   *
+   * `ilike` et non une recherche plein texte : la V1 cherche un nom
+   * d'événement, pas un document. La RLS filtre ensuite
+   * (`events__select__published`), donc une recherche anonyme ne peut pas
+   * révéler un événement non publié.
+   */
+  searchByName(term: string, limit: number): Promise<readonly EventRecord[]>;
   /** Liste bornée, triée par nom : la base courses se parcourt, elle ne se déverse pas. */
   list(limit: number): Promise<readonly EventRecord[]>;
   insert(input: InsertRow<'events'>): Promise<EventRecord>;
@@ -245,6 +254,25 @@ export const eventRepository = defineRepository<EventRepository>((context) => ({
     );
 
     return row === null ? null : toEvent(row);
+  },
+
+  async searchByName(term, limit) {
+    // Les caractères de motif `ilike` sont échappés : sans cela, un `%` saisi
+    // par l'utilisateur transformerait la recherche en balayage complet, et un
+    // `_` deviendrait un joker d'un caractère.
+    const pattern = term.replace(/[\\%_]/g, (character) => `\\${character}`);
+
+    const rows = unwrap(
+      await context.client
+        .from('events')
+        .select(selectColumns('events', EVENT_COLUMNS))
+        .ilike('name', `%${pattern}%`)
+        .order('name', { ascending: true })
+        .limit(limit),
+      'events.searchByName',
+    );
+
+    return rows.map(toEvent);
   },
 
   async findBySlug(slug) {
@@ -306,6 +334,8 @@ export interface EditionRepository {
   findById(editionId: string): Promise<EditionRecord | null>;
   /** 02_DATA_MODEL §6.2 : une seule édition par couple (event, year). */
   findByEventAndYear(eventId: string, year: number): Promise<EditionRecord | null>;
+  /** `editions.slug` n'est unique que par événement — d'où les deux arguments. */
+  findByEventAndSlug(eventId: string, slug: string): Promise<EditionRecord | null>;
   listByEvent(eventId: string): Promise<readonly EditionRecord[]>;
   insert(input: InsertRow<'editions'>): Promise<EditionRecord>;
   /** Compare-and-set, comme `events.changeStatus` et `races.changeStatus`. */
@@ -325,6 +355,20 @@ export const editionRepository = defineRepository<EditionRepository>((context) =
         .eq('id', editionId)
         .maybeSingle(),
       'editions.findById',
+    );
+
+    return row === null ? null : toEdition(row);
+  },
+
+  async findByEventAndSlug(eventId, slug) {
+    const row = unwrapMaybe(
+      await context.client
+        .from('editions')
+        .select(selectColumns('editions', EDITION_COLUMNS))
+        .eq('event_id', eventId)
+        .eq('slug', slug)
+        .maybeSingle(),
+      'editions.findByEventAndSlug',
     );
 
     return row === null ? null : toEdition(row);

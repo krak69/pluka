@@ -404,3 +404,436 @@
     border-left: 1px solid var(--pk-hairline);
   }
 }
+
+/* ══ Entonnoir, fiche épreuve et information de course ═══════════════════
+ *
+ * `rp-` pour « race page » : les écrans de l'entonnoir et de l'information de
+ * course, dans le shell comme sur la fiche publique.
+ *
+ * Mêmes règles que ci-dessus : aucune couleur littérale, et les espacements
+ * qui ont un token l'emploient.
+ */
+
+/* La fiche publique n'a pas de shell : elle porte sa propre gouttière. */
+.rp-public {
+  min-height: 100vh;
+  background: var(--pk-limestone);
+}
+
+.rp-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: var(--content-main);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-5) var(--space-16);
+}
+
+/* Largeur de lecture — §21 : le corps de texte ne dépasse pas la mesure. */
+.rp-measure {
+  max-width: 62ch;
+  color: var(--pk-text-secondary);
+}
+
+.rp-hint {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--pk-text-muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/*
+ * Refus du domaine — PLAN_ENGINE §45.
+ *
+ * « La sécurité ne doit jamais être un bouton masqué côté UI seulement. » Le
+ * refus se lit à côté du formulaire, dans la couleur d'erreur fonctionnelle et
+ * avec `role="alert"` : §103 refuse que la couleur porte seule le sens, et un
+ * lecteur d'écran doit l'entendre.
+ */
+.rp-refusal {
+  max-width: 62ch;
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--pk-error);
+  background: var(--pk-error-bg);
+  color: var(--pk-error);
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+/* ── Données d'en-tête de la fiche ───────────────────────────────────────*/
+
+.rp-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-5) var(--space-6);
+  margin: 0;
+}
+
+.rp-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rp-fact-value {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--pk-text);
+}
+
+/* §107 : une donnée absente se dit, elle ne se remplit pas. */
+.rp-fact-missing {
+  margin: 0;
+  color: var(--pk-text-muted);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-style: italic;
+}
+
+/* ── Rattachement ───────────────────────────────────────────────────────*/
+
+.rp-attach {
+  padding: var(--space-6);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+}
+
+.rp-attach-form {
+  margin-top: var(--space-5);
+}
+
+/* ── Recherche ──────────────────────────────────────────────────────────*/
+
+.rp-search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-width: 560px;
+}
+
+.rp-search-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.rp-search-row .pk-input {
+  flex: 1;
+  min-width: 220px;
+}
+
+.rp-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.rp-result-edition {
+  margin: var(--space-2) 0 var(--space-4);
+  color: var(--pk-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rp-result-races {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rp-result-race {
+  display: flex;
+  gap: var(--space-4);
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  min-height: 44px;
+  padding: var(--space-3) var(--space-3);
+  border-top: 1px solid var(--pk-hairline);
+  color: var(--pk-text);
+  text-decoration: none;
+}
+
+.rp-result-races > li:last-child .rp-result-race {
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.rp-result-race:hover {
+  background: var(--pk-glacier-bg);
+}
+
+.rp-result-race-name {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.rp-result-race-meta {
+  color: var(--pk-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Formulaires de l'entonnoir ─────────────────────────────────────────*/
+
+.rp-profile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.rp-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 620px;
+}
+
+.rp-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.rp-form-actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-top: var(--space-2);
+}
+
+/* Un `select` reprend le champ à filet du Design System — §33. */
+select.pk-input {
+  appearance: none;
+  padding-right: var(--space-6);
+}
+
+/* ── Information de course ──────────────────────────────────────────────*/
+
+.rp-information {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.rp-waypoints,
+.rp-cutoffs {
+  display: flex;
+  flex-direction: column;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rp-waypoint,
+.rp-cutoff {
+  display: grid;
+  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.rp-waypoint {
+  grid-template-columns: 84px 1fr auto auto;
+}
+
+.rp-cutoff {
+  grid-template-columns: 1fr auto auto;
+}
+
+.rp-waypoint-km,
+.rp-waypoint-alt,
+.rp-cutoff-when {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--pk-text-secondary);
+}
+
+.rp-waypoint-name,
+.rp-cutoff-where {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.rp-waypoint-type,
+.rp-cutoff-type {
+  color: var(--pk-text-muted);
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+
+@media (width <= 620px) {
+  .rp-waypoint {
+    grid-template-columns: 84px 1fr;
+  }
+
+  .rp-cutoff {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Facts publiés ──────────────────────────────────────────────────────*/
+
+.rp-fact-group {
+  margin-top: var(--space-6);
+}
+
+.rp-fact-group-title {
+  margin: 0 0 var(--space-3);
+  font-size: 19px;
+}
+
+.rp-fact-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.rp-fact-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.rp-fact-row-head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/*
+ * La clé du fact est un identifiant du référentiel, pas une phrase : la mono
+ * le dit, et évite de la faire passer pour un titre rédigé.
+ */
+.rp-fact-row-key {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: -0.01em;
+  color: var(--pk-text-secondary);
+}
+
+.rp-fact-row-value {
+  max-width: 70ch;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--pk-text);
+}
+
+.rp-fact-row-nosource {
+  max-width: 70ch;
+  margin: 0;
+  color: var(--pk-text-muted);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+}
+
+/*
+ * Étapes d'un formulaire.
+ *
+ * Distinct de `pk-tab` : un onglet est une route, une étape est un état
+ * (`05_ROUTES_FLOWS.md` §1.2). L'état actif se lit par `aria-pressed` autant
+ * que par le fond — §103 refuse que la couleur porte seule le sens.
+ */
+.rp-steps {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.rp-step {
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--pk-text-secondary);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.rp-step:hover {
+  border-color: var(--pk-forest);
+  color: var(--pk-ink);
+}
+
+.rp-step-current {
+  border-color: var(--pk-forest);
+  background: var(--pk-glacier-bg);
+  color: var(--pk-ink);
+}
+
+/*
+ * Entrées secondaires de la barre latérale.
+ *
+ * « Trouver ma course », le profil et l'offre ne sont pas des destinations de
+ * §66 : les ajouter à `navGlobal` gonflerait une navigation que §69 veut
+ * stable et courte. Ils vivent donc autour d'elle — une action en haut, deux
+ * liens discrets en pied.
+ */
+.ap-find {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  color: var(--pk-forest);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.ap-find:hover {
+  border-color: var(--pk-forest);
+  background: var(--pk-limestone);
+}
+
+.ap-sidebar-foot {
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.ap-sidebar-link {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  color: var(--pk-text-muted);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  text-decoration: none;
+}
+
+.ap-sidebar-link:hover {
+  color: var(--pk-ink);
+}

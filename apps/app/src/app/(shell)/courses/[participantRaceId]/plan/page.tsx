@@ -1,5 +1,5 @@
 import { DomainError, getPlanOverview } from '@pluka/domain';
-import { Divider, MicroLabel } from '@pluka/ui';
+import { Divider, SectionHeader } from '@pluka/ui';
 
 import { AltitudeProfile } from '@/app/(shell)/courses/[participantRaceId]/plan/altitude-profile';
 import { GeneratePlanForm } from '@/app/(shell)/courses/[participantRaceId]/plan/generate-form';
@@ -41,21 +41,16 @@ export default async function PlanPage({
   });
 
   return (
-    <main
-      style={{
-        maxWidth: 'var(--content-main)',
-        margin: '0 auto',
-        padding: 'var(--space-8) var(--space-6)',
-      }}
-    >
-      <MicroLabel>Plan</MicroLabel>
-      <h1 className="pk-h1" style={{ margin: 'var(--space-2) 0 var(--space-2)' }}>
-        Votre Plan de course
-      </h1>
+    /*
+     * La largeur et les marges viennent du shell — `.ap-content` porte
+     * `--content-main`. Les reposer ici produirait deux gouttières imbriquées.
+     */
+    <div className="ap-page">
+      <SectionHeader eyebrow="Ma course" title="Plan de course" />
 
-      <p className="pk-body" style={{ color: 'var(--pk-text-muted)', maxWidth: '62ch' }}>
-        PLUKA répartit votre objectif sur le parcours réel. Les passages sont estimés à partir du
-        relief ; ils restent modifiables, et vos choix ne sont jamais recalculés sans vous.
+      <p className="pk-body rp-measure">
+        PLUKA répartit ton objectif sur le parcours réel. Les passages sont estimés à partir du
+        relief ; ils restent modifiables, et tes choix ne sont jamais recalculés sans toi.
       </p>
 
       <Divider spaced />
@@ -86,6 +81,6 @@ export default async function PlanPage({
           </p>
         </>
       )}
-    </main>
+    </div>
   );
 }

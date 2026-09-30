@@ -119,10 +119,12 @@ Il n'y a **qu'une** fiche épreuve, pas deux. Elle est servie par `apps/app`, sa
 Conséquences directes, à traiter comme telles :
 
 1. `apps/app` cesse d'être entièrement non indexable. L'en-tête `X-Robots-Tag: noindex` de son `next.config.ts` doit exempter cette route, et elle seule.
-2. La visibilité de `03_PRIVACY_RLS.md` §17 gouverne le rendu : `public` est indexable, `unlisted` est atteignable par lien mais porte `noindex`, `private` renvoie une 404 — pas une page d'erreur d'autorisation, qui révélerait l'existence de la course.
+2. La visibilité gouverne le rendu. Telle que l'implémentation la traite aujourd'hui : seule une course `public` est lisible sans session et indexable ; `unlisted` et `private` renvoient une 404 à un visiteur anonyme, et ne s'ouvrent qu'au participant, à l'organisation gestionnaire ou à l'admin plateforme. La 404 est volontaire — une page d'erreur d'autorisation révélerait l'existence de la course (§120).
+
+   `03_PRIVACY_RLS.md` §17 décrit pourtant `unlisted` comme accessible « par lien direct ». Ce n'est pas ce que fait le code : `private.race_is_publicly_readable` et `isRacePubliclyReadable` exigent tous deux `public_visibility = 'public'`. L'écart est enregistré en §12.10.
 3. La page lit la base sans session. C'est une lecture publique, soumise à la RLS de §16 sur la lecture publique des événements, éditions et courses.
 
-**Écart documentaire à enregistrer :** `01_ARCHITECTURE.md` §4.1 confie à `apps/www` les « pages publiques de courses lorsqu'elles existent ». Cette règle s'en écarte. L'ordre de priorité de §0.1 place §4.1 au-dessus de ce document : `01_ARCHITECTURE.md` §4.1 doit donc être mis à jour pour enregistrer la décision, sans quoi les deux documents se contredisent.
+`01_ARCHITECTURE.md` §4.1 enregistre la même décision et ne confie plus les pages publiques de courses à `apps/www`. Les deux documents disent la même chose.
 
 ## 1.9 Slugs pour les identifiants publics, UUID pour tout ce qui est privé
 
@@ -502,7 +504,7 @@ Une route protégée atteinte sans session redirige vers `/connexion` en conserv
 
 `apps/app` ne l'est pas non plus, **à une exception près** : la fiche épreuve publique de §4.3, lorsque la visibilité de la course vaut `public`. L'en-tête `X-Robots-Tag: noindex` de `next.config.ts` doit donc être posée par défaut et levée sur cette seule route — pas l'inverse, qui exposerait toute nouvelle route par défaut.
 
-`/a/[token]` et `/invitation/[token]` ne sont jamais indexables, et une course `unlisted` porte `noindex` tout en restant atteignable par lien.
+`/a/[token]` et `/invitation/[token]` ne sont jamais indexables. Une course qui n'est pas `public` ne rend rien à un visiteur anonyme, donc la question de son indexation ne se pose pas (§1.8, point 2).
 
 ---
 
@@ -536,7 +538,7 @@ Une route protégée atteinte sans session redirige vers `/connexion` en conserv
 
 # 12. Cas non tranchés
 
-Ces neuf points ne se déduisent pas des neuf règles de §1. Ils sont listés, pas décidés.
+Ces dix points ne se déduisent pas des neuf règles de §1. Ils sont listés, pas décidés.
 
 Trois cas de la première version ont été tranchés depuis, et sont devenus les règles §1.7, §1.8 et §1.9 : la portée des étapes d'entonnoir, la page publique de course, et la forme des identifiants publics.
 
@@ -597,3 +599,11 @@ La forme de la route de paiement dépend du contrat du prestataire retenu : page
 Les pieds de page des deux landings annoncent Blog, FAQ, Courses, Préparation trail, À propos, Contact, Confidentialité et CGU. Le prototype les pointe vers des ancres de la même page, faute de destination.
 
 Lesquelles deviennent des pages de `apps/www` relève du produit, pas de ces règles.
+
+## 12.10 Accès par lien direct à une course `unlisted`
+
+`03_PRIVACY_RLS.md` §17 range `unlisted` comme accessible par « lien direct ; invitation ; participant concerné ; organisation », et précise que ce qu'il faut empêcher est le **listing** anonyme.
+
+L'implémentation est plus stricte : `private.race_is_publicly_readable` (migration 0005) et `isRacePubliclyReadable` exigent `public_visibility = 'public'`. Un visiteur anonyme muni du lien exact d'une course `unlisted` reçoit donc une 404, alors que §17 le laisserait entrer.
+
+Les deux lectures sont défendables — « pas de listing » et « pas de lecture anonyme » ne sont pas la même règle — et l'écart touche la sécurité, pas le routage. Le trancher appartient à `03_PRIVACY_RLS.md` : soit §17 est reformulé pour dire que `unlisted` demande une session, soit la policy et l'invariant sont élargis ensemble. Les élargir séparément produirait un domaine qui autorise et une base qui refuse.

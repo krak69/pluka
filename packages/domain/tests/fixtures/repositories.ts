@@ -183,6 +183,11 @@ export function createFakeRepositories(state: FakeState): CourseRepositories {
     events: {
       findById: async (id) => state.events.find((event) => event.id === id) ?? null,
       findBySlug: async (slug) => state.events.find((event) => event.slug === slug) ?? null,
+      searchByName: async (term, limit) =>
+        state.events
+          .filter((event) => event.name.toLowerCase().includes(term.toLowerCase()))
+          .sort((left, right) => left.name.localeCompare(right.name))
+          .slice(0, limit),
       list: async (limit) =>
         [...state.events]
           .sort((left, right) => left.name.localeCompare(right.name))
@@ -224,6 +229,10 @@ export function createFakeRepositories(state: FakeState): CourseRepositories {
 
     editions: {
       findById: async (id) => state.editions.find((edition) => edition.id === id) ?? null,
+      findByEventAndSlug: async (eventId, slugValue) =>
+        state.editions.find(
+          (edition) => edition.eventId === eventId && edition.slug === slugValue,
+        ) ?? null,
       findByEventAndYear: async (eventId, year) =>
         state.editions.find((edition) => edition.eventId === eventId && edition.year === year) ??
         null,

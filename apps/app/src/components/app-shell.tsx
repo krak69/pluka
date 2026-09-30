@@ -112,6 +112,11 @@ export function AppShell({ races, children }: AppShellProps) {
           Demander à PLUKA
         </button>
 
+        <Link href="/recherche" className="ap-find">
+          <Icon name="MagnifyingGlass" size={17} />
+          Trouver ma course
+        </Link>
+
         <div className="ap-nav-groups">
           <NavList label="Ma saison">
             {GLOBAL_NAV.map((destination) => (
@@ -140,6 +145,15 @@ export function AppShell({ races, children }: AppShellProps) {
               ))}
             </NavList>
           )}
+        </div>
+
+        <div className="ap-sidebar-foot">
+          <Link href="/profil" className="ap-sidebar-link">
+            Profil trailer
+          </Link>
+          <Link href="/offre" className="ap-sidebar-link">
+            Mon offre
+          </Link>
         </div>
       </aside>
 

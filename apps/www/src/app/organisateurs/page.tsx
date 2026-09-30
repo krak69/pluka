@@ -100,7 +100,10 @@ export default function OrganisateursPage() {
         {/* ═══ HERO ═══ */}
         <section
           className="lp-section-hero"
-          style={{ padding: 'clamp(var(--space-10), 7vw, var(--space-20)) var(--space-5) clamp(46px, 6vw, var(--space-20))' }}
+          style={{
+            padding:
+              'clamp(var(--space-10), 7vw, var(--space-20)) var(--space-5) clamp(46px, 6vw, var(--space-20))',
+          }}
         >
           <div className="lp-wrap lp-hero-grid lp-hero-grid-org">
             <div className="lp-enter">
@@ -320,7 +323,11 @@ export default function OrganisateursPage() {
                   {c.analyses.lines.map((line) => (
                     <p
                       key={line}
-                      style={{ fontSize: '13.5px', color: 'var(--pk-ink)', padding: 'var(--space-1) 0' }}
+                      style={{
+                        fontSize: '13.5px',
+                        color: 'var(--pk-ink)',
+                        padding: 'var(--space-1) 0',
+                      }}
                     >
                       {line}
                     </p>

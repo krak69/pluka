@@ -24,7 +24,8 @@ vi.mock('@/app/actions', () => {
   };
 });
 
-const { AltitudeProfile } = await import('@/app/(shell)/courses/[participantRaceId]/plan/altitude-profile');
+const { AltitudeProfile } =
+  await import('@/app/(shell)/courses/[participantRaceId]/plan/altitude-profile');
 const { PlanPoints } = await import('@/app/(shell)/courses/[participantRaceId]/plan/plan-points');
 
 const PARTICIPATION = 'aaaaaaaa-0000-4000-8000-000000000001';

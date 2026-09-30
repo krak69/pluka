@@ -161,6 +161,19 @@ export {
 } from './course/use-cases.js';
 
 export {
+  findRaceBySlugs,
+  findRaceBySlugsQuerySchema,
+  listRaceInformation,
+  listRaceInformationQuerySchema,
+  searchRaces,
+  searchRacesQuerySchema,
+  type RaceBySlugs,
+  type RaceInformation,
+  type RaceInformationContext,
+  type RaceSearchResult,
+} from './course/race-information.js';
+
+export {
   conflictError,
   DOMAIN_ERROR_CODES,
   DomainError,

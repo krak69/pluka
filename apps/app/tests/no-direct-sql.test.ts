@@ -302,6 +302,13 @@ describe('design system', () => {
       'pk-micro-label',
       'pk-table',
       'pk-source-drawer',
+      // Primitives du shell : même raison, et le lot 2 les a rendues
+      // recopiables par inadvertance.
+      'pk-empty',
+      'pk-nav-item',
+      'pk-nav-group',
+      'pk-section-header',
+      'pk-tab',
     ];
 
     const offenders = sourceFiles().flatMap((moduleId) => {

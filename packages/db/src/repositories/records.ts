@@ -220,6 +220,53 @@ export interface FactCandidateScopeRecord {
  * Les huit y sont, plus la provenance d'extraction : un relecteur qui voit
  * qu'une valeur vient d'un modèle ne la lit pas comme une lecture de tableau.
  */
+/**
+ * La source principale d'un fact publié — 03_PRIVACY_RLS §20, §25.
+ *
+ * §20 énumère les métadonnées de source publiques ; le chemin de stockage et la
+ * métadonnée technique n'en font pas partie et ne figurent pas ici. L'extrait
+ * est un extrait, pas le document (06_DESIGN_SYSTEM §86).
+ */
+export interface PublishedFactSource {
+  readonly sourceId: string;
+  readonly sourceType: Enum<'source_type'>;
+  readonly title: string | null;
+  readonly url: string | null;
+  readonly declaredPublishedAt: string | null;
+  readonly pageStart: number | null;
+  readonly pageEnd: number | null;
+  readonly sectionLabel: string | null;
+  readonly articleLabel: string | null;
+  readonly excerpt: string | null;
+}
+
+/**
+ * Un fact publié, tel qu'un coureur le lit — 03_PRIVACY_RLS §22.
+ *
+ * Ce DTO ne porte aucun état de travail : ni `workflow_status`, ni le brouillon,
+ * ni qui a validé. §22 réserve les états de travail à l'organisation, et un
+ * coureur n'a besoin que de la valeur, de son niveau de confiance et de sa
+ * provenance.
+ *
+ * `source` est nulle quand le fact publié n'a pas de source principale — cela
+ * existe pour une saisie organisateur directe, et l'écran doit pouvoir le dire.
+ */
+export interface PublishedRaceFactRecord {
+  readonly factId: string;
+  readonly raceId: string;
+  readonly category: Enum<'fact_category'>;
+  readonly factKey: string;
+  readonly versionId: string;
+  readonly versionNumber: number;
+  readonly valueText: string | null;
+  readonly valueNumber: number | null;
+  readonly unit: string | null;
+  readonly valueJson: Readonly<Record<string, unknown>> | null;
+  readonly trustLevel: Enum<'trust_level'>;
+  readonly publishedAt: string | null;
+  readonly source: PublishedFactSource | null;
+}
+
 export interface FactCandidateReviewRecord {
   readonly candidateId: string;
   readonly raceId: string;

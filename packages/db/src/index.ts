@@ -121,6 +121,8 @@ export type {
   ParticipantRaceRecord,
   ParticipantRaceSettingsRecord,
   ParticipantRaceEntry,
+  PublishedFactSource,
+  PublishedRaceFactRecord,
   ParticipantRosterEntry,
   PlatformIdentityRecord,
   PublishedFactRecord,
@@ -129,6 +131,12 @@ export type {
   RaceStatusTransitionRecord,
   TrailProfileRecord,
 } from './repositories/records.js';
+export {
+  createRaceInformationRepositories,
+  publishedFactRepository,
+  type PublishedFactRepository,
+  type RaceInformationRepositories,
+} from './repositories/race-information.js';
 export { defineRepository, type RepositoryContext, type RepositoryFactory } from './repository.js';
 export {
   unwrap,

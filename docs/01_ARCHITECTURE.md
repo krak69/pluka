@@ -225,17 +225,40 @@ Responsabilités :
 - Homepage coureur ;
 - Homepage organisateur ;
 - pages marketing ;
-- pages publiques de courses lorsqu’elles existent ;
 - SEO ;
 - conversion vers l’application.
 
 Règles :
 
 - aucune donnée privée ;
+- aucune lecture de la base ;
 - indexable ;
 - SSR / SSG / ISR selon le besoin ;
 - forte performance ;
 - pas de logique métier critique.
+
+### La fiche épreuve publique n’est pas ici
+
+Une version antérieure de cette section confiait à `apps/www` les « pages
+publiques de courses lorsqu’elles existent ». Ce n’est plus le cas.
+
+La fiche épreuve publique vit dans `apps/app`, en route publique hors
+authentification — `05_ROUTES_FLOWS.md` §1.8 et §4.3. Trois raisons :
+
+1. **Il n’y en a qu’une.** C’est à la fois la page indexable de la course et la
+   première étape de l’entonnoir, celle où le coureur valide la course qu’il
+   prépare. Deux implémentations du même écran divergeraient.
+2. **Elle lit la base.** `apps/www` ne le fait pas, et cette règle est ce qui
+   garantit qu’aucune donnée privée ne peut fuiter par le site public. Lui
+   ouvrir un accès en lecture pour une seule page affaiblirait la règle sur
+   toutes les autres.
+3. **Sa visibilité est une règle métier.** `03_PRIVACY_RLS.md` §17 distingue
+   `public`, `unlisted` et `private` : le rendu dépend d’une policy, donc d’un
+   client authentifié au niveau de la base, pas d’un site statique.
+
+Conséquence pour `apps/app` : l’en-tête `X-Robots-Tag: noindex` reste posée par
+défaut et n’est levée que sur cette route. Le défaut ne s’inverse pas — sinon
+chaque nouvelle route deviendrait indexable par omission.
 
 ## 4.2 `apps/app`
 
