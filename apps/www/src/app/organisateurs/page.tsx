@@ -100,7 +100,7 @@ export default function OrganisateursPage() {
         {/* ═══ HERO ═══ */}
         <section
           className="lp-section-hero"
-          style={{ padding: 'clamp(40px, 7vw, 80px) 20px clamp(46px, 6vw, 80px)' }}
+          style={{ padding: 'clamp(var(--space-10), 7vw, var(--space-20)) var(--space-5) clamp(46px, 6vw, var(--space-20))' }}
         >
           <div className="lp-wrap lp-hero-grid lp-hero-grid-org">
             <div className="lp-enter">
@@ -320,7 +320,7 @@ export default function OrganisateursPage() {
                   {c.analyses.lines.map((line) => (
                     <p
                       key={line}
-                      style={{ fontSize: '13.5px', color: 'var(--pk-ink)', padding: '4px 0' }}
+                      style={{ fontSize: '13.5px', color: 'var(--pk-ink)', padding: 'var(--space-1) 0' }}
                     >
                       {line}
                     </p>
@@ -404,7 +404,7 @@ export default function OrganisateursPage() {
         {/* ═══ CONSTAT ═══ */}
         <section
           className="lp-section-surface-both"
-          style={{ padding: 'clamp(46px, 6vw, 78px) 20px' }}
+          style={{ padding: 'clamp(46px, 6vw, 78px) var(--space-5)' }}
         >
           <div className="lp-wrap-1100">
             <h2 className="lp-h2-40 lp-measure-30" style={{ marginBottom: '18px' }}>
@@ -432,7 +432,7 @@ export default function OrganisateursPage() {
         <section
           id="fonctionnement"
           className="lp-section"
-          style={{ padding: 'clamp(50px, 7vw, 88px) 20px' }}
+          style={{ padding: 'clamp(50px, 7vw, 88px) var(--space-5)' }}
         >
           <div className="lp-wrap">
             <p className="lp-eyebrow" style={{ marginBottom: 'var(--space-3)' }}>
@@ -465,7 +465,7 @@ export default function OrganisateursPage() {
         <section
           id="backoffice"
           className="lp-section lp-section-surface"
-          style={{ padding: 'clamp(50px, 7vw, 88px) 20px' }}
+          style={{ padding: 'clamp(50px, 7vw, 88px) var(--space-5)' }}
         >
           <div className="lp-wrap lp-split lp-split-52">
             <div>
@@ -613,7 +613,7 @@ export default function OrganisateursPage() {
         <section
           id="conditions"
           className="lp-section lp-section-ink lp-topo-glacier"
-          style={{ padding: 'clamp(50px, 7vw, 90px) 20px' }}
+          style={{ padding: 'clamp(50px, 7vw, 90px) var(--space-5)' }}
         >
           <div className="lp-wrap">
             <p className="pk-label lp-label-lichen" style={{ marginBottom: '14px' }}>
@@ -636,7 +636,7 @@ export default function OrganisateursPage() {
                 style={{
                   background: 'var(--pk-surface)',
                   color: 'var(--pk-ink)',
-                  padding: '20px 22px',
+                  padding: 'var(--space-5) 22px',
                 }}
               >
                 <div
@@ -699,7 +699,7 @@ export default function OrganisateursPage() {
         <section
           id="participant"
           className="lp-section lp-section-ink lp-topo"
-          style={{ padding: 'clamp(50px, 7vw, 90px) 20px' }}
+          style={{ padding: 'clamp(50px, 7vw, 90px) var(--space-5)' }}
         >
           <div className="lp-wrap">
             <p className="lp-eyebrow lp-eyebrow-lichen" style={{ marginBottom: 'var(--space-3)' }}>
@@ -804,7 +804,7 @@ export default function OrganisateursPage() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '5px',
-                      fontSize: '12px',
+                      fontSize: 'var(--space-3)',
                       fontWeight: 500,
                       color: 'var(--pk-ink)',
                       marginBottom: 'var(--space-1)',
@@ -835,7 +835,7 @@ export default function OrganisateursPage() {
         <section
           id="confidentialite"
           className="lp-section-surface-both"
-          style={{ padding: 'clamp(46px, 6vw, 80px) 20px' }}
+          style={{ padding: 'clamp(46px, 6vw, var(--space-20)) var(--space-5)' }}
         >
           <div className="lp-wrap-1100">
             <p className="pk-label lp-label-forest" style={{ marginBottom: '14px' }}>
@@ -878,7 +878,7 @@ export default function OrganisateursPage() {
         <section
           id="metiers"
           className="lp-section lp-section-ink lp-topo"
-          style={{ padding: 'clamp(50px, 7vw, 90px) 20px' }}
+          style={{ padding: 'clamp(50px, 7vw, 90px) var(--space-5)' }}
         >
           <div className="lp-wrap">
             <p className="pk-label lp-label-lichen" style={{ marginBottom: '14px' }}>
@@ -915,7 +915,7 @@ export default function OrganisateursPage() {
                   boxShadow: 'var(--lp-lift)',
                 }}
               >
-                <div style={{ padding: '20px 22px 0' }}>
+                <div style={{ padding: 'var(--space-5) 22px 0' }}>
                   <p className="pk-label" style={{ marginBottom: 'var(--space-3)' }}>
                     {c.trades.cardLabel}
                   </p>
@@ -974,7 +974,7 @@ export default function OrganisateursPage() {
         <section
           id="benefices"
           className="lp-section"
-          style={{ padding: 'clamp(50px, 7vw, 88px) 20px' }}
+          style={{ padding: 'clamp(50px, 7vw, 88px) var(--space-5)' }}
         >
           <div className="lp-wrap">
             <h2 className="lp-h2 lp-measure-26" style={{ marginBottom: '30px' }}>
@@ -1009,7 +1009,7 @@ export default function OrganisateursPage() {
         {/* ═══ PÉRIMÈTRE ═══ */}
         <section
           className="lp-section-surface-both"
-          style={{ padding: 'clamp(46px, 6vw, 80px) 20px' }}
+          style={{ padding: 'clamp(46px, 6vw, var(--space-20)) var(--space-5)' }}
         >
           <div className="lp-wrap-1100">
             <h2 className="lp-h2-36" style={{ marginBottom: 'var(--space-6)' }}>
@@ -1060,7 +1060,7 @@ export default function OrganisateursPage() {
         <section
           id="contact"
           className="lp-section"
-          style={{ padding: 'clamp(50px, 7vw, 88px) 20px' }}
+          style={{ padding: 'clamp(50px, 7vw, 88px) var(--space-5)' }}
         >
           <div className="lp-wrap-1000 lp-split lp-split-start lp-split-48">
             <div>
@@ -1090,7 +1090,7 @@ export default function OrganisateursPage() {
         <section
           id="faq"
           className="lp-section-surface"
-          style={{ padding: 'clamp(46px, 6vw, 80px) 20px' }}
+          style={{ padding: 'clamp(46px, 6vw, var(--space-20)) var(--space-5)' }}
         >
           <div className="lp-wrap-860">
             <h2 className="lp-h2-36" style={{ marginBottom: 'var(--space-6)' }}>
@@ -1104,7 +1104,7 @@ export default function OrganisateursPage() {
         {/* ═══ CTA FINAL ═══ */}
         <section
           className="lp-section-ink lp-topo-glacier"
-          style={{ padding: 'clamp(52px, 7vw, 96px) 20px' }}
+          style={{ padding: 'clamp(52px, 7vw, 96px) var(--space-5)' }}
         >
           <div className="lp-wrap-900">
             <h2 className="lp-h2-46" style={{ marginBottom: 'var(--space-4)' }}>

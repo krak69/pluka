@@ -377,7 +377,7 @@ export default function HomePage() {
         {/* ═══ PROBLÈME ═══ */}
         <section
           className="lp-section-surface-both"
-          style={{ padding: 'clamp(48px, 6vw, 80px) 20px' }}
+          style={{ padding: 'clamp(var(--space-12), 6vw, var(--space-20)) var(--space-5)' }}
         >
           <div className="lp-wrap-1000">
             <h2 className="lp-h2-40 lp-measure-30" style={{ marginBottom: 'var(--space-5)' }}>
@@ -529,7 +529,7 @@ export default function HomePage() {
         <section
           id="autour"
           className="lp-section lp-section-ink lp-topo"
-          style={{ padding: 'clamp(52px, 7vw, 92px) 20px' }}
+          style={{ padding: 'clamp(52px, 7vw, 92px) var(--space-5)' }}
         >
           <div className="lp-wrap">
             <p className="pk-label lp-label-lichen" style={{ marginBottom: '14px' }}>
@@ -684,7 +684,7 @@ export default function HomePage() {
 
                 <div
                   className="lp-device-row"
-                  style={{ borderBottom: 0, padding: '13px 0 4px', gap: 'var(--space-3)' }}
+                  style={{ borderBottom: 0, padding: '13px 0 var(--space-1)', gap: 'var(--space-3)' }}
                 >
                   <Icon name="Backpack" size={17} className="lp-icon-forest" />
                   <span
@@ -734,7 +734,7 @@ export default function HomePage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '5px',
-                    fontSize: '12px',
+                    fontSize: 'var(--space-3)',
                     fontWeight: 500,
                     marginBottom: 'var(--space-2)',
                   }}
@@ -923,7 +923,7 @@ export default function HomePage() {
         <section
           id="organisateurs"
           className="lp-section lp-section-forest lp-topo-glacier"
-          style={{ padding: 'clamp(52px, 7vw, 92px) 20px' }}
+          style={{ padding: 'clamp(52px, 7vw, 92px) var(--space-5)' }}
         >
           <div className="lp-wrap">
             <p className="lp-eyebrow lp-eyebrow-lichen" style={{ marginBottom: 'var(--space-3)' }}>
@@ -1048,7 +1048,7 @@ export default function HomePage() {
         <section
           id="contact"
           className="lp-section"
-          style={{ padding: 'clamp(52px, 7vw, 84px) 20px' }}
+          style={{ padding: 'clamp(52px, 7vw, 84px) var(--space-5)' }}
         >
           <div className="lp-wrap-820">
             <h2 className="lp-h2-38" style={{ marginBottom: 'var(--space-3)' }}>
@@ -1074,7 +1074,7 @@ export default function HomePage() {
         <section
           id="ressources"
           className="lp-section-surface"
-          style={{ padding: 'clamp(48px, 6vw, 84px) 20px' }}
+          style={{ padding: 'clamp(var(--space-12), 6vw, 84px) var(--space-5)' }}
         >
           <div className="lp-wrap-860">
             <h2 className="lp-h2-38" style={{ marginBottom: '26px' }}>
@@ -1088,7 +1088,7 @@ export default function HomePage() {
         {/* ═══ CTA FINAL ═══ */}
         <section
           className="lp-section-ink lp-topo-glacier"
-          style={{ padding: 'clamp(56px, 8vw, 104px) 20px' }}
+          style={{ padding: 'clamp(56px, 8vw, 104px) var(--space-5)' }}
         >
           <div className="lp-wrap-900">
             <h2 className="lp-h2-52" style={{ marginBottom: 'var(--space-4)' }}>

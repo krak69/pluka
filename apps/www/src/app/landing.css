@@ -185,15 +185,15 @@ html {
 }
 
 .lp-section {
-  padding: clamp(50px, 7vw, 90px) 20px;
+  padding: clamp(50px, 7vw, 90px) var(--space-5);
 }
 
 .lp-section-hero {
-  padding: clamp(40px, 7vw, 84px) 20px clamp(48px, 7vw, 88px);
+  padding: clamp(var(--space-10), 7vw, 84px) var(--space-5) clamp(var(--space-12), 7vw, 88px);
 }
 
 .lp-section-tight {
-  padding: clamp(46px, 6vw, 80px) 20px;
+  padding: clamp(46px, 6vw, var(--space-20)) var(--space-5);
 }
 
 /* Surface blanche cernée de filets, pas une carte : §18. */
@@ -487,7 +487,7 @@ html {
 }
 
 .lp-split-48 {
-  gap: clamp(28px, 4vw, 48px);
+  gap: clamp(28px, 4vw, var(--space-12));
 }
 
 .lp-split-52 {
@@ -497,7 +497,7 @@ html {
 .lp-hero-grid {
   display: grid;
   grid-template-columns: 1.05fr 1fr;
-  gap: clamp(32px, 5vw, 56px);
+  gap: clamp(var(--space-8), 5vw, 56px);
   align-items: center;
 }
 
@@ -539,7 +539,7 @@ html {
 .lp-auto-260 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 24px 34px;
+  gap: var(--space-6) 34px;
 }
 
 .lp-auto-266 {
@@ -569,13 +569,13 @@ html {
 .lp-auto-180 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 30px 24px;
+  gap: 30px var(--space-6);
 }
 
 .lp-scatter {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 22px 32px;
+  gap: 22px var(--space-8);
   align-items: start;
 }
 
@@ -601,7 +601,7 @@ html {
   max-width: 1200px;
   height: 36px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 var(--space-5);
 }
 
 .lp-strip-claim {
@@ -664,7 +664,7 @@ html {
   gap: var(--space-6);
   max-width: 1200px;
   margin: 0 auto;
-  padding: 11px 20px;
+  padding: 11px var(--space-5);
 }
 
 .lp-logo {
@@ -683,7 +683,7 @@ html {
 }
 
 .lp-navlink {
-  padding: 10px 4px;
+  padding: 10px var(--space-1);
   font-size: 15px;
   font-weight: 500;
   color: var(--pk-text-secondary);
@@ -721,7 +721,7 @@ html {
 }
 
 .lp-menu {
-  padding: var(--space-2) 20px 18px;
+  padding: var(--space-2) var(--space-5) 18px;
   box-shadow: inset 0 1px 0 var(--lp-rule-strong);
   animation: lpUp var(--motion-panel) var(--motion-ease) both;
 }
@@ -799,20 +799,20 @@ html {
 }
 
 .lp-device-head {
-  padding: 22px 24px 0;
+  padding: 22px var(--space-6) 0;
 }
 
 .lp-device-head-sm {
-  padding: 20px 22px 0;
+  padding: var(--space-5) 22px 0;
 }
 
 .lp-device-chart {
-  padding: var(--space-3) 20px 14px;
+  padding: var(--space-3) var(--space-5) 14px;
   box-shadow: inset 0 1px 0 var(--lp-on-dark-14);
 }
 
 .lp-device-chart-sm {
-  padding: 14px 20px 0;
+  padding: 14px var(--space-5) 0;
   box-shadow: inset 0 1px 0 var(--lp-on-dark-14);
 }
 
@@ -1112,7 +1112,7 @@ html {
 }
 
 .lp-pill {
-  padding: 4px 9px;
+  padding: var(--space-1) 9px;
   border-radius: var(--radius-sm);
   font-size: 11.5px;
   font-weight: 600;
@@ -1210,7 +1210,7 @@ html {
 /* ── Plan illustré ───────────────────────────────────────────────────────*/
 
 .lp-planbox {
-  padding: 18px 20px;
+  padding: 18px var(--space-5);
   border-radius: var(--radius-sm);
   background: var(--pk-limestone);
   box-shadow: var(--lp-ring);
@@ -1308,9 +1308,18 @@ html {
   color: var(--pk-forest);
 }
 
+/*
+ * Bulles de « Demander à PLUKA ».
+ *
+ * Le prototype leur donne un rayon de bulle de messagerie — `2px 12px 12px 4px`
+ * et `2px 12px 4px 12px`. §17 plafonne le rayon à 3 px et §62 tranche : « si le
+ * prototype contient une anomalie héritée contraire à la Charte, la Charte / ce
+ * Design System priment ». Les coins sont donc plats, et l'échange se lit à
+ * l'alignement et au fond, comme partout ailleurs dans le produit.
+ */
 .lp-ask-question {
   padding: var(--space-3) 14px;
-  border-radius: 2px 12px 12px 4px;
+  border-radius: var(--radius-sm);
   background: var(--pk-glacier-bg);
   font-size: 15px;
   color: var(--pk-forest);
@@ -1318,7 +1327,7 @@ html {
 
 .lp-ask-answer {
   padding: var(--space-3) 14px;
-  border-radius: 2px 12px 4px 12px;
+  border-radius: var(--radius-sm);
   background: var(--pk-limestone);
 }
 
@@ -1425,7 +1434,7 @@ html {
 .lp-faq-a {
   max-width: 70ch;
   margin: 0;
-  padding: 0 40px var(--space-5) 2px;
+  padding: 0 var(--space-10) var(--space-5) 2px;
   font-size: 16px;
   line-height: 1.62;
   color: var(--pk-text-secondary);
@@ -1520,7 +1529,7 @@ html {
 }
 
 .lp-org-card {
-  padding: 18px 20px;
+  padding: 18px var(--space-5);
   border-radius: var(--radius-sm);
   background: var(--pk-surface);
   color: var(--pk-ink);
@@ -1528,7 +1537,7 @@ html {
 }
 
 .lp-org-card-20 {
-  padding: 20px 22px;
+  padding: var(--space-5) 22px;
 }
 
 .lp-bo-row {
@@ -1584,7 +1593,7 @@ html {
 }
 
 .lp-form-head {
-  padding: 20px 22px;
+  padding: var(--space-5) 22px;
   background-color: var(--pk-ink);
   color: var(--pk-text-on-dark);
 }
@@ -1656,12 +1665,12 @@ html {
 /* ── Pied de page ────────────────────────────────────────────────────────*/
 
 .lp-footer {
-  padding: clamp(40px, 5vw, 60px) 20px 40px;
+  padding: clamp(var(--space-10), 5vw, 60px) var(--space-5) var(--space-10);
   background: var(--pk-limestone);
 }
 
 .lp-footer-org {
-  padding: clamp(38px, 5vw, 56px) 20px 40px;
+  padding: clamp(38px, 5vw, 56px) var(--space-5) var(--space-10);
 }
 
 .lp-footer-cols {
@@ -1673,7 +1682,7 @@ html {
 
 .lp-footer-groups {
   display: flex;
-  gap: 40px;
+  gap: var(--space-10);
   flex-wrap: wrap;
 }
 

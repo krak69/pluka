@@ -45,7 +45,7 @@ export function ContactForm() {
               <span className="pk-label lp-label-forest">Formulaire non branché</span>
             </div>
 
-            <h3 className="lp-hd" style={{ fontSize: '22px', margin: '16px 0 10px' }}>
+            <h3 className="lp-hd" style={{ fontSize: '22px', margin: 'var(--space-4) 0 10px' }}>
               Votre demande n’a pas été envoyée.
             </h3>
 
