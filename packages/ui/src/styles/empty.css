@@ -1,0 +1,70 @@
+/*
+ * État vide — 06_DESIGN_SYSTEM.md §83.
+ *
+ * Bloc bord à bord, délimité par un filet, sans carte flottante ni ombre
+ * (§18). Pas d'illustration décorative (§83). La hiérarchie tient à la taille
+ * et à l'espace (§15).
+ */
+.pk-empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-8) var(--space-6);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+}
+
+.pk-empty-title {
+  margin: 0;
+  max-width: 34ch;
+  font-family: var(--font-heading);
+  font-variation-settings: 'wdth' 119;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.16;
+  letter-spacing: -0.025em;
+  text-wrap: pretty;
+}
+
+/*
+ * Le corps accepte plusieurs paragraphes sans que l'appelant ait à gérer leurs
+ * marges : l'espace entre les groupes vient de la feuille, pas des écrans (§20).
+ */
+.pk-empty-body {
+  max-width: 62ch;
+  color: var(--pk-text-secondary);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.pk-empty-body > * {
+  margin: 0;
+}
+
+.pk-empty-body > * + * {
+  margin-top: var(--space-3);
+}
+
+/*
+ * Précision technique : ce qui reste à brancher. Le filet la sépare du corps
+ * sans en faire une alerte — il ne s'est rien produit d'anormal.
+ */
+.pk-empty-detail {
+  max-width: 62ch;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--pk-hairline);
+  color: var(--pk-text-muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.pk-empty-action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-top: var(--space-1);
+}

@@ -1,0 +1,406 @@
+/*
+ * Shell de l'application coureur — 06_DESIGN_SYSTEM.md §69, §70, §71.
+ *
+ * §71 : « PLUKA est mobile-first pour le coureur […] La version mobile n'est
+ * pas un desktop comprimé. » La feuille est donc écrite pour le mobile, et la
+ * barre latérale n'apparaît qu'à partir de 1000 px.
+ *
+ * Aucune valeur de couleur littérale : tout passe par les tokens `--pk-*` de
+ * `@pluka/ui`, dérivés au besoin par `color-mix()`. Les espacements qui ont un
+ * token l'emploient — `packages/ui/tests/design-rules.test.ts` échoue sinon.
+ */
+
+/*
+ * Raccordement des polices chargées par `next/font` dans `layout.tsx`.
+ * `tokens/typography.css` prévoit ce point de reprise et ne charge lui-même
+ * aucune police (§114). Le repli système reste en queue de pile (§115).
+ */
+:root {
+  --font-heading: var(--font-archivo), 'Archivo', system-ui, sans-serif;
+  --font-body: var(--font-hanken), 'Hanken Grotesk', system-ui, sans-serif;
+  --font-mono: var(--font-martian), 'Martian Mono', ui-monospace, monospace;
+}
+
+/* ── Trame ───────────────────────────────────────────────────────────────*/
+
+.ap-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--pk-limestone);
+}
+
+.ap-frame {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/*
+ * §69 : « zone contenu lisible », « priorité au contenu terrain ». La largeur
+ * de lecture vient des tokens de contenu, pas d'une valeur locale.
+ */
+.ap-content {
+  flex: 1;
+  width: 100%;
+  max-width: var(--content-main);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-5) var(--space-20);
+}
+
+/* Lien d'évitement — §104, navigation clavier. */
+.ap-skip {
+  position: absolute;
+  left: -9999px;
+  z-index: var(--layer-toast);
+  padding: var(--space-3) var(--space-4);
+  background: var(--pk-ink);
+  color: var(--pk-text-on-dark);
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.ap-skip:focus {
+  left: var(--space-3);
+  top: var(--space-3);
+}
+
+/* ── Barre latérale ──────────────────────────────────────────────────────*/
+
+.ap-sidebar {
+  display: none;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 268px;
+  flex: none;
+  padding: var(--space-5) var(--space-4);
+  border-right: 1px solid var(--pk-hairline);
+  background: var(--pk-surface);
+}
+
+.ap-brand {
+  padding: 0 var(--space-3);
+}
+
+/*
+ * 06_DESIGN_SYSTEM.md §143 interdit de redessiner le logo. Le SVG de marque
+ * n'est pas dans le dépôt — voir `apps/www/public/brand/README.md`. Le nom est
+ * donc composé dans Archivo, comme sur le site public, et se remplacera au même
+ * endroit.
+ */
+.ap-wordmark {
+  display: inline-block;
+  color: var(--pk-ink);
+  font-family: var(--font-heading);
+  font-variation-settings: 'wdth' 125;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+.ap-nav-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* Action transversale — §66 l'autorise comme action, pas comme destination. */
+.ap-ask {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--pk-forest);
+  border-radius: var(--radius-sm);
+  background: var(--pk-lichen);
+  color: var(--pk-ink);
+  cursor: pointer;
+  font-family: var(--font-heading);
+  font-variation-settings: 'wdth' 113;
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+.ap-ask:hover {
+  background: var(--pk-lichen-deep);
+}
+
+/* ── Sélecteur de course ─────────────────────────────────────────────────*/
+
+.ap-picker {
+  position: relative;
+}
+
+.ap-picker-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-limestone);
+  color: var(--pk-ink);
+  cursor: pointer;
+  font-family: var(--font-body);
+  text-align: left;
+}
+
+.ap-picker-button:hover {
+  border-color: var(--pk-forest);
+}
+
+.ap-picker-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-heading);
+  font-variation-settings: 'wdth' 114;
+  font-weight: 600;
+  font-size: 14.5px;
+  letter-spacing: -0.015em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ap-picker-countdown {
+  flex: none;
+  color: var(--pk-text-muted);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ap-picker-button-on-dark {
+  border-color: transparent;
+  background: transparent;
+  color: var(--pk-text-on-dark);
+}
+
+.ap-picker-button-on-dark:hover {
+  border-color: color-mix(in srgb, var(--pk-text-on-dark) 32%, transparent);
+}
+
+.ap-picker-button-on-dark .ap-picker-countdown {
+  color: color-mix(in srgb, var(--pk-text-on-dark) 62%, transparent);
+}
+
+.ap-picker-menu {
+  position: absolute;
+  z-index: var(--layer-dropdown);
+  top: calc(100% + var(--space-1));
+  right: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: var(--space-1);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+}
+
+.ap-picker-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--pk-text);
+  text-decoration: none;
+}
+
+.ap-picker-option:hover {
+  background: var(--pk-limestone);
+}
+
+.ap-picker-option[aria-current='true'] {
+  background: var(--pk-glacier-bg);
+}
+
+.ap-picker-option-name {
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  font-weight: 500;
+}
+
+.ap-picker-option-when {
+  color: var(--pk-text-muted);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ap-picker-empty {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  color: var(--pk-text-muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.ap-picker-empty-on-dark {
+  color: color-mix(in srgb, var(--pk-text-on-dark) 62%, transparent);
+}
+
+/* ── Barre du haut, mobile ───────────────────────────────────────────────*/
+
+.ap-topbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--layer-sticky);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--pk-ink);
+}
+
+.ap-topbar-mark {
+  flex: none;
+  color: var(--pk-text-on-dark);
+  font-family: var(--font-heading);
+  font-variation-settings: 'wdth' 125;
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+.ap-topbar-race {
+  flex: 1;
+  min-width: 0;
+}
+
+.ap-topbar-ask {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--pk-lichen);
+  color: var(--pk-ink);
+  cursor: pointer;
+}
+
+/* ── Barre du bas, mobile — §70 ──────────────────────────────────────────*/
+
+.ap-mobile-nav {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--layer-sticky);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--pk-hairline);
+  background: var(--pk-surface);
+}
+
+/*
+ * §70 : « Cible interactive minimum 44 px. Labels lisibles. Pas d'icônes
+ * seules pour les destinations principales. » Le libellé est donc toujours là,
+ * sous l'icône.
+ */
+.ap-mobile-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: 56px;
+  padding: var(--space-2) var(--space-1);
+  color: var(--pk-text-muted);
+  text-decoration: none;
+}
+
+.ap-mobile-item[aria-current='page'] {
+  background: var(--pk-glacier-bg);
+  color: var(--pk-ink);
+}
+
+.ap-mobile-label {
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* ── Panneau latéral ─────────────────────────────────────────────────────*/
+
+.ap-drawer {
+  position: fixed;
+  z-index: var(--layer-modal);
+  inset: auto 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-5) var(--space-6);
+  border-top: 1px solid var(--pk-hairline);
+  background: var(--pk-limestone);
+}
+
+.ap-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ap-drawer-close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  color: var(--pk-ink);
+  cursor: pointer;
+}
+
+/* ── Contenu des écrans ──────────────────────────────────────────────────*/
+
+.ap-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* ── Desktop ─────────────────────────────────────────────────────────────*/
+
+@media (width >= 1000px) {
+  .ap-sidebar {
+    display: flex;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .ap-topbar,
+  .ap-mobile-nav {
+    display: none;
+  }
+
+  .ap-content {
+    padding: var(--space-10) var(--space-8) var(--space-16);
+  }
+
+  /* §65 : au-delà du mobile, le panneau redevient un tiroir latéral. */
+  .ap-drawer {
+    inset: 0 0 0 auto;
+    max-height: none;
+    width: min(460px, 100%);
+    border-top: 0;
+    border-left: 1px solid var(--pk-hairline);
+  }
+}

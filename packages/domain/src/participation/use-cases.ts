@@ -78,6 +78,21 @@ export interface ParticipationDetail {
 }
 
 /**
+ * Une course que le coureur prépare, telle qu'un sélecteur l'affiche.
+ *
+ * `status` y figure parce qu'une participation annulée doit pouvoir être
+ * distinguée d'une participation active sans relire la participation entière.
+ */
+export interface OwnParticipationSummary {
+  readonly participantRaceId: string;
+  readonly raceId: string;
+  readonly name: string;
+  /** Départ officiel de la course, en ISO 8601. */
+  readonly startsAt: string;
+  readonly status: ParticipantRaceRecord['status'];
+}
+
+/**
  * Charge une participation dont l'acteur est propriétaire.
  *
  * L'échec est toujours `not_found`, jamais `forbidden` : répondre « interdit »
@@ -218,6 +233,58 @@ export async function claimParticipantRace(
   if (claimed === null) throw notFoundError(useCase, 'participation');
 
   return claimed;
+}
+
+/**
+ * Les courses que le coureur prépare — `03_PRIVACY_RLS.md` §26.
+ *
+ * Sert le sélecteur de course du shell, et rien d'autre. Chaque entrée porte
+ * l'identifiant de participation, le nom de la course et son départ officiel :
+ * de quoi nommer une course et dire dans combien de jours elle a lieu.
+ *
+ * Ce que ce use case ne rend pas est délibéré. Ni objectif, ni état de
+ * préparation, ni dossard : `getParticipation` existe pour cela, sur une
+ * participation nommée. Un sélecteur qui transporterait la préparation de
+ * toutes les courses du coureur élargirait la surface sans raison.
+ *
+ * La lecture ne remonte pas jusqu'à l'événement. `events__select__published`
+ * n'ouvre que les événements publiés, alors que `races__select__participant`
+ * ouvre la course dès qu'on y participe : joindre l'événement viderait le
+ * sélecteur pour une course non encore publiée. Le nom et la date sont sur
+ * `races`, et suffisent.
+ *
+ * Une course que la RLS ne rend pas est absente du résultat plutôt que de
+ * produire une erreur : c'est la policy qui travaille, pas une anomalie.
+ */
+export async function listOwnParticipations(
+  context: ParticipationContext,
+): Promise<readonly OwnParticipationSummary[]> {
+  const participations = await context.repositories.participantRaces.listForUser(
+    context.actor.userId,
+  );
+
+  const races = await Promise.all(
+    participations.map(async (participation) => ({
+      participation,
+      race: await context.repositories.races.findById(participation.raceId),
+    })),
+  );
+
+  return races
+    .flatMap(({ participation, race }) =>
+      race === null
+        ? []
+        : [
+            {
+              participantRaceId: participation.participantRaceId,
+              raceId: race.id,
+              name: race.name,
+              startsAt: race.startDatetime,
+              status: participation.status,
+            },
+          ],
+    )
+    .sort((left, right) => left.startsAt.localeCompare(right.startsAt));
 }
 
 /** Lecture d'une participation par son propriétaire, objectif compris. */

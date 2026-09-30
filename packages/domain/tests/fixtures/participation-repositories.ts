@@ -159,6 +159,18 @@ export function createFakeParticipationRepositories(
         );
       },
 
+      listForUser: async (userId) => {
+        state.calls.push(`participantRaces.listForUser:${userId}`);
+
+        return state.participants
+          .filter((row) => row.userId === userId)
+          .map((row) => ({
+            participantRaceId: row.id,
+            raceId: row.raceId,
+            status: row.status,
+          }));
+      },
+
       listRoster: async (raceId, limit) => {
         state.calls.push(`participantRaces.listRoster:${raceId}`);
 

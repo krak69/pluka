@@ -17,7 +17,7 @@ import { describe, expect, it } from 'vitest';
 
 const SRC = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'src');
 
-const PLAN_SCREEN = 'app/courses/[participantRaceId]/plan';
+const PLAN_SCREEN = 'app/(shell)/courses/[participantRaceId]/plan';
 
 function sourceFiles(directory = ''): readonly string[] {
   return readdirSync(join(SRC, directory), { withFileTypes: true }).flatMap((entry) => {
@@ -38,14 +38,15 @@ function withoutComments(source: string): string {
 }
 
 /**
- * Exception documentée — 01_ARCHITECTURE §6.3.
+ * Plus aucune exception.
  *
- * L'accueil lit la ligne de l'utilisateur courant directement sous RLS. §6.3
- * autorise ce cas nommément — « prévue, triviale » — et la suite pgTAP le
- * couvre. Elle est listée ici plutôt que tolérée par un motif large : toute
- * autre lecture directe fera échouer ces tests.
+ * L'accueil lisait la ligne de l'utilisateur courant directement sous RLS, au
+ * titre de l'exception de 01_ARCHITECTURE §6.3. Il ne le fait plus : le shell
+ * passe par `listOwnParticipations`, et l'accueil ne lit rien. L'interdiction
+ * est donc redevenue absolue, et le rester est plus solide que maintenir une
+ * liste — une exception se recopie, une règle sans exception ne se recopie pas.
  */
-const DIRECT_READ_EXCEPTIONS: readonly string[] = ['app/page.tsx'];
+const DIRECT_READ_EXCEPTIONS: readonly string[] = [];
 
 /** Les fichiers soumis à l'interdiction de requête directe. */
 function guardedFiles(): readonly string[] {

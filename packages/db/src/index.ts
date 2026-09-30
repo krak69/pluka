@@ -120,6 +120,7 @@ export type {
   MembershipRecord,
   ParticipantRaceRecord,
   ParticipantRaceSettingsRecord,
+  ParticipantRaceEntry,
   ParticipantRosterEntry,
   PlatformIdentityRecord,
   PublishedFactRecord,

@@ -47,9 +47,11 @@ Le prototype ne contient **aucune route** : il est bâti sur un `screen` et un `
 
 ---
 
-# 1. Les six règles
+# 1. Les neuf règles
 
 Ces règles tranchent. Tout ce qu'elles ne tranchent pas est listé en §12, sans être décidé.
+
+Les six premières sont d'origine. Les trois dernières tranchent trois cas qui figuraient en §12.
 
 ## 1.1 L'espace organisateur vit dans `apps/app`, sous `/org`
 
@@ -99,15 +101,61 @@ Ce sont deux applications, deux origines. Un passage de l'une à l'autre est un 
 
 La même règle vaut de `www` vers `app`.
 
+## 1.7 La participation naît quand le coureur valide sa course
+
+Un `participant_race` est créé au moment où le coureur valide la course qu'il prépare, depuis la fiche épreuve — pas à la génération du plan, pas à l'achat.
+
+Tout ce qui suit dans l'entonnoir est donc scopé : **l'objectif de course est `/courses/[participantRaceId]/objectif`**, et non une route globale.
+
+Deux écrans de l'entonnoir restent globaux, et c'est cohérent avec la même règle :
+
+- `/profil` — le profil trailer est une donnée d'utilisateur, pas de participation. `trail_profiles` est unique par personne, et le prototype le dit lui-même : « Il a servi à préparer tes courses précédentes. » Un seul profil sert toutes les courses.
+- `/offre` — le choix d'offre n'est pas un écran de participation. Un Race Pass a une portée `participant_race`, un PLUKA+ une portée `global` ; cette distinction appartient à `04_ENTITLEMENTS.md` §7 et ne change pas la forme de la route. L'entonnoir y entre en portant la participation comme contexte.
+
+## 1.8 La page publique de course vit dans `apps/app`, en route publique hors authentification
+
+Il n'y a **qu'une** fiche épreuve, pas deux. Elle est servie par `apps/app`, sans session, et c'est la même page que celle de l'entonnoir : `screen: 'race'` du prototype.
+
+Conséquences directes, à traiter comme telles :
+
+1. `apps/app` cesse d'être entièrement non indexable. L'en-tête `X-Robots-Tag: noindex` de son `next.config.ts` doit exempter cette route, et elle seule.
+2. La visibilité de `03_PRIVACY_RLS.md` §17 gouverne le rendu : `public` est indexable, `unlisted` est atteignable par lien mais porte `noindex`, `private` renvoie une 404 — pas une page d'erreur d'autorisation, qui révélerait l'existence de la course.
+3. La page lit la base sans session. C'est une lecture publique, soumise à la RLS de §16 sur la lecture publique des événements, éditions et courses.
+
+**Écart documentaire à enregistrer :** `01_ARCHITECTURE.md` §4.1 confie à `apps/www` les « pages publiques de courses lorsqu'elles existent ». Cette règle s'en écarte. L'ordre de priorité de §0.1 place §4.1 au-dessus de ce document : `01_ARCHITECTURE.md` §4.1 doit donc être mis à jour pour enregistrer la décision, sans quoi les deux documents se contredisent.
+
+## 1.9 Slugs pour les identifiants publics, UUID pour tout ce qui est privé
+
+Une route publique porte des slugs. Une route privée porte des UUID.
+
+Le schéma les fournit déjà, avec leurs portées d'unicité — `0001_initial_schema.sql` :
+
+| Table           | Colonne | Unicité               |
+| --------------- | ------- | --------------------- |
+| `organizations` | `slug`  | globale               |
+| `events`        | `slug`  | globale               |
+| `editions`      | `slug`  | par `event_id`        |
+| `races`         | `slug`  | par `edition_id`      |
+
+Un `races.slug` seul ne désigne donc rien : « wild-70 » existe dans chaque édition. Le chemin public d'une course porte les trois niveaux :
+
+```text
+/epreuves/[eventSlug]/[editionSlug]/[raceSlug]
+```
+
+C'est la plus courte forme que les contraintes d'unicité rendent non ambiguë, et elle reste lisible et stable.
+
+Les jetons ne relèvent d'aucune des deux catégories : `[token]` est un secret opaque, ni slug ni identifiant d'entité.
+
 ---
 
 # 2. Les trois applications
 
-| Application  | Origine                     | Indexable | Session            |
-| ------------ | --------------------------- | --------- | ------------------ |
-| `apps/www`   | `NEXT_PUBLIC_SITE_URL`      | oui       | aucune             |
-| `apps/app`   | `NEXT_PUBLIC_APP_URL`       | non       | requise, sauf §4   |
-| `apps/admin` | `NEXT_PUBLIC_ADMIN_URL`     | non       | requise + rôle     |
+| Application  | Origine                 | Indexable          | Session          |
+| ------------ | ----------------------- | ------------------ | ---------------- |
+| `apps/www`   | `NEXT_PUBLIC_SITE_URL`  | oui                | aucune           |
+| `apps/app`   | `NEXT_PUBLIC_APP_URL`   | non, sauf §1.8     | requise, sauf §4 |
+| `apps/admin` | `NEXT_PUBLIC_ADMIN_URL` | non                | requise + rôle   |
 
 `apps/worker` n'expose pas de route HTTP de produit.
 
@@ -135,13 +183,14 @@ Les ancres de section sont normatives : elles sont citées par les menus, par le
 
 # 4. `apps/app` — zone publique
 
-Quatre routes seulement échappent à la session.
+Cinq routes seulement échappent à la session.
 
 ```text
-/connexion               Connexion par lien magique
-/auth/callback           Route Handler — échange du jeton
-/a/[token]               Page assistance, par jeton (§1.5)
-/invitation/[token]      Invitation participant, par jeton
+/connexion                                     Connexion par lien magique
+/auth/callback                                 Route Handler — échange du jeton
+/a/[token]                                     Page assistance, par jeton (§1.5)
+/invitation/[token]                            Invitation participant, par jeton
+/epreuves/[eventSlug]/[editionSlug]/[raceSlug] Fiche épreuve publique (§1.8, §1.9)
 ```
 
 ## 4.1 `/a/[token]`
@@ -157,6 +206,19 @@ Le lien envoyé par l'organisation. C'est par définition une adresse partagée 
 Les trois étapes du prototype (`invStep` 0 à 2) sont des étapes de formulaire, donc un état (§1.2).
 
 **Remarque de confidentialité, hors périmètre de ce document :** le prototype préremplit prénom, nom, email, dossard et vague. `03_PRIVACY_RLS.md` §28 impose de minimiser l'email ; le contenu exact du payload de cette route appartient à `03_PRIVACY_RLS.md`, pas ici.
+
+## 4.3 `/epreuves/[eventSlug]/[editionSlug]/[raceSlug]`
+
+La fiche épreuve, unique et publique (§1.8). C'est à la fois la page indexable de la course et la première étape de l'entonnoir : c'est ici que le coureur valide la course qu'il prépare, et c'est cette validation qui crée la participation (§1.7).
+
+Elle est donc lue dans deux situations :
+
+- **sans session** — elle présente la course et propose de la préparer, ce qui mène à `/connexion` en conservant la destination (§9.4) ;
+- **avec session** — la validation crée le `participant_race` et redirige vers `/courses/[participantRaceId]/objectif`.
+
+La visibilité de la course décide du rendu, pas de la route : `public`, `unlisted` ou `private` (§1.8).
+
+C'est la seule route de `apps/app` qui porte des slugs, et la seule qui puisse être indexée.
 
 ---
 
@@ -189,10 +251,10 @@ Les quatre onglets de la bibliothèque (`bTab`) et les quatre onglets d'une sort
 ## 5.2 Zone course
 
 ```text
-/epreuves/[raceId]                          Fiche épreuve
 /recherche                                  Trouver ma course
 
 /courses/[participantRaceId]                → redirige vers /plan
+/courses/[participantRaceId]/objectif        Mon objectif (§1.7)
 /courses/[participantRaceId]/plan            Plan de course
 /courses/[participantRaceId]/plan/conditions Conditions — panneau sur le Plan (§1.3)
 /courses/[participantRaceId]/nutrition
@@ -207,18 +269,28 @@ Les quatre onglets de la bibliothèque (`bTab`) et les quatre onglets d'une sort
 
 `/courses/[participantRaceId]` n'a pas d'écran propre : le prototype n'a pas d'accueil de course, il ouvre sur le Plan. La route redirige.
 
-Le segment est un `participant_race_id`, pas un `race_id` : tout ce qui vit sous `/courses/` est la préparation d'une personne. `/epreuves/[raceId]` est l'inverse — la course elle-même, avant toute participation.
+Le segment est un `participant_race_id`, pas un `race_id` : tout ce qui vit sous `/courses/` est la préparation d'une personne, et porte donc un UUID (§1.9). `/epreuves/…` est l'inverse — la course elle-même, avant toute participation, publique et en slugs (§4.3).
+
+`/objectif` est scopé parce que la participation existe déjà quand on y arrive (§1.7). L'aperçu du plan qui le suit dans le prototype — `screen: 'preview'` — n'est pas une route : c'est le premier état de `/plan`.
 
 Les trois onglets de Préparation (`prepTab`) sont des routes. La sous-application Nutrition est une route ; ses quarante clés d'état, dont son assistant en étapes, restent un état.
 
 ## 5.3 Entonnoir d'entrée
 
+L'entonnoir traverse les trois zones : public, global, puis scopé à la participation dès qu'elle existe.
+
 ```text
-/recherche               Trouver ma course
-/epreuves/[raceId]       Fiche épreuve
-/profil                  Profil trailer
-/offre                   Choix de l'offre
+/recherche                                      Trouver ma course              global
+/epreuves/[eventSlug]/[editionSlug]/[raceSlug]  Fiche épreuve — validation     public
+/profil                                         Profil trailer                 global
+/courses/[participantRaceId]/objectif           Mon objectif                   participation
+/offre                                          Choix de l'offre               global
+/courses/[participantRaceId]/plan               Génération, puis premier plan  participation
 ```
+
+La bascule se fait à la fiche épreuve : la validation crée le `participant_race` (§1.7). Tout ce qui vient après peut donc être scopé, et l'est dès que l'écran porte sur cette course.
+
+`/profil` et `/offre` restent globaux, pour les raisons données en §1.7.
 
 Les quatre étapes du profil trailer (`profStep` : `intro`, `a`, `b`, `recap`, plus l'état `known`) sont des étapes de formulaire, donc un état (§1.2).
 
@@ -345,7 +417,7 @@ Mais la landing organisateurs promet explicitement : « Partagez-le avec votre �
 
 Les dix entrées de l'`adminNav` du prototype y sont toutes présentes. Les trois sous-onglets de Produits nutrition (`bankTab`) sont des onglets, donc des routes (§1.2).
 
-**L'index de l'application n'est pas tranché — voir §12.7.** **Le rattachement de `/courses/[raceId]` non plus — voir §12.8.**
+**L'index de l'application n'est pas tranché — voir §12.5.** **Le rattachement de `/courses/[raceId]` non plus — voir §12.6.**
 
 ## 7.2 Tables `private.*`
 
@@ -402,9 +474,19 @@ Les segments sont en français, en minuscules, sans accent, séparés par un tir
 
 ## 9.2 Segments dynamiques
 
-Un segment dynamique nomme son entité : `[participantRaceId]`, `[raceId]`, `[eventId]`, `[outingId]`, `[token]`. Jamais `[id]`.
+Un segment dynamique nomme son entité. Jamais `[id]`.
 
-**La forme des identifiants dans les routes publiques n'est pas tranchée — voir §12.9.**
+Sa forme suit §1.9 : slug si la route est publique, UUID si elle est privée.
+
+| Segment                                            | Forme  | Zone   |
+| -------------------------------------------------- | ------ | ------ |
+| `[eventSlug]`, `[editionSlug]`, `[raceSlug]`       | slug   | public |
+| `[participantRaceId]`, `[outingId]`                | UUID   | privé  |
+| `[eventId]`, `[editionId]`, `[organizationId]`     | UUID   | privé  |
+| `[sourceId]`, `[userId]`, `[raceId]`               | UUID   | privé  |
+| `[token]`                                          | secret | public |
+
+Un même événement porte donc les deux formes selon la surface : `[eventSlug]` dans la fiche publique, `[eventId]` dans l'administration. Ce n'est pas une incohérence — l'administration n'est pas indexable et n'a pas besoin d'URL lisibles, et un slug administrable changerait sous les liens internes.
 
 ## 9.3 Redirection d'un segment sans écran
 
@@ -416,7 +498,11 @@ Une route protégée atteinte sans session redirige vers `/connexion` en conserv
 
 ## 9.5 Indexation
 
-`apps/www` est indexable. `apps/app` et `apps/admin` ne le sont pas, en-tête `X-Robots-Tag` comprise pour couvrir les Route Handlers. `/a/[token]` et `/invitation/[token]` ne sont jamais indexables.
+`apps/www` est indexable. `apps/admin` ne l'est pas.
+
+`apps/app` ne l'est pas non plus, **à une exception près** : la fiche épreuve publique de §4.3, lorsque la visibilité de la course vaut `public`. L'en-tête `X-Robots-Tag: noindex` de `next.config.ts` doit donc être posée par défaut et levée sur cette seule route — pas l'inverse, qui exposerait toute nouvelle route par défaut.
+
+`/a/[token]` et `/invitation/[token]` ne sont jamais indexables, et une course `unlisted` porte `noindex` tout en restant atteignable par lien.
 
 ---
 
@@ -440,12 +526,19 @@ Une route protégée atteinte sans session redirige vers `/connexion` en conserv
 7. Tout passage entre `app` et `admin` est un lien absolu construit sur une variable d'origine.
 8. Aucun segment de regroupement ne rend de page vide.
 9. Aucune route n'est ajoutée pour l'aperçu participant avant l'arbitrage de §6.3.
+10. Aucune route privée ne porte de slug, aucune route publique ne porte d'UUID.
+11. `/epreuves/[eventSlug]/[editionSlug]/[raceSlug]` répond sans session, et une course `private` y renvoie une 404.
+12. `X-Robots-Tag: noindex` est posée par défaut dans `apps/app` et levée sur la seule fiche épreuve publique.
+13. Il n'existe qu'une seule fiche épreuve dans tout le produit.
+14. `/objectif` n'est atteignable que sous `/courses/[participantRaceId]/`.
 
 ---
 
 # 12. Cas non tranchés
 
-Ces douze points ne se déduisent pas des six règles de §1. Ils sont listés, pas décidés.
+Ces neuf points ne se déduisent pas des neuf règles de §1. Ils sont listés, pas décidés.
+
+Trois cas de la première version ont été tranchés depuis, et sont devenus les règles §1.7, §1.8 et §1.9 : la portée des étapes d'entonnoir, la page publique de course, et la forme des identifiants publics.
 
 ## 12.1 Entité de portée du back-office organisateur
 
@@ -475,51 +568,31 @@ Un second jeton public suppose une politique propre : durée de vie, révocation
 
 Deux arborescences s'ensuivent : `/communaute` ou `/courses/[participantRaceId]/communaute`. Aucune règle ne départage.
 
-## 12.5 Portée des étapes d'entonnoir
-
-`/profil` et `/offre` sont écrits en §5.3 comme des routes globales. Mais l'objectif de course (`screen: 'objectif'`) porte sur une participation précise, et le prototype le place entre le profil et l'aperçu du plan.
-
-La question de fond est : **à quel moment la participation est-elle créée ?** Si elle l'est à l'entrée de l'entonnoir, l'objectif devient `/courses/[participantRaceId]/objectif` et le profil reste global. Sinon l'entonnoir tient dans des routes globales et la participation naît à la génération du plan.
-
-Cela détermine aussi si l'écran `objectif` a une route propre ou s'il est un état de `/courses/[participantRaceId]/plan`.
-
-## 12.6 Page publique de course
-
-`01_ARCHITECTURE.md` §4.1 confie à `apps/www` les « pages publiques de courses lorsqu'elles existent », donc indexables. L'entonnoir du prototype a sa propre fiche épreuve, `screen: 'race'`, écrite ici `/epreuves/[raceId]` dans `apps/app`.
-
-Sont-ce deux écrans, ou un seul ? S'il n'y en a qu'un, il doit vivre dans `www`, qui ne lit pas la base — ce qui suppose une lecture publique bâtie autrement. `03_PRIVACY_RLS.md` §17 distingue par ailleurs trois visibilités, `public`, `unlisted` et `private`, dont une route indexable devrait tenir compte.
-
-## 12.7 Index de `apps/admin`
+## 12.5 Index de `apps/admin`
 
 Le prototype ouvre l'administration sur une vue d'ensemble (`adminTab: 'overview'`). Le code existant place la liste des événements à `/`.
 
 §7.1 écrit les deux, l'une à `/` et l'autre à `/evenements`. Laquelle est l'index reste à décider.
 
-## 12.8 Rattachement de `/courses/[raceId]` dans `apps/admin`
+## 12.6 Rattachement de `/courses/[raceId]` dans `apps/admin`
 
 C'est la partie la plus aboutie du code actuel — statut, visibilité, import GPX, waypoints, contrôles qualité — et elle n'a aucun équivalent dans l'`adminNav` du prototype, qui traite la course sous Événements et sous Validation.
 
 La route existe et fonctionne. Son point d'entrée dans la navigation n'est pas décidé.
 
-## 12.9 Forme des identifiants publics
-
-Les routes de `apps/app` peuvent porter des UUID sans conséquence. Une route publique et indexable — §12.6 — demande un segment lisible et stable.
-
-Slug, identifiant court, ou couple slug + identifiant : la question touche l'unicité entre éditions, la stabilité dans le temps et le référencement. Elle n'est pas tranchée.
-
-## 12.10 Demander à PLUKA
+## 12.7 Demander à PLUKA
 
 `01_ARCHITECTURE.md` §4.2 liste « Demander à PLUKA » parmi les zones de l'application, au même rang que le Plan ou la Nutrition. Le prototype le rend en panneau superposé (`askOpen`), ce que §1.2 classe comme un état.
 
 Les deux lectures ne donnent pas la même arborescence. Et si une conversation doit pouvoir être reprise ou citée, `pluka_conversations` existant déjà, il lui faut une adresse.
 
-## 12.11 Route de paiement
+## 12.8 Route de paiement
 
 §5.3 écrit `/offre`. L'écran `checkout` du prototype est un paiement simulé.
 
 La forme de la route de paiement dépend du contrat du prestataire retenu : page hébergée avec retour sur une URL de succès, ou formulaire embarqué. Aucun prestataire n'est configuré, et `04_ENTITLEMENTS.md` §25 et §26 décrivent le webhook sans fixer le parcours.
 
-## 12.12 Pages marketing secondaires
+## 12.9 Pages marketing secondaires
 
 Les pieds de page des deux landings annoncent Blog, FAQ, Courses, Préparation trail, À propos, Contact, Confidentialité et CGU. Le prototype les pointe vers des ancres de la même page, faute de destination.
 

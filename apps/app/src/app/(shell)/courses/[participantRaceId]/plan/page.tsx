@@ -1,9 +1,9 @@
 import { DomainError, getPlanOverview } from '@pluka/domain';
 import { Divider, MicroLabel } from '@pluka/ui';
 
-import { AltitudeProfile } from '@/app/courses/[participantRaceId]/plan/altitude-profile';
-import { GeneratePlanForm } from '@/app/courses/[participantRaceId]/plan/generate-form';
-import { PlanPoints } from '@/app/courses/[participantRaceId]/plan/plan-points';
+import { AltitudeProfile } from '@/app/(shell)/courses/[participantRaceId]/plan/altitude-profile';
+import { GeneratePlanForm } from '@/app/(shell)/courses/[participantRaceId]/plan/generate-form';
+import { PlanPoints } from '@/app/(shell)/courses/[participantRaceId]/plan/plan-points';
 import { redirectOnDomainError, requirePlanContext } from '@/lib/plan';
 
 /**

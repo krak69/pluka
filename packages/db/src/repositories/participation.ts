@@ -13,6 +13,7 @@ import {
   type RaceRepository,
 } from './course.js';
 import type {
+  ParticipantRaceEntry,
   ParticipantRaceRecord,
   ParticipantRaceSettingsRecord,
   ParticipantRosterEntry,
@@ -70,6 +71,14 @@ const ROSTER_COLUMNS = [
   'external_registration_id',
 ] as const;
 
+/**
+ * Projection du sélecteur de course.
+ *
+ * Volontairement plus étroite que `PARTICIPANT_RACE_COLUMNS` : le shell affiche
+ * un nom de course et une échéance, pas une participation complète.
+ */
+const OWN_PARTICIPATION_COLUMNS = ['id', 'race_id', 'status'] as const;
+
 const SETTINGS_COLUMNS = [
   'participant_race_id',
   'target_duration_seconds',
@@ -94,6 +103,12 @@ type ParticipantRaceRow = {
   status: ParticipantRaceRecord['status'];
   preparation_state: ParticipantRaceRecord['preparationState'];
   joined_at: string | null;
+};
+
+type OwnParticipationRow = {
+  id: string;
+  race_id: string;
+  status: ParticipantRaceRecord['status'];
 };
 
 type RosterRow = {
@@ -148,6 +163,14 @@ function toRosterEntry(row: RosterRow): ParticipantRosterEntry {
   };
 }
 
+function toOwnParticipation(row: OwnParticipationRow): ParticipantRaceEntry {
+  return {
+    participantRaceId: row.id,
+    raceId: row.race_id,
+    status: row.status,
+  };
+}
+
 function toSettings(row: SettingsRow): ParticipantRaceSettingsRecord {
   return {
     participantRaceId: row.participant_race_id,
@@ -166,6 +189,15 @@ export interface ParticipantRaceRepository {
   findByRaceAndUser(raceId: string, userId: string): Promise<ParticipantRaceRecord | null>;
   /** Lecture opérationnelle destinée à l'organisation — 03_PRIVACY_RLS §27. */
   listRoster(raceId: string, limit: number): Promise<readonly ParticipantRosterEntry[]>;
+  /**
+   * Les participations d'un coureur — `participant_races__select__owner`.
+   *
+   * Sert le sélecteur de course du shell. La projection ne remonte que ce qu'un
+   * sélecteur affiche : l'identifiant de la participation, celui de la course,
+   * et son état. Ni objectif, ni état de préparation, ni dossard — un sélecteur
+   * n'en a pas besoin, et §28 comme §29 invitent à ne pas les promener.
+   */
+  listForUser(userId: string): Promise<readonly ParticipantRaceEntry[]>;
   insert(input: InsertRow<'participant_races'>): Promise<ParticipantRaceRecord>;
   /*
    * Deux écritures, deux axes — 02_DATA_MODEL §9.3.
@@ -243,6 +275,18 @@ export const participantRaceRepository = defineRepository<ParticipantRaceReposit
     );
 
     return rows.map(toRosterEntry);
+  },
+
+  async listForUser(userId) {
+    const rows = unwrap(
+      await context.client
+        .from('participant_races')
+        .select(selectColumns('participant_races', OWN_PARTICIPATION_COLUMNS))
+        .eq('user_id', userId),
+      'participant_races.listForUser',
+    );
+
+    return rows.map(toOwnParticipation);
   },
 
   async insert(input) {

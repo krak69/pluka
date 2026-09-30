@@ -372,6 +372,20 @@ export interface ParticipantRosterEntry {
 }
 
 /**
+ * Une participation vue par son propriétaire, réduite à ce qu'un sélecteur
+ * affiche — 03_PRIVACY_RLS §26.
+ *
+ * Trois champs, et pas un de plus. Ni objectif, ni état de préparation, ni
+ * dossard : ce DTO sert à choisir une course dans une liste, et une liste de
+ * choix n'a aucune raison de transporter la préparation du coureur.
+ */
+export interface ParticipantRaceEntry {
+  readonly participantRaceId: string;
+  readonly raceId: string;
+  readonly status: Enum<'participant_race_status'>;
+}
+
+/**
  * Profil trailer — 02_DATA_MODEL §4.2, 00_PRODUCT_SPEC §8.
  *
  * « Un seul Profil trailer persistant par utilisateur », porté par `user_id`

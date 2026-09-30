@@ -1,0 +1,161 @@
+/*
+ * Navigation — 06_DESIGN_SYSTEM.md §66 à §70.
+ *
+ * §1841 : « pas de sidebar immense remplie d'icônes ». Une entrée est une
+ * ligne de texte précédée d'un repère, à 44 px de cible (§29, §70). Le fond
+ * Glacier marque l'actif, et `aria-current` le double pour la synthèse vocale.
+ */
+.pk-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pk-nav-group-label {
+  padding: 0 var(--space-3);
+}
+
+.pk-nav-group-items {
+  display: flex;
+  flex-direction: column;
+}
+
+.pk-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--pk-text-secondary);
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color var(--motion-interaction) var(--motion-ease);
+}
+
+.pk-nav-item:hover {
+  background: var(--pk-limestone);
+  color: var(--pk-ink);
+}
+
+.pk-nav-item-current {
+  background: var(--pk-glacier-bg);
+  color: var(--pk-ink);
+}
+
+.pk-nav-item-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}
+
+.pk-nav-item-label {
+  flex: 1;
+  min-width: 0;
+}
+
+/*
+ * Compteur. §37 refuse la capsule : rayon faible, comme le badge. Il ne porte
+ * jamais seul l'information — l'entrée garde son libellé (§1869).
+ */
+.pk-nav-item-badge {
+  flex: none;
+  min-width: 20px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--pk-sand);
+  color: var(--pk-text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* §41 : sur fond sombre actif, l'icône et l'état passent au Lichen. */
+.pk-nav-item-on-dark {
+  color: var(--pk-sand);
+}
+
+.pk-nav-item-on-dark:hover {
+  background: color-mix(in srgb, var(--pk-text-on-dark) 10%, transparent);
+  color: var(--pk-text-on-dark);
+}
+
+.pk-nav-item-on-dark.pk-nav-item-current {
+  background: color-mix(in srgb, var(--pk-text-on-dark) 14%, transparent);
+  color: var(--pk-lichen);
+}
+
+.pk-nav-item-on-dark .pk-nav-item-badge {
+  background: color-mix(in srgb, var(--pk-text-on-dark) 16%, transparent);
+  color: var(--pk-text-on-dark);
+}
+
+/*
+ * Onglets secondaires. Ce sont des liens — `05_ROUTES_FLOWS.md` §1.2 fait de
+ * chaque onglet une route.
+ */
+.pk-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.pk-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--pk-text-secondary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    background-color var(--motion-interaction) var(--motion-ease),
+    border-color var(--motion-interaction) var(--motion-ease);
+}
+
+.pk-tab:hover {
+  border-color: var(--pk-forest);
+  color: var(--pk-ink);
+}
+
+.pk-tab-current {
+  border-color: var(--pk-forest);
+  background: var(--pk-glacier-bg);
+  color: var(--pk-ink);
+}
+
+/* En-tête de page — §69 : « page header contextualisé ». */
+.pk-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.pk-section-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.pk-section-header-text > .pk-h1,
+.pk-section-header-text > .pk-h2 {
+  margin: 0;
+}
+
+.pk-section-header-aside {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}

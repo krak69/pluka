@@ -57,13 +57,13 @@
 /* §27 : secondaire sur fond sombre. */
 .pk-button-ghost-dark {
   background: transparent;
-  border-color: rgba(242, 240, 233, 0.42);
+  border-color: color-mix(in srgb, var(--pk-text-on-dark) 42%, transparent);
   color: var(--pk-limestone);
 }
 
 .pk-button-ghost-dark:hover {
-  background: rgba(242, 240, 233, 0.1);
-  border-color: rgba(242, 240, 233, 0.72);
+  background: color-mix(in srgb, var(--pk-text-on-dark) 10%, transparent);
+  border-color: color-mix(in srgb, var(--pk-text-on-dark) 72%, transparent);
 }
 
 /*

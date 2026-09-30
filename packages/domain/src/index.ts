@@ -280,10 +280,12 @@ export {
   createParticipantRace,
   getParticipation,
   getParticipationForRace,
+  listOwnParticipations,
   listRaceRoster,
   setParticipationStatus,
   setPreparationState,
   setRaceGoal,
+  type OwnParticipationSummary,
   type ParticipationContext,
   type ParticipationDetail,
 } from './participation/use-cases.js';

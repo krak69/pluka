@@ -20,11 +20,16 @@
 export { Badge, type BadgeProps, type BadgeTone } from './components/Badge.js';
 export { Button, type ButtonProps, type ButtonVariant } from './components/Button.js';
 export { DataValue, type DataValueProps } from './components/DataValue.js';
+export { EmptyState, type EmptyStateProps } from './components/EmptyState.js';
 export { Divider, type DividerProps } from './components/Divider.js';
 export { IconButton, type IconButtonProps } from './components/IconButton.js';
 export { Input, type InputProps } from './components/Input.js';
 export { Link, type LinkProps } from './components/Link.js';
 export { MicroLabel, type MicroLabelProps } from './components/MicroLabel.js';
+export { NavItem, type NavItemProps } from './components/NavItem.js';
+export { NavList, type NavListProps } from './components/NavList.js';
+export { NavTabs, type NavTab, type NavTabsProps } from './components/NavTabs.js';
+export { SectionHeader, type SectionHeaderProps } from './components/SectionHeader.js';
 export { SourceDrawer, type SourceDrawerProps } from './components/SourceDrawer.js';
 export { SourceLink, type SourceLinkProps } from './components/SourceLink.js';
 export {

@@ -8,6 +8,7 @@ import {
   getParticipation,
   getParticipationForRace,
   isRaceReachableByRunner,
+  listOwnParticipations,
   listRaceRoster,
   PREPARATION_STATES,
   RUNNER_PARTICIPATION_STATUSES,
@@ -183,6 +184,66 @@ describe('conditions de rattachement (00_PRODUCT_SPEC §4.1)', () => {
 // ============================================================
 // createParticipantRace
 // ============================================================
+
+describe('listOwnParticipations', () => {
+  it('ne rend que les participations du coureur de la session', async () => {
+    // 03_PRIVACY_RLS §136 : le test positif ne prouve rien sans son négatif.
+    await createParticipantRace(contextFor(RUNNER_A), { raceId: PUBLIC_RACE });
+    await createParticipantRace(contextFor(RUNNER_B), { raceId: UNLISTED_RACE });
+
+    const mine = await listOwnParticipations(contextFor(RUNNER_A));
+    const theirs = await listOwnParticipations(contextFor(RUNNER_B));
+
+    expect(mine.map((entry) => entry.raceId)).toEqual([PUBLIC_RACE]);
+    expect(theirs.map((entry) => entry.raceId)).toEqual([UNLISTED_RACE]);
+  });
+
+  it('rend une liste vide pour un coureur sans course', async () => {
+    // Un shell sans course est un état normal : le sélecteur le dit, il
+    // n'échoue pas.
+    expect(await listOwnParticipations(contextFor(OUTSIDER))).toEqual([]);
+  });
+
+  it('ne transporte ni objectif ni état de préparation', async () => {
+    // Un sélecteur choisit une course. §26 et §29 n'ont aucune raison d'être
+    // mis à l'épreuve par une liste de choix.
+    await createParticipantRace(contextFor(RUNNER_A), { raceId: PUBLIC_RACE });
+
+    const [entry] = await listOwnParticipations(contextFor(RUNNER_A));
+
+    expect(Object.keys(entry ?? {}).sort()).toEqual([
+      'name',
+      'participantRaceId',
+      'raceId',
+      'startsAt',
+      'status',
+    ]);
+  });
+
+  it('ordonne par date de départ : la course la plus proche d’abord', async () => {
+    // Le fake donne la même date à toutes ses courses ; l'ordre ne se teste
+    // qu'en les distinguant.
+    state.course.races = state.course.races.map((race) =>
+      race.id === UNLISTED_RACE ? { ...race, startDatetime: '2026-04-11T05:00:00Z' } : race,
+    );
+
+    seedParticipation(state, { userId: RUNNER_A, raceId: PUBLIC_RACE });
+    seedParticipation(state, { userId: RUNNER_A, raceId: UNLISTED_RACE });
+
+    const ordered = await listOwnParticipations(contextFor(RUNNER_A));
+
+    expect(ordered.map((entry) => entry.raceId)).toEqual([UNLISTED_RACE, PUBLIC_RACE]);
+  });
+
+  it('omet une course que la lecture ne rend pas', async () => {
+    // La policy `races__select__participant` peut ne rien rendre : c'est un
+    // résultat, pas une panne. L'entrée disparaît du sélecteur.
+    const created = await createParticipantRace(contextFor(RUNNER_A), { raceId: PUBLIC_RACE });
+    state.course.races = state.course.races.filter((race) => race.id !== created.raceId);
+
+    expect(await listOwnParticipations(contextFor(RUNNER_A))).toEqual([]);
+  });
+});
 
 describe('createParticipantRace', () => {
   it('rattache le coureur de la session, jamais un identifiant reçu', async () => {
