@@ -460,6 +460,33 @@ Aucune route ne lit une table `private.*` depuis un client. `03_PRIVACY_RLS.md` 
 
 Quatre identifiants convergent vers `participants` et deux vers `analyse` : la refonte a fusionné des écrans. Une redirection ne préserve donc pas toujours le sous-écran d'origine.
 
+## 7.5 Écritures de la console (lot 4b, migration 0029)
+
+Cinq gestes, chacun porté par une fonction `security definer` qui vérifie `platform_role` en première instruction, contrôle la transition sur la ligne verrouillée et écrit son entrée dans `private.audit_logs` dans la même transaction. Le domaine (`packages/domain/src/admin/actions.ts`) valide l'entrée et traduit les refus — `42501` en `forbidden`, `P0002` en `not_found`, `55000` en `invalid_state` — sans redoubler la garde.
+
+| Route                     | Geste                | Transition                                                        | Confirmation | Entrée d'audit               |
+| ------------------------- | -------------------- | ----------------------------------------------------------------- | ------------ | ---------------------------- |
+| `/signalements/[reportId]` | Masquer le contenu   | contenu `published → hidden` ; signalements ouverts `→ resolved`  | oui          | `report.hide_content`        |
+| `/signalements/[reportId]` | Classer sans suite   | ce signalement `→ dismissed`                                      | non          | `report.dismiss`             |
+| `/traitements`            | Relancer             | job `failed → queued`, tentatives à zéro, événement outbox rejoué | non          | `job.retry`                  |
+| `/produits/a-verifier`    | Valider              | fiche `draft → validated`                                         | non          | `nutrition_product.validate` |
+| `/produits/a-verifier`    | Refuser              | fiche `draft → archived`                                          | oui          | `nutrition_product.archive`  |
+| `/produits/catalogue`     | Archiver             | fiche `validated → archived`                                      | oui          | `nutrition_product.archive`  |
+
+Règles de modération :
+
+- masquer clôt **tous** les signalements ouverts (`open`, `reviewed`) sur le contenu, sous **une seule** entrée d'audit ; masquer un fil clôt aussi ceux de ses messages ;
+- classer sans suite ne clôt que le signalement traité ;
+- chaque signalement garde son motif et son déclarant : seuls `status` et `resolved_at` changent ;
+- l'entrée `report.hide_content` liste les signalements clos dans `closedReportIds`. Il n'existe pas de restauration ; si elle arrive, elle ne rouvrira rien automatiquement, et c'est cette liste qui permettra de retrouver les signalements concernés ;
+- `deleted` n'est jamais posé par la console : la suppression relève de la rétention (`03_PRIVACY_RLS.md` §93).
+
+Règles d'écran :
+
+- un bouton suit le **statut** de l'objet, jamais le rôle de la personne qui regarde. Un refus de droit revient de la base et s'affiche dans le formulaire, sous le bouton (`role="alert"`) ;
+- un geste destructeur se confirme par une case explicite, que le schéma du domaine revérifie : une requête sans elle est refusée avant d'atteindre la base ;
+- un succès redirige vers l'écran avec `?fait=`, et l'écran l'annonce en `role="status"`. Après une décision, le détail d'un signalement n'est pas rechargé : le relire écrirait une seconde lecture auditée que personne n'a demandée.
+
 ---
 
 # 8. Liens inter-applications

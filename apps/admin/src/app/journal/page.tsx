@@ -14,9 +14,12 @@ import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
  * journal qu'elle affiche, et le bruit finirait par masquer les accès aux
  * données personnelles que §104 veut rendre visibles.
  *
- * Ce que l'on voit ici dès aujourd'hui : les trois lectures auditées de la
- * console — `report.read`, `user.read`, `user.search`. Les écritures du lot 4b
- * s'y ajouteront par le même mécanisme, `private.record_audit`.
+ * Ce que l'on y voit : les trois lectures auditées de la console —
+ * `report.read`, `user.read`, `user.search` — et les écritures du lot 4b, par
+ * le même mécanisme `private.record_audit` : `report.hide_content`,
+ * `report.dismiss`, `job.retry`, `nutrition_product.validate`,
+ * `nutrition_product.archive`. Un masquage liste dans `closedReportIds` les
+ * signalements qu'il a clos : c'est par là qu'on les retrouve.
  *
  * Le nom de la table touchée est rendu tel quel, sans traduction. C'est un
  * journal technique : « race_facts » est plus utile à une enquête que

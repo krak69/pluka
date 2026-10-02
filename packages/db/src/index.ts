@@ -150,6 +150,12 @@ export {
   type AdminConsoleRepository,
 } from './repositories/admin-console.js';
 export {
+  adminActionsRepository,
+  createAdminActionsRepositories,
+  type AdminActionsRepositories,
+  type AdminActionsRepository,
+} from './repositories/admin-actions.js';
+export {
   createRaceInformationRepositories,
   publishedFactRepository,
   type PublishedFactRepository,

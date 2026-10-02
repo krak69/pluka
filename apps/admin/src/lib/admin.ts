@@ -1,5 +1,6 @@
 import {
   DbError,
+  createAdminActionsRepositories,
   createAdminConsoleRepositories,
   createCourseRepositories,
   createFactRepositories,
@@ -9,6 +10,7 @@ import {
 import {
   DomainError,
   getAdminPlatformCounters,
+  type AdminActionsContext,
   type AdminConsoleContext,
   type CourseContext,
   type DomainErrorCode,
@@ -102,6 +104,23 @@ export async function requireAdminConsoleContext(returnTo: string): Promise<Admi
   const session = await requireSession(returnTo);
 
   return adminConsoleContext(session);
+}
+
+/**
+ * Contexte des écritures de la console — migration 0029.
+ *
+ * Même câblage que les lectures : jeton de la session, aucune clé de service.
+ * La garde `pluka_admin` et l'écriture du journal d'audit vivent dans chaque
+ * fonction SQL ; le domaine valide l'entrée et traduit les refus. Cette
+ * application ne fait que dire *qui* agit, et sur quoi.
+ */
+export function adminActionsContext(session: Session): AdminActionsContext {
+  return {
+    repositories: createAdminActionsRepositories({
+      client: createDataClient(session.accessToken),
+    }),
+    actor: { userId: session.userId },
+  };
 }
 
 /**
@@ -204,6 +223,7 @@ const DOMAIN_MESSAGES: Readonly<Record<DomainErrorCode, string>> = {
  */
 const DB_MESSAGES: Partial<Readonly<Record<DbErrorCode, string>>> = {
   permission_denied: 'Action non autorisée : la base a refusé l’opération.',
+  invalid_state: 'Cette transition n’est pas autorisée dans l’état actuel.',
   conflict: 'Cette valeur est déjà utilisée.',
   constraint_violation: 'Les informations saisies violent une contrainte de la base.',
   not_found: 'Objet introuvable.',

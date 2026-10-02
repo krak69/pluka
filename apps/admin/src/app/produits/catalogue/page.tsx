@@ -3,6 +3,8 @@ import { SectionHeader } from '@pluka/ui';
 
 import { ProductList } from '@/app/produits/product-list';
 import { ProductTabs } from '@/app/produits/tabs';
+import { ConsoleNotice } from '@/components/console-action';
+import { consoleNotice, type ConsoleNoticeParams } from '@/lib/console-notice';
 import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
 
 /**
@@ -15,7 +17,11 @@ import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
  */
 export const metadata = { title: 'Banque Nutrition' };
 
-export default async function ProductCatalogPage() {
+export default async function ProductCatalogPage({
+  searchParams,
+}: {
+  readonly searchParams: Promise<ConsoleNoticeParams>;
+}) {
   const context = await requireAdminConsoleContext('/produits/catalogue');
   const products = await listAdminNutritionProducts(context, {}).catch(redirectOnReadError);
 
@@ -28,10 +34,13 @@ export default async function ProductCatalogPage() {
         les coureurs ; les propositions restent privées à leur créateur jusqu’à validation.
       </p>
 
+      <ConsoleNotice notice={consoleNotice(await searchParams)} />
+
       <ProductTabs current="/produits/catalogue" />
 
       <ProductList
         products={products}
+        tab="catalogue"
         caption={`${products.length} fiche${products.length > 1 ? 's' : ''}, tous statuts`}
         emptyTitle="Aucune fiche dans la banque."
         emptyDetail="Le catalogue est interrogé tous statuts confondus : il est réellement vide."

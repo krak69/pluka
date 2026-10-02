@@ -50,6 +50,8 @@ describe('mapPostgrestError', () => {
     ['08006', 'unavailable'],
     ['57014', 'unavailable'],
     ['PGRST116', 'not_found'],
+    ['P0002', 'not_found'],
+    ['55000', 'invalid_state'],
     ['XX000', 'unknown'],
   ];
 

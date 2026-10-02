@@ -205,6 +205,14 @@ describe('fonctions SQL', () => {
       'admin_list_jobs',
       'admin_list_audit',
       'admin_list_fact_candidates',
+      // 0029 : les cinq écritures. Chacune porte sa garde et son audit ; un
+      // écran qui les nommerait contournerait la confirmation revérifiée par
+      // le domaine.
+      'admin_hide_reported_content',
+      'admin_dismiss_report',
+      'admin_retry_job',
+      'admin_validate_nutrition_product',
+      'admin_archive_nutrition_product',
       'assert_pluka_admin',
       'record_audit',
     ];

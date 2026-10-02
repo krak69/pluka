@@ -302,6 +302,26 @@ export {
   searchAdminUsers,
   type AdminConsoleContext,
 } from './admin/console.js';
+export {
+  archiveNutritionProduct,
+  archiveNutritionProductCommandSchema,
+  dismissReport,
+  dismissReportCommandSchema,
+  hideReportedContent,
+  hideReportedContentCommandSchema,
+  retryAdminJob,
+  retryAdminJobCommandSchema,
+  validateNutritionProduct,
+  validateNutritionProductCommandSchema,
+  type AdminActionsContext,
+  type ArchiveNutritionProductCommand,
+  type DismissReportCommand,
+  type HideReportedContentCommand,
+  type HideReportedContentResult,
+  type RetryAdminJobCommand,
+  type RetryAdminJobResult,
+  type ValidateNutritionProductCommand,
+} from './admin/actions.js';
 
 export {
   claimParticipantRace,

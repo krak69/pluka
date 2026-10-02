@@ -3,6 +3,8 @@ import { EmptyState, SectionHeader, Table } from '@pluka/ui';
 import Link from 'next/link';
 
 import { AdminStatus, reportReason } from '@/components/admin-status';
+import { ConsoleNotice } from '@/components/console-action';
+import { consoleNotice, type ConsoleNoticeParams } from '@/lib/console-notice';
 import { dateTime } from '@/lib/format';
 import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
 
@@ -19,13 +21,20 @@ import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
  */
 export const metadata = { title: 'Signalements' };
 
-export default async function ReportsPage() {
+export default async function ReportsPage({
+  searchParams,
+}: {
+  readonly searchParams: Promise<ConsoleNoticeParams>;
+}) {
   const context = await requireAdminConsoleContext('/signalements');
   const reports = await listAdminReports(context, {}).catch(redirectOnReadError);
+  const notice = consoleNotice(await searchParams);
 
   return (
     <main className="ad-page">
       <SectionHeader eyebrow="Administration" title="Signalements" />
+
+      <ConsoleNotice notice={notice} />
 
       <p className="pk-body ad-measure">
         File de triage des contenus de forum. Le contenu signalé et l’auteur du signalement ne

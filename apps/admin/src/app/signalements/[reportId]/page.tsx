@@ -2,7 +2,9 @@ import { getAdminReport } from '@pluka/domain';
 import { DataValue, Divider, SectionHeader } from '@pluka/ui';
 import Link from 'next/link';
 
+import { dismissReportAction, hideReportedContentAction } from '@/app/console-actions';
 import { AdminStatus, reportReason } from '@/components/admin-status';
+import { ConsoleAction } from '@/components/console-action';
 import { dateTime } from '@/lib/format';
 import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
 
@@ -18,7 +20,19 @@ import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
  * message signalé aurait rendu une centaine de lectures personnelles
  * indiscernables d'un simple coup d'œil à la liste.
  *
- * Modérer est une écriture : lot 4b.
+ * DÉCIDER — lot 4b, migration 0029
+ *
+ * Deux gestes, tant que le signalement est ouvert (`open` ou `reviewed`) :
+ *
+ * - **Masquer le contenu** — destructeur pour l'auteur, donc confirmé à
+ *   l'écran. Clôt aussi tous les signalements ouverts sur ce contenu, et pour
+ *   un fil ceux de ses messages, sous une seule entrée d'audit.
+ * - **Classer sans suite** — ne touche ni au contenu, ni aux autres
+ *   signalements. Pas de confirmation : rien n'est retiré à personne.
+ *
+ * Les deux boutons s'affichent selon l'état du signalement, jamais selon le
+ * rôle de la personne qui regarde : un refus de droit est dit par la base, à
+ * côté du bouton.
  */
 export const metadata = { title: 'Signalement' };
 
@@ -91,6 +105,45 @@ export default async function ReportPage({
         <span className="pk-label">Auteur</span>{' '}
         {report.targetAuthorEmail ?? <span className="ad-muted">compte supprimé</span>}
       </p>
+
+      <Divider spaced />
+
+      <h2 className="pk-h2 ad-section-title">Décision</h2>
+
+      {report.status === 'open' || report.status === 'reviewed' ? (
+        <>
+          <p className="pk-body ad-measure">
+            Masquer retire le {report.targetKind === 'thread' ? 'fil et ses messages' : 'message'}{' '}
+            de la lecture des participants, sans le supprimer, et clôt les autres signalements
+            ouverts sur ce contenu. Classer sans suite ne clôt que ce signalement.
+          </p>
+
+          <div className="ad-decisions">
+            <ConsoleAction
+              action={hideReportedContentAction}
+              fields={{ reportId: report.reportId }}
+              label="Masquer le contenu"
+              variant="destructive"
+              confirm={
+                report.targetKind === 'thread'
+                  ? 'Je confirme masquer ce fil aux participants'
+                  : 'Je confirme masquer ce message aux participants'
+              }
+            />
+
+            <ConsoleAction
+              action={dismissReportAction}
+              fields={{ reportId: report.reportId }}
+              label="Classer sans suite"
+            />
+          </div>
+        </>
+      ) : (
+        <p className="pk-body ad-muted">
+          Ce signalement est traité : aucune décision ne reste à prendre. Le geste et les
+          signalements qu’il a clos figurent au journal.
+        </p>
+      )}
     </main>
   );
 }

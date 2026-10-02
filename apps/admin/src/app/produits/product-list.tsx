@@ -1,7 +1,14 @@
 import type { AdminNutritionProductRecord } from '@pluka/db';
 import { EmptyState, Table } from '@pluka/ui';
 
+import Link from 'next/link';
+
+import {
+  archiveNutritionProductAction,
+  validateNutritionProductAction,
+} from '@/app/console-actions';
 import { AdminStatus, productCategoryLabel } from '@/components/admin-status';
+import { ConsoleAction } from '@/components/console-action';
 import { day } from '@/lib/format';
 
 /**
@@ -13,14 +20,31 @@ import { day } from '@/lib/format';
  *
  * Les quatre valeurs nutritionnelles sont en colonnes numériques : c'est
  * précisément ce qu'un vérificateur compare d'une fiche à l'autre (§54).
+ *
+ * GESTES — lot 4b, migration 0029
+ *
+ * La colonne « Action » suit le statut de la fiche, jamais le rôle de la
+ * personne qui regarde :
+ *
+ * - `draft` sur « À vérifier » : Valider, ou Refuser — qui archive ;
+ * - `draft` sur le catalogue : un lien vers « À vérifier », où la fiche se
+ *   compare aux autres propositions ;
+ * - `validated` : Archiver, qui la retire des coureurs ;
+ * - `archived` : rien — aucune spécification ne décrit de désarchivage.
+ *
+ * Refuser et Archiver sont destructeurs pour les coureurs : repliés derrière
+ * un « … », et confirmés par une case.
  */
 export function ProductList({
   products,
+  tab,
   caption,
   emptyTitle,
   emptyDetail,
 }: {
   readonly products: readonly AdminNutritionProductRecord[];
+  /** L'onglet qui affiche la liste : les gestes y reviennent après succès. */
+  readonly tab: 'catalogue' | 'a-verifier';
   readonly caption: string;
   readonly emptyTitle: string;
   readonly emptyDetail: string;
@@ -45,6 +69,7 @@ export function ProductList({
         { key: 'hydration', label: 'Eau', unit: 'ml', align: 'numeric' },
         { key: 'status', label: 'Statut' },
         { key: 'verified', label: 'Vérifiée le' },
+        { key: 'action', label: 'Action' },
       ]}
       rows={products.map((product) => ({
         key: product.productId,
@@ -72,8 +97,63 @@ export function ProductList({
             ) : (
               day(product.verifiedAt)
             ),
+          action: <ProductActions product={product} tab={tab} />,
         },
       }))}
     />
+  );
+}
+
+function ProductActions({
+  product,
+  tab,
+}: {
+  readonly product: AdminNutritionProductRecord;
+  readonly tab: 'catalogue' | 'a-verifier';
+}) {
+  const fields = { productId: product.productId, from: tab };
+
+  if (product.status === 'archived') {
+    return <span className="ad-muted">archivée</span>;
+  }
+
+  if (product.status === 'draft' && tab === 'catalogue') {
+    return (
+      <Link href="/produits/a-verifier" className="pk-link">
+        À vérifier
+      </Link>
+    );
+  }
+
+  if (product.status === 'draft') {
+    return (
+      <div className="ad-action">
+        <ConsoleAction action={validateNutritionProductAction} fields={fields} label="Valider" />
+
+        <details className="ad-disclosure">
+          <summary>Refuser…</summary>
+          <ConsoleAction
+            action={archiveNutritionProductAction}
+            fields={fields}
+            label="Refuser la fiche"
+            variant="destructive"
+            confirm="Je confirme refuser cette fiche : elle ne sera pas proposée aux coureurs"
+          />
+        </details>
+      </div>
+    );
+  }
+
+  return (
+    <details className="ad-disclosure">
+      <summary>Archiver…</summary>
+      <ConsoleAction
+        action={archiveNutritionProductAction}
+        fields={fields}
+        label="Archiver la fiche"
+        variant="destructive"
+        confirm="Je confirme retirer cette fiche du catalogue des coureurs"
+      />
+    </details>
   );
 }

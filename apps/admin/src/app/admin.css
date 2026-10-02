@@ -230,3 +230,80 @@
   font-size: 12px;
   overflow-wrap: anywhere;
 }
+
+/* ============================================================
+   Gestes de la console — lot 4b
+   ============================================================ */
+
+/*
+ * Un geste : la case de confirmation éventuelle, le bouton, et le refus sous
+ * le bouton. Une colonne serrée, pour que le message d'erreur reste lu comme
+ * celui de ce bouton-là.
+ */
+.ad-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  max-width: 44ch;
+}
+
+.ad-action .pk-btn {
+  min-height: 44px;
+}
+
+.ad-action .pk-field-error {
+  margin: 0;
+}
+
+/* La case de confirmation et son libellé forment une seule cible de 44 px. */
+.ad-confirm {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.ad-confirm input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--pk-forest);
+}
+
+/* Les gestes d'une fiche : côte à côte quand la place le permet. */
+.ad-decisions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  align-items: flex-start;
+}
+
+/*
+ * Un geste destructeur dans une ligne de table : replié derrière un « … »
+ * explicite. La case et le bouton n'apparaissent qu'à l'ouverture — une table
+ * de vingt fiches n'affiche pas vingt cases à cocher.
+ */
+.ad-disclosure summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--pk-text-secondary);
+}
+
+.ad-disclosure[open] summary {
+  margin-bottom: var(--space-2);
+}
+
+/* Compte rendu d'un geste réussi : même filet que `.ad-notice`, en succès. */
+.ad-done {
+  max-width: var(--content-reading);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 2px solid var(--pk-success-signal);
+  background: var(--pk-success-bg);
+  color: var(--pk-text);
+}

@@ -1,7 +1,10 @@
 import { listAdminJobs } from '@pluka/domain';
 import { EmptyState, SectionHeader, Table } from '@pluka/ui';
 
+import { retryJobAction } from '@/app/console-actions';
 import { AdminStatus } from '@/components/admin-status';
+import { ConsoleAction, ConsoleNotice } from '@/components/console-action';
+import { consoleNotice, type ConsoleNoticeParams } from '@/lib/console-notice';
 import { dateTime } from '@/lib/format';
 import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
 
@@ -16,21 +19,32 @@ import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
  * `private.ingestion_jobs` reste `service only` (03_PRIVACY_RLS §8) : la
  * lecture passe par `admin_list_jobs`, jamais par un client.
  *
- * Relancer un job est une écriture : lot 4b. Les échecs sont donc visibles ici
- * sans être actionnables, ce qui est déjà l'essentiel — on ne relance pas ce
- * qu'on n'a pas lu.
+ * RELANCER — lot 4b, migration 0029
+ *
+ * Un job en échec porte son bouton « Relancer », sur sa ligne, à côté de son
+ * erreur : on ne relance pas ce qu'on n'a pas lu. Le bouton suit le statut du
+ * job — seul `failed` se relance — et jamais le rôle de la personne qui
+ * regarde. La relance rejoue l'événement d'origine ; un double clic produit
+ * une relance et un refus, pas deux messages de file.
  */
 export const metadata = { title: 'Imports et traitements' };
 
-export default async function JobsPage() {
+export default async function JobsPage({
+  searchParams,
+}: {
+  readonly searchParams: Promise<ConsoleNoticeParams>;
+}) {
   const context = await requireAdminConsoleContext('/traitements');
   const jobs = await listAdminJobs(context, {}).catch(redirectOnReadError);
+  const notice = consoleNotice(await searchParams);
 
   const failed = jobs.filter((job) => job.status === 'failed').length;
 
   return (
     <main className="ad-page">
       <SectionHeader eyebrow="Administration" title="Imports et traitements" />
+
+      <ConsoleNotice notice={notice} />
 
       <p className="pk-body ad-measure">
         Vue technique : état d’analyse, erreurs de traitement et clés d’idempotence, tous événements
@@ -60,6 +74,7 @@ export default async function JobsPage() {
             { key: 'idempotency', label: 'Clé d’idempotence' },
             { key: 'error', label: 'Dernière erreur' },
             { key: 'timing', label: 'Chronologie' },
+            { key: 'action', label: 'Action' },
           ]}
           rows={jobs.map((job) => ({
             key: job.jobId,
@@ -107,6 +122,16 @@ export default async function JobsPage() {
                   </span>
                 </>
               ),
+              action:
+                job.status === 'failed' ? (
+                  <ConsoleAction
+                    action={retryJobAction}
+                    fields={{ jobId: job.jobId }}
+                    label="Relancer"
+                  />
+                ) : (
+                  <span className="ad-muted">rien à relancer</span>
+                ),
             },
           }))}
         />

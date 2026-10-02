@@ -23,6 +23,16 @@ export function text(form: FormData, field: string): string | undefined {
 }
 
 /**
+ * Case à cocher : `FormData` ne porte le champ que coché, valant `on`.
+ *
+ * Rend un booléen strict, et c'est le schéma du use case qui exige `true` —
+ * une case de confirmation décochée devient un refus nommé, pas un oubli.
+ */
+export function checked(form: FormData, field: string): boolean {
+  return form.get(field) === 'on';
+}
+
+/**
  * Fichier déposé, ou `undefined` si le champ est vide.
  *
  * `FormData` rend un `File` de taille nulle quand aucun fichier n'a été

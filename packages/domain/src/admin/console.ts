@@ -38,8 +38,8 @@ import { notFoundError, parseCommand } from '../errors.js';
  * LECTURE SEULE
  *
  * Aucune écriture ici. Les actions d'administration — relancer un traitement,
- * modérer un signalement, valider un produit — n'ont pas de use case et
- * arriveront avec le leur, branchées sur `private.record_audit`.
+ * modérer un signalement, valider ou archiver un produit — vivent dans
+ * `actions.ts` (migration 0029), branchées sur `private.record_audit`.
  */
 
 export interface AdminConsoleContext {

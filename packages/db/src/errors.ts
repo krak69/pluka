@@ -13,6 +13,7 @@ export const DB_ERROR_CODES = [
   'conflict',
   'constraint_violation',
   'permission_denied',
+  'invalid_state',
   'invalid_configuration',
   'unavailable',
   'unknown',
@@ -78,6 +79,14 @@ function classify(sqlState: string): DbErrorCode {
 
   // Classe 42501 : privilège insuffisant, y compris une policy RLS en écriture.
   if (sqlState === '42501') return 'permission_denied';
+
+  // `P0002` (`no_data_found`) : une fonction SQL qui cherche l'objet visé par
+  // son identifiant et ne le trouve pas. `55000`
+  // (`object_not_in_prerequisite_state`) : la fonction refuse une transition
+  // depuis l'état courant — un signalement déjà traité, un job pas en échec
+  // (0012, 0029). Ce sont des réponses, pas des pannes.
+  if (sqlState === 'P0002') return 'not_found';
+  if (sqlState === '55000') return 'invalid_state';
 
   // Classes 08 (connexion) et 57 (intervention opérateur) : réessayable.
   if (sqlState.startsWith('08') || sqlState.startsWith('57')) return 'unavailable';
