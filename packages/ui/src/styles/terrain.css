@@ -1,0 +1,109 @@
+/*
+ * Bande de terrain — 06_DESIGN_SYSTEM.md §22, §183.
+ *
+ * Fond fort, relief en fond de scène, micro-label Martian Mono, titre
+ * Archivo, puis un filet et la ligne d'actions. Rayon standard (§41 :
+ * 2–3 px), aucune ombre.
+ *
+ * Le relief canonique (§144) vient du kit de marque, par les trois variables
+ * de `tokens/topo.css`. Le micro-label est `.pk-label` (§15) : la
+ * bande ne redéfinit pas ses capitales, elle n'en change que la couleur.
+ */
+
+.pk-terrain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  border-radius: var(--radius-sm);
+  /* Règle du kit de marque : toujours en `cover`, jamais en tuile. */
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+.pk-terrain-dark {
+  background-color: var(--pk-ink);
+  color: var(--pk-text-on-dark);
+}
+
+.pk-terrain-light {
+  background-color: var(--pk-limestone);
+  color: var(--pk-text);
+  box-shadow: inset 0 0 0 1px var(--pk-hairline);
+}
+
+.pk-terrain-glacier {
+  background-color: var(--pk-glacier-bg);
+  color: var(--pk-text);
+}
+
+.pk-terrain-topo.pk-terrain-dark {
+  background-image: var(--topo-dark);
+}
+
+.pk-terrain-topo.pk-terrain-light {
+  background-image: var(--topo-light);
+}
+
+.pk-terrain-topo.pk-terrain-glacier {
+  background-image: var(--topo-glacier);
+}
+
+.pk-terrain-scene {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 44rem;
+}
+
+.pk-terrain-eyebrow {
+  margin: 0;
+  font-weight: 600;
+}
+
+.pk-terrain-dark .pk-terrain-eyebrow {
+  color: var(--pk-lichen);
+}
+
+.pk-terrain-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-variation-settings: 'wdth' 121;
+  font-weight: 700;
+  font-size: clamp(30px, 3.6vw, 40px);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+}
+
+.pk-terrain-body {
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.pk-terrain-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid color-mix(in srgb, currentcolor 16%, transparent);
+}
+
+.pk-terrain-meta {
+  flex: 1;
+  min-width: 12rem;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.pk-terrain-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}

@@ -47,6 +47,7 @@ export {
   type TableRow,
 } from './components/Table.js';
 export { StatusBadge, type StatusBadgeProps, type StatusTone } from './components/StatusBadge.js';
+export { TerrainBand, type TerrainBandProps } from './components/TerrainBand.js';
 export {
   TRUST_LEVEL_LABELS,
   TrustBadge,

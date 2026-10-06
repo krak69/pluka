@@ -1,0 +1,34 @@
+/* PLUKA — tokens « Ligne d'altitude » (charte v2) */
+:root {
+  /* couleurs de marque */
+  --pk-ardoise: #0E1A17;   /* fond sombre, texte principal */
+  --pk-foret:   #14342C;   /* structure, logo sur fond clair */
+  --pk-lichen:  #C6F24E;   /* action principale — un seul CTA par écran */
+  --pk-aube:    #FF6A3D;   /* prochain jalon / vigilance uniquement */
+  --pk-glacier: #9AE0D6;   /* froid, atmosphère, accents secondaires */
+  --pk-calcaire:#F2F0E9;   /* fond clair dominant */
+  --pk-sable:   #E4E1D6;   /* surfaces secondaires */
+  --pk-granit:  #5A6660;   /* texte secondaire (≥ 4,5:1 sur calcaire) */
+  --pk-filet:   #DCD8CB;   /* filets et bordures */
+
+  /* couleurs fonctionnelles */
+  --pk-success: #2F7A55;
+  --pk-warning: #B8791C;
+  --pk-error:   #B23A2B;
+
+  /* typographie */
+  --pk-font-heading: 'Archivo', system-ui, sans-serif;      /* wdth 115–125, 600/700 */
+  --pk-font-body:    'Hanken Grotesk', system-ui, sans-serif;
+  --pk-font-mono:    'Martian Mono', ui-monospace, monospace; /* heures, km, D+, micro-libellés */
+
+  /* forme */
+  --pk-radius: 2px;
+  --pk-radius-lg: 3px;
+}
+
+/* fonds topographiques — toujours en cover, jamais en tuile, jamais au-dessus du texte */
+.pk-topo-ardoise  { background: #0E1A17 url(topo/transparent/topo-lichen.svg)  center/cover no-repeat; }
+.pk-topo-glacier  { background: #0E1A17 url(topo/transparent/topo-glacier.svg) center/cover no-repeat; }
+.pk-topo-foret    { background: #14342C url(topo/transparent/topo-lichen.svg)  center/cover no-repeat; }
+.pk-topo-calcaire { background: #F2F0E9 url(topo/transparent/topo-foret.svg)   center/cover no-repeat; }
+.pk-topo-sable    { background: #E4E1D6 url(topo/transparent/topo-foret.svg)   center/cover no-repeat; }

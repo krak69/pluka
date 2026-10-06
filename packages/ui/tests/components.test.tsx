@@ -14,6 +14,7 @@ import {
   SourceLink,
   StatusBadge,
   Table,
+  TerrainBand,
   TRUST_LEVEL_LABELS,
   TrustBadge,
   type TrustLevel,
@@ -467,5 +468,45 @@ describe('Table', () => {
     const html = renderToStaticMarkup(<Table caption="Points" columns={columns} rows={rows} />);
 
     expect(html.match(/scope="col"/g)).toHaveLength(2);
+  });
+});
+
+describe('TerrainBand', () => {
+  it('porte un vrai titre, de niveau choisi, et son micro-label', () => {
+    const page = renderToStaticMarkup(
+      <TerrainBand tone="dark" eyebrow="Organisation" title="Trail du Lac" />,
+    );
+    const section = renderToStaticMarkup(<TerrainBand tone="light" level={2} title="Équipe" />);
+
+    expect(page).toContain('<h1 class="pk-terrain-title">Trail du Lac</h1>');
+    expect(page).toContain('Organisation');
+    expect(section).toContain('<h2 class="pk-terrain-title">Équipe</h2>');
+  });
+
+  it('ne pose le relief que sur demande', () => {
+    expect(renderToStaticMarkup(<TerrainBand tone="dark" title="A" />)).not.toContain(
+      'pk-terrain-topo',
+    );
+    expect(renderToStaticMarkup(<TerrainBand tone="dark" topo title="A" />)).toContain(
+      'pk-terrain-topo',
+    );
+  });
+
+  it('n’ouvre la ligne d’actions que si elle a quelque chose à porter', () => {
+    expect(renderToStaticMarkup(<TerrainBand tone="dark" title="A" />)).not.toContain(
+      'pk-terrain-foot',
+    );
+
+    const withAction = renderToStaticMarkup(
+      <TerrainBand
+        tone="dark"
+        title="A"
+        footer="Créée le 6 octobre"
+        primaryAction={<a href="#x">Inviter</a>}
+      />,
+    );
+    expect(withAction).toContain('pk-terrain-foot');
+    expect(withAction).toContain('Créée le 6 octobre');
+    expect(withAction).toContain('Inviter');
   });
 });

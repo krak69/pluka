@@ -100,16 +100,14 @@ html {
   --lp-lift-on-dark: 0 20px 50px color-mix(in srgb, var(--pk-ink) 30%, transparent);
 
   /*
-   * Relief de signature — 06_DESIGN_SYSTEM.md §144 : `topo-dark`,
-   * `topo-light` et `topo-glacier` sont canoniques et ne doivent pas être
-   * regénérés. Les fichiers ne sont pas encore dans le dépôt : ces variables
-   * restent à `none`, et il suffit de les pointer vers les SVG canoniques
-   * déposés dans `public/brand/` pour activer le relief partout à la fois.
-   * Voir `apps/www/public/brand/README.md`.
+   * Relief de signature — 06_DESIGN_SYSTEM.md §144 : les fichiers du kit de
+   * marque (`reference/brand/topo/`), servis depuis `public/brand/topo/`. Les
+   * mêmes variables que `@pluka/ui` (`tokens/topo.css`) : un seul relief pour
+   * tout le produit.
    */
-  --lp-topo-dark: none;
-  --lp-topo-light: none;
-  --lp-topo-glacier: none;
+  --lp-topo-dark: var(--topo-dark);
+  --lp-topo-light: var(--topo-light);
+  --lp-topo-glacier: var(--topo-glacier);
 
   position: relative;
   min-height: 100vh;

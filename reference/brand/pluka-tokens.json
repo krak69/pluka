@@ -1,0 +1,35 @@
+{
+  "color": {
+    "ardoise": "#0E1A17",
+    "foret": "#14342C",
+    "lichen": "#C6F24E",
+    "aube": "#FF6A3D",
+    "glacier": "#9AE0D6",
+    "calcaire": "#F2F0E9",
+    "sable": "#E4E1D6",
+    "granit": "#5A6660",
+    "filet": "#DCD8CB",
+    "success": "#2F7A55",
+    "warning": "#B8791C",
+    "error": "#B23A2B"
+  },
+  "font": {
+    "heading": "Archivo",
+    "body": "Hanken Grotesk",
+    "mono": "Martian Mono"
+  },
+  "radius": {
+    "sm": "2px",
+    "lg": "3px"
+  },
+  "logo": {
+    "lockupRatio": "928:175",
+    "markRatio": "240:195",
+    "markToCapHeight": 1.58,
+    "gapToCapHeight": 0.36,
+    "minWidthPx": {
+      "lockup": 120,
+      "mark": 20
+    }
+  }
+}

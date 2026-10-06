@@ -1,0 +1,24 @@
+/*
+ * Relief de signature — 06_DESIGN_SYSTEM.md §144.
+ *
+ * Les fichiers sont ceux du kit de marque (`reference/brand/topo/`), jamais
+ * regénérés. Chaque application Next les sert depuis `public/brand/topo/` ;
+ * les trois noms du Design System pointent vers les lignes que le kit associe
+ * à chaque fond (`reference/brand/pluka-tokens.css`) :
+ *
+ *   topo-dark     lignes Lichen   sur Ardoise ou Forêt
+ *   topo-light    lignes Forêt    sur Calcaire ou Sable
+ *   topo-glacier  lignes Glacier  sur Ardoise
+ *
+ * Le kit règle déjà l'opacité des lignes (10 % / 20 %) : ne pas l'atténuer
+ * une seconde fois. Toujours en `cover`, jamais en tuile, jamais au-dessus du
+ * texte courant.
+ *
+ * Ce ne sont pas des couleurs : elles vivent hors de `colors.css` et de son
+ * miroir `tokens.ts`.
+ */
+:root {
+  --topo-dark: url('/brand/topo/topo-lichen.svg');
+  --topo-light: url('/brand/topo/topo-foret.svg');
+  --topo-glacier: url('/brand/topo/topo-glacier.svg');
+}
