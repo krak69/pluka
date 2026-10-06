@@ -29,6 +29,10 @@ select plan(64);
 
 \ir _personas.psql
 
+-- Isolation : l'outbox de la base locale peut porter des événements réels ;
+-- vidée dans la transaction, restaurée par le `rollback` final.
+delete from private.outbox_events;
+
 -- ============================================================
 -- Monde complémentaire
 -- ============================================================

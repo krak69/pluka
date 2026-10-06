@@ -31,6 +31,9 @@ create extension if not exists pgtap;
 
 select plan(46);
 
+-- Les organisations déjà présentes dans la base locale, avant celles du test.
+select count(*) as orgs_before from public.organizations \gset
+
 \ir _personas.psql
 
 -- ============================================================
@@ -102,7 +105,7 @@ select isnt_empty(
 
 select is(
   (select organizations_total from public.admin_platform_counters()),
-  4::bigint,
+  4::bigint + :orgs_before,
   'ADMIN-02 — les compteurs comptent les organisations non actives'
 );
 
