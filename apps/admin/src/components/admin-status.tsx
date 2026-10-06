@@ -1,4 +1,4 @@
-import { StatusBadge, type StatusTone } from '@pluka/ui';
+import { Chip, type ChipTone } from '@/components/admin-page';
 
 /**
  * Statuts de la console, traduits une fois.
@@ -20,12 +20,12 @@ import { StatusBadge, type StatusTone } from '@pluka/ui';
 
 interface StatusStyle {
   readonly label: string;
-  readonly tone: StatusTone;
+  readonly tone: ChipTone;
 }
 
 /** `organization_status` — 0001. */
 const ORGANIZATION: Readonly<Record<string, StatusStyle>> = {
-  prospect: { label: 'Pilote', tone: 'warning' },
+  prospect: { label: 'Pilote', tone: 'glacier' },
   active: { label: 'Actif', tone: 'success' },
   suspended: { label: 'Suspendu', tone: 'error' },
   archived: { label: 'Terminé', tone: 'neutral' },
@@ -34,9 +34,9 @@ const ORGANIZATION: Readonly<Record<string, StatusStyle>> = {
 /** `source_status` — 0001. */
 const SOURCE: Readonly<Record<string, StatusStyle>> = {
   uploaded: { label: 'Déposée', tone: 'neutral' },
-  processing: { label: 'En cours', tone: 'warning' },
+  processing: { label: 'Analyse en cours', tone: 'glacier' },
   ready: { label: 'Traitée', tone: 'success' },
-  failed: { label: 'En erreur', tone: 'error' },
+  failed: { label: 'Erreur', tone: 'error' },
   archived: { label: 'Archivée', tone: 'neutral' },
 };
 
@@ -58,28 +58,36 @@ const REPORT: Readonly<Record<string, StatusStyle>> = {
 /** `private.ingestion_jobs.status` — 0001. */
 const JOB: Readonly<Record<string, StatusStyle>> = {
   queued: { label: 'En file', tone: 'neutral' },
-  running: { label: 'En cours', tone: 'warning' },
+  running: { label: 'En cours', tone: 'glacier' },
   completed: { label: 'Terminé', tone: 'success' },
-  failed: { label: 'En échec', tone: 'error' },
+  failed: { label: 'Échec', tone: 'error' },
   cancelled: { label: 'Annulé', tone: 'neutral' },
 };
 
 /** `private.fact_candidates.status` — 0001. */
 const CANDIDATE: Readonly<Record<string, StatusStyle>> = {
-  detected: { label: 'Détectée', tone: 'neutral' },
-  conflict: { label: 'Conflit', tone: 'error' },
+  detected: { label: 'Candidate', tone: 'neutral' },
+  conflict: { label: 'Conflit', tone: 'warning' },
   accepted: { label: 'Acceptée', tone: 'success' },
   rejected: { label: 'Rejetée', tone: 'neutral' },
 };
 
 /** `private.conflict_reports.status` — 0001. */
 const CONFLICT: Readonly<Record<string, StatusStyle>> = {
-  open: { label: 'Conflit ouvert', tone: 'error' },
+  open: { label: 'Conflit ouvert', tone: 'warning' },
   resolved: { label: 'Conflit résolu', tone: 'success' },
   dismissed: { label: 'Conflit écarté', tone: 'neutral' },
 };
 
+/** `record_status` d'un événement — libellés de l'`adminEventList` du prototype. */
+const EVENT: Readonly<Record<string, StatusStyle>> = {
+  draft: { label: 'En préparation', tone: 'glacier' },
+  published: { label: 'Publié', tone: 'success' },
+  archived: { label: 'Archivé', tone: 'neutral' },
+};
+
 const DICTIONARIES = {
+  event: EVENT,
   organization: ORGANIZATION,
   source: SOURCE,
   product: PRODUCT,
@@ -101,9 +109,9 @@ export function AdminStatus({
   const style = DICTIONARIES[domain][status];
 
   return style === undefined ? (
-    <StatusBadge tone="neutral">{status}</StatusBadge>
+    <Chip tone="neutral">{status}</Chip>
   ) : (
-    <StatusBadge tone={style.tone}>{style.label}</StatusBadge>
+    <Chip tone={style.tone}>{style.label}</Chip>
   );
 }
 
@@ -129,6 +137,25 @@ const REPORT_REASONS: Readonly<Record<string, string>> = {
 
 export function reportReason(reason: string): string {
   return REPORT_REASONS[reason] ?? reason;
+}
+
+/**
+ * `management_status` d'un événement — 0001. « Partenaire » et
+ * « Communautaire » viennent de l'`adminEventList` du prototype ;
+ * « Maintenu par PLUKA » n'y figure pas et a été décidé pour la console.
+ *
+ * Le type se lit sur ce champ seul, jamais sur la présence d'une organisation :
+ * la base ne lie pas les deux, et en déduire l'un de l'autre masquerait un
+ * événement incohérent au lieu de le montrer.
+ */
+const MANAGEMENT_STATUSES: Readonly<Record<string, string>> = {
+  organizer_managed: 'Partenaire',
+  community: 'Communautaire',
+  pluka_managed: 'Maintenu par PLUKA',
+};
+
+export function managementStatusLabel(status: string): string {
+  return MANAGEMENT_STATUSES[status] ?? status;
 }
 
 /** `source_type` — 0001. */
@@ -179,6 +206,33 @@ export function entitlementLabel(level: string): string {
   return ENTITLEMENT_LEVELS[level] ?? level;
 }
 
+/**
+ * `organization_member_role` — 0001. Libellés et descriptions de l'`orgTeam`
+ * du prototype, dans l'ordre d'autorité.
+ */
+export const ORGANIZATION_ROLE_OPTIONS = [
+  {
+    value: 'owner',
+    label: 'Propriétaire',
+    description: 'Gère tout, y compris l’organisation et l’équipe.',
+  },
+  {
+    value: 'admin',
+    label: 'Administrateur',
+    description: 'Gère l’événement, les sources et les participants.',
+  },
+  {
+    value: 'editor',
+    label: 'Éditeur',
+    description: 'Modifie les contenus et valide les informations.',
+  },
+  { value: 'viewer', label: 'Lecture seule', description: 'Consulte sans modifier.' },
+] as const;
+
+export function organizationRoleLabel(role: string): string {
+  return ORGANIZATION_ROLE_OPTIONS.find((option) => option.value === role)?.label ?? role;
+}
+
 /** `platform_role` — 0001 : deux valeurs, pas trois. */
 const PLATFORM_ROLES: Readonly<Record<string, string>> = {
   user: 'Coureur',
@@ -187,4 +241,48 @@ const PLATFORM_ROLES: Readonly<Record<string, string>> = {
 
 export function platformRoleLabel(role: string): string {
   return PLATFORM_ROLES[role] ?? role;
+}
+
+/**
+ * `fact_category` — 0001. Mêmes libellés que la fiche épreuve du coureur
+ * (`apps/app/src/components/race-facts.tsx`) : une information porte le même
+ * nom des deux côtés.
+ */
+const FACT_CATEGORIES: Readonly<Record<string, string>> = {
+  general: 'Général',
+  start: 'Départ',
+  bib: 'Dossard',
+  course: 'Parcours',
+  gpx: 'Trace GPX',
+  aid: 'Ravitaillement',
+  cutoff: 'Barrières horaires',
+  equipment: 'Matériel obligatoire',
+  assistance: 'Assistance',
+  bag: 'Sacs',
+  transport: 'Transport',
+  safety: 'Sécurité',
+  withdrawal: 'Abandon',
+  rules: 'Règlement',
+  contact: 'Contact',
+  weather: 'Météo',
+  other: 'Autres informations',
+};
+
+export function factCategoryLabel(category: string): string {
+  return FACT_CATEGORIES[category] ?? category;
+}
+
+/**
+ * Types de traitement — `private.ingestion_jobs.job_type`, posés par 0008 à
+ * 0011. Ce sont des chaînes libres : un type nouveau s'affiche tel quel.
+ */
+const JOB_TYPES: Readonly<Record<string, string>> = {
+  'gpx.process': 'Analyse GPX',
+  'source.ingest': 'Import de source',
+  'source.parse': 'Lecture de source',
+  'source.extract': 'Extraction de source',
+};
+
+export function jobTypeLabel(jobType: string): string {
+  return JOB_TYPES[jobType] ?? jobType;
 }

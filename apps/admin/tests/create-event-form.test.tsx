@@ -21,15 +21,18 @@ import { createEventCommand } from '@/lib/form';
  * l'autre casse ici, pas en production.
  */
 
-/** Saisie plausible, par nom de champ tel que le formulaire le rend. */
+/** Saisie plausible des champs texte, par nom de champ tel que le formulaire le rend. */
 const TYPED: Readonly<Record<string, string>> = {
   name: 'Trail des Cimes',
   slug: 'trail-des-cimes',
-  // Laissé vide : événement maintenu par PLUKA, sans organisation gestionnaire.
-  organizationId: '',
 };
 
-const MARKUP = renderToStaticMarkup(<CreateEventForm />);
+const ORGANIZATIONS = [
+  { id: 'aaaaaaaa-0000-4000-8000-000000000001', name: 'Wildstrubel by UTMB' },
+  { id: 'aaaaaaaa-0000-4000-8000-000000000002', name: 'Festival des Templiers' },
+] as const;
+
+const MARKUP = renderToStaticMarkup(<CreateEventForm organizations={ORGANIZATIONS} />);
 
 /** Champs que le navigateur enverra : tout contrôle nommé du formulaire. */
 function fieldNames(markup: string): readonly string[] {
@@ -38,16 +41,86 @@ function fieldNames(markup: string): readonly string[] {
   );
 }
 
-/** Ce que le navigateur postera, à partir du balisage et de la saisie. */
+/** Le `<select>` nommé `field`, tel que rendu. */
+function selectMarkup(markup: string, field: string): string | undefined {
+  return new RegExp(`<select\\b[^>]*\\bname="${field}"[^>]*>([\\s\\S]*?)</select>`).exec(
+    markup,
+  )?.[1];
+}
+
+/**
+ * Valeur qu'un `<select>` poste sans que personne n'y touche : celle de
+ * l'option marquée `selected`, sinon la première — la règle du navigateur.
+ */
+function defaultSelected(options: string): string {
+  const values = [...options.matchAll(/<option\b([^>]*)>/g)].map((match) => match[1] as string);
+  const chosen = values.find((attributes) => /\bselected\b/.test(attributes)) ?? values[0] ?? '';
+
+  return /\bvalue="([^"]*)"/.exec(chosen)?.[1] ?? '';
+}
+
+/**
+ * Ce que le navigateur postera, à partir du balisage et de la saisie.
+ *
+ * Un `<select>` laissé tel quel poste son option par défaut, lue dans le
+ * balisage — pas une valeur supposée par le test.
+ */
 function submitted(overrides: Readonly<Record<string, string>> = {}): FormData {
   const form = new FormData();
 
   for (const field of fieldNames(MARKUP)) {
-    form.set(field, overrides[field] ?? TYPED[field] ?? '');
+    const options = selectMarkup(MARKUP, field);
+    const untouched = options === undefined ? (TYPED[field] ?? '') : defaultSelected(options);
+
+    form.set(field, overrides[field] ?? untouched);
   }
 
   return form;
 }
+
+describe('organisation gestionnaire', () => {
+  it('se choisit dans une liste, pas dans un champ libre', () => {
+    // Le champ texte attendait un UUID : un nom saisi, ou le remplissage
+    // automatique du navigateur, finissait en « UUID invalide ».
+    expect(MARKUP).not.toMatch(/<input\b[^>]*\bname="organizationId"/);
+    expect(selectMarkup(MARKUP, 'organizationId')).toBeDefined();
+  });
+
+  it('propose « Maintenu par PLUKA » par défaut, avec une valeur vide', () => {
+    const options = selectMarkup(MARKUP, 'organizationId') ?? '';
+
+    expect(defaultSelected(options)).toBe('');
+    expect(options).toMatch(/<option value=""[^>]*>Maintenu par PLUKA<\/option>/);
+  });
+
+  it('ne propose que des organisations existantes, par leur identifiant', () => {
+    const options = selectMarkup(MARKUP, 'organizationId') ?? '';
+
+    for (const organization of ORGANIZATIONS) {
+      expect(options).toContain(`<option value="${organization.id}">${organization.name}</option>`);
+    }
+
+    expect(options.match(/<option\b/g)).toHaveLength(ORGANIZATIONS.length + 1);
+  });
+
+  it('crée un événement PLUKA quand rien n’est choisi — le chemin du navigateur', () => {
+    // FormData construit depuis le balisage : `organizationId=""`, exactement
+    // ce que poste le formulaire laissé tel quel.
+    const form = submitted();
+    expect(form.get('organizationId')).toBe('');
+
+    const command = createEventCommand(form);
+    expect(command.organizationId).toBeNull();
+    expect(createEventCommandSchema.safeParse(command).success).toBe(true);
+  });
+
+  it('dit qu’il n’y a aucune organisation, plutôt qu’une liste vide muette', () => {
+    const empty = renderToStaticMarkup(<CreateEventForm organizations={[]} />);
+
+    expect(empty).toContain('Aucune organisation enregistrée');
+    expect(selectMarkup(empty, 'organizationId')?.match(/<option\b/g)).toHaveLength(1);
+  });
+});
 
 describe('champs du formulaire', () => {
   it('porte un contrôle nommé pour chaque champ de la commande', () => {

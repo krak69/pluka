@@ -1,87 +1,87 @@
-import { listEventsForAdministration } from '@pluka/domain';
-import { Badge, Divider, MicroLabel } from '@pluka/ui';
+import { listAdminOrganizations, listEventsForAdministration } from '@pluka/domain';
 import Link from 'next/link';
 
-import { CreateEventForm } from '@/app/create-event-form';
-import { redirectOnDomainError, requireAdminContext } from '@/lib/admin';
-import { signOutAction } from '@/app/actions';
+import { AdminIcon } from '@/components/admin-icon';
+import { AdminEmpty, AdminPageHeader, Chip } from '@/components/admin-page';
+import { AdminStatus, managementStatusLabel } from '@/components/admin-status';
+import {
+  adminConsoleContext,
+  courseContext,
+  redirectOnDomainError,
+  redirectOnReadError,
+} from '@/lib/admin';
+import { requireSession } from '@/lib/session';
 
 /**
- * Liste des événements — 00_PRODUCT_SPEC §3.5.
+ * Événements — `adminTab: 'events'` du prototype, 00_PRODUCT_SPEC §3.5.
  *
- * Server Component : la lecture passe par le use case, qui relit
- * `users.platform_role` en base et refuse un non-administrateur. Aucune
- * requête n'est construite ici.
+ * Titre et « Créer un événement » sur une ligne, puis une carte par
+ * événement : nom, organisation gestionnaire, type, statut. La création vit
+ * sur sa propre page, `/evenements/nouveau`.
+ *
+ * Le **type** se lit sur `management_status` (voir `managementStatusLabel`),
+ * la ligne d'organisation sur `organization_id` : les deux restent
+ * indépendants à l'écran comme en base.
+ *
+ * La **date** du prototype n'est pas rendue : elle appartient à l'édition,
+ * pas à l'événement, et la liste ne lit que les événements.
  */
-export default async function EventsPage() {
-  const context = await requireAdminContext('/');
+export const metadata = { title: 'Événements' };
 
-  const events = await listEventsForAdministration(context, {}).catch(redirectOnDomainError);
+export default async function EventsPage() {
+  const session = await requireSession('/');
+
+  const [events, organizations] = await Promise.all([
+    listEventsForAdministration(courseContext(session), {}).catch(redirectOnDomainError),
+    listAdminOrganizations(adminConsoleContext(session), { limit: 500 }).catch(redirectOnReadError),
+  ]);
+
+  const organizationName = new Map(
+    organizations.map((organization) => [organization.organizationId, organization.name]),
+  );
 
   return (
-    <main
-      style={{
-        maxWidth: 'var(--content-main)',
-        margin: '0 auto',
-        padding: 'var(--space-8) var(--space-6)',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <div>
-          <MicroLabel>Base courses</MicroLabel>
-          <h1 className="pk-h1" style={{ margin: 'var(--space-2) 0' }}>
-            Événements
-          </h1>
-        </div>
-
-        <form action={signOutAction}>
-          <button type="submit" className="pk-btn pk-button-secondary">
-            Se déconnecter
-          </button>
-        </form>
-      </div>
-
-      <Divider spaced />
+    <main className="ad-page">
+      <AdminPageHeader
+        title="Événements"
+        aside={
+          <Link href="/evenements/nouveau" className="pk-btn pk-button-primary">
+            <AdminIcon name="Plus" size={16} />
+            Créer un événement
+          </Link>
+        }
+      />
 
       {events.length === 0 ? (
-        <p className="pk-body" style={{ color: 'var(--pk-text-muted)' }}>
-          Aucun événement pour l’instant.
-        </p>
+        <AdminEmpty icon="CalendarDots" title="Aucun événement.">
+          <p>Le premier événement se crée avec « Créer un événement ».</p>
+          <p>Un événement porte ses éditions, et chaque édition ses épreuves.</p>
+        </AdminEmpty>
       ) : (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <ul className="ad-cards" aria-label={`${events.length} événement${events.length > 1 ? 's' : ''}`}>
           {events.map((event) => (
-            <li key={event.id} style={{ borderTop: '1px solid var(--pk-hairline)' }}>
-              <Link
-                href={`/evenements/${event.id}`}
-                className="pk-link pk-link-standalone"
-                style={{
-                  display: 'flex',
-                  gap: 'var(--space-4)',
-                  alignItems: 'center',
-                  padding: 'var(--space-4) 0',
-                }}
-              >
-                <span style={{ flex: 1 }}>{event.name}</span>
+            <li key={event.id}>
+              <Link href={`/evenements/${event.id}`} className="ad-card">
+                <span className="ad-card-main">
+                  <span className="ad-card-title">{event.name}</span>
+                  <span className="ad-card-meta">
+                    {/* §4.1 : sans organisation gestionnaire, seul pluka_admin administre l'événement.
+                        Le libellé ne dit rien du type, que porte la pastille. */}
+                    {event.organizationId === null
+                      ? 'Sans organisation gestionnaire'
+                      : (organizationName.get(event.organizationId) ?? 'Organisation introuvable')}
+                  </span>
+                </span>
 
-                <Badge tone={event.status === 'published' ? 'glacier' : 'neutral'}>
-                  {event.status}
-                </Badge>
-
-                {/* §4.1 : un événement sans organisation n'est administrable que par pluka_admin. */}
-                {event.organizationId === null ? <Badge tone="neutral">PLUKA</Badge> : null}
+                <Chip tone="neutral" plain>
+                  {managementStatusLabel(event.managementStatus)}
+                </Chip>
+                <AdminStatus domain="event" status={event.status} />
               </Link>
             </li>
           ))}
         </ul>
       )}
-
-      <Divider spaced />
-
-      <h2 className="pk-h2" style={{ marginBottom: 'var(--space-4)' }}>
-        Nouvel événement
-      </h2>
-
-      <CreateEventForm />
     </main>
   );
 }

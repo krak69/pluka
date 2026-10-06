@@ -1841,6 +1841,8 @@ Principes :
 - pas de sidebar immense remplie d’icônes ;
 - priorité au contenu terrain.
 
+Exception, décision produit du 2026-10-06 : la console d'administration (`apps/admin`) suit la barre latérale Ardoise du prototype, avec une icône décorative par entrée. Chaque entrée garde son libellé (§1869). Le détail est dans `05_ROUTES_FLOWS.md` §7.6.
+
 ---
 
 # 70. Mobile app shell

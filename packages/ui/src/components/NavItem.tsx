@@ -32,7 +32,7 @@ export interface NavItemProps extends Omit<AnchorHTMLAttributes<HTMLAnchorElemen
   /** Compteur discret — tâches restantes, messages non lus. */
   readonly badge?: number;
   readonly current?: boolean;
-  /** Rendu sur bande sombre : le Lichen remplace le Forêt. */
+  /** Rendu sur bande sombre : libellé clair, icône Lichen quand l'entrée est active (§41). */
   readonly onDark?: boolean;
 }
 

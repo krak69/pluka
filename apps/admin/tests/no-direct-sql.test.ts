@@ -213,6 +213,19 @@ describe('fonctions SQL', () => {
       'admin_retry_job',
       'admin_validate_nutrition_product',
       'admin_archive_nutrition_product',
+      // 0030 à 0032 : même contrat que 0029.
+      'admin_create_organization',
+      'admin_get_organization',
+      'admin_update_organization',
+      'admin_delete_organization',
+      // 0033 : l'équipe d'une organisation. Même contrat : garde et audit en base,
+      // confirmation du retrait revérifiée par le domaine.
+      'org_list_members',
+      'org_list_invitations',
+      'org_invite_member',
+      'org_revoke_invitation',
+      'org_change_member_role',
+      'org_remove_member',
       'assert_pluka_admin',
       'record_audit',
     ];

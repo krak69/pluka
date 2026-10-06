@@ -1,17 +1,19 @@
 import { listAdminFactCandidates } from '@pluka/domain';
-import { EmptyState, SectionHeader, Table } from '@pluka/ui';
 import Link from 'next/link';
 
-import { AdminStatus } from '@/components/admin-status';
+import { AdminEmpty, AdminPageHeader, Chip } from '@/components/admin-page';
+import { AdminStatus, factCategoryLabel } from '@/components/admin-status';
 import { dateTime } from '@/lib/format';
 import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
 
 /**
- * File de validation, toutes courses — `adminTab: 'validation'`.
+ * File de validation, toutes courses — `adminValidation` du prototype.
  *
- * Elle complète la revue par course sans la remplacer : celle-ci sert à choisir
- * quoi examiner, `/courses/[raceId]/revue` à examiner. Chaque ligne y renvoie,
- * et c'est là que vivent les décisions — cet écran est en lecture seule.
+ * Une carte par information : épreuve, type, état, confiance ; la valeur
+ * proposée ; puis « Examiner », qui ouvre la revue de l'épreuve. C'est là que
+ * vivent les décisions et le tiroir de provenance : cet écran est en lecture
+ * seule. Le prototype y ajoute « Marquer validée PLUKA » ; ce geste reste sur
+ * la revue, où la source et l'extrait sont sous les yeux.
  *
  * Une seule requête, pas un appel par course : `admin_list_fact_candidates`
  * existe pour ça.
@@ -24,67 +26,59 @@ export default async function ValidationPage() {
 
   return (
     <main className="ad-page">
-      <SectionHeader eyebrow="Administration" title="Validation" />
-
-      <p className="pk-body ad-measure">
-        Les informations extraites qui attendent une décision, toutes courses confondues. Le détail
-        et les actions restent sur l’écran de revue de chaque épreuve.
-      </p>
+      <AdminPageHeader
+        title="Validation"
+        lede="File d’extraction, toutes organisations confondues. PLUKA peut marquer une information comme « validée PLUKA » ; seul un organisateur autorisé peut la rendre officielle."
+      />
 
       {candidates.length === 0 ? (
-        <EmptyState
-          label="Validation"
-          title="Rien à examiner."
-          detail="Aucune extraction en attente : ni conflit, ni information détectée sans décision."
-        >
-          <p>Les candidats apparaissent ici dès qu’une source est analysée.</p>
-        </EmptyState>
+        <AdminEmpty icon="CheckCircle" title="Rien à examiner.">
+          <p>Les informations extraites d’une source apparaîtront ici dès son analyse.</p>
+        </AdminEmpty>
       ) : (
-        <Table
-          caption={`${candidates.length} information${candidates.length > 1 ? 's' : ''} à examiner`}
-          columns={[
-            { key: 'fact', label: 'Information' },
-            { key: 'value', label: 'Valeur proposée' },
-            { key: 'race', label: 'Épreuve' },
-            { key: 'confidence', label: 'Confiance' },
-            { key: 'status', label: 'État' },
-            { key: 'extracted', label: 'Extraite le' },
-          ]}
-          rows={candidates.map((candidate) => ({
-            key: candidate.candidateId,
-            cells: {
-              fact: (
-                <>
-                  <span className="ad-mono">{candidate.factKey}</span>
-                  <span className="ad-sub">{candidate.category}</span>
-                </>
-              ),
-              /* `value_text` est nul quand la valeur est structurée : le dire
-                 vaut mieux qu'un tiret, qui se lirait « pas de valeur ». */
-              value: candidate.valueText ?? <span className="ad-muted">valeur structurée</span>,
-              race: (
-                <>
-                  <Link href={`/courses/${candidate.raceId}/revue`} className="pk-link">
-                    {candidate.raceName}
-                  </Link>
-                  <span className="ad-sub">{candidate.eventName}</span>
-                </>
-              ),
-              confidence: candidate.confidenceLabel ?? '—',
-              status: (
-                <>
-                  <AdminStatus domain="candidate" status={candidate.status} />
-                  {candidate.conflictStatus === null ? null : (
-                    <span className="ad-sub">
-                      <AdminStatus domain="conflict" status={candidate.conflictStatus} />
-                    </span>
-                  )}
-                </>
-              ),
-              extracted: dateTime(candidate.extractedAt),
-            },
-          }))}
-        />
+        <ul className="ad-cards" aria-label={`${candidates.length} information${candidates.length > 1 ? 's' : ''} à examiner`}>
+          {candidates.map((candidate) => (
+            <li key={candidate.candidateId} className="ad-card ad-card-stack">
+              <div className="ad-card-line">
+                <span className="ad-card-meta">
+                  {candidate.eventName} · {candidate.raceName}
+                </span>
+                <Chip tone="neutral" plain>
+                  {factCategoryLabel(candidate.category)}
+                </Chip>
+                <AdminStatus domain="candidate" status={candidate.status} />
+                {candidate.conflictStatus === null ? null : (
+                  <AdminStatus domain="conflict" status={candidate.conflictStatus} />
+                )}
+                {candidate.confidenceLabel === null ? null : (
+                  <span className="ad-card-meta ad-card-line-end">
+                    confiance {candidate.confidenceLabel}
+                  </span>
+                )}
+              </div>
+
+              {/* `value_text` est nul quand la valeur est structurée : le dire
+                  vaut mieux qu'un tiret, qui se lirait « pas de valeur ». */}
+              <p className="ad-card-value">{candidate.valueText ?? 'Valeur structurée'}</p>
+
+              <p className="ad-card-meta ad-card-source">
+                <span className="ad-mono">{candidate.factKey}</span>
+                {candidate.extractedAt === null
+                  ? null
+                  : ` · extraite le ${dateTime(candidate.extractedAt)}`}
+              </p>
+
+              <div className="ad-card-actions">
+                <Link
+                  href={`/courses/${candidate.raceId}/revue`}
+                  className="pk-btn pk-button-secondary"
+                >
+                  Examiner
+                </Link>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
     </main>
   );

@@ -1,7 +1,7 @@
-import { EmptyState, SectionHeader } from '@pluka/ui';
 import Link from 'next/link';
 
-import { ProductTabs } from '@/app/produits/tabs';
+import { BankHeader } from '@/app/produits/tabs';
+import { AdminEmpty } from '@/components/admin-page';
 import { requireAdminConsoleGate } from '@/lib/admin';
 
 /**
@@ -27,27 +27,18 @@ export default async function ProductReportsPage() {
 
   return (
     <main className="ad-page">
-      <SectionHeader eyebrow="Administration" title="Banque Nutrition" />
+      <BankHeader current="/produits/signalements" />
 
-      <ProductTabs current="/produits/signalements" />
-
-      <EmptyState
-        label="Signalements de fiches"
-        title="Signaler une fiche n’existe pas encore."
-        detail="Le modèle de données ne connaît que les signalements de contenus de forum."
-      >
+      <AdminEmpty icon="Flag" title="Aucun signalement.">
+        <p>Signaler une fiche nutrition n’existe pas encore : le modèle de données ne connaît que les signalements de contenus de forum.</p>
         <p>
-          Rien n’est masqué ici : il n’y a pas de table où une fiche nutrition pourrait être
-          signalée. La fonctionnalité demande une migration, pas un écran.
-        </p>
-        <p>
-          Les signalements de forum, eux, ont leur file :{' '}
+          Ceux-là ont leur file :{' '}
           <Link href="/signalements" className="pk-link">
             Signalements
           </Link>
           .
         </p>
-      </EmptyState>
+      </AdminEmpty>
     </main>
   );
 }

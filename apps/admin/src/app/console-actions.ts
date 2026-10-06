@@ -2,8 +2,11 @@
 
 import {
   archiveNutritionProduct,
+  createOrganization,
+  deleteOrganization,
   dismissReport,
   hideReportedContent,
+  updateOrganization,
   retryAdminJob,
   validateNutritionProduct,
 } from '@pluka/domain';
@@ -12,7 +15,7 @@ import { redirect } from 'next/navigation';
 
 import type { ActionState } from '@/app/actions';
 import { actionFailure, adminActionsContext } from '@/lib/admin';
-import { checked, text } from '@/lib/form';
+import { checked, createOrganizationCommand, text, updateOrganizationCommand } from '@/lib/form';
 import { requireSession } from '@/lib/session';
 
 /**
@@ -155,4 +158,85 @@ function revalidateProducts(): void {
   revalidatePath(PRODUCT_TABS.catalogue);
   revalidatePath(PRODUCT_TABS['a-verifier']);
   revalidatePath('/vue-d-ensemble');
+}
+
+/**
+ * Créer une organisation — migration 0030.
+ *
+ * Le succès revient à la liste, où la nouvelle organisation apparaît : le
+ * formulaire n'a plus rien à afficher une fois la ligne créée.
+ */
+export async function createOrganizationAction(
+  _previous: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const context = adminActionsContext(await requireSession('/organisations/nouvelle'));
+
+  try {
+    await createOrganization(context, createOrganizationCommand(form));
+  } catch (error) {
+    return actionFailure(error);
+  }
+
+  revalidatePath('/organisations');
+  revalidatePath('/evenements/nouveau');
+  revalidatePath('/vue-d-ensemble');
+  redirect('/organisations?fait=organisation');
+}
+
+/**
+ * Éditer une organisation — migration 0031.
+ *
+ * Retour à la liste, qui porte les champs modifiés. Une saisie identique n'est
+ * pas une erreur : la base n'écrit rien, et l'écran le dit.
+ */
+export async function updateOrganizationAction(
+  _previous: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const organizationId = text(form, 'organizationId') ?? '';
+  const context = adminActionsContext(await requireSession(`/organisations/${organizationId}`));
+
+  let changedFields: number;
+
+  try {
+    ({ changedFields } = await updateOrganization(context, updateOrganizationCommand(form)));
+  } catch (error) {
+    return actionFailure(error);
+  }
+
+  revalidatePath('/organisations');
+  revalidatePath(`/organisations/${organizationId}`);
+  revalidatePath('/evenements/nouveau');
+  revalidatePath('/');
+  revalidatePath('/vue-d-ensemble');
+  redirect(
+    changedFields === 0
+      ? '/organisations?fait=organisation-inchangee'
+      : '/organisations?fait=organisation-modifiee',
+  );
+}
+
+/**
+ * Supprimer une organisation vide — migration 0032.
+ *
+ * Le succès quitte la fiche, qui n'existe plus, pour la liste.
+ */
+export async function deleteOrganizationAction(
+  _previous: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const organizationId = text(form, 'organizationId') ?? '';
+  const context = adminActionsContext(await requireSession(`/organisations/${organizationId}`));
+
+  try {
+    await deleteOrganization(context, { organizationId, confirmed: checked(form, 'confirmed') });
+  } catch (error) {
+    return actionFailure(error);
+  }
+
+  revalidatePath('/organisations');
+  revalidatePath('/evenements/nouveau');
+  revalidatePath('/vue-d-ensemble');
+  redirect('/organisations?fait=organisation-supprimee');
 }

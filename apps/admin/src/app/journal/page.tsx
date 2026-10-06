@@ -1,14 +1,19 @@
 import { listAdminAudit } from '@pluka/domain';
-import { EmptyState, SectionHeader, Table } from '@pluka/ui';
 
+import { AdminEmpty, AdminPageHeader } from '@/components/admin-page';
+import { auditActionLabel, auditActor } from '@/lib/audit-label';
 import { dateTime } from '@/lib/format';
 import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
 
 /**
- * Journal d'audit — `adminTab: 'journal'`.
+ * Journal d'audit — `adminAudit` du prototype : « Qui a fait quoi, et quand. »
  *
- * Qui a fait quoi, quand, sur quel objet. `private.audit_logs` reste
- * `service only` (03_PRIVACY_RLS §8) : la lecture passe par `admin_list_audit`.
+ * Une ligne par action, comme le prototype : quand, qui, et l'action en
+ * phrase (`lib/audit-label.ts`). L'objet touché et le détail — ce qu'une
+ * enquête demande — restent sur la ligne, repliés.
+ *
+ * `private.audit_logs` reste `service only` (03_PRIVACY_RLS §8) : la lecture
+ * passe par `admin_list_audit`.
  *
  * Cette lecture-ci n'est pas journalisée. Chaque visite ajouterait une ligne au
  * journal qu'elle affiche, et le bruit finirait par masquer les accès aux
@@ -26,16 +31,8 @@ import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
  * « informations de course », et une table de correspondance serait une
  * seconde vérité à maintenir.
  */
-export const metadata = { title: 'Journal d’audit' };
+export const metadata = { title: 'Journal' };
 
-/**
- * Charge utile d'une entrée.
- *
- * `after_data` est du JSON libre : chaque action y met ce qui la caractérise —
- * le terme cherché et le nombre de correspondances pour `user.search`, l'objet
- * lu pour `report.read`. L'afficher en clé-valeur plutôt qu'en JSON brut le
- * rend lisible sans rien en cacher.
- */
 function Payload({ data }: { readonly data: Readonly<Record<string, unknown>> | null }) {
   if (data === null) return <span className="ad-muted">aucune</span>;
 
@@ -60,68 +57,48 @@ export default async function AuditPage() {
 
   return (
     <main className="ad-page">
-      <SectionHeader eyebrow="Administration" title="Journal d’audit" />
-
-      <p className="pk-body ad-measure">
-        Qui a fait quoi, quand, sur quel objet. Les consultations de données personnelles y figurent
-        au même titre que les écritures. Consulter ce journal ne s’y inscrit pas.
-      </p>
+      <AdminPageHeader title="Journal" lede="Qui a fait quoi, et quand. Les consultations de données personnelles y figurent au même titre que les écritures." />
 
       {entries.length === 0 ? (
-        <EmptyState
-          label="Journal"
-          title="Le journal est vide."
-          detail="Aucune action auditée n’a encore été enregistrée."
-        >
+        <AdminEmpty icon="ClockCounterClockwise" title="Le journal est vide.">
           <p>
             Ouvrir une fiche utilisateur ou un signalement y laisse une ligne : c’est le moyen le
             plus simple de vérifier que le mécanisme fonctionne.
           </p>
-        </EmptyState>
+        </AdminEmpty>
       ) : (
-        <Table
-          caption={`${entries.length} entrée${entries.length > 1 ? 's' : ''}, la plus récente en premier`}
-          columns={[
-            { key: 'when', label: 'Quand' },
-            { key: 'actor', label: 'Qui' },
-            { key: 'action', label: 'Quoi' },
-            { key: 'entity', label: 'Sur quoi' },
-            { key: 'payload', label: 'Détail' },
-          ]}
-          rows={entries.map((entry) => ({
-            key: String(entry.entryId),
-            cells: {
-              when: dateTime(entry.createdAt),
-              actor: (
-                <>
-                  {/* Un acteur nul est une action système : le worker n'a pas
-                      de session, et c'est une information, pas un trou. */}
-                  <span>{entry.actorEmail ?? 'système'}</span>
-                  {entry.organizationName === null ? null : (
-                    <span className="ad-sub">{entry.organizationName}</span>
-                  )}
-                </>
-              ),
-              action: <span className="ad-mono">{entry.action}</span>,
-              entity: (
-                <>
-                  <span className="ad-mono">{entry.entityTable}</span>
-                  {entry.entityId === null ? null : (
-                    <span className="ad-sub ad-mono">{entry.entityId}</span>
-                  )}
-                </>
-              ),
-              payload: (
-                <>
+        <ul
+          className="ad-activity"
+          aria-label={`${entries.length} entrée${entries.length > 1 ? 's' : ''}, la plus récente en premier`}
+        >
+          {entries.map((entry) => (
+            <li key={entry.entryId} className="ad-activity-row">
+              <span className="ad-activity-when">{dateTime(entry.createdAt)}</span>
+              {/* Un acteur nul est une action système : le worker n'a pas de
+                  session, et c'est une information, pas un trou. */}
+              <span className="ad-activity-who">
+                {auditActor(entry.actorEmail)}
+                {entry.organizationName === null ? null : (
+                  <span className="ad-sub">{entry.organizationName}</span>
+                )}
+              </span>
+              <span className="ad-activity-what">
+                {auditActionLabel(entry.action)}
+                <details className="ad-tech">
+                  <summary>Détail</summary>
+                  <span className="ad-sub ad-mono">
+                    {entry.action} · {entry.entityTable}
+                    {entry.entityId === null ? null : ` · ${entry.entityId}`}
+                  </span>
                   <Payload data={entry.afterData} />
                   {entry.requestId === null ? null : (
                     <span className="ad-sub ad-mono">requête {entry.requestId}</span>
                   )}
-                </>
-              ),
-            },
-          }))}
-        />
+                </details>
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
     </main>
   );

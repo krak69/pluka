@@ -1,7 +1,13 @@
+import { DbError } from '@pluka/db';
+import { DomainError, getAdminPlatformCounters } from '@pluka/domain';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
-import { AdminChrome } from '@/components/admin-chrome';
+import { signOutAction } from '@/app/actions';
+import { AdminShell } from '@/components/admin-shell';
+import { adminConsoleContext } from '@/lib/admin';
+import { publicEnv } from '@/lib/env';
+import { getSession, type Session } from '@/lib/session';
 
 import '@pluka/ui/styles.css';
 import '@/app/admin.css';
@@ -9,23 +15,52 @@ import '@/app/admin.css';
 /**
  * Administration interne — 01_ARCHITECTURE §4.3 : « jamais atteignable par
  * les clients ». Jamais indexée, comme `apps/app`.
- *
- * L'application n'avait aucune marque : ses écrans commençaient directement par
- * leur titre. Une barre unique porte désormais le logo officiel et dit de quel
- * espace il s'agit — se tromper d'onglet entre l'admin et l'espace coureur est
- * exactement le genre d'erreur qu'une marque visible évite.
  */
 export const metadata: Metadata = {
   title: { default: 'Administration PLUKA', template: '%s — Administration PLUKA' },
   robots: { index: false, follow: false },
 };
 
-export default function RootLayout({ children }: { readonly children: ReactNode }) {
+/**
+ * Badge de « Validation » : les extractions à examiner.
+ *
+ * Le layout enveloppe aussi `/connexion` et `/refuse` : il ne redirige donc
+ * jamais. Sans session, ou pour un compte qui n'est pas `pluka_admin` — la
+ * fonction de 0028 lève alors `42501` —, il n'y a pas de badge. Toute autre
+ * erreur remonte : la masquer ferait passer une panne pour « rien à
+ * examiner ».
+ *
+ * C'est la lecture des compteurs de 0028 : aucune donnée personnelle, et non
+ * journalisée (décision du lot 4a).
+ */
+async function pendingValidation(session: Session | null): Promise<number | null> {
+  if (session === null) return null;
+
+  try {
+    const counters = await getAdminPlatformCounters(adminConsoleContext(session));
+
+    return counters.candidatesPending;
+  } catch (error) {
+    if (error instanceof DbError && error.code === 'permission_denied') return null;
+    if (error instanceof DomainError && error.code === 'forbidden') return null;
+
+    throw error;
+  }
+}
+
+export default async function RootLayout({ children }: { readonly children: ReactNode }) {
+  const session = await getSession();
+
   return (
     <html lang="fr">
       <body className="pk-surface-page">
-        <AdminChrome />
-        {children}
+        <AdminShell
+          pendingValidation={await pendingValidation(session)}
+          appUrl={publicEnv().NEXT_PUBLIC_APP_URL}
+          signOut={session === null ? null : signOutAction}
+        >
+          {children}
+        </AdminShell>
       </body>
     </html>
   );

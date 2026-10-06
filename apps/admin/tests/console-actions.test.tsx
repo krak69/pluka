@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import type { ActionState } from '@/app/actions';
-import { ProductList } from '@/app/produits/product-list';
+import { CatalogList, PendingList } from '@/app/produits/product-list';
 import { ConsoleAction, ConsoleNotice } from '@/components/console-action';
 import { consoleNotice } from '@/lib/console-notice';
 import { checked } from '@/lib/form';
@@ -94,8 +94,23 @@ describe('case de confirmation postée', () => {
 });
 
 describe('compte rendu d’un geste', () => {
-  it('dit chacun des cinq gestes', () => {
-    for (const fait of ['masque', 'classe', 'relance', 'valide', 'archive']) {
+  it('dit chacun des gestes', () => {
+    for (const fait of [
+      'masque',
+      'classe',
+      'relance',
+      'valide',
+      'archive',
+      'organisation',
+      'organisation-modifiee',
+      'organisation-inchangee',
+      'organisation-supprimee',
+      'invitation-envoyee',
+      'invitation-revoquee',
+      'role-modifie',
+      'role-inchange',
+      'membre-retire',
+    ]) {
       expect(consoleNotice({ fait }), fait).not.toBeNull();
     }
   });
@@ -144,15 +159,7 @@ function product(
 
 describe('gestes de la Banque Nutrition', () => {
   it('À vérifier : une fiche se valide, ou se refuse après confirmation', () => {
-    const markup = renderToStaticMarkup(
-      <ProductList
-        products={[product('p-draft', 'draft')]}
-        tab="a-verifier"
-        caption="1 fiche"
-        emptyTitle=""
-        emptyDetail=""
-      />,
-    );
+    const markup = renderToStaticMarkup(<PendingList products={[product('p-draft', 'draft')]} />);
 
     const posted = forms(markup);
 
@@ -168,16 +175,12 @@ describe('gestes de la Banque Nutrition', () => {
 
   it('Catalogue : une fiche validée s’archive après confirmation, une archivée n’a aucun geste', () => {
     const markup = renderToStaticMarkup(
-      <ProductList
+      <CatalogList
         products={[
           product('p-valid', 'validated'),
           product('p-archived', 'archived'),
           product('p-draft', 'draft'),
         ]}
-        tab="catalogue"
-        caption="3 fiches"
-        emptyTitle=""
-        emptyDetail=""
       />,
     );
 

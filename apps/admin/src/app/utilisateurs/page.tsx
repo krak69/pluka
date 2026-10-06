@@ -1,27 +1,24 @@
 import { searchAdminUsers } from '@pluka/domain';
-import { Button, EmptyState, Input, SectionHeader, Table } from '@pluka/ui';
 import Link from 'next/link';
 
-import { entitlementLabel, platformRoleLabel } from '@/components/admin-status';
+import { AdminEmpty, AdminPageHeader, Chip } from '@/components/admin-page';
+import { entitlementLabel } from '@/components/admin-status';
 import { day, personName } from '@/lib/format';
 import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
 
 /**
- * Utilisateurs — `adminTab: 'utilisateurs'`.
+ * Utilisateurs — `adminUsers` du prototype.
  *
- * Le strict nécessaire, et rien d'autre : identité, niveau de droit, nombre de
- * courses. Aucune donnée de Plan, de Nutrition ou d'Assistance, même pour un
- * administrateur — 03_PRIVACY_RLS §104 ne les autorise nulle part, et la suite
- * pgTAP 17 le rejoue sur ces fonctions.
+ * Un champ de recherche, puis une carte par compte : nom, « email · inscrit
+ * le », le droit commercial en pastille, le nombre de courses. La carte ouvre
+ * la fiche, dont la lecture est journalisée.
  *
- * `racesCount` est un compteur, jamais la liste : savoir combien de courses une
- * personne prépare est une information de support ; savoir lesquelles n'en est
- * pas une.
+ * Le formulaire est un GET : l'adresse porte la recherche, et la touche
+ * Entrée suffit — le prototype n'a pas de bouton. Le libellé reste dans
+ * l'arbre d'accessibilité, masqué à l'écran.
  *
- * La recherche est un formulaire `GET` : l'adresse porte le terme, donc la
- * recherche se partage et se recharge. Chaque exécution écrit `user.search` au
- * journal, avec le terme et le nombre de correspondances — jamais les personnes
- * trouvées.
+ * Chaque recherche est inscrite au journal (migration 0028) : la phrase sous
+ * le titre le dit, à côté de ce que l'écran n'affiche jamais.
  */
 export const metadata = { title: 'Utilisateurs' };
 
@@ -40,75 +37,62 @@ export default async function UsersPage({
 
   return (
     <main className="ad-page">
-      <SectionHeader eyebrow="Administration" title="Utilisateurs" />
+      <AdminPageHeader
+        title="Utilisateurs"
+        lede="Informations nécessaires au support uniquement. Le contenu personnel d’un participant — plan, nutrition, sacs, notes — n’est pas accessible. Chaque recherche est inscrite au journal."
+      />
 
-      <p className="pk-body ad-notice">
-        Chaque recherche est inscrite au journal d’audit. Cet écran n’affiche ni Plan, ni Nutrition,
-        ni Assistance : ces données ne sont lisibles par personne d’autre que leur propriétaire.
-      </p>
-
-      <form method="get" className="ad-search">
-        <Input
+      <form method="get" className="ad-user-search" role="search">
+        <label htmlFor="user-search" className="ad-visually-hidden">
+          Rechercher par nom ou email
+        </label>
+        <input
           id="user-search"
           name="q"
-          label="Rechercher"
           type="search"
+          className="pk-input"
+          placeholder="Rechercher par nom ou email…"
           defaultValue={term}
-          hint="Adresse email, prénom ou nom. Vide : les comptes les plus récents."
         />
-        <Button type="submit" variant="secondary">
-          Rechercher
-        </Button>
       </form>
 
       {users.length === 0 ? (
-        <EmptyState
-          label="Utilisateurs"
-          title={term === '' ? 'Aucun compte.' : 'Aucune correspondance.'}
-          detail={
-            term === ''
+        <AdminEmpty icon="UserList" title={term === '' ? 'Aucun compte.' : 'Aucune correspondance.'}>
+          <p>
+            {term === ''
               ? 'La plateforme ne compte encore aucun utilisateur.'
-              : `Rien ne correspond à « ${term} ».`
-          }
-        >
-          <p>La recherche porte sur l’adresse email, le prénom et le nom.</p>
-        </EmptyState>
+              : `Rien ne correspond à « ${term} ». La recherche porte sur l’email, le prénom et le nom.`}
+          </p>
+        </AdminEmpty>
       ) : (
-        <Table
-          caption={
+        <ul
+          className="ad-cards"
+          aria-label={
             term === ''
               ? `${users.length} compte${users.length > 1 ? 's' : ''} les plus récents`
               : `${users.length} correspondance${users.length > 1 ? 's' : ''}`
           }
-          columns={[
-            { key: 'person', label: 'Personne' },
-            { key: 'role', label: 'Rôle' },
-            { key: 'entitlement', label: 'Droit' },
-            { key: 'racesCount', label: 'Courses', align: 'numeric' },
-            { key: 'created', label: 'Inscrit le' },
-            { key: 'open', label: '' },
-          ]}
-          rows={users.map((user) => ({
-            key: user.userId,
-            cells: {
-              person: (
-                <>
-                  <span>{personName(user.firstName, user.lastName, user.email)}</span>
-                  <span className="ad-sub">{user.email}</span>
-                </>
-              ),
-              role: platformRoleLabel(user.platformRole),
-              entitlement: entitlementLabel(user.entitlementLevel),
-              racesCount: user.racesCount,
-              created: day(user.createdAt),
-              open: (
-                <Link href={`/utilisateurs/${user.userId}`} className="pk-link">
-                  Ouvrir
-                </Link>
-              ),
-            },
-          }))}
-        />
+        >
+          {users.map((user) => (
+            <li key={user.userId}>
+              <Link href={`/utilisateurs/${user.userId}`} className="ad-card">
+                <span className="ad-card-main">
+                  <span className="ad-card-title">
+                    {personName(user.firstName, user.lastName, user.email)}
+                  </span>
+                  <span className="ad-card-meta">
+                    {user.email} · inscrit le {day(user.createdAt)}
+                  </span>
+                </span>
+
+                <Chip tone="glacier">{entitlementLabel(user.entitlementLevel)}</Chip>
+                <span className="ad-card-side">
+                  {user.racesCount} course{user.racesCount > 1 ? 's' : ''}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       )}
     </main>
   );

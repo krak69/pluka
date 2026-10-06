@@ -1,8 +1,7 @@
 import { listAdminNutritionProducts } from '@pluka/domain';
-import { SectionHeader } from '@pluka/ui';
 
-import { ProductList } from '@/app/produits/product-list';
-import { ProductTabs } from '@/app/produits/tabs';
+import { PendingList } from '@/app/produits/product-list';
+import { BankHeader } from '@/app/produits/tabs';
 import { ConsoleNotice } from '@/components/console-action';
 import { consoleNotice, type ConsoleNoticeParams } from '@/lib/console-notice';
 import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
@@ -32,19 +31,11 @@ export default async function ProductsToVerifyPage({
 
   return (
     <main className="ad-page">
-      <SectionHeader eyebrow="Administration" title="Banque Nutrition" />
+      <BankHeader current="/produits/a-verifier" />
 
       <ConsoleNotice notice={consoleNotice(await searchParams)} />
 
-      <ProductTabs current="/produits/a-verifier" />
-
-      <ProductList
-        products={products}
-        tab="a-verifier"
-        caption={`${products.length} fiche${products.length > 1 ? 's' : ''} en attente`}
-        emptyTitle="Aucune fiche en attente."
-        emptyDetail="Les produits proposés par les coureurs apparaîtront ici."
-      />
+      <PendingList products={products} />
     </main>
   );
 }

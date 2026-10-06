@@ -73,18 +73,31 @@
   text-align: center;
 }
 
-/* §41 : sur fond sombre actif, l'icône et l'état passent au Lichen. */
+/*
+ * Sur bande sombre — la barre latérale de l'administration (`adminNav` du
+ * prototype) : Calcaire à 62 % au repos, blanc sur un voile Calcaire à 14 %
+ * pour l'actif. §41 : sur fond sombre actif, l'icône passe au Lichen — le
+ * libellé, lui, reste blanc comme dans le prototype.
+ */
 .pk-nav-item-on-dark {
-  color: var(--pk-sand);
+  color: color-mix(in srgb, var(--pk-text-on-dark) 62%, transparent);
 }
 
 .pk-nav-item-on-dark:hover {
-  background: color-mix(in srgb, var(--pk-text-on-dark) 10%, transparent);
+  background: color-mix(in srgb, var(--pk-text-on-dark) 8%, transparent);
   color: var(--pk-text-on-dark);
+}
+
+.pk-nav-item-on-dark:focus-visible {
+  outline-color: var(--pk-focus-dark);
 }
 
 .pk-nav-item-on-dark.pk-nav-item-current {
   background: color-mix(in srgb, var(--pk-text-on-dark) 14%, transparent);
+  color: var(--pk-surface);
+}
+
+.pk-nav-item-on-dark.pk-nav-item-current .pk-nav-item-icon {
   color: var(--pk-lichen);
 }
 

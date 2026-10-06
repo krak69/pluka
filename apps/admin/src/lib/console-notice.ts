@@ -37,6 +37,24 @@ export function consoleNotice(params: ConsoleNoticeParams): string | null {
       return 'Fiche validée : elle est désormais trouvable par tous les coureurs.';
     case 'archive':
       return 'Fiche archivée : elle n’est plus proposée aux coureurs.';
+    case 'organisation':
+      return 'Organisation créée. Elle n’a encore aucun membre.';
+    case 'organisation-modifiee':
+      return 'Organisation modifiée.';
+    case 'organisation-supprimee':
+      return 'Organisation supprimée. Le journal garde la trace de son slug.';
+    case 'invitation-envoyee':
+      return 'Invitation enregistrée : l’email part dans quelques instants. Le lien est valable 7 jours.';
+    case 'invitation-revoquee':
+      return 'Invitation révoquée : son lien ne fonctionne plus.';
+    case 'role-modifie':
+      return 'Rôle modifié. Il s’applique dès la prochaine page ouverte par ce membre.';
+    case 'role-inchange':
+      return 'Aucune modification : le membre avait déjà ce rôle.';
+    case 'membre-retire':
+      return 'Membre retiré : ses accès à l’organisation ont cessé.';
+    case 'organisation-inchangee':
+      return 'Aucune modification : la fiche était déjà à jour.';
     default:
       return null;
   }

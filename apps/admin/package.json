@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "@pluka/config": "workspace:*",
     "@pluka/db": "workspace:*",
     "@pluka/domain": "workspace:*",

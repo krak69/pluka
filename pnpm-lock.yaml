@@ -26,6 +26,9 @@ importers:
 
   apps/admin:
     dependencies:
+      '@phosphor-icons/react':
+        specifier: ^2.1.10
+        version: 2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@pluka/config':
         specifier: workspace:*
         version: link:../../packages/config

@@ -12,22 +12,26 @@
  *   onzième entrée. `adminNav` ne change pas.
  */
 
+import type { AdminIconName } from '@/components/admin-icon';
+
 export interface AdminDestination {
   readonly href: string;
   readonly label: string;
+  /** L'icône du prototype — décorative, le libellé reste l'information. */
+  readonly icon: AdminIconName;
 }
 
 export const ADMIN_NAV: readonly AdminDestination[] = [
-  { href: '/vue-d-ensemble', label: 'Vue d’ensemble' },
-  { href: '/validation', label: 'Validation' },
-  { href: '/organisations', label: 'Organisations' },
-  { href: '/', label: 'Événements' },
-  { href: '/sources', label: 'Sources' },
-  { href: '/produits', label: 'Produits nutrition' },
-  { href: '/signalements', label: 'Signalements' },
-  { href: '/utilisateurs', label: 'Utilisateurs' },
-  { href: '/traitements', label: 'Imports et traitements' },
-  { href: '/journal', label: 'Journal' },
+  { href: '/vue-d-ensemble', label: 'Vue d’ensemble', icon: 'SquaresFour' },
+  { href: '/validation', label: 'Validation', icon: 'CheckSquareOffset' },
+  { href: '/organisations', label: 'Organisations', icon: 'Buildings' },
+  { href: '/', label: 'Événements', icon: 'CalendarDots' },
+  { href: '/sources', label: 'Sources', icon: 'Files' },
+  { href: '/produits', label: 'Produits nutrition', icon: 'Package' },
+  { href: '/signalements', label: 'Signalements', icon: 'Flag' },
+  { href: '/utilisateurs', label: 'Utilisateurs', icon: 'UserList' },
+  { href: '/traitements', label: 'Imports et traitements', icon: 'ArrowsClockwise' },
+  { href: '/journal', label: 'Journal', icon: 'ClockCounterClockwise' },
 ];
 
 /**

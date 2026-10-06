@@ -1,31 +1,31 @@
 import { listAdminJobs } from '@pluka/domain';
-import { EmptyState, SectionHeader, Table } from '@pluka/ui';
 
 import { retryJobAction } from '@/app/console-actions';
-import { AdminStatus } from '@/components/admin-status';
+import { AdminEmpty, AdminPageHeader } from '@/components/admin-page';
+import { AdminStatus, jobTypeLabel } from '@/components/admin-status';
 import { ConsoleAction, ConsoleNotice } from '@/components/console-action';
 import { consoleNotice, type ConsoleNoticeParams } from '@/lib/console-notice';
 import { dateTime } from '@/lib/format';
 import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
 
 /**
- * Imports et traitements — `adminTab: 'traitements'`.
+ * Imports et traitements — `adminJobs` du prototype.
  *
- * Trois colonnes font tout l'intérêt de cet écran : le statut, l'erreur, et la
- * clé d'idempotence. C'est ce triplet qui remplace l'ouverture de psql quand un
- * import échoue — l'enquête sur le dénivelé s'était faite en SQL faute de cette
- * page.
+ * Une carte par traitement : « Analyse GPX · fichier », son erreur ou ses
+ * essais, son statut, sa date, et « Relancer » s'il a échoué.
+ *
+ * Le prototype s'arrête là. Ce qui a remplacé psql le jour où un import a
+ * échoué — la clé d'idempotence, les essais, la chronologie — reste à portée,
+ * replié sous « Détail technique ».
  *
  * `private.ingestion_jobs` reste `service only` (03_PRIVACY_RLS §8) : la
  * lecture passe par `admin_list_jobs`, jamais par un client.
  *
  * RELANCER — lot 4b, migration 0029
  *
- * Un job en échec porte son bouton « Relancer », sur sa ligne, à côté de son
- * erreur : on ne relance pas ce qu'on n'a pas lu. Le bouton suit le statut du
- * job — seul `failed` se relance — et jamais le rôle de la personne qui
- * regarde. La relance rejoue l'événement d'origine ; un double clic produit
- * une relance et un refus, pas deux messages de file.
+ * Le bouton suit le statut du job — seul `failed` se relance — et jamais le
+ * rôle de la personne qui regarde. La relance rejoue l'événement d'origine ;
+ * un double clic produit une relance et un refus, pas deux messages de file.
  */
 export const metadata = { title: 'Imports et traitements' };
 
@@ -38,103 +38,80 @@ export default async function JobsPage({
   const jobs = await listAdminJobs(context, {}).catch(redirectOnReadError);
   const notice = consoleNotice(await searchParams);
 
-  const failed = jobs.filter((job) => job.status === 'failed').length;
-
   return (
     <main className="ad-page">
-      <SectionHeader eyebrow="Administration" title="Imports et traitements" />
+      <AdminPageHeader title="Imports et traitements" />
 
       <ConsoleNotice notice={notice} />
 
-      <p className="pk-body ad-measure">
-        Vue technique : état d’analyse, erreurs de traitement et clés d’idempotence, tous événements
-        confondus.
-      </p>
-
       {jobs.length === 0 ? (
-        <EmptyState
-          label="Traitements"
-          title="Aucun traitement."
-          detail="La file d’ingestion est vide : ni import en attente, ni échec."
-        >
+        <AdminEmpty icon="ArrowsClockwise" title="Aucun traitement.">
           <p>Un traitement naît du dépôt d’une source ou d’un import GPX.</p>
-        </EmptyState>
+        </AdminEmpty>
       ) : (
-        <Table
-          caption={
-            failed === 0
-              ? `${jobs.length} traitement${jobs.length > 1 ? 's' : ''}, aucun en échec`
-              : `${jobs.length} traitement${jobs.length > 1 ? 's' : ''}, dont ${failed} en échec`
-          }
-          columns={[
-            { key: 'job', label: 'Traitement' },
-            { key: 'status', label: 'Statut' },
-            { key: 'attempts', label: 'Essais', align: 'numeric' },
-            { key: 'target', label: 'Porte sur' },
-            { key: 'idempotency', label: 'Clé d’idempotence' },
-            { key: 'error', label: 'Dernière erreur' },
-            { key: 'timing', label: 'Chronologie' },
-            { key: 'action', label: 'Action' },
-          ]}
-          rows={jobs.map((job) => ({
-            key: job.jobId,
-            emphasis: job.status === 'failed',
-            cells: {
-              job: (
-                <>
-                  <span className="ad-mono">{job.jobType}</span>
-                  <span className="ad-sub ad-mono">{job.jobId}</span>
-                </>
-              ),
-              status: <AdminStatus domain="job" status={job.status} />,
-              attempts: `${job.attempts}/${job.maxAttempts}`,
-              target:
-                job.sourceTitle === null && job.eventName === null ? (
-                  <span className="ad-muted">hors source</span>
-                ) : (
-                  <>
-                    <span>{job.sourceTitle ?? '—'}</span>
-                    {job.eventName === null ? null : (
-                      <span className="ad-sub">{job.eventName}</span>
-                    )}
-                  </>
-                ),
-              /* La clé est longue et technique : elle se lit en monospace et
-                 se copie. C'est elle qui rapproche deux essais du même
-                 travail — sans elle, un doublon est indiscernable d'une
-                 relance légitime. */
-              idempotency: <code className="ad-key">{job.idempotencyKey}</code>,
-              error:
-                job.lastError === null ? (
-                  <span className="ad-muted">aucune</span>
-                ) : (
-                  <span className="ad-error">{job.lastError}</span>
-                ),
-              timing: (
-                <>
-                  <span className="ad-sub">créé {dateTime(job.createdAt)}</span>
-                  <span className="ad-sub">
-                    {job.completedAt !== null
-                      ? `fini ${dateTime(job.completedAt)}`
-                      : job.startedAt !== null
-                        ? `démarré ${dateTime(job.startedAt)}`
-                        : `prévu ${dateTime(job.availableAt)}`}
+        <ul className="ad-cards" aria-label={`${jobs.length} traitement${jobs.length > 1 ? 's' : ''}`}>
+          {jobs.map((job) => {
+            const subject = job.sourceTitle ?? job.eventName;
+
+            return (
+              <li key={job.jobId} className="ad-card">
+                <div className="ad-card-main">
+                  <span className="ad-card-title">
+                    {jobTypeLabel(job.jobType)}
+                    {subject === null ? null : ` · ${subject}`}
                   </span>
-                </>
-              ),
-              action:
-                job.status === 'failed' ? (
-                  <ConsoleAction
-                    action={retryJobAction}
-                    fields={{ jobId: job.jobId }}
-                    label="Relancer"
-                  />
-                ) : (
-                  <span className="ad-muted">rien à relancer</span>
-                ),
-            },
-          }))}
-        />
+                  <span className={job.lastError === null ? 'ad-card-meta' : 'ad-card-meta ad-error'}>
+                    {job.lastError ?? `${job.attempts} essai${job.attempts > 1 ? 's' : ''} sur ${job.maxAttempts}`}
+                  </span>
+
+                  <details className="ad-tech">
+                    <summary>Détail technique</summary>
+                    <dl className="ad-payload">
+                      <div>
+                        <dt>Type</dt>
+                        <dd className="ad-mono">{job.jobType}</dd>
+                      </div>
+                      <div>
+                        <dt>Identifiant</dt>
+                        <dd className="ad-mono">{job.jobId}</dd>
+                      </div>
+                      {/* C'est elle qui rapproche deux essais du même travail :
+                          sans elle, un doublon est indiscernable d'une relance. */}
+                      <div>
+                        <dt>Clé d’idempotence</dt>
+                        <dd>
+                          <code className="ad-key">{job.idempotencyKey}</code>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Essais</dt>
+                        <dd>
+                          {job.attempts}/{job.maxAttempts}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Chronologie</dt>
+                        <dd>
+                          créé {dateTime(job.createdAt)}
+                          {job.startedAt === null ? null : ` · démarré ${dateTime(job.startedAt)}`}
+                          {job.completedAt === null ? null : ` · fini ${dateTime(job.completedAt)}`}
+                        </dd>
+                      </div>
+                    </dl>
+                  </details>
+                </div>
+
+                <AdminStatus domain="job" status={job.status} />
+                <span className="ad-card-side">
+                  {dateTime(job.completedAt ?? job.startedAt ?? job.createdAt)}
+                </span>
+                {job.status === 'failed' ? (
+                  <ConsoleAction action={retryJobAction} fields={{ jobId: job.jobId }} label="Relancer" />
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
       )}
     </main>
   );

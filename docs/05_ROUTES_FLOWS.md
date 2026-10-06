@@ -185,13 +185,14 @@ Les ancres de section sont normatives : elles sont citées par les menus, par le
 
 # 4. `apps/app` — zone publique
 
-Cinq routes seulement échappent à la session.
+Six routes seulement échappent à la session.
 
 ```text
 /connexion                                     Connexion par lien magique
 /auth/callback                                 Route Handler — échange du jeton
 /a/[token]                                     Page assistance, par jeton (§1.5)
 /invitation/[token]                            Invitation participant, par jeton
+/invitation-equipe/[token]                     Invitation à l'équipe d'une organisation (0033)
 /epreuves/[eventSlug]/[editionSlug]/[raceSlug] Fiche épreuve publique (§1.8, §1.9)
 ```
 
@@ -325,36 +326,44 @@ Aucun de ces éléments n'a d'URL.
 
 ## 6.1 Arborescence
 
-```text
-/org                                       Choix de l'édition
-/org/nouvelle-course                       Créer une course
+**La portée est l'organisation** (§12.1, tranché le 2026-10-06). L'appartenance passe par `organization_members`, l'équipe est celle de l'organisation, et une organisation qui vient d'être créée n'a encore ni événement ni édition : une portée d'édition l'aurait laissée sans espace.
 
-/org/[editionId]                           Accueil organisateur
-/org/[editionId]/course                    → redirige vers /informations
-/org/[editionId]/course/informations
-/org/[editionId]/course/sources
-/org/[editionId]/course/epreuves
-/org/[editionId]/analyse
-/org/[editionId]/participants
-/org/[editionId]/parametres                → redirige vers /evenement
-/org/[editionId]/parametres/evenement
-/org/[editionId]/parametres/partenaires
+```text
+/org                                              Mes organisations
+/org/nouvelle-course                              Créer une course
+
+/org/[organizationId]                             Accueil organisateur
+/org/[organizationId]/course                      → redirige vers /informations
+/org/[organizationId]/course/informations
+/org/[organizationId]/course/sources
+/org/[organizationId]/course/epreuves
+/org/[organizationId]/analyse
+/org/[organizationId]/participants
+/org/[organizationId]/parametres                  → redirige vers /evenement
+/org/[organizationId]/parametres/evenement
+/org/[organizationId]/parametres/partenaires
+/org/[organizationId]/parametres/equipe           Équipe : membres, rôles, invitations (0033)
 ```
 
 La correspondance avec `ORG_GROUPS` (§1.4) est directe :
 
-| `orgTab` / `orgSub`  | Route                                  |
-| -------------------- | -------------------------------------- |
-| `overview`           | `/org/[editionId]`                     |
-| `course` / `infos`   | `/org/[editionId]/course/informations`  |
-| `course` / `sources` | `/org/[editionId]/course/sources`       |
-| `course` / `epreuves`| `/org/[editionId]/course/epreuves`      |
-| `analyse`            | `/org/[editionId]/analyse`              |
-| `parts`              | `/org/[editionId]/participants`          |
-| `settings` / `event` | `/org/[editionId]/parametres/evenement` |
-| `settings` / `partenaires` | `/org/[editionId]/parametres/partenaires` |
+| `orgTab` / `orgSub`  | Route                                         |
+| -------------------- | --------------------------------------------- |
+| `overview`           | `/org/[organizationId]`                       |
+| `course` / `infos`   | `/org/[organizationId]/course/informations`    |
+| `course` / `sources` | `/org/[organizationId]/course/sources`         |
+| `course` / `epreuves`| `/org/[organizationId]/course/epreuves`        |
+| `analyse`            | `/org/[organizationId]/analyse`                |
+| `parts`              | `/org/[organizationId]/participants`           |
+| `settings` / `event` | `/org/[organizationId]/parametres/evenement`   |
+| `settings` / `partenaires` | `/org/[organizationId]/parametres/partenaires` |
+| `orgTeam` (sous `settings`) | `/org/[organizationId]/parametres/equipe` |
 
-La portée est dans l'URL parce que le partage l'exige (§1.2) : envoyer « regarde l'analyse » sans nommer l'édition n'a pas de sens. **Le choix de l'entité de portée n'est pas tranché — voir §12.1.**
+L'équipe est un sous-onglet de Paramètres : le prototype pose « Équipe » dans l'écran Paramètres (`orgSettings`). Elle devient une route parce qu'on veut pouvoir y renvoyer un propriétaire (§1.2).
+
+**Le choix de l'édition à l'intérieur de l'organisation n'est pas tranché — voir §12.1.**
+
+**État livré.** Seules `/org` et `/org/[organizationId]/parametres/equipe` ont un écran. Tant que l'accueil et l'onglet Événement n'existent pas, `/org/[organizationId]` et `/org/[organizationId]/parametres` redirigent vers l'équipe ; ces redirections tomberont quand leurs écrans arriveront. L'espace n'est ouvert qu'aux membres : un non-membre reçoit un 404, qui ne confirme pas l'existence de l'organisation. La gestion de l'équipe reste réservée au propriétaire (03_PRIVACY_RLS §15) ; les autres rôles voient l'écran et la raison du refus.
 
 ## 6.2 Ce qui reste un état
 
@@ -400,8 +409,10 @@ Mais la landing organisateurs promet explicitement : « Partagez-le avec votre �
 /vue-d-ensemble                  Vue d'ensemble
 /validation                      File de validation globale
 /organisations
-/organisations/[organizationId]  pas d’écran — voir §7.2
+/organisations/nouvelle          Créer une organisation — hors prototype, 00_PRODUCT_SPEC §3.5
+/organisations/[organizationId]  Fiche et édition d'une organisation — migration 0031
 /evenements                      → redirige vers /
+/evenements/nouveau              Créer un événement — `adminNewEvent`
 /evenements/[eventId]
 /courses/[raceId]                Administration d'une course
 /courses/[raceId]/revue          Revue des extractions de cette course
@@ -425,15 +436,28 @@ La vue d'ensemble a pris `/vue-d-ensemble` et la liste des événements est rest
 
 `/courses/[raceId]` se rejoint par Événements → événement → épreuve, et `adminNav` ne change pas (§12.6 tranché).
 
+La liste des événements porte la pastille de type du prototype. Elle se lit sur `events.management_status`, jamais sur la présence d'`organization_id` : `organizer_managed` → « Partenaire », `community` → « Communautaire », `pluka_managed` → « Maintenu par PLUKA ». Ce dernier libellé est absent du prototype et a été décidé pour la console. La base ne lie pas les deux colonnes ; un écart entre elles se voit donc à l'écran au lieu d'être masqué.
+
+`/organisations/nouvelle` crée une organisation par `admin_create_organization` (migration 0030), réservée à `pluka_admin` et auditée. Le prototype n'a pas ce geste ; il vient de « gestion d'organisations » (00_PRODUCT_SPEC §3.5). Le statut ne se choisit pas : la ligne prend le défaut de la colonne, `active`. L'organisation naît sans membre — rattacher un premier responsable n'est pas couvert.
+
+`/organisations/[organizationId]` est la fiche, ouverte par « Ouvrir » ; elle édite le nom, l'email de contact, le site web et le statut par `admin_update_organization` (migration 0031), auditée — l'entrée nomme les champs modifiés, jamais leurs valeurs hors statut. Le slug ne se modifie pas après la création. Le statut ne gouverne aujourd'hui que la visibilité publique de la ligne (`organizations__select__active`) : il ne retire aucun accès aux membres, faute de spécification de ce que « Suspendu » doit couper.
+
+La fiche propose aussi la suppression (`admin_delete_organization`, migration 0032), confirmée par une case et auditée. Elle n'est acceptée que pour une organisation **sans aucune donnée liée** : membre, événement, source, provenance d'une information publiée, notice, droit, import. Les clés étrangères effaceraient sinon des accès (`cascade` sur les memberships) ou une traçabilité (`set null` sur la provenance de versions publiées, immuables). Une organisation qui a servi se termine par le statut « Terminé ».
+
+La fiche porte aussi l'**équipe** (migration 0033) : les membres avec leur rôle modifiable et leur retrait confirmé, les invitations ouvertes avec leur révocation, et le formulaire d'invitation par email. Les quatre rôles de 0001 sont proposés, sous les libellés de l'`orgTeam` du prototype : Propriétaire, Administrateur, Éditeur, Lecture seule. Une organisation garde toujours au moins un propriétaire.
+
+`/invitation-equipe/[token]` (apps/app) reçoit le lien de l'email : aperçu minimal sans session (organisation, rôle, état du lien), connexion avec retour, puis acceptation, réservée au compte dont l'adresse est celle de l'invitation. Le lien expire au bout de 7 jours — durée décidée pour ce lot, aucune spécification ne la chiffrait. La page n'est pas indexée et n'envoie pas de referrer.
+
+Le propriétaire gère la même équipe depuis l'espace organisateur, sous `/org/[organizationId]/parametres/equipe` (§6.1). **Non livré :** la limitation de débit des routes à jeton (AGENTS §64).
+
 Deux routes de détail ouvrent des données personnelles — `/signalements/[reportId]` et `/utilisateurs/[userId]`. Leur lecture s'inscrit dans `private.audit_logs` avant de rendre quoi que ce soit, ainsi que la recherche d'`/utilisateurs` (migration 0028). Les lectures opérationnelles — compteurs, sources, produits, traitements, journal — ne s'y inscrivent pas : chaque visite du journal y ajouterait une ligne, et le bruit masquerait les accès que §104 veut rendre visibles.
 
 ## 7.2 Ce qui n'a pas d'écran
 
-Trois adresses de §7.1 ne rendent pas d'écran de données, et pour trois raisons différentes :
+Deux adresses de §7.1 ne rendent pas d'écran de données, et pour deux raisons différentes :
 
 | Route                          | Raison                                                                                                                                                          |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/organisations/[organizationId]` | La migration 0028 ne porte que la liste. Une fiche demanderait une RPC de plus, qu'aucun écran du prototype ne réclame.                                      |
 | `/sources/[sourceId]`          | Idem. Le détail d'une source vit aujourd'hui dans le tiroir de provenance de la revue, qui montre snapshot, bloc, page et extrait.                               |
 | `/produits/signalements`       | Signaler une fiche nutrition n'existe pas en base : `community_reports` ne porte que `thread_id` et `post_id`, avec une contrainte qui en exige exactement une. L'écran le dit, plutôt que de recycler une autre file. |
 
@@ -447,16 +471,16 @@ Aucune route ne lit une table `private.*` depuis un client. `03_PRIVACY_RLS.md` 
 
 | Identifiant hérité | Redirection permanente vers               |
 | ------------------ | ----------------------------------------- |
-| `infos`            | `/org/[editionId]/course/informations`     |
-| `sources`          | `/org/[editionId]/course/sources`          |
-| `epreuves`         | `/org/[editionId]/course/epreuves`         |
-| `participants`     | `/org/[editionId]/participants`            |
-| `invitations`      | `/org/[editionId]/participants`            |
-| `analytics`        | `/org/[editionId]/participants`            |
-| `insights`         | `/org/[editionId]/participants`            |
-| `peloton`          | `/org/[editionId]/analyse`                 |
-| `previsions`       | `/org/[editionId]/analyse`                 |
-| `partenaires`      | `/org/[editionId]/parametres/partenaires`  |
+| `infos`            | `/org/[organizationId]/course/informations`     |
+| `sources`          | `/org/[organizationId]/course/sources`          |
+| `epreuves`         | `/org/[organizationId]/course/epreuves`         |
+| `participants`     | `/org/[organizationId]/participants`            |
+| `invitations`      | `/org/[organizationId]/participants`            |
+| `analytics`        | `/org/[organizationId]/participants`            |
+| `insights`         | `/org/[organizationId]/participants`            |
+| `peloton`          | `/org/[organizationId]/analyse`                 |
+| `previsions`       | `/org/[organizationId]/analyse`                 |
+| `partenaires`      | `/org/[organizationId]/parametres/partenaires`  |
 
 Quatre identifiants convergent vers `participants` et deux vers `analyse` : la refonte a fusionné des écrans. Une redirection ne préserve donc pas toujours le sous-écran d'origine.
 
@@ -487,6 +511,20 @@ Règles d'écran :
 - un geste destructeur se confirme par une case explicite, que le schéma du domaine revérifie : une requête sans elle est refusée avant d'atteindre la base ;
 - un succès redirige vers l'écran avec `?fait=`, et l'écran l'annonce en `role="status"`. Après une décision, le détail d'un signalement n'est pas rechargé : le relire écrirait une seconde lecture auditée que personne n'a demandée.
 
+## 7.6 Shell de la console
+
+Décision produit du 2026-10-06 : la console suit la barre latérale du prototype (`screen === 'admin'`), et non plus un bandeau d'onglets. `06_DESIGN_SYSTEM.md` §69 en note l'exception.
+
+- **À partir de 1100 px** — le seuil du prototype : barre latérale Ardoise de 238 px. Marque (symbole Lichen et « Administration »), « Équipe PLUKA · toutes organisations », les dix entrées de §7.1 avec leur icône, et en pied « Espace organisateur » et « Espace coureur » (§8).
+- **En dessous** : les dix entrées en onglets sous le bandeau, sans icône.
+- **Bandeau du haut**, aux deux largeurs : « Administration PLUKA » et le badge « Équipe interne ». Fond plein et filet, sans le flou du prototype (AGENTS.md §42).
+- **Le choix entre les deux variantes est fait en CSS.** Les deux navigations sont rendues côté serveur ; aucun hook de largeur ne décide au rendu.
+- **Badge de « Validation »** : les extractions à examiner (`candidatesPending` de `admin_platform_counters`, migration 0028), lues par le layout. Pas de badge à zéro, ni quand le compteur n'a pas été lu — sans session ou hors `pluka_admin`. Le compteur est relu à chaque rendu du layout : une navigation côté client ne le rafraîchit pas.
+- Les éléments du bandeau de démonstration du prototype — « PLUKA Product Vision V1 · prototype », menu de scénarios, « Données et réponses IA simulées », « Formule : … » — n'ont pas d'équivalent produit (§8.1).
+- La déconnexion est à droite du bandeau du haut. Le prototype n'en a pas ; sans elle, on ne pourrait plus se déconnecter.
+
+Les onglets reprennent les écrans du prototype : un titre de 38 px et sa phrase grise, puis une carte blanche cernée d'un filet par ligne (`--shadow-sm` du prototype vaut `0 0 0 1px`, un filet et non une ombre), des pastilles de statut et des états vides en carte. Un élément du prototype sans donnée en base n'est pas rendu, plutôt que deviné : le type et la date d'un événement, le contrat et la dernière activité d'une organisation, l'origine d'une fiche nutrition, « Demander correction » et « Fusionner ». Le contenu signalé et son auteur restent sur la fiche du signalement, dont l'ouverture est journalisée.
+
 ---
 
 # 8. Liens inter-applications
@@ -499,6 +537,7 @@ Conformément à §1.6, chacun de ces passages est un lien absolu.
 | `/org/…` — « Administration PLUKA »      | `apps/admin`                         | `NEXT_PUBLIC_ADMIN_URL`   |
 | `/org/…` — « Espace coureur »            | `apps/app` `/`                       | interne, `<Link>`         |
 | `admin` — « Espace organisateur »        | `apps/app` `/org`                    | `NEXT_PUBLIC_APP_URL`     |
+| `admin` — « Espace coureur »             | `apps/app` `/`                       | `NEXT_PUBLIC_APP_URL`     |
 | `apps/app` — mentions légales, contact   | `apps/www`                           | `NEXT_PUBLIC_SITE_URL`    |
 
 ## 8.1 Passages du prototype qui ne sont pas des liens produit
@@ -581,17 +620,15 @@ Une route protégée atteinte sans session redirige vers `/connexion` en conserv
 
 # 12. Cas non tranchés
 
-Ces dix points ne se déduisent pas des neuf règles de §1. Ils sont listés, pas décidés.
+Ces dix points ne se déduisent pas des neuf règles de §1. Ils sont listés, pas décidés — sauf §12.1 et §12.6, tranchés depuis.
 
 Trois cas de la première version ont été tranchés depuis, et sont devenus les règles §1.7, §1.8 et §1.9 : la portée des étapes d'entonnoir, la page publique de course, et la forme des identifiants publics.
 
-## 12.1 Entité de portée du back-office organisateur
+## 12.1 Entité de portée du back-office organisateur — tranché pour l'organisation
 
-`/org/[editionId]` suppose que le back-office opère sur une **édition**. Le prototype l'écrit ainsi (« Wildstrubel by UTMB · Édition 2026 »), et ses onglets Épreuves listent les courses d'une édition.
+**Tranché le 2026-10-06 : `[organizationId]`** (§6.1). L'appartenance, les rôles et l'équipe sont ceux de l'organisation, et une organisation sans édition doit avoir un espace.
 
-Mais `orgNav` porte « Ma course » au singulier, les partenaires sont attachés à l'événement (`event_partners`), et la relation d'appartenance passe par `organizations`. Trois portées sont défendables : `[organizationId]`, `[eventId]`, `[editionId]`.
-
-La règle §1.2 impose que la portée soit dans l'URL. Elle ne dit pas laquelle.
+Reste ouvert : **comment une page de l'espace choisit l'édition** sur laquelle elle travaille — Ma course, Analyse et Participants portent sur une édition (« Wildstrubel by UTMB · Édition 2026 »), et `event_partners` sur un événement. Un segment (`/org/[organizationId]/editions/[editionId]/…`), un paramètre de requête ou un sélecteur mémorisé sont défendables. La règle §1.2 demande que ce choix soit dans l'URL dès qu'un écran se partage.
 
 ## 12.2 Drill-downs de l'Analyse
 

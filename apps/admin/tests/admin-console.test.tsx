@@ -8,6 +8,8 @@ import { ADMIN_NAV, isCurrent } from '@/components/admin-nav';
 import {
   AdminStatus,
   entitlementLabel,
+  factCategoryLabel,
+  managementStatusLabel,
   platformRoleLabel,
   productCategoryLabel,
   reportReason,
@@ -66,6 +68,7 @@ describe('libellés de statut', () => {
    * `pilot` : `statusLabel('organization', 'prospect')` rendait `prospect`.
    */
   const ENUM_DOMAINS = [
+    { domain: 'event', enumName: 'record_status' },
     { domain: 'organization', enumName: 'organization_status' },
     { domain: 'source', enumName: 'source_status' },
     { domain: 'product', enumName: 'nutrition_product_status' },
@@ -129,6 +132,13 @@ describe('libellés de statut', () => {
         category,
       );
     }
+
+    // La file de Validation nomme le type de chaque information extraite.
+    for (const category of enumValues('fact_category')) {
+      expect(factCategoryLabel(category), `catégorie d’information ${category} sans libellé`).not.toBe(
+        category,
+      );
+    }
   });
 
   it('couvre les deux rôles plateforme, et seulement eux', () => {
@@ -149,6 +159,19 @@ describe('libellés de statut', () => {
     for (const level of ['free', 'race_pass', 'organizer_included', 'plus']) {
       expect(entitlementLabel(level), `niveau ${level} sans libellé`).not.toBe(level);
     }
+  });
+
+  it('nomme le type d’événement sur management_status, valeur par valeur', () => {
+    expect(enumValues('management_status')).toEqual([
+      'community',
+      'pluka_managed',
+      'organizer_managed',
+    ]);
+
+    expect(managementStatusLabel('organizer_managed')).toBe('Partenaire');
+    expect(managementStatusLabel('community')).toBe('Communautaire');
+    expect(managementStatusLabel('pluka_managed')).toBe('Maintenu par PLUKA');
+    expect(managementStatusLabel('federated')).toBe('federated');
   });
 
   it('rend une valeur inconnue plutôt que de la taire', () => {

@@ -1,4 +1,8 @@
-import type { CreateEventCommand } from '@pluka/domain';
+import type {
+  CreateEventCommand,
+  CreateOrganizationCommand,
+  UpdateOrganizationCommand,
+} from '@pluka/domain';
 
 /**
  * Lecture d'un `FormData` de Server Action.
@@ -132,5 +136,34 @@ export function createEventCommand(form: FormData): Record<keyof CreateEventComm
     organizationId: organizationId ?? null,
     name: text(form, 'name'),
     slug: text(form, 'slug'),
+  };
+}
+
+/**
+ * Commande de création d'organisation — même principe que `createEventCommand`.
+ * Un champ facultatif laissé vide devient `null` : la colonne reste vide plutôt
+ * que de recevoir une chaîne vide.
+ */
+export function createOrganizationCommand(
+  form: FormData,
+): Record<keyof CreateOrganizationCommand, unknown> {
+  return {
+    name: text(form, 'name'),
+    slug: text(form, 'slug'),
+    contactEmail: text(form, 'contactEmail') ?? null,
+    websiteUrl: text(form, 'websiteUrl') ?? null,
+  };
+}
+
+/** Commande d'édition d'organisation. Pas de slug : il ne se modifie pas. */
+export function updateOrganizationCommand(
+  form: FormData,
+): Record<keyof UpdateOrganizationCommand, unknown> {
+  return {
+    organizationId: text(form, 'organizationId'),
+    name: text(form, 'name'),
+    contactEmail: text(form, 'contactEmail') ?? null,
+    websiteUrl: text(form, 'websiteUrl') ?? null,
+    status: text(form, 'status'),
   };
 }

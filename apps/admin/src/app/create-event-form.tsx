@@ -23,8 +23,27 @@ const INITIAL: ActionState = {};
  * aussi le nom du champ de la commande : le formulaire, l'action et le schéma
  * du domaine nomment la même chose de la même façon.
  */
-export function CreateEventForm() {
+export interface OrganizationOption {
+  readonly id: string;
+  readonly name: string;
+}
+
+/**
+ * L'organisation gestionnaire se choisit dans une liste, elle ne se tape pas.
+ *
+ * Un champ texte attendait un UUID sous le libellé « Organisation
+ * gestionnaire » : un nom saisi, ou le remplissage automatique du navigateur
+ * — qui reconnaît un champ « organization » —, finissait en « UUID invalide ».
+ * L'option vide vaut « Maintenu par PLUKA » ; `text()` la lit comme une
+ * absence, et la commande porte `null` (§4.1).
+ */
+export function CreateEventForm({
+  organizations,
+}: {
+  readonly organizations: readonly OrganizationOption[];
+}) {
   const [state, action, pending] = useActionState(createEventAction, INITIAL);
+  const organizationError = state.fieldErrors?.['organizationId'];
 
   return (
     <form action={action} style={{ display: 'grid', gap: 'var(--space-5)', maxWidth: '32rem' }}>
@@ -37,13 +56,41 @@ export function CreateEventForm() {
         hint="Minuscules et tirets."
         error={state.fieldErrors?.['slug']}
       />
-      <Input
-        id="event-organization"
-        name="organizationId"
-        label="Organisation gestionnaire"
-        hint="Laisser vide pour un événement maintenu par PLUKA."
-        error={state.fieldErrors?.['organizationId']}
-      />
+      <div className="pk-field">
+        <label className="pk-field-label" htmlFor="event-organization">
+          Organisation gestionnaire
+        </label>
+        <select
+          id="event-organization"
+          name="organizationId"
+          className={organizationError === undefined ? 'pk-input' : 'pk-input pk-input-invalid'}
+          defaultValue=""
+          autoComplete="off"
+          aria-invalid={organizationError === undefined ? undefined : true}
+          aria-describedby={
+            organizationError === undefined
+              ? 'event-organization-hint'
+              : 'event-organization-hint event-organization-error'
+          }
+        >
+          <option value="">Maintenu par PLUKA</option>
+          {organizations.map((organization) => (
+            <option key={organization.id} value={organization.id}>
+              {organization.name}
+            </option>
+          ))}
+        </select>
+        <p id="event-organization-hint" className="pk-field-hint">
+          {organizations.length === 0
+            ? 'Aucune organisation enregistrée : l’événement sera maintenu par PLUKA.'
+            : 'Sans organisation, l’événement est maintenu par PLUKA.'}
+        </p>
+        {organizationError === undefined ? null : (
+          <p id="event-organization-error" className="pk-field-error">
+            {organizationError}
+          </p>
+        )}
+      </div>
 
       <div>
         <button type="submit" className="pk-btn pk-button-primary" disabled={pending}>

@@ -1,8 +1,7 @@
 import { listAdminNutritionProducts } from '@pluka/domain';
-import { SectionHeader } from '@pluka/ui';
 
-import { ProductList } from '@/app/produits/product-list';
-import { ProductTabs } from '@/app/produits/tabs';
+import { CatalogList } from '@/app/produits/product-list';
+import { BankHeader } from '@/app/produits/tabs';
 import { ConsoleNotice } from '@/components/console-action';
 import { consoleNotice, type ConsoleNoticeParams } from '@/lib/console-notice';
 import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
@@ -27,24 +26,11 @@ export default async function ProductCatalogPage({
 
   return (
     <main className="ad-page">
-      <SectionHeader eyebrow="Administration" title="Banque Nutrition" />
-
-      <p className="pk-body ad-measure">
-        Catalogue mutualisé des produits nutritionnels. Les fiches validées sont trouvables par tous
-        les coureurs ; les propositions restent privées à leur créateur jusqu’à validation.
-      </p>
+      <BankHeader current="/produits/catalogue" />
 
       <ConsoleNotice notice={consoleNotice(await searchParams)} />
 
-      <ProductTabs current="/produits/catalogue" />
-
-      <ProductList
-        products={products}
-        tab="catalogue"
-        caption={`${products.length} fiche${products.length > 1 ? 's' : ''}, tous statuts`}
-        emptyTitle="Aucune fiche dans la banque."
-        emptyDetail="Le catalogue est interrogé tous statuts confondus : il est réellement vide."
-      />
+      <CatalogList products={products} />
     </main>
   );
 }

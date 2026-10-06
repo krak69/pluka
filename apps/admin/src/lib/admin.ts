@@ -5,6 +5,7 @@ import {
   createCourseRepositories,
   createFactRepositories,
   createGpxRepositories,
+  createOrganizationTeamRepositories,
   type DbErrorCode,
 } from '@pluka/db';
 import {
@@ -16,6 +17,7 @@ import {
   type DomainErrorCode,
   type FactReviewContext,
   type GpxImportContext,
+  type OrganizationTeamContext,
 } from '@pluka/domain';
 import { notFound, redirect } from 'next/navigation';
 
@@ -114,6 +116,19 @@ export async function requireAdminConsoleContext(returnTo: string): Promise<Admi
  * fonction SQL ; le domaine valide l'entrée et traduit les refus. Cette
  * application ne fait que dire *qui* agit, et sur quoi.
  */
+/**
+ * Équipe d'une organisation — migration 0033. Même câblage : la garde
+ * (pluka_admin ou owner) et l'audit sont dans chaque fonction SQL.
+ */
+export function organizationTeamContext(session: Session): OrganizationTeamContext {
+  return {
+    repositories: createOrganizationTeamRepositories({
+      client: createDataClient(session.accessToken),
+    }),
+    actor: { userId: session.userId },
+  };
+}
+
 export function adminActionsContext(session: Session): AdminActionsContext {
   return {
     repositories: createAdminActionsRepositories({

@@ -1,19 +1,16 @@
 import { listAdminSources } from '@pluka/domain';
-import { EmptyState, SectionHeader, Table } from '@pluka/ui';
 
+import { AdminEmpty, AdminPageHeader } from '@/components/admin-page';
 import { AdminStatus, sourceTypeLabel } from '@/components/admin-status';
 import { dateTime } from '@/lib/format';
 import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
 
 /**
- * Sources — `adminTab: 'sources'`.
+ * Sources, toutes éditions — `adminSources` du prototype.
  *
- * Toutes éditions confondues, y compris celles d'un événement non publié : une
- * source déposée sur une édition en préparation est précisément celle qu'on
- * veut voir avant la publication.
- *
- * L'URL est rendue en lien sortant. Aucun contenu de source n'est affiché ici :
- * l'extrait appartient au tiroir de provenance, qui a son propre écran.
+ * Une carte par source : son nom, « édition · extraits », son statut et sa
+ * date d'import. Le type et l'URL, absents du prototype, restent dans la ligne
+ * grise : c'est ce qu'il faut pour retrouver la source sans ouvrir la revue.
  */
 export const metadata = { title: 'Sources' };
 
@@ -23,67 +20,45 @@ export default async function SourcesPage() {
 
   return (
     <main className="ad-page">
-      <SectionHeader eyebrow="Administration" title="Sources" />
+      <AdminPageHeader
+        title="Sources"
+        lede="Vue technique : état d’analyse, extraits produits et erreurs de traitement, tous événements confondus."
+      />
 
       {items.length === 0 ? (
-        <EmptyState
-          label="Sources"
-          title="Aucune source importée."
-          detail="Les dépôts d’URL, de PDF et de GPX apparaissent ici, quelle que soit l’édition."
-        >
-          <p>Une source s’importe depuis l’écran d’une épreuve.</p>
-        </EmptyState>
+        <AdminEmpty icon="Files" title="Aucune source importée.">
+          <p>Les dépôts d’URL, de PDF et de GPX apparaîtront ici, quelle que soit l’édition.</p>
+        </AdminEmpty>
       ) : (
-        <Table
-          caption={`${items.length} source${items.length > 1 ? 's' : ''}, toutes éditions`}
-          columns={[
-            { key: 'title', label: 'Source' },
-            { key: 'type', label: 'Type' },
-            { key: 'status', label: 'Statut' },
-            { key: 'edition', label: 'Édition' },
-            { key: 'chunks', label: 'Fragments', align: 'numeric' },
-            { key: 'snapshot', label: 'Capture' },
-            { key: 'imported', label: 'Importée le' },
-          ]}
-          rows={items.map((item) => ({
-            key: item.sourceId,
-            cells: {
-              title: (
-                <>
-                  <span>{item.title}</span>
-                  {item.url === null ? null : (
-                    <a
-                      className="pk-link ad-sub"
-                      href={item.url}
-                      rel="noreferrer noopener nofollow"
-                      target="_blank"
-                    >
-                      {item.url}
-                    </a>
-                  )}
-                </>
-              ),
-              type: sourceTypeLabel(item.sourceType),
-              status: <AdminStatus domain="source" status={item.status} />,
-              edition: (
-                <>
-                  <span>{item.eventName}</span>
-                  <span className="ad-sub">{item.editionYear}</span>
-                </>
-              ),
-              chunks: item.chunksCount,
-              /* Une source sans capture n'a pas encore été figée : c'est ce qui
-                 distingue « lue une fois » de « archivée pour preuve » (§43). */
-              snapshot:
-                item.snapshotRetrievedAt === null ? (
-                  <span className="ad-muted">aucune</span>
-                ) : (
-                  dateTime(item.snapshotRetrievedAt)
-                ),
-              imported: dateTime(item.importedAt),
-            },
-          }))}
-        />
+        <ul className="ad-cards" aria-label={`${items.length} source${items.length > 1 ? 's' : ''}, toutes éditions`}>
+          {items.map((item) => (
+            <li key={item.sourceId} className="ad-card">
+              <div className="ad-card-main">
+                <span className="ad-card-title">{item.title}</span>
+                <span className="ad-card-meta">
+                  {item.eventName} {item.editionYear} · {sourceTypeLabel(item.sourceType)} ·{' '}
+                  {item.chunksCount} extrait{item.chunksCount > 1 ? 's' : ''}
+                  {/* Une source sans capture n'a pas encore été figée : c'est ce
+                      qui distingue « lue une fois » de « archivée pour preuve » (§43). */}
+                  {item.snapshotRetrievedAt === null ? ' · aucune capture' : null}
+                </span>
+                {item.url === null ? null : (
+                  <a
+                    className="pk-link ad-card-meta"
+                    href={item.url}
+                    rel="noreferrer noopener nofollow"
+                    target="_blank"
+                  >
+                    {item.url}
+                  </a>
+                )}
+              </div>
+
+              <AdminStatus domain="source" status={item.status} />
+              <span className="ad-card-side">Importée le {dateTime(item.importedAt)}</span>
+            </li>
+          ))}
+        </ul>
       )}
     </main>
   );
