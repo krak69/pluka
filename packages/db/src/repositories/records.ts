@@ -17,6 +17,12 @@ export interface EventRecord {
    * `pluka_admin` ».
    */
   readonly organizationId: string | null;
+  /**
+   * Qui maintient l'événement — `management_status`, 0001. Indépendant
+   * d'`organizationId` en base : aucune contrainte ne lie les deux, et le
+   * badge « Partenaire » / « Communautaire » de l'admin se lit sur ce champ.
+   */
+  readonly managementStatus: Enum<'management_status'>;
   readonly name: string;
   readonly slug: string;
   readonly status: Enum<'record_status'>;
@@ -551,6 +557,18 @@ export interface AdminOrganizationRecord {
   readonly racesCount: number;
   readonly membersCount: number;
   readonly createdAt: string;
+}
+
+/** Fiche éditable — migration 0031. `websiteUrl` n'est pas dans la liste de 0028. */
+export interface AdminOrganizationDetailRecord {
+  readonly organizationId: string;
+  readonly name: string;
+  readonly slug: string;
+  readonly status: Enum<'organization_status'>;
+  readonly contactEmail: string | null;
+  readonly websiteUrl: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
 }
 
 export interface AdminSourceRecord {

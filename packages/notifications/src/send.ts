@@ -1,6 +1,10 @@
 import type { EmailMessage, EmailProvider, EmailSendResult } from '@pluka/contracts';
 
 import { renderChangeImpactNotice, type ChangeImpactNotice } from './templates/change-impact.js';
+import {
+  renderOrganizationInvitation,
+  type OrganizationInvitationNotice,
+} from './templates/organization-invitation.js';
 
 /**
  * Orchestration d'envoi — `01_ARCHITECTURE.md` §4.5, §35.
@@ -17,6 +21,8 @@ import { renderChangeImpactNotice, type ChangeImpactNotice } from './templates/c
  */
 
 export const NOTIFICATION_TEMPLATE_VERSION = 'change-impact-1.0.0';
+
+export const INVITATION_TEMPLATE_VERSION = 'organization-invitation-1.0.0';
 
 /**
  * Échecs d'envoi, dans un vocabulaire stable.
@@ -139,5 +145,54 @@ export async function sendChangeImpactNotice(
     providerMessageId: result.providerMessageId,
     acceptedAt: result.acceptedAt,
     templateVersion: NOTIFICATION_TEMPLATE_VERSION,
+  };
+}
+
+export interface OrganizationInvitationDelivery {
+  readonly notice: OrganizationInvitationNotice;
+  /**
+   * Inclut le numéro de tentative : une relance porte un nouveau jeton, et le
+   * fournisseur ne doit pas la dédoublonner vers l'email de l'ancien.
+   */
+  readonly idempotencyKey: string;
+}
+
+/** Écrit puis envoie l'invitation d'équipe (migration 0033). */
+export async function sendOrganizationInvitation(
+  provider: EmailProvider,
+  delivery: OrganizationInvitationDelivery,
+): Promise<NotificationSent> {
+  const { notice } = delivery;
+
+  if (!isPlausibleAddress(notice.recipientEmail)) {
+    throw new NotificationError('RECIPIENT_INVALID', 'adresse destinataire inexploitable');
+  }
+
+  const rendered = renderOrganizationInvitation(notice);
+
+  let result: EmailSendResult;
+
+  try {
+    result = await provider.send({
+      // Un seul destinataire : l'adresse invitée. Ni copie à l'organisation,
+      // ni copie à la personne qui invite.
+      to: [{ address: notice.recipientEmail }],
+      subject: rendered.subject,
+      textBody: rendered.textBody,
+      idempotencyKey: delivery.idempotencyKey,
+    });
+  } catch (error) {
+    throw new NotificationError(
+      'PROVIDER_UNAVAILABLE',
+      'envoi refusé par le fournisseur',
+      error instanceof Error ? error.name : 'inconnu',
+    );
+  }
+
+  return {
+    provider: provider.name,
+    providerMessageId: result.providerMessageId,
+    acceptedAt: result.acceptedAt,
+    templateVersion: INVITATION_TEMPLATE_VERSION,
   };
 }

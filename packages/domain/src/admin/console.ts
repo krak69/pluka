@@ -6,6 +6,7 @@ import type {
   AdminFactCandidateRecord,
   AdminJobRecord,
   AdminNutritionProductRecord,
+  AdminOrganizationDetailRecord,
   AdminOrganizationRecord,
   AdminPlatformCountersRecord,
   AdminReportDetailRecord,
@@ -80,6 +81,8 @@ export const searchAdminUsersQuerySchema = z
   })
   .strict();
 
+export const getAdminOrganizationQuerySchema = z.object({ organizationId: uuid }).strict();
+
 export const getAdminUserQuerySchema = z.object({ userId: uuid }).strict();
 
 export const listAdminJobsQuerySchema = z.object({ limit: limit.default(100) }).strict();
@@ -103,6 +106,22 @@ export async function listAdminOrganizations(
   const query = parseCommand(listAdminOrganizationsQuerySchema, input, 'listAdminOrganizations');
 
   return context.repositories.adminConsole.listOrganizations(query.limit);
+}
+
+/** Fiche d'une organisation, tous statuts — migration 0031. Non auditée. */
+export async function getAdminOrganization(
+  context: AdminConsoleContext,
+  input: unknown,
+): Promise<AdminOrganizationDetailRecord> {
+  const useCase = 'getAdminOrganization';
+  const query = parseCommand(getAdminOrganizationQuerySchema, input, useCase);
+
+  const organization = await context.repositories.adminConsole.getOrganization(
+    query.organizationId,
+  );
+  if (organization === null) throw notFoundError(useCase, 'organisation');
+
+  return organization;
 }
 
 /** Sources, toutes éditions — y compris celles d'un événement non publié. */

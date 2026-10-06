@@ -3,6 +3,7 @@ import type { PlukaClient } from '@pluka/db';
 import { createAI } from './ai/index.js';
 import { createEmail } from './email/index.js';
 import { createNotificationStore } from './notifications-store.js';
+import { createInvitationStore } from './invitations-store.js';
 import type { ConfiguredAI, WorkerPorts } from './ports.js';
 import { fetchSource } from './fetcher.js';
 import {
@@ -58,6 +59,7 @@ export function createPorts(
     extraction: createExtractionStore(client),
     impacts: createImpactStore(client),
     notifications: createNotificationStore(client),
+    invitations: createInvitationStore(client),
     email: createEmail(process.env),
     appUrl: config.appUrl,
     ai,

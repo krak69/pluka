@@ -6,6 +6,7 @@ import type {
   AdminFactCandidateRecord,
   AdminJobRecord,
   AdminNutritionProductRecord,
+  AdminOrganizationDetailRecord,
   AdminOrganizationRecord,
   AdminPlatformCountersRecord,
   AdminReportDetailRecord,
@@ -101,6 +102,8 @@ function integer(row: Record<string, unknown>, key: string): number | null {
 export interface AdminConsoleRepository {
   platformCounters(): Promise<AdminPlatformCountersRecord>;
   listOrganizations(limit: number): Promise<readonly AdminOrganizationRecord[]>;
+  /** Migration 0031. `null` pour une organisation inexistante. */
+  getOrganization(organizationId: string): Promise<AdminOrganizationDetailRecord | null>;
   listSources(limit: number): Promise<readonly AdminSourceRecord[]>;
   listNutritionProducts(
     status: AdminNutritionProductRecord['status'] | null,
@@ -167,6 +170,31 @@ export const adminConsoleRepository = defineRepository<AdminConsoleRepository>((
       membersCount: count(row, 'members_count'),
       createdAt: requiredText(row, 'created_at', operation),
     }));
+  },
+
+  async getOrganization(organizationId) {
+    const operation = 'admin_get_organization';
+    const data = rows(
+      unwrapRpc(
+        await rpc(context.client).rpc(operation, { p_organization_id: organizationId }),
+        operation,
+      ),
+      operation,
+    );
+    const row = data[0];
+
+    if (row === undefined) return null;
+
+    return {
+      organizationId: requiredText(row, 'organization_id', operation),
+      name: requiredText(row, 'name', operation),
+      slug: requiredText(row, 'slug', operation),
+      status: requiredText(row, 'status', operation) as AdminOrganizationDetailRecord['status'],
+      contactEmail: text(row, 'contact_email'),
+      websiteUrl: text(row, 'website_url'),
+      createdAt: requiredText(row, 'created_at', operation),
+      updatedAt: requiredText(row, 'updated_at', operation),
+    };
   },
 
   async listSources(limit) {

@@ -429,6 +429,8 @@ Un Viewer n’a pas nécessairement besoin de voir tous les emails / users.
 - Admin : gestion limitée selon politique ;
 - Editor / Viewer : aucune gestion.
 
+**Politique retenue (migration 0033).** Gèrent l'équipe : l'owner de l'organisation et un `pluka_admin`. Un admin d'organisation n'a **aucune** gestion de l'équipe — c'est la lecture du prototype (`orgTeam` : « Propriétaire — gère tout, y compris l'organisation et l'équipe » ; « Administratrice — gère l'événement, les sources et les participants »). La règle est portée par `private.can_manage_org_team`, qui compare les rôles par valeur. Les emails des membres ne sont lisibles que de ceux qui gèrent l'équipe.
+
 Empêcher :
 
 - un admin de supprimer le dernier owner ;

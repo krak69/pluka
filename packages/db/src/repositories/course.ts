@@ -22,7 +22,14 @@ import type {
  * règles vivent dans `@pluka/domain` (01_ARCHITECTURE §4.5, §5 règle 5).
  */
 
-const EVENT_COLUMNS = ['id', 'organization_id', 'name', 'slug', 'status'] as const;
+const EVENT_COLUMNS = [
+  'id',
+  'organization_id',
+  'management_status',
+  'name',
+  'slug',
+  'status',
+] as const;
 
 const EDITION_COLUMNS = [
   'id',
@@ -81,6 +88,7 @@ const EDITION_TRANSITION_COLUMNS = [
 type EventRow = {
   id: string;
   organization_id: string | null;
+  management_status: EventRecord['managementStatus'];
   name: string;
   slug: string;
   status: EventRecord['status'];
@@ -144,6 +152,7 @@ function toEvent(row: EventRow): EventRecord {
   return {
     id: row.id,
     organizationId: row.organization_id,
+    managementStatus: row.management_status,
     name: row.name,
     slug: row.slug,
     status: row.status,

@@ -138,6 +138,13 @@ function createHarness(): Harness {
       markSent: async () => undefined,
       markFailed: async () => undefined,
     },
+    invitations: {
+      claim: async () => {
+        throw new Error('non employé dans ces tests');
+      },
+      complete: async (): Promise<void> => undefined,
+      fail: async () => 1,
+    },
     email: null,
     appUrl: 'http://localhost:3001',
     ai: null,

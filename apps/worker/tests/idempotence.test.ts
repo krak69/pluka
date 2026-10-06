@@ -144,6 +144,13 @@ function createRecorder(): Recorder {
       complete: async (): Promise<void> => undefined,
       fail: async () => 'pending',
     },
+    invitations: {
+      claim: async () => {
+        throw new Error('non employé dans ces tests');
+      },
+      complete: async (): Promise<void> => undefined,
+      fail: async () => 1,
+    },
     email: null,
     appUrl: 'http://localhost:3001',
     // Aucune IA configurée : l'extraction déterministe suffit (§29).

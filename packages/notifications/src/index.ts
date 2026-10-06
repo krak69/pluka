@@ -30,12 +30,24 @@ export {
 } from './templates/change-impact.js';
 
 export {
+  ORGANIZATION_ROLES,
+  renderOrganizationInvitation,
+  roleLabel,
+  type OrganizationInvitationNotice,
+  type OrganizationRole,
+  type RenderedInvitation,
+} from './templates/organization-invitation.js';
+
+export {
+  INVITATION_TEMPLATE_VERSION,
   NOTIFICATION_ERROR_CODES,
   NOTIFICATION_TEMPLATE_VERSION,
   NotificationError,
   isNotificationError,
   sendChangeImpactNotice,
+  sendOrganizationInvitation,
   type ChangeImpactDelivery,
+  type OrganizationInvitationDelivery,
   type NotificationErrorCode,
   type NotificationSent,
 } from './send.js';

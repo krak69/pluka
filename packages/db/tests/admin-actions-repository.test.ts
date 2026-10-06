@@ -79,4 +79,36 @@ describe('adminActionsRepository', () => {
       DbError,
     );
   });
+
+  it('crée une organisation par 0030 et rend son identifiant', async () => {
+    const { client, calls } = fakeClient({ data: 'o-1', error: null });
+
+    await expect(
+      adminActionsRepository({ client }).createOrganization({
+        name: 'Trail du Lac',
+        slug: 'trail-du-lac',
+        contactEmail: null,
+        websiteUrl: 'https://trail-du-lac.fr',
+      }),
+    ).resolves.toBe('o-1');
+    expect(calls[0]).toEqual({
+      name: 'admin_create_organization',
+      args: {
+        p_name: 'Trail du Lac',
+        p_slug: 'trail-du-lac',
+        p_contact_email: null,
+        p_website_url: 'https://trail-du-lac.fr',
+      },
+    });
+  });
+
+  it('traduit un slug d’organisation déjà pris (23505) en conflict', async () => {
+    const { client } = fakeClient({ data: null, error: { code: '23505', message: 'doublon' } });
+
+    const failure = await adminActionsRepository({ client })
+      .createOrganization({ name: 'X', slug: 'x', contactEmail: null, websiteUrl: null })
+      .catch((error: unknown) => error);
+
+    expect((failure as DbError).code).toBe('conflict');
+  });
 });

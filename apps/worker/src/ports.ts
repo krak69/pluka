@@ -319,6 +319,32 @@ export interface ConfiguredAI {
   readonly model: string;
 }
 
+/**
+ * Envoi d'une invitation d'équipe — migration 0033.
+ *
+ * Le worker tire le jeton, n'en confie que le hash à la base, et met le jeton
+ * en clair dans l'email : c'est le seul endroit où il existe. La réclamation
+ * relit le destinataire au moment de l'envoi ; rien n'est journalisé.
+ */
+export interface InvitationSendClaim {
+  /** `false` : déjà envoyée, révoquée, acceptée ou expirée — rien à faire. */
+  readonly sendable: boolean;
+  readonly email: string | null;
+  readonly role: string | null;
+  readonly organizationName: string | null;
+  readonly inviterName: string | null;
+  readonly expiresAt: string | null;
+  /** Numéro de cette tentative, à partir de 1. */
+  readonly attempt: number;
+}
+
+export interface InvitationStore {
+  claim(invitationId: string, tokenHash: string): Promise<InvitationSendClaim>;
+  complete(invitationId: string): Promise<void>;
+  /** Rend le nombre de tentatives faites. */
+  fail(invitationId: string, error: string): Promise<number>;
+}
+
 export interface WorkerPorts {
   readonly queue: Queue;
   readonly jobs: JobStore;
@@ -330,6 +356,7 @@ export interface WorkerPorts {
   readonly extraction: ExtractionStore;
   readonly impacts: ImpactStore;
   readonly notifications: NotificationStore;
+  readonly invitations: InvitationStore;
   /**
    * Fournisseur email, ou son absence.
    *

@@ -72,6 +72,7 @@ export function baseState(overrides: Partial<FakeState> = {}): FakeState {
       {
         id: EVENT_ID,
         organizationId: ORG_A,
+        managementStatus: 'organizer_managed',
         name: 'Trail de Test',
         slug: 'trail-de-test',
         status: 'published',
@@ -79,6 +80,7 @@ export function baseState(overrides: Partial<FakeState> = {}): FakeState {
       {
         id: ORPHAN_EVENT_ID,
         organizationId: null,
+        managementStatus: 'community',
         name: 'Trail Communautaire',
         slug: 'trail-communautaire',
         status: 'published',
@@ -196,6 +198,8 @@ export function createFakeRepositories(state: FakeState): CourseRepositories {
         const record: EventRecord = {
           id: nextId('bbbbbbbb-0000-4000-8000-'),
           organizationId: input.organization_id ?? null,
+          // Défaut de la colonne en 0001 — la base, pas le use case, le pose.
+          managementStatus: input.management_status ?? 'pluka_managed',
           name: input.name,
           slug: input.slug,
           status: input.status ?? 'draft',

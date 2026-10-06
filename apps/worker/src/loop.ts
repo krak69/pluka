@@ -6,6 +6,10 @@ import {
   handleNotificationMessage,
   isNotificationMessage,
 } from './jobs/notification-send.js';
+import {
+  handleInvitationMessage,
+  isInvitationMessage,
+} from './jobs/organization-invitation-send.js';
 import { handleExtractMessage, isExtractMessage } from './jobs/source-extract.js';
 import { SOURCES_QUEUE, handleSourceMessage } from './jobs/source-ingest.js';
 import { handleParseMessage, isParseMessage } from './jobs/source-parse.js';
@@ -107,13 +111,16 @@ const CONSUMERS: readonly {
         ? handleImpactMessage(ports, message)
         : Promise.resolve({ kind: 'abandoned' as const }),
   },
-  // §46 : le coureur concerné est informé.
+  // §46 : le coureur concerné est informé. La même file porte les
+  // invitations d'équipe (0033) ; le routage se fait sur la forme du message.
   {
     queue: EMAIL_QUEUE,
-    handle: (ports, message) =>
-      isNotificationMessage(message)
-        ? handleNotificationMessage(ports, message)
-        : Promise.resolve({ kind: 'abandoned' as const }),
+    handle: (ports, message) => {
+      if (isNotificationMessage(message)) return handleNotificationMessage(ports, message);
+      if (isInvitationMessage(message)) return handleInvitationMessage(ports, message);
+
+      return Promise.resolve({ kind: 'abandoned' as const });
+    },
   },
 ];
 

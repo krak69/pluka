@@ -124,6 +124,7 @@ export type {
   AdminFactCandidateRecord,
   AdminJobRecord,
   AdminNutritionProductRecord,
+  AdminOrganizationDetailRecord,
   AdminOrganizationRecord,
   AdminPlatformCountersRecord,
   AdminReportDetailRecord,
@@ -154,7 +155,22 @@ export {
   createAdminActionsRepositories,
   type AdminActionsRepositories,
   type AdminActionsRepository,
+  type CreateOrganizationInput,
+  type UpdateOrganizationInput,
 } from './repositories/admin-actions.js';
+export {
+  createOrganizationTeamRepositories,
+  organizationTeamRepository,
+  type InvitationPreviewRecord,
+  type InvitationPreviewState,
+  type InviteMemberInput,
+  type OrganizationInvitationRecord,
+  type OrganizationMemberRecord,
+  type OrganizationRole,
+  type OrganizationTeamRepositories,
+  type OrganizationTeamRepository,
+  type OwnMembershipRecord,
+} from './repositories/organization-team.js';
 export {
   createRaceInformationRepositories,
   publishedFactRepository,

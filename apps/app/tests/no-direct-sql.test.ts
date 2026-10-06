@@ -120,6 +120,16 @@ describe('aucune requête directe', () => {
       'list_plan_fact_dependencies',
       'persist_course_micro_segments',
       'get_course_preprocessing_input',
+      // 0033 : l'invitation d'équipe passe par `@pluka/domain`, qui hache le
+      // jeton. Un écran qui appellerait la fonction transmettrait le jeton brut.
+      'preview_organization_invitation',
+      'accept_organization_invitation',
+      'org_list_members',
+      'org_list_invitations',
+      'org_invite_member',
+      'org_revoke_invitation',
+      'org_change_member_role',
+      'org_remove_member',
     ];
 
     const offenders = sourceFiles().flatMap((moduleId) => {

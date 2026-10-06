@@ -1941,6 +1941,85 @@ export type Database = {
           },
         ]
       }
+      organization_invitations: {
+        Row: {
+          accepted_by_user_id: string | null
+          activated_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by_user_id: string | null
+          last_send_error: string | null
+          organization_id: string
+          revoked_at: string | null
+          role: Database["public"]["Enums"]["organization_member_role"]
+          send_attempts: number
+          sent_at: string | null
+          status: Database["public"]["Enums"]["invitation_status"]
+          token_hash: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_by_user_id?: string | null
+          activated_at?: string | null
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          invited_by_user_id?: string | null
+          last_send_error?: string | null
+          organization_id: string
+          revoked_at?: string | null
+          role: Database["public"]["Enums"]["organization_member_role"]
+          send_attempts?: number
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token_hash?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_by_user_id?: string | null
+          activated_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by_user_id?: string | null
+          last_send_error?: string | null
+          organization_id?: string
+          revoked_at?: string | null
+          role?: Database["public"]["Enums"]["organization_member_role"]
+          send_attempts?: number
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token_hash?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_invitations_accepted_by_user_id_fkey"
+            columns: ["accepted_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_invitations_invited_by_user_id_fkey"
+            columns: ["invited_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           created_at: string
@@ -5380,6 +5459,234 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_organization_invitation: {
+        Args: { p_token_hash: string }
+        Returns: string
+      }
+      admin_archive_nutrition_product: {
+        Args: { p_product_id: string }
+        Returns: undefined
+      }
+      admin_create_organization: {
+        Args: {
+          p_contact_email?: string
+          p_name: string
+          p_slug: string
+          p_website_url?: string
+        }
+        Returns: string
+      }
+      admin_delete_organization: {
+        Args: { p_organization_id: string }
+        Returns: undefined
+      }
+      admin_dismiss_report: {
+        Args: { p_report_id: string }
+        Returns: undefined
+      }
+      admin_get_organization: {
+        Args: { p_organization_id: string }
+        Returns: {
+          contact_email: string
+          created_at: string
+          name: string
+          organization_id: string
+          slug: string
+          status: Database["public"]["Enums"]["organization_status"]
+          updated_at: string
+          website_url: string
+        }[]
+      }
+      admin_get_report: {
+        Args: { p_report_id: string }
+        Returns: {
+          created_at: string
+          details: string
+          reason: Database["public"]["Enums"]["report_reason"]
+          report_id: string
+          reporter_email: string
+          resolved_at: string
+          status: Database["public"]["Enums"]["report_status"]
+          target_author_email: string
+          target_content: string
+          target_kind: string
+        }[]
+      }
+      admin_get_user: {
+        Args: { p_user_id: string }
+        Returns: {
+          created_at: string
+          email: string
+          entitlement_level: string
+          entitlements_detail: Json
+          first_name: string
+          last_name: string
+          locale: string
+          platform_role: Database["public"]["Enums"]["platform_role"]
+          races_count: number
+          timezone: string
+          user_id: string
+        }[]
+      }
+      admin_hide_reported_content: {
+        Args: { p_report_id: string }
+        Returns: number
+      }
+      admin_list_audit: {
+        Args: { p_limit?: number }
+        Returns: {
+          action: string
+          actor_email: string
+          after_data: Json
+          created_at: string
+          entity_id: string
+          entity_table: string
+          entry_id: number
+          organization_name: string
+          request_id: string
+        }[]
+      }
+      admin_list_fact_candidates: {
+        Args: { p_limit?: number }
+        Returns: {
+          candidate_id: string
+          category: Database["public"]["Enums"]["fact_category"]
+          confidence_label: string
+          conflict_status: string
+          event_name: string
+          extracted_at: string
+          fact_key: string
+          race_id: string
+          race_name: string
+          status: string
+          value_text: string
+        }[]
+      }
+      admin_list_jobs: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          available_at: string
+          completed_at: string
+          created_at: string
+          event_name: string
+          idempotency_key: string
+          job_id: string
+          job_type: string
+          last_error: string
+          max_attempts: number
+          source_title: string
+          started_at: string
+          status: string
+        }[]
+      }
+      admin_list_nutrition_products: {
+        Args: {
+          p_limit?: number
+          p_status?: Database["public"]["Enums"]["nutrition_product_status"]
+        }
+        Returns: {
+          brand: string
+          caffeine_mg: number
+          carbs_g: number
+          category: Database["public"]["Enums"]["nutrition_product_category"]
+          hydration_ml: number
+          name: string
+          product_id: string
+          sodium_mg: number
+          source_url: string
+          status: Database["public"]["Enums"]["nutrition_product_status"]
+          updated_at: string
+          variant: string
+          verified_at: string
+        }[]
+      }
+      admin_list_organizations: {
+        Args: { p_limit?: number }
+        Returns: {
+          contact_email: string
+          created_at: string
+          events_count: number
+          members_count: number
+          name: string
+          organization_id: string
+          races_count: number
+          slug: string
+          status: Database["public"]["Enums"]["organization_status"]
+        }[]
+      }
+      admin_list_reports: {
+        Args: { p_limit?: number }
+        Returns: {
+          created_at: string
+          reason: Database["public"]["Enums"]["report_reason"]
+          report_id: string
+          resolved_at: string
+          status: Database["public"]["Enums"]["report_status"]
+          target_kind: string
+        }[]
+      }
+      admin_list_sources: {
+        Args: { p_limit?: number }
+        Returns: {
+          chunks_count: number
+          edition_year: number
+          event_name: string
+          imported_at: string
+          snapshot_retrieved_at: string
+          source_id: string
+          source_type: Database["public"]["Enums"]["source_type"]
+          status: Database["public"]["Enums"]["source_status"]
+          title: string
+          url: string
+        }[]
+      }
+      admin_platform_counters: {
+        Args: never
+        Returns: {
+          candidates_pending: number
+          editions_total: number
+          events_published: number
+          events_total: number
+          jobs_failed: number
+          organizations_active: number
+          organizations_total: number
+          participations_active: number
+          products_draft: number
+          races_published: number
+          races_total: number
+          reports_open: number
+          sources_failed: number
+        }[]
+      }
+      admin_retry_job: { Args: { p_job_id: string }; Returns: number }
+      admin_search_users: {
+        Args: { p_limit?: number; p_query?: string }
+        Returns: {
+          created_at: string
+          email: string
+          entitlement_level: string
+          first_name: string
+          last_name: string
+          platform_role: Database["public"]["Enums"]["platform_role"]
+          races_count: number
+          user_id: string
+        }[]
+      }
+      admin_update_organization: {
+        Args: {
+          p_contact_email: string
+          p_name: string
+          p_organization_id: string
+          p_status: Database["public"]["Enums"]["organization_status"]
+          p_website_url: string
+        }
+        Returns: number
+      }
+      admin_validate_nutrition_product: {
+        Args: { p_product_id: string }
+        Returns: undefined
+      }
       decide_fact_candidate: {
         Args: {
           p_action: string
@@ -5497,6 +5804,54 @@ export type Database = {
           race_fact_version_id: string
         }[]
       }
+      org_change_member_role: {
+        Args: {
+          p_organization_id: string
+          p_role: Database["public"]["Enums"]["organization_member_role"]
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      org_invite_member: {
+        Args: {
+          p_email: string
+          p_organization_id: string
+          p_role: Database["public"]["Enums"]["organization_member_role"]
+        }
+        Returns: string
+      }
+      org_list_invitations: {
+        Args: { p_organization_id: string }
+        Returns: {
+          created_at: string
+          email: string
+          expires_at: string
+          invitation_id: string
+          role: Database["public"]["Enums"]["organization_member_role"]
+          send_failed: boolean
+          sent_at: string
+          status: Database["public"]["Enums"]["invitation_status"]
+        }[]
+      }
+      org_list_members: {
+        Args: { p_organization_id: string }
+        Returns: {
+          email: string
+          first_name: string
+          joined_at: string
+          last_name: string
+          role: Database["public"]["Enums"]["organization_member_role"]
+          user_id: string
+        }[]
+      }
+      org_remove_member: {
+        Args: { p_organization_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      org_revoke_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: undefined
+      }
       persist_race_plan: {
         Args: {
           p_actor_user_id: string
@@ -5510,6 +5865,14 @@ export type Database = {
         Returns: {
           race_plan_id: string
           version: number
+        }[]
+      }
+      preview_organization_invitation: {
+        Args: { p_token_hash: string }
+        Returns: {
+          organization_name: string
+          role: Database["public"]["Enums"]["organization_member_role"]
+          state: string
         }[]
       }
       publish_fact_candidate: {
@@ -5584,6 +5947,18 @@ export type Database = {
           severity: Database["public"]["Enums"]["change_severity"]
         }[]
       }
+      worker_claim_organization_invitation: {
+        Args: { p_invitation_id: string; p_token_hash: string }
+        Returns: {
+          attempt: number
+          email: string
+          expires_at: string
+          inviter_name: string
+          organization_name: string
+          role: Database["public"]["Enums"]["organization_member_role"]
+          sendable: boolean
+        }[]
+      }
       worker_complete_extraction_run: {
         Args: {
           p_input_tokens: number
@@ -5601,6 +5976,10 @@ export type Database = {
           p_provider_message_id: string
           p_template_version: string
         }
+        Returns: undefined
+      }
+      worker_complete_organization_invitation: {
+        Args: { p_invitation_id: string }
         Returns: undefined
       }
       worker_complete_parse_run: {
@@ -5629,6 +6008,10 @@ export type Database = {
       worker_fail_notification: {
         Args: { p_delivery_id: string; p_error: string }
         Returns: string
+      }
+      worker_fail_organization_invitation: {
+        Args: { p_error: string; p_invitation_id: string }
+        Returns: number
       }
       worker_fail_parse_run: {
         Args: { p_error: string; p_run_id: string }

@@ -8,6 +8,7 @@ import {
   invalidStateError,
   notFoundError,
   parseCommand,
+  validationError,
   type DomainError,
 } from '../errors.js';
 
@@ -16,7 +17,10 @@ import {
  * §104 · migration 0029.
  *
  * Cinq gestes : masquer un contenu signalé, classer un signalement sans suite,
- * relancer un traitement, valider et archiver une fiche nutrition.
+ * relancer un traitement, valider et archiver une fiche nutrition. Un sixième
+ * vient de 0030 : créer une organisation (00_PRODUCT_SPEC §3.5), et un
+ * septième de 0031 : l'éditer, et un huitième de 0032 : la supprimer
+ * quand elle est vide.
  *
  * LA GARDE EST DANS LA FONCTION SQL, ET SEULEMENT LÀ
  *
@@ -68,6 +72,52 @@ export const validateNutritionProductCommandSchema = z.object({ productId: uuid 
 export const archiveNutritionProductCommandSchema = z
   .object({ productId: uuid, confirmed })
   .strict();
+
+/** Même règle que le slug d'un événement (`course/commands.ts`). */
+const slug = z
+  .string()
+  .trim()
+  .min(1)
+  .max(80)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { error: 'slug attendu en minuscules, tirets simples' });
+
+const organizationName = z.string().trim().min(1).max(200);
+const contactEmail = z.email({ error: 'adresse email invalide' }).nullable().default(null);
+const websiteUrl = z
+  .url({ protocol: /^https?$/, error: 'adresse web attendue en http(s)://' })
+  .nullable()
+  .default(null);
+
+export const createOrganizationCommandSchema = z
+  .object({ name: organizationName, slug, contactEmail, websiteUrl })
+  .strict();
+
+/**
+ * Édition — migration 0031. Le slug n'y figure pas : il ne change pas après
+ * la création. Les quatre statuts de 0001 sont acceptés ; aucun ne retire
+ * d'accès aux membres aujourd'hui.
+ */
+export const updateOrganizationCommandSchema = z
+  .object({
+    organizationId: uuid,
+    name: organizationName,
+    contactEmail,
+    websiteUrl,
+    status: z.enum(['prospect', 'active', 'suspended', 'archived'], {
+      error: 'statut inconnu',
+    }),
+  })
+  .strict();
+
+export type UpdateOrganizationCommand = z.infer<typeof updateOrganizationCommandSchema>;
+
+export const deleteOrganizationCommandSchema = z
+  .object({ organizationId: uuid, confirmed })
+  .strict();
+
+export type DeleteOrganizationCommand = z.infer<typeof deleteOrganizationCommandSchema>;
+
+export type CreateOrganizationCommand = z.infer<typeof createOrganizationCommandSchema>;
 
 export type HideReportedContentCommand = z.infer<typeof hideReportedContentCommandSchema>;
 export type DismissReportCommand = z.infer<typeof dismissReportCommandSchema>;
@@ -203,5 +253,81 @@ export async function archiveNutritionProduct(
 
   await run(useCase, 'fiche', 'cette fiche est déjà archivée', () =>
     context.repositories.adminActions.archiveNutritionProduct(command.productId),
+  );
+}
+
+export interface CreateOrganizationResult {
+  readonly organizationId: string;
+}
+
+/**
+ * Crée une organisation, au statut par défaut de la colonne (`active`, 0001).
+ * Elle naît sans membre : rattacher un premier responsable est un autre geste.
+ *
+ * Un slug déjà pris est rendu contre le champ `slug`, pas en refus global :
+ * c'est la seule saisie à corriger.
+ */
+export async function createOrganization(
+  context: AdminActionsContext,
+  input: unknown,
+): Promise<CreateOrganizationResult> {
+  const useCase = 'createOrganization';
+  const command = parseCommand(createOrganizationCommandSchema, input, useCase);
+
+  try {
+    const organizationId = await context.repositories.adminActions.createOrganization(command);
+    return { organizationId };
+  } catch (error) {
+    if (error instanceof DbError && error.code === 'conflict') {
+      throw validationError(useCase, 'slug déjà utilisé', {
+        slug: 'ce slug d’organisation est déjà utilisé',
+      });
+    }
+
+    throw translateRefusal(error, useCase, 'organisation', 'création refusée');
+  }
+}
+
+export interface UpdateOrganizationResult {
+  /** Champs modifiés — 0 quand la saisie reprend la fiche telle quelle. */
+  readonly changedFields: number;
+}
+
+/** Édite nom, email de contact, site web et statut. Le slug ne change pas. */
+export async function updateOrganization(
+  context: AdminActionsContext,
+  input: unknown,
+): Promise<UpdateOrganizationResult> {
+  const useCase = 'updateOrganization';
+  const command = parseCommand(updateOrganizationCommandSchema, input, useCase);
+
+  const changedFields = await run(useCase, 'organisation', 'édition refusée', () =>
+    context.repositories.adminActions.updateOrganization(command),
+  );
+
+  return { changedFields };
+}
+
+/**
+ * Supprime une organisation **vide** — migration 0032.
+ *
+ * Une organisation qui porte encore un membre, un événement, une source, la
+ * provenance d'une information publiée, un droit ou un import est refusée :
+ * la supprimer effacerait des accès ou une traçabilité. Elle se termine par
+ * le statut « Terminé ». Le refus ne dit pas quelles données restent — la
+ * base les nomme dans ses logs, l'écran dit quoi faire.
+ */
+export async function deleteOrganization(
+  context: AdminActionsContext,
+  input: unknown,
+): Promise<void> {
+  const useCase = 'deleteOrganization';
+  const command = parseCommand(deleteOrganizationCommandSchema, input, useCase);
+
+  await run(
+    useCase,
+    'organisation',
+    'cette organisation porte encore des données (membres, événements, sources ou droits) : passez-la au statut « Terminé »',
+    () => context.repositories.adminActions.deleteOrganization(command.organizationId),
   );
 }

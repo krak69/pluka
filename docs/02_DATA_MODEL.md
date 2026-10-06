@@ -289,6 +289,12 @@ Table d'appartenance avec rôles :
 - editor ;
 - viewer.
 
+## 5.3 `organization_invitations`
+
+Invitation à rejoindre l'équipe d'une organisation (migration 0033) : adresse email, rôle, statut (`pending → sent → activated`, ou `revoked` / `expired`), expiration à 7 jours, auteur de l'invitation, compteur et dernière erreur d'envoi.
+
+Le jeton n'existe pas à la création : le worker le tire à l'envoi et n'en stocke que le SHA-256 (`token_hash`) ; le jeton en clair n'existe que dans l'email. Une seule invitation ouverte par organisation et par adresse. Aucune policy : la table n'est accessible que par les fonctions `org_*`, `preview_organization_invitation`, `accept_organization_invitation` et `worker_*` de 0033.
+
 Les droits réels seront définis dans `03_PRIVACY_RLS.md`.
 
 Un rôle organisation n'accorde **jamais** de droit automatique sur les données personnelles détaillées d'un participant.
