@@ -1631,12 +1631,15 @@ a.ad-card:hover {
 }
 
 /*
- * L'étape courante porte le repère Aube : la prochaine action (§43). Le
- * chiffre reste en couleur de texte — l'Aube sur fond clair n'atteint pas le
- * contraste AA d'un texte de 12 px ; le filet suffit à marquer l'étape.
+ * L'étape courante porte le repère Aube : la prochaine action (§43). Pastille
+ * pleine, chiffre à l'encre — jamais de texte Aube sur fond clair, qui
+ * n'atteindrait pas le contraste AA ; l'encre sur l'Aube, si.
  */
 .ad-stepper-step.is-current .ad-stepper-number {
   border: 2px solid var(--pk-dawn);
+  background: var(--pk-dawn);
+  color: var(--pk-ink);
+  font-weight: 700;
 }
 
 .ad-stepper-step.is-done .ad-stepper-number {
@@ -1977,39 +1980,51 @@ a.ad-card:hover {
   margin-left: auto;
 }
 
-/* ── Parcours de création : bandeau de terrain + carte d'étape ──────────*/
+/* ── Parcours de création : bandeau de terrain, puis la carte d'étape ──*/
 
 /*
- * Deux blocs : à gauche la scène — le relief, le nom qui se compose, le fil
- * des étapes et un conseil — ; à droite la carte de l'étape. Sous 1000 px, la
- * scène passe au-dessus et le fil se couche (1200 px : barre latérale comprise).
+ * En tête, le bandeau de terrain pleine largeur : le nom qui se compose, le
+ * fil des étapes couché, le conseil de l'étape et la sortie. En dessous, la
+ * carte de l'étape, centrée. Le bandeau colle à la barre latérale : un filet
+ * Lichen les sépare, de la même encre.
  */
+.ad-wizard-page {
+  min-height: 100dvh;
+}
+
 .ad-wizard {
-  display: grid;
-  /* `minmax(0, …)` : sans lui, un champ large pousse la colonne hors de l'écran. */
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ad-wizard-band {
+  box-sizing: border-box;
   gap: var(--space-5);
-  align-items: start;
+  padding: var(--space-8) var(--space-10) var(--space-4);
+  border-radius: 0;
+  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--pk-lichen) 28%, transparent);
 }
 
-@media (width >= 1200px) {
-  .ad-wizard {
-    grid-template-columns: minmax(17rem, 21rem) minmax(0, 46rem);
-  }
-
-  .ad-wizard-aside {
-    position: sticky;
-    top: var(--space-5);
-    min-height: 34rem;
-  }
+.ad-wizard-band .pk-terrain-scene {
+  width: 100%;
+  max-width: 64rem;
+  margin-inline: auto;
 }
 
-.ad-wizard-aside .pk-terrain-title {
-  font-size: clamp(26px, 2.6vw, 34px);
+.ad-wizard-band .pk-terrain-foot {
+  width: 100%;
+  max-width: 64rem;
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+
+.ad-wizard-band .pk-terrain-title {
+  font-size: clamp(30px, 3.4vw, 44px);
   overflow-wrap: anywhere;
 }
 
-.ad-wizard-aside .pk-terrain-body {
+.ad-wizard-band-body {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
@@ -2024,18 +2039,109 @@ a.ad-card:hover {
   color: var(--pk-lichen);
 }
 
+/* Le conseil se lit comme une phrase, pas comme une métadonnée. */
+.ad-wizard-band .pk-terrain-meta {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
 .ad-wizard-tip {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
   margin: 0;
-  padding-top: var(--space-4);
-  border-top: 1px solid color-mix(in srgb, currentcolor 16%, transparent);
-  color: color-mix(in srgb, var(--pk-text-on-dark) 82%, transparent);
+  color: color-mix(in srgb, var(--pk-text-on-dark) 84%, transparent);
 }
 
 .ad-wizard-tip .pk-label {
+  margin-right: var(--space-2);
   color: var(--pk-lichen);
+}
+
+.ad-wizard-exit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  color: var(--pk-text-on-dark);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ad-wizard-exit:hover {
+  text-decoration: underline;
+}
+
+.ad-wizard-exit:focus-visible {
+  outline: 2px solid var(--pk-lichen);
+  outline-offset: 2px;
+}
+
+/* Le fil des étapes, sur le terrain : Lichen une fois fait, Aube en cours. */
+.ad-stepper-dark .ad-stepper-step {
+  border-top-color: color-mix(in srgb, var(--pk-text-on-dark) 22%, transparent);
+  color: color-mix(in srgb, var(--pk-text-on-dark) 70%, transparent);
+}
+
+.ad-stepper-dark .ad-stepper-step.is-done {
+  border-top-color: var(--pk-lichen);
+}
+
+/*
+ * L'étape en cours doit se voir au premier coup d'œil : pastille pleine Aube,
+ * chiffre à l'encre, nom en blanc et en gras. Les autres restent en retrait.
+ */
+.ad-stepper-dark .ad-stepper-step.is-current {
+  border-top-color: var(--pk-dawn);
+  color: var(--pk-surface);
+  font-weight: 700;
+}
+
+/*
+ * Sur le terrain, le nom de l'étape est toujours clair, quelle que soit la
+ * règle de fond de page : il est posé sur le libellé lui-même, et le fil
+ * sombre se reconnaît aussi à son bandeau (`.pk-terrain-dark`).
+ */
+.pk-terrain-dark .ad-stepper .ad-stepper-label,
+.ad-stepper-dark .ad-stepper-label {
+  color: color-mix(in srgb, var(--pk-text-on-dark) 72%, transparent);
+}
+
+.pk-terrain-dark .ad-stepper .ad-stepper-step.is-current .ad-stepper-label,
+.ad-stepper-dark .ad-stepper-step.is-current .ad-stepper-label {
+  color: var(--pk-surface);
+  font-weight: 700;
+}
+
+.pk-terrain-dark .ad-stepper .ad-stepper-step.is-done .ad-stepper-label {
+  color: var(--pk-text-on-dark);
+}
+
+.ad-stepper-dark .ad-stepper-number {
+  border-color: color-mix(in srgb, var(--pk-text-on-dark) 35%, transparent);
+}
+
+.ad-stepper-dark .is-current .ad-stepper-number {
+  border: 2px solid var(--pk-dawn);
+  background: var(--pk-dawn);
+  color: var(--pk-ink);
+  font-weight: 700;
+}
+
+.ad-stepper-dark .is-done .ad-stepper-number {
+  border-color: var(--pk-lichen);
+  background: var(--pk-lichen);
+  color: var(--pk-ink);
+}
+
+.ad-stepper-dark .ad-stepper-link:focus-visible {
+  outline-color: var(--pk-lichen);
+}
+
+.ad-wizard-main {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--space-8) var(--space-10) var(--space-10);
 }
 
 /* La carte de l'étape : une surface, un filet, aucune ombre. */
@@ -2043,8 +2149,11 @@ a.ad-card:hover {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  width: 100%;
+  max-width: 52rem;
   min-width: 0;
-  padding: var(--space-6);
+  margin-inline: auto;
+  padding: var(--space-8);
   border: 1px solid var(--pk-hairline);
   border-radius: var(--radius-sm);
   background: var(--pk-surface);
@@ -2078,115 +2187,28 @@ a.ad-card:hover {
   background: var(--pk-limestone);
 }
 
-@media (width < 640px) {
+@media (width < 900px) {
+  .ad-wizard-band {
+    padding: var(--space-6) var(--space-4) var(--space-4);
+  }
+
+  .ad-wizard-main {
+    padding: var(--space-5) var(--space-4) var(--space-8);
+  }
+
   .ad-wizard-card {
     padding: var(--space-5) var(--space-4);
   }
 }
 
-/* Étape 5 : la phrase et le fil côte à côte, le fil couché sur une ligne. */
+/* Étape 5 : la phrase, puis le fil, dans le bandeau de la fiche. */
 .ad-wizard-done {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  max-width: 44rem;
+  gap: var(--space-5);
 }
 
 .ad-wizard-done p {
+  max-width: 44rem;
   margin: 0;
-}
-
-/* ── Plein écran : le parcours de création ──────────────────────────────*/
-
-.ad-wizard-page {
-  min-height: 100dvh;
-}
-
-.ad-wizard-page .ad-wizard {
-  gap: 0;
-  min-height: 100dvh;
-}
-
-.ad-wizard-page .ad-wizard-aside {
-  box-sizing: border-box;
-  border-radius: 0;
-  padding: var(--space-6);
-  /* Contre la barre latérale, de la même encre : un filet Lichen les sépare. */
-  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--pk-lichen) 28%, transparent);
-}
-
-.ad-wizard-main {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-  box-sizing: border-box;
-  min-width: 0;
-  padding: var(--space-5) var(--space-4) var(--space-8);
-}
-
-.ad-wizard-top {
-  display: flex;
-  flex-direction: row-reverse;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.ad-wizard-page a.pk-btn {
-  text-decoration: none;
-}
-
-.ad-wizard-exit {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 44px;
-  padding: 0 var(--space-2);
-  color: var(--pk-text);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.ad-wizard-exit:hover {
-  text-decoration: underline;
-}
-
-.ad-wizard-exit:focus-visible {
-  outline: 2px solid var(--pk-forest);
-  outline-offset: 2px;
-}
-
-/*
- * Deux colonnes dès que la place le permet, barre latérale comprise
- * (~266 px) : la scène et la carte côte à côte.
- */
-@media (width >= 1200px) {
-  .ad-wizard-page .ad-wizard {
-    grid-template-columns: minmax(18rem, 26rem) minmax(0, 1fr);
-  }
-
-  /* La scène tient toute la hauteur ; la carte défile à côté. */
-  .ad-wizard-page .ad-wizard-aside {
-    top: 0;
-    height: 100dvh;
-    min-height: 0;
-    padding: var(--space-10) var(--space-10);
-    justify-content: center;
-  }
-
-  .ad-wizard-page .ad-wizard-aside .pk-terrain-title {
-    font-size: clamp(32px, 3.2vw, 46px);
-  }
-
-  .ad-wizard-main {
-    padding: var(--space-6) var(--space-10) var(--space-10);
-  }
-
-  /* La sortie, le fil des étapes et la carte partagent la même colonne. */
-  .ad-wizard-main > * {
-    width: 100%;
-    max-width: 48rem;
-    margin-inline: auto;
-  }
 }

@@ -25,7 +25,10 @@ export function CreationStepper({
   current,
   reached = current,
   onSelect,
+  tone = 'light',
 }: {
+  /** `dark` : dans le bandeau de terrain ; `light` : sur le fond de page. */
+  readonly tone?: 'light' | 'dark';
   /** Étape affichée, de 1 à 5. */
   readonly current: number;
   /** Dernière étape atteinte : celles d'avant se rouvrent. */
@@ -34,7 +37,7 @@ export function CreationStepper({
 }) {
   return (
     <nav aria-label="Étapes de la création">
-      <ol className="ad-stepper">
+      <ol className={tone === 'dark' ? 'ad-stepper ad-stepper-dark' : 'ad-stepper'}>
         {CREATION_STEPS.map((label, index) => {
           const step = index + 1;
           const state =

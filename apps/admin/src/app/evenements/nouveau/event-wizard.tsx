@@ -376,21 +376,39 @@ export function EventWizard({
 
   return (
     <div className="ad-wizard">
+      {/*
+        Le bandeau de terrain, en tête : le nom qui se compose, puis le fil
+        des étapes, couché, au-dessus du formulaire. Le conseil de l'étape et
+        la sortie ferment le bandeau.
+      */}
       <TerrainBand
         tone="dark"
         topo
         level={1}
-        className="ad-wizard-aside"
+        className="ad-wizard-band"
         eyebrow="Créer un événement"
         title={event.name.trim() === '' ? 'Nouvel événement' : event.name}
         body={
-          <>
+          <div className="ad-wizard-band-body">
             {subtitle === '' ? null : <p className="ad-wizard-sub">{subtitle}</p>}
-            <p className="ad-wizard-tip">
-              <span className="pk-label">Bon à savoir</span>
-              {TIPS[current - 1]}
-            </p>
-          </>
+            <CreationStepper
+              tone="dark"
+              current={current}
+              reached={reached}
+              onSelect={(target) => goTo(target)}
+            />
+          </div>
+        }
+        footer={
+          <p className="ad-wizard-tip">
+            <span className="pk-label">Bon à savoir</span> {TIPS[current - 1]}
+          </p>
+        }
+        secondaryAction={
+          <Link href="/" className="ad-wizard-exit">
+            <AdminIcon name="XCircle" size={16} />
+            Quitter
+          </Link>
         }
       />
 
@@ -400,16 +418,6 @@ export function EventWizard({
         domaine revérifie tout à la création.
       */}
       <div className="ad-wizard-main">
-        <div className="ad-wizard-top">
-          <Link href="/" className="ad-wizard-exit">
-            <AdminIcon name="XCircle" size={16} />
-            Quitter
-          </Link>
-          <span className="ad-row-meta">Rien n’est enregistré avant la création.</span>
-        </div>
-
-        <CreationStepper current={current} reached={reached} onSelect={(target) => goTo(target)} />
-
         <form ref={form} action={action} noValidate className="ad-wizard-card">
           <section {...section(1)} aria-labelledby="step-1">
             <StepHeading number={1} title="L’événement">

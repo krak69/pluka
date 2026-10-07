@@ -171,6 +171,7 @@ export default async function EventDocumentsPage({
                 informations de course — barrières, matériel, ravitaillements, assistance — que tu
                 valides avant toute publication.
               </p>
+              <CreationStepper tone="dark" current={5} reached={5} />
             </div>
           }
           footer={`Édition ${edition.year} · ${races.length} épreuve${races.length > 1 ? 's' : ''}`}
@@ -181,8 +182,6 @@ export default async function EventDocumentsPage({
           lede={`Édition ${edition.year}. Choisis les pages et documents à analyser : PLUKA en extrait les informations de course — barrières, matériel, ravitaillements, assistance — que tu valides avant toute publication.`}
         />
       )}
-
-      {creation === '1' ? <CreationStepper current={5} reached={5} /> : null}
 
       <AutoRefresh active={reading || working} />
 
