@@ -6,6 +6,7 @@ import {
   createRace,
   DomainError,
   getRaceOverview,
+  listEventsForAdministration,
   setRaceVisibility,
   updateRace,
   type CourseContext,
@@ -20,6 +21,7 @@ import {
   OUTSIDER,
   OWNER_B,
   PLUKA_ADMIN,
+  PLUKA_SUPPORT,
   RACE_ID,
   VIEWER_A,
   type FakeState,
@@ -86,6 +88,24 @@ describe('autorisation', () => {
     expect(race.name).toBe('20K');
   });
 
+  it('refuse au support PLUKA toute écriture sur la base courses', async () => {
+    await expectDomainError(createRace(contextFor(PLUKA_SUPPORT), validRaceCommand()), 'forbidden');
+    await expectDomainError(
+      createEvent(contextFor(PLUKA_SUPPORT), {
+        organizationId: null,
+        name: 'Support',
+        slug: 'support',
+      }),
+      'forbidden',
+    );
+  });
+
+  it('ouvre au support PLUKA la lecture d’administration', async () => {
+    const events = await listEventsForAdministration(contextFor(PLUKA_SUPPORT), {});
+
+    expect(events.length).toBeGreaterThan(0);
+  });
+
   it('ne révèle rien de plus qu’un refus', async () => {
     // Préciser le rôle manquant confirmerait l'existence de l'objet visé.
     const error = await expectDomainError(
@@ -103,7 +123,7 @@ describe('autorisation', () => {
     await expectDomainError(
       createRace(
         contextFor(OUTSIDER),
-        validRaceCommand({ role: 'owner', platformRole: 'pluka_admin' }),
+        validRaceCommand({ role: 'owner', platformRole: 'pluka_admin', staffRole: 'admin' }),
       ),
       'forbidden',
     );
@@ -119,6 +139,8 @@ describe('createEvent', () => {
     });
 
     expect(event.organizationId).toBe(ORG_A);
+    // Décision du 2026-10-07 : avec une organisation, « Partenaire ».
+    expect(event.managementStatus).toBe('organizer_managed');
   });
 
   it('refuse un slug déjà pris', async () => {
@@ -150,6 +172,7 @@ describe('createEvent', () => {
     });
 
     expect(event.organizationId).toBeNull();
+    expect(event.managementStatus).toBe('pluka_managed');
   });
 
   it('refuse un slug mal formé', async () => {

@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import { CandidateReviewList } from '@/app/courses/[raceId]/revue/review-list';
+import { candidateCorrection } from '@/lib/form';
 
 /**
  * L'écran de revue rend la provenance consultable — SOURCES_EXTRACTION §30, §20.
@@ -235,10 +236,14 @@ describe('contradiction', () => {
 describe('actions', () => {
   const html = render([candidate()]);
 
-  it('propose accepter et rejeter — §31', () => {
+  it('propose publier, supprimer, doublon et à revoir — §31', () => {
     expect(html).toContain('Accepter et publier');
-    expect(html).toContain('Rejeter');
+    expect(html).toContain('Supprimer la proposition');
     expect(html).toContain('value="reject"');
+    expect(html).toContain('value="mark_duplicate"');
+    // La proposition de la fixture est déjà « à revoir » : le bouton ne la
+    // renvoie pas une seconde fois.
+    expect(html).not.toContain('value="needs_review"');
   });
 
   it('laisse le réviseur choisir le niveau de confiance', () => {
@@ -250,6 +255,8 @@ describe('actions', () => {
 
   it('permet de corriger la valeur avant publication — §31', () => {
     expect(html).toContain('name="valueText"');
+    expect(html).toContain('name="valueNumber"');
+    expect(html).toContain('name="unit"');
     expect(html).toContain('name="note"');
   });
 
@@ -264,5 +271,31 @@ describe('actions', () => {
 describe('liste vide', () => {
   it('le dit plutôt que d’afficher un tableau vide', () => {
     expect(render([])).toContain('Aucun candidat en attente de revue');
+  });
+});
+
+describe('correction d’une proposition avant publication', () => {
+  function form(fields: Readonly<Record<string, string>>): FormData {
+    const data = new FormData();
+    for (const [name, value] of Object.entries(fields)) data.set(name, value);
+    return data;
+  }
+
+  const ORIGINAL = {
+    'original.valueText': '',
+    'original.valueNumber': '42.5',
+    'original.unit': 'km',
+  };
+
+  it('ne transmet rien quand rien n’a changé', () => {
+    expect(
+      candidateCorrection(form({ ...ORIGINAL, valueText: '', valueNumber: '42.5', unit: 'km' })),
+    ).toEqual({});
+  });
+
+  it('transmet la valeur entière quand une part change, sans perdre les autres', () => {
+    expect(
+      candidateCorrection(form({ ...ORIGINAL, valueText: '', valueNumber: '43,1', unit: 'km' })),
+    ).toEqual({ valueText: null, valueNumber: 43.1, unit: 'km' });
   });
 });

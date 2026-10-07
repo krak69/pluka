@@ -7,6 +7,7 @@ import { AdminStatus, managementStatusLabel } from '@/components/admin-status';
 import {
   adminConsoleContext,
   courseContext,
+  isSupportSession,
   redirectOnDomainError,
   redirectOnReadError,
 } from '@/lib/admin';
@@ -39,17 +40,23 @@ export default async function EventsPage() {
   const organizationName = new Map(
     organizations.map((organization) => [organization.organizationId, organization.name]),
   );
+  // Support lit la liste sans le geste de création (0035).
+  const readOnly = await isSupportSession(session);
 
   return (
     <main className="ad-page">
       <AdminPageHeader
         title="Événements"
-        aside={
-          <Link href="/evenements/nouveau" className="pk-btn pk-button-primary">
-            <AdminIcon name="Plus" size={16} />
-            Créer un événement
-          </Link>
-        }
+        {...(readOnly
+          ? {}
+          : {
+              aside: (
+                <Link href="/evenements/nouveau" className="pk-btn pk-button-primary">
+                  <AdminIcon name="Plus" size={16} />
+                  Créer un événement
+                </Link>
+              ),
+            })}
       />
 
       {events.length === 0 ? (
@@ -58,7 +65,10 @@ export default async function EventsPage() {
           <p>Un événement porte ses éditions, et chaque édition ses épreuves.</p>
         </AdminEmpty>
       ) : (
-        <ul className="ad-cards" aria-label={`${events.length} événement${events.length > 1 ? 's' : ''}`}>
+        <ul
+          className="ad-cards"
+          aria-label={`${events.length} événement${events.length > 1 ? 's' : ''}`}
+        >
           {events.map((event) => (
             <li key={event.id}>
               <Link href={`/evenements/${event.id}`} className="ad-card">

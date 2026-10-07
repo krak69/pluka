@@ -375,6 +375,37 @@ Lorsqu’une source web est capturée :
 
 La capture web ne doit pas nécessiter un navigateur complet si un fetch HTTP suffit.
 
+## 11.1 Inventaire d’un site officiel (décisions produit du 2026-10-07)
+
+La création d’un événement est un parcours classique saisi par l’administrateur —
+événement, édition, épreuves, puis documents (05_ROUTES_FLOWS). Aucune IA n’y propose
+d’événement ni d’épreuve.
+
+Quand un site officiel est donné, la création enfile son **inventaire** : un crawl
+borné, sans IA, qui relève ce que le site contient — pas le crawl illimité exclu au §3 :
+
+```text
+même hôte que l’URL saisie (www. ignoré)
+profondeur 1 : la page saisie + les pages qu’elle lie
+au plus 15 pages HTML lues, page saisie comprise
+robots.txt respecté (User-agent * et PLUKA)
+chaque requête repasse par la garde SSRF de §12
+les documents liés (PDF, GPX) sont listés, pas téléchargés
+```
+
+L’inventaire ne contient que des pages et des documents, repérés de façon déterministe
+(lien, extension `.pdf` / `.gpx`). Un indice de tri — mots de course dans l’adresse ou
+le titre : règlement, roadbook, guide, programme, parcours… — fait proposer cochés les
+documents et pages utiles ; il ne décide de rien.
+
+L’administrateur choisit ensuite les pages et documents à analyser, et en dépose
+d’autres. Chacun devient une source ordinaire (§5), qui suit la chaîne canonique
+snapshot → parse → extraction → candidats → revue humaine → publication. C’est
+l’extraction, et elle seule, qui peut faire appel à l’IA (§21, §29).
+
+L’inventaire vit dans `private.event_discoveries` (02_DATA_MODEL §7.10). Job :
+`source.discover` (§57). Version : `discovery-2.0.0`.
+
 ---
 
 # 12. SSRF et sécurité réseau
@@ -995,6 +1026,20 @@ Pour la retirer :
 
 Le modèle exact doit suivre `02_DATA_MODEL.md`.
 
+Modèle retenu (migration 0043, décision produit du 2026-10-07 : « toutes les informations
+doivent pouvoir être modifiées, supprimées ») :
+
+- **corriger** une information publiée crée la version N+1 ; N passe en `superseded` et
+  ses preuves restent attachées à N+1 (la correction porte sur la lecture, pas sur le
+  document) ;
+- **supprimer** une information publiée est un **retrait** : `race_facts.archived_at` est
+  posé, l'information disparaît de toute lecture publique, versions comprises, et rien
+  n'est effacé ; **restaurer** lève le retrait ;
+- chaque geste est humain (éditeur de l'organisation de la course ou administration
+  PLUKA), journalisé dans `fact_publication_acts`, et signalé par un `race_change_events`
+  (`change_kind` : `revised`, `retired`, `restored`) que l'analyseur d'impact consomme
+  comme une publication (§44).
+
 ---
 
 # 38. Conflits
@@ -1405,6 +1450,7 @@ L’ingestion GPX peut vivre dans un package géospatial partagé.
 Jobs principaux :
 
 ```text
+source.discover
 source.ingest
 source.snapshot
 source.parse

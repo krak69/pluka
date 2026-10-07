@@ -11,6 +11,15 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
 
+  // Documents de course déposés depuis un poste (0040) : un règlement ou un
+  // guide coureur pèse souvent plusieurs Mo. Même borne que le bucket
+  // `race-sources` (50 Mo, 0008). Le proxy de session lit aussi le corps : sa
+  // limite suit, sans quoi il le tronquerait avant l'action.
+  experimental: {
+    serverActions: { bodySizeLimit: '50mb' },
+    proxyClientMaxBodySize: '50mb',
+  },
+
   async headers() {
     return [
       {

@@ -170,7 +170,7 @@ beforeAll(async () => {
 
   const base = createPorts(
     client,
-    { appUrl: TEST_APP_URL },
+    { appUrl: TEST_APP_URL, adminUrl: 'http://localhost:3002' },
     { provider: fakeAI, model: 'modele-test' },
   );
   ports = { ...base, sources: { ...base.sources, fetch: capture } };

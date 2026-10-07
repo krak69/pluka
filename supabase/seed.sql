@@ -40,5 +40,7 @@ values (
   'email', now(), now()
 );
 
-update public.users set platform_role = 'pluka_admin'
+-- Super-admin (0035) : sans rôle précis, entrer dans l'équipe donnerait
+-- `admin`, et le compte perdrait Paramètres et la gestion de l'équipe.
+update public.users set platform_role = 'pluka_admin', staff_role = 'super_admin'
 where id = 'a0000000-0000-4000-8000-00000000ad01';

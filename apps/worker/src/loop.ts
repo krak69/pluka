@@ -10,7 +10,12 @@ import {
   handleInvitationMessage,
   isInvitationMessage,
 } from './jobs/organization-invitation-send.js';
+import { handleDiscoverMessage, isDiscoverMessage } from './jobs/source-discover.js';
 import { handleExtractMessage, isExtractMessage } from './jobs/source-extract.js';
+import {
+  handleStaffInvitationMessage,
+  isStaffInvitationMessage,
+} from './jobs/staff-invitation-send.js';
 import { SOURCES_QUEUE, handleSourceMessage } from './jobs/source-ingest.js';
 import { handleParseMessage, isParseMessage } from './jobs/source-parse.js';
 import type { QueueMessage, WorkerPorts } from './ports.js';
@@ -95,6 +100,7 @@ const CONSUMERS: readonly {
       // L'ordre compte : un message d'extraction porte aussi un `snapshotId`,
       // et le tester en premier le ferait reparser indéfiniment. Le
       // discriminant le plus spécifique passe donc devant.
+      if (isDiscoverMessage(message)) return handleDiscoverMessage(ports, message);
       if (isExtractMessage(message)) return handleExtractMessage(ports, message);
       if (isParseMessage(message)) return handleParseMessage(ports, message);
 
@@ -118,6 +124,7 @@ const CONSUMERS: readonly {
     handle: (ports, message) => {
       if (isNotificationMessage(message)) return handleNotificationMessage(ports, message);
       if (isInvitationMessage(message)) return handleInvitationMessage(ports, message);
+      if (isStaffInvitationMessage(message)) return handleStaffInvitationMessage(ports, message);
 
       return Promise.resolve({ kind: 'abandoned' as const });
     },

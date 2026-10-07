@@ -412,22 +412,34 @@ Mais la landing organisateurs promet explicitement : « Partagez-le avec votre �
 /organisations/nouvelle          Créer une organisation — hors prototype, 00_PRODUCT_SPEC §3.5
 /organisations/[organizationId]  Fiche et édition d'une organisation — migration 0031
 /evenements                      → redirige vers /
-/evenements/nouveau              Créer un événement — `adminNewEvent`
+/evenements/nouveau              Créer un événement — `adminNewEvent`, un écran par étape (`?etape=1…4`)
 /evenements/[eventId]
+/evenements/[eventId]/documents  Étape 5 : pages et documents du site, dépôt de PDF, analyse (0040, 0042)
 /courses/[raceId]                Administration d'une course
 /courses/[raceId]/revue          Revue des extractions de cette course
+/courses/[raceId]/informations   Informations publiées : corriger, supprimer (retrait), restaurer (0043)
+/courses/[raceId]/informations/[factId]  Une information : correction, retrait, historique (0043)
 /sources
 /sources/[sourceId]              pas d’écran — voir §7.2
 /produits                        → redirige vers /produits/catalogue
-/produits/catalogue
-/produits/a-verifier
+/produits/catalogue              Fiches validées
+/produits/a-verifier             Fiches à vérifier
+/produits/archives               Fiches archivées (0039)
+/produits/tous                   Toutes les fiches (0039)
+/produits/nouveau                Nouveau produit (0039)
+/produits/import                 Import CSV du catalogue (0039)
+/produits/[productId]            Fiche produit, édition (0039)
 /produits/signalements           état vide explicite — voir §7.2
 /signalements
 /signalements/[reportId]         lecture journalisée
 /utilisateurs
 /utilisateurs/[userId]           lecture journalisée
 /traitements                     Imports et traitements
-/journal                         Journal d'audit
+/journal                         → redirige vers /parametres/journal (ancienne adresse)
+/parametres                      → premier onglet permis : /equipe (super-admin), /journal sinon
+/parametres/equipe               Équipe PLUKA — super-admin (0035, 0036)
+/parametres/journal              Journal d'audit — tout le staff (déplacé le 2026-10-07)
+/invitation-equipe/[token]       Invitation à l'équipe PLUKA — hors équipe, par jeton
 ```
 
 Les dix entrées de l'`adminNav` du prototype y sont toutes présentes. Les trois sous-onglets de Produits nutrition (`bankTab`) sont des onglets, donc des routes (§1.2).
@@ -436,13 +448,15 @@ La vue d'ensemble a pris `/vue-d-ensemble` et la liste des événements est rest
 
 `/courses/[raceId]` se rejoint par Événements → événement → épreuve, et `adminNav` ne change pas (§12.6 tranché).
 
-La liste des événements porte la pastille de type du prototype. Elle se lit sur `events.management_status`, jamais sur la présence d'`organization_id` : `organizer_managed` → « Partenaire », `community` → « Communautaire », `pluka_managed` → « Maintenu par PLUKA ». Ce dernier libellé est absent du prototype et a été décidé pour la console. La base ne lie pas les deux colonnes ; un écart entre elles se voit donc à l'écran au lieu d'être masqué.
+La liste des événements porte la pastille de type du prototype. Elle se lit sur `events.management_status`, jamais sur la présence d'`organization_id` : `organizer_managed` → « Partenaire », `community` → « Communautaire », `pluka_managed` → « Maintenu par PLUKA ». Ce dernier libellé est absent du prototype et a été décidé pour la console. À la création, la règle est posée (décision produit du 2026-10-07) : un événement créé avec une organisation est `organizer_managed`, sans organisation `pluka_managed` — création manuelle comme depuis le site officiel (0041). Aucune contrainte ne lie ensuite les deux colonnes ; un écart entre elles se voit donc à l'écran au lieu d'être masqué.
 
 `/organisations/nouvelle` crée une organisation par `admin_create_organization` (migration 0030), réservée à `pluka_admin` et auditée. Le prototype n'a pas ce geste ; il vient de « gestion d'organisations » (00_PRODUCT_SPEC §3.5). Le statut ne se choisit pas : la ligne prend le défaut de la colonne, `active`. L'organisation naît sans membre — rattacher un premier responsable n'est pas couvert.
 
 `/organisations/[organizationId]` est la fiche, ouverte par « Ouvrir » ; elle édite le nom, l'email de contact, le site web et le statut par `admin_update_organization` (migration 0031), auditée — l'entrée nomme les champs modifiés, jamais leurs valeurs hors statut. Le slug ne se modifie pas après la création. Le statut ne gouverne aujourd'hui que la visibilité publique de la ligne (`organizations__select__active`) : il ne retire aucun accès aux membres, faute de spécification de ce que « Suspendu » doit couper.
 
-La fiche propose aussi la suppression (`admin_delete_organization`, migration 0032), confirmée par une case et auditée. Elle n'est acceptée que pour une organisation **sans aucune donnée liée** : membre, événement, source, provenance d'une information publiée, notice, droit, import. Les clés étrangères effaceraient sinon des accès (`cascade` sur les memberships) ou une traçabilité (`set null` sur la provenance de versions publiées, immuables). Une organisation qui a servi se termine par le statut « Terminé ».
+La fiche propose aussi la suppression (`admin_delete_organization`, migration 0032), confirmée par une case et auditée. Elle n'est acceptée que pour une organisation **sans aucune donnée liée** : membre, événement, source, provenance d'une information publiée, notice, droit, import. Les clés étrangères effaceraient sinon des accès (`cascade` sur les memberships) ou une traçabilité (`set null` sur la provenance de versions publiées, immuables). Une organisation qui a servi se termine par le statut « Terminé ». Depuis la migration 0037, la fiche dit **avant le clic** ce qui retient l'organisation — « 2 événements, 4 informations publiées » — à partir de la même définition que la suppression (`private.organization_dependencies`), et ne propose le bouton que lorsque rien ne la retient.
+
+**Suppression par un super-admin (migration 0038, décision produit du 2026-10-07)** : un super-admin supprime une organisation **quoi qu'elle porte**, après une seule case de confirmation. Ses membres (accès coupés), invitations et imports de participants disparaissent ; ses événements sont **détachés** et deviennent « Maintenus par PLUKA » ; les préparations et les droits déjà accordés aux coureurs, et la provenance des informations publiées, sont conservés. Pour cela la ligne reste en **pierre tombale** (`organizations.deleted_at`, statut `archived`, slug libéré), invisible partout : un droit « Inclus organisateur » et une notice officielle doivent nommer leur organisation (contraintes de 0001, §13). Le panneau annonce avant la confirmation ce qui sera retiré, détaché et conservé. Un admin, lui, ne supprime toujours qu'une organisation vide.
 
 La fiche porte aussi l'**équipe** (migration 0033) : les membres avec leur rôle modifiable et leur retrait confirmé, les invitations ouvertes avec leur révocation, et le formulaire d'invitation par email. Les quatre rôles de 0001 sont proposés, sous les libellés de l'`orgTeam` du prototype : Propriétaire, Administrateur, Éditeur, Lecture seule. Une organisation garde toujours au moins un propriétaire.
 
@@ -463,7 +477,7 @@ Deux adresses de §7.1 ne rendent pas d'écran de données, et pour deux raisons
 
 ## 7.3 Tables `private.*`
 
-Aucune route ne lit une table `private.*` depuis un client. `03_PRIVACY_RLS.md` §8 les réserve au `service_role` : `/traitements` et `/journal` passent par un use case serveur.
+Aucune route ne lit une table `private.*` depuis un client. `03_PRIVACY_RLS.md` §8 les réserve au `service_role` : `/traitements` et `/parametres/journal` passent par un use case serveur.
 
 ## 7.4 Redirections héritées de l'organisateur
 
@@ -522,6 +536,10 @@ Décision produit du 2026-10-06 : la console suit la barre latérale du prototyp
 - **Badge de « Validation »** : les extractions à examiner (`candidatesPending` de `admin_platform_counters`, migration 0028), lues par le layout. Pas de badge à zéro, ni quand le compteur n'a pas été lu — sans session ou hors `pluka_admin`. Le compteur est relu à chaque rendu du layout : une navigation côté client ne le rafraîchit pas.
 - Les éléments du bandeau de démonstration du prototype — « PLUKA Product Vision V1 · prototype », menu de scénarios, « Données et réponses IA simulées », « Formule : … » — n'ont pas d'équivalent produit (§8.1).
 - La déconnexion est à droite du bandeau du haut. Le prototype n'en a pas ; sans elle, on ne pourrait plus se déconnecter.
+- **Paramètres** (décision produit du 2026-10-07) : une entrée tout en bas de la barre latérale, séparée des sections de travail par un filet, au-dessus des liens vers les autres espaces ; en dernier onglet sur écran étroit. Visible de toute l’équipe ; ses sous-onglets suivent le rôle : « Équipe PLUKA » au seul super-admin, « Journal » à tous (le journal y est rangé depuis le 2026-10-07 ; « Utilisateurs », outil de support sur les comptes clients, reste au menu). Chaque famille de réglages y est un sous-onglet, et un réglage nouveau prend un sous-onglet, jamais une entrée de plus dans le menu principal.
+- **Créer un événement** (décisions produit du 2026-10-07) : un écran par étape sur `/evenements/nouveau?etape=1…4` — événement (nom, ville, organisation, site officiel facultatif ; slug replié), édition, épreuves, vérification — envoyées ensemble en une transaction à « Créer l’événement » ; puis l’étape 5, les documents, sur `/evenements/[eventId]/documents?creation=1`. L’adresse ne porte aucune saisie : une étape ne s’ouvre qu’après les précédentes, et un rechargement repart de la première. Si un site est donné, il est inventorié sans IA (SOURCES_EXTRACTION §11.1) et ses pages et documents de course y sont proposés cochés, à côté du dépôt de PDF. L’IA n’intervient que dans l’extraction des sources choisies.
+- **Le menu suit le rôle** (`03_PRIVACY_RLS.md` §4.1) : un support ne voit que Vue d’ensemble, Organisations, Événements, Utilisateurs, Imports et traitements, et Paramètres réduit au Journal ; les pages qu’il ouvre ne lui proposent pas de gestes d’écriture. Le menu n’autorise rien : une adresse tapée à la main reçoit le refus de la base.
+- `/invitation-equipe/[token]` est la seule page de la console ouverte hors équipe : aperçu du rôle et de l’état du lien sans session, connexion avec retour, puis acceptation. Non indexée, sans referrer.
 
 Les onglets reprennent les écrans du prototype : un titre de 38 px et sa phrase grise, puis une carte blanche cernée d'un filet par ligne (`--shadow-sm` du prototype vaut `0 0 0 1px`, un filet et non une ombre), des pastilles de statut et des états vides en carte. Un élément du prototype sans donnée en base n'est pas rendu, plutôt que deviné : le type et la date d'un événement, le contrat et la dernière activité d'une organisation, l'origine d'une fiche nutrition, « Demander correction » et « Fusionner ». Le contenu signalé et son auteur restent sur la fiche du signalement, dont l'ouverture est journalisée.
 

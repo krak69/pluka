@@ -35,6 +35,18 @@ export function consoleNotice(params: ConsoleNoticeParams): string | null {
         : `Traitement remis en file (relance n° ${n}).`;
     case 'valide':
       return 'Fiche validée : elle est désormais trouvable par tous les coureurs.';
+    case 'fiche-creee':
+      return 'Fiche créée.';
+    case 'fiche-modifiee':
+      return 'Fiche enregistrée. Une stratégie déjà confirmée garde ses valeurs.';
+    case 'fiche-supprimee':
+      return 'Fiche supprimée.';
+    case 'information-modifiee':
+      return 'Information corrigée : une nouvelle version est publiée, l’ancienne reste dans l’historique. Les plans qui en dépendaient sont signalés à revoir.';
+    case 'information-retiree':
+      return 'Information retirée : elle n’est plus visible des coureurs. Son historique est conservé ; elle peut être restaurée.';
+    case 'information-restauree':
+      return 'Information restaurée : elle est de nouveau visible.';
     case 'archive':
       return 'Fiche archivée : elle n’est plus proposée aux coureurs.';
     case 'organisation':
@@ -51,6 +63,8 @@ export function consoleNotice(params: ConsoleNoticeParams): string | null {
       return 'Rôle modifié. Il s’applique dès la prochaine page ouverte par ce membre.';
     case 'role-inchange':
       return 'Aucune modification : le membre avait déjà ce rôle.';
+    case 'acces-admin-retire':
+      return 'Membre retiré de l’équipe PLUKA : ses accès à l’administration ont cessé.';
     case 'membre-retire':
       return 'Membre retiré : ses accès à l’organisation ont cessé.';
     case 'organisation-inchangee':

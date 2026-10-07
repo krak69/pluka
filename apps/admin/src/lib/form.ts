@@ -1,8 +1,4 @@
-import type {
-  CreateEventCommand,
-  CreateOrganizationCommand,
-  UpdateOrganizationCommand,
-} from '@pluka/domain';
+import type { CreateOrganizationCommand, UpdateOrganizationCommand } from '@pluka/domain';
 
 /**
  * Lecture d'un `FormData` de Server Action.
@@ -120,27 +116,59 @@ function toInstant(value: string | undefined): string | null {
 }
 
 /**
- * Commande de création d'événement, telle que le formulaire la transmet.
+ * Commande de création d'un événement — les trois premières étapes du
+ * parcours (0042) : événement, édition, épreuves.
  *
- * Le type de retour est `unknown` : `createEvent` valide son entrée lui-même,
- * et annoncer ici une `CreateEventCommand` prétendrait d'un `FormData` qu'il
- * porte déjà des valeurs conformes. Le lien avec la commande du domaine est
- * tenu par le nom des champs, que les tests relisent dans le formulaire rendu.
+ * Les champs portent le chemin de la commande (`event.name`,
+ * `races.0.startTime`) : c'est aussi la clé des refus du domaine, qui se
+ * posent donc contre leur champ. Les épreuves arrivent indexées ; leurs
+ * indices sont relus dans le formulaire, dans l'ordre.
+ *
+ * Le type de retour est `unknown` en substance : `createEventWithEdition`
+ * valide son entrée lui-même. Un champ facultatif vide devient `null`.
  */
-export function createEventCommand(form: FormData): Record<keyof CreateEventCommand, unknown> {
-  const organizationId = text(form, 'organizationId');
+export function createEventWithEditionCommand(form: FormData): Record<string, unknown> {
+  const indexes = new Set<number>();
+  for (const key of form.keys()) {
+    const match = /^races\.(\d+)\.name$/.exec(key);
+    if (match !== null) indexes.add(Number(match[1]));
+  }
+
+  const orNull = (field: string): string | null => text(form, field) ?? null;
+  const numberOrNull = (field: string): number | null | undefined =>
+    text(form, field) === undefined ? null : optionalNumber(form, field);
 
   return {
-    // Champ vide : événement maintenu par PLUKA, sans organisation
-    // gestionnaire (§4.1, 02_DATA_MODEL §3.1).
-    organizationId: organizationId ?? null,
-    name: text(form, 'name'),
-    slug: text(form, 'slug'),
+    event: {
+      name: text(form, 'event.name'),
+      slug: text(form, 'event.slug'),
+      // Champ vide : événement maintenu par PLUKA, sans organisation (§4.1).
+      organizationId: orNull('event.organizationId'),
+      city: orNull('event.city'),
+      officialWebsiteUrl: orNull('event.officialWebsiteUrl'),
+    },
+    edition: {
+      year: optionalNumber(form, 'edition.year'),
+      slug: text(form, 'edition.slug'),
+      startDate: text(form, 'edition.startDate'),
+      endDate: orNull('edition.endDate'),
+    },
+    races: [...indexes]
+      .sort((left, right) => left - right)
+      .map((index) => ({
+        name: text(form, `races.${index}.name`),
+        slug: text(form, `races.${index}.slug`),
+        distanceKm: optionalNumber(form, `races.${index}.distanceKm`),
+        elevationGainM: numberOrNull(`races.${index}.elevationGainM`),
+        startDate: text(form, `races.${index}.startDate`),
+        startTime: text(form, `races.${index}.startTime`),
+        timezone: text(form, `races.${index}.timezone`),
+      })),
   };
 }
 
 /**
- * Commande de création d'organisation — même principe que `createEventCommand`.
+ * Commande de création d'organisation — même principe que `createEventWithEditionCommand`.
  * Un champ facultatif laissé vide devient `null` : la colonne reste vide plutôt
  * que de recevoir une chaîne vide.
  */
@@ -166,4 +194,78 @@ export function updateOrganizationCommand(
     websiteUrl: text(form, 'websiteUrl') ?? null,
     status: text(form, 'status'),
   };
+}
+
+/**
+ * Fiche produit telle que le formulaire la poste — migration 0039. Rien n'est
+ * validé ici : `saveNutritionProduct` a son schéma. Un nombre vide devient
+ * `null`, jamais 0 (AGENTS §38) ; la virgule décimale est acceptée ; une case
+ * à trois états (« oui », « non », « non renseigné ») rend `true`, `false` ou
+ * `null`.
+ */
+export function nutritionProductFromForm(form: FormData): Record<string, unknown> {
+  const decimal = (field: string): number | null => {
+    const value = text(form, field);
+    if (value === undefined) return null;
+    const parsed = Number(value.replace(',', '.'));
+    return Number.isFinite(parsed) ? parsed : Number.NaN;
+  };
+  const triState = (field: string): boolean | null => {
+    const value = text(form, field);
+    return value === 'true' ? true : value === 'false' ? false : null;
+  };
+  const servingQuantity = decimal('servingQuantity');
+
+  return {
+    category: text(form, 'category'),
+    brand: text(form, 'brand') ?? null,
+    name: text(form, 'name') ?? '',
+    variant: text(form, 'variant') ?? null,
+    servingQuantity,
+    servingUnit: servingQuantity === null ? null : 'g',
+    caloriesKcal: decimal('caloriesKcal'),
+    carbsG: decimal('carbsG'),
+    sodiumMg: decimal('sodiumMg'),
+    caffeineMg: decimal('caffeineMg'),
+    hydrationMl: decimal('hydrationMl'),
+    potassiumMg: decimal('potassiumMg'),
+    magnesiumMg: decimal('magnesiumMg'),
+    proteinG: decimal('proteinG'),
+    fatG: decimal('fatG'),
+    fiberG: decimal('fiberG'),
+    texture: text(form, 'texture') ?? null,
+    glucoseFructoseRatio: text(form, 'glucoseFructoseRatio') ?? null,
+    isVegan: triState('isVegan'),
+    isOrganic: triState('isOrganic'),
+    isGlutenFree: triState('isGlutenFree'),
+    tags: form.getAll('tags').filter((tag): tag is string => typeof tag === 'string'),
+    imageUrl: text(form, 'imageUrl') ?? null,
+    purchaseUrl: text(form, 'purchaseUrl') ?? null,
+    purchaseIsAffiliate: form.get('purchaseIsAffiliate') === 'on',
+    sourceUrl: text(form, 'sourceUrl') ?? null,
+    status: text(form, 'status'),
+  };
+}
+
+/**
+ * La valeur corrigée, si elle diffère de la proposition. Les originaux
+ * arrivent en champs cachés : le formulaire est prérempli, donc « non vide »
+ * ne veut plus dire « corrigé ».
+ */
+export function candidateCorrection(form: FormData): {
+  valueText?: string | null;
+  valueNumber?: number | null;
+  unit?: string | null;
+} {
+  const valueText = text(form, 'valueText') ?? null;
+  const rawNumber = text(form, 'valueNumber');
+  const valueNumber = rawNumber === undefined ? null : Number(rawNumber.replace(',', '.'));
+  const unit = text(form, 'unit') ?? null;
+
+  const edited =
+    valueText !== (text(form, 'original.valueText') ?? null) ||
+    (rawNumber ?? null) !== (text(form, 'original.valueNumber') ?? null) ||
+    unit !== (text(form, 'original.unit') ?? null);
+
+  return edited ? { valueText, valueNumber, unit } : {};
 }

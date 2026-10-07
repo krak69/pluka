@@ -143,7 +143,7 @@ beforeAll(async () => {
 
   client = createServiceRoleClient({ url: SUPABASE_URL, secretKey: SERVICE_KEY });
 
-  const base = createPorts(client, { appUrl: TEST_APP_URL });
+  const base = createPorts(client, { appUrl: TEST_APP_URL, adminUrl: 'http://localhost:3002' });
   ports = { ...base, email: fakeEmail, appUrl: 'https://app.pluka.test' };
 
   await client.from('organizations').delete().eq('id', ORG_ID);

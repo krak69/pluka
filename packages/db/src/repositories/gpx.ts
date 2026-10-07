@@ -111,7 +111,7 @@ export const raceGpxRepository = defineRepository<RaceGpxRepository>((context) =
  * correspond, pour qu'un refus d'autorisation se lise comme tel plutôt que
  * comme une panne (voir `mapPostgrestError`).
  */
-function storageError(
+export function storageError(
   error: { message?: string | undefined; statusCode?: string | undefined },
   operation: string,
 ): DbError {

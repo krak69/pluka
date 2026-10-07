@@ -1,9 +1,10 @@
 import type { PlukaClient } from '@pluka/db';
 
 import { createAI } from './ai/index.js';
+import { createDiscoveryStore } from './discoveries-store.js';
 import { createEmail } from './email/index.js';
 import { createNotificationStore } from './notifications-store.js';
-import { createInvitationStore } from './invitations-store.js';
+import { createInvitationStore, createStaffInvitationStore } from './invitations-store.js';
 import type { ConfiguredAI, WorkerPorts } from './ports.js';
 import { fetchSource } from './fetcher.js';
 import {
@@ -41,6 +42,8 @@ import {
 export interface PortsConfig {
   /** Base des liens envoyés au coureur. */
   readonly appUrl: string;
+  /** Base des liens d'invitation à l'équipe PLUKA. */
+  readonly adminUrl: string;
 }
 
 export function createPorts(
@@ -60,8 +63,11 @@ export function createPorts(
     impacts: createImpactStore(client),
     notifications: createNotificationStore(client),
     invitations: createInvitationStore(client),
+    staffInvitations: createStaffInvitationStore(client),
+    discoveries: createDiscoveryStore(client),
     email: createEmail(process.env),
     appUrl: config.appUrl,
+    adminUrl: config.adminUrl,
     ai,
     outbox: createOutboxDispatcher(client),
     logger: createLogger(),

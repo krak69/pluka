@@ -1,10 +1,14 @@
 import {
   DomainError,
   getAdminOrganization,
+  getAdminOrganizationDependencies,
+  getMyStaffRole,
+  ORGANIZATION_DELETION_EFFECTS,
   listAdminOrganizations,
   listOrganizationTeam,
   type OrganizationTeam,
 } from '@pluka/domain';
+import type { OrganizationDependencyRecord as OrganizationDependency } from '@pluka/db';
 import { TerrainBand } from '@pluka/ui';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -24,6 +28,7 @@ import {
   organizationTeamContext,
   redirectOnReadError,
   requireAdminConsoleContext,
+  staffTeamContext,
 } from '@/lib/admin';
 import { consoleNotice, type ConsoleNoticeParams } from '@/lib/console-notice';
 import { day } from '@/lib/format';
@@ -50,6 +55,57 @@ export const metadata = { title: 'Organisation' };
 
 function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`;
+}
+
+/**
+ * Les familles de 0037, dites comme l'écran les montre ailleurs. Des
+ * fonctions plutôt que des paires singulier / pluriel : le pluriel se
+ * construit, et aucune chaîne de l'écran ne recopie un nom de table.
+ */
+const s = (count: number): string => (count > 1 ? 's' : '');
+
+const DEPENDENCY_LABELS: Readonly<Record<string, (count: number) => string>> = {
+  members: (n) => `${n} membre${s(n)}`,
+  events: (n) => `${n} événement${s(n)}`,
+  sources: (n) => `${n} source${s(n)}`,
+  published_facts: (n) => `${n} information${s(n)} publiée${s(n)}`,
+  notices: (n) => `${n} notice${s(n)} officielle${s(n)}`,
+  change_events: (n) => `${n} changement${s(n)} publié${s(n)}`,
+  entitlements: (n) => `${n} droit${s(n)} participant${s(n)}`,
+  participant_imports: (n) => `${n} import${s(n)} de participants`,
+  enrichment_imports: (n) => `${n} import${s(n)} d’enrichissement`,
+};
+
+/** La part de ce qui retient l'organisation qui subit un effet donné (0038). */
+function summaryOf(
+  dependencies: readonly OrganizationDependency[],
+  effect: 'removed' | 'detached',
+  suffix: string,
+  none: string,
+): string {
+  const parts = dependencies
+    .filter((dependency) => ORGANIZATION_DELETION_EFFECTS[dependency.kind] === effect)
+    .map(dependencyLabel);
+  return parts.length === 0 ? none : `${parts.join(', ')}${suffix}`;
+}
+
+function removedSummary(dependencies: readonly OrganizationDependency[]): string {
+  return summaryOf(
+    dependencies,
+    'removed',
+    ', et les invitations en attente',
+    'Les invitations en attente',
+  );
+}
+
+function detachedSummary(dependencies: readonly OrganizationDependency[]): string {
+  return summaryOf(dependencies, 'detached', ' → Maintenus par PLUKA', 'Aucun événement');
+}
+
+function dependencyLabel(dependency: { readonly kind: string; readonly total: number }): string {
+  return (DEPENDENCY_LABELS[dependency.kind] ?? ((n) => `${n} ${dependency.kind}`))(
+    dependency.total,
+  );
 }
 
 type Invitation = OrganizationTeam['invitations'][number];
@@ -135,13 +191,26 @@ export default async function OrganizationPage({
     },
   );
 
+  const session = await requireSession(returnTo);
+  // Support lit la fiche sans ses gestes (0035) : la base les refuserait.
+  const staffRole = await getMyStaffRole(staffTeamContext(session));
+  const readOnly = staffRole === 'support';
+  const isSuperAdmin = staffRole === 'super_admin';
+
   const [team, summaries] = await Promise.all([
-    listOrganizationTeam(organizationTeamContext(await requireSession(returnTo)), {
+    listOrganizationTeam(organizationTeamContext(session), {
       organizationId,
     }).catch(redirectOnReadError),
     // Les compteurs d'événements et d'épreuves sont ceux de la liste (0028).
     listAdminOrganizations(context, { limit: 500 }).catch(redirectOnReadError),
   ]);
+
+  // Ce qui retient l'organisation (0037) — lu seulement pour qui peut supprimer.
+  const dependencies = readOnly
+    ? []
+    : await getAdminOrganizationDependencies(context, { organizationId }).catch(
+        redirectOnReadError,
+      );
 
   const summary = summaries.find((candidate) => candidate.organizationId === organizationId);
   const owners = team.members.filter((member) => member.role === 'owner').length;
@@ -165,11 +234,15 @@ export default async function OrganizationPage({
           </p>
         }
         footer={`${organization.slug} · créée le ${day(organization.createdAt)}`}
-        primaryAction={
-          <a href="#inviter" className="pk-btn pk-button-primary">
-            Inviter un membre
-          </a>
-        }
+        {...(readOnly
+          ? {}
+          : {
+              primaryAction: (
+                <a href="#inviter" className="pk-btn pk-button-primary">
+                  Inviter un membre
+                </a>
+              ),
+            })}
       />
 
       <ConsoleNotice notice={notice} />
@@ -183,7 +256,7 @@ export default async function OrganizationPage({
                 <span className="ad-org-todo-title">{todo.title}</span>
                 <span className="ad-org-todo-detail">{todo.detail}</span>
               </div>
-              <div className="ad-org-todo-action">{todo.action}</div>
+              {readOnly ? null : <div className="ad-org-todo-action">{todo.action}</div>}
             </li>
           ))}
         </ul>
@@ -247,23 +320,29 @@ export default async function OrganizationPage({
 
       <div className="ad-org-grid">
         <section className="ad-org-panel" aria-labelledby="team-title">
-          <TeamSection organizationId={organization.organizationId} team={team} />
-        </section>
-
-        <section className="ad-org-panel" aria-labelledby="invite-title" id="inviter">
-          <h2 id="invite-title" className="ad-org-panel-title">
-            Inviter quelqu’un
-          </h2>
-          <p className="ad-org-panel-lede">
-            Par email, valable 7 jours. La personne accepte en se connectant avec cette adresse —
-            pas besoin de compte au préalable. Réinviter une adresse annule le lien précédent.
-          </p>
-          <InviteMemberForm
+          <TeamSection
             organizationId={organization.organizationId}
-            roles={ORGANIZATION_ROLE_OPTIONS}
-            defaultRole={owners === 0 ? 'owner' : 'viewer'}
+            team={team}
+            readOnly={readOnly}
           />
         </section>
+
+        {readOnly ? null : (
+          <section className="ad-org-panel" aria-labelledby="invite-title" id="inviter">
+            <h2 id="invite-title" className="ad-org-panel-title">
+              Inviter quelqu’un
+            </h2>
+            <p className="ad-org-panel-lede">
+              Par email, valable 7 jours. La personne accepte en se connectant avec cette adresse —
+              pas besoin de compte au préalable. Réinviter une adresse annule le lien précédent.
+            </p>
+            <InviteMemberForm
+              organizationId={organization.organizationId}
+              roles={ORGANIZATION_ROLE_OPTIONS}
+              defaultRole={owners === 0 ? 'owner' : 'viewer'}
+            />
+          </section>
+        )}
       </div>
 
       <div className="ad-org-grid">
@@ -283,31 +362,80 @@ export default async function OrganizationPage({
             <dt>Site web</dt>
             <dd>{organization.websiteUrl ?? 'Aucun'}</dd>
           </dl>
-          <details className="ad-disclosure">
-            <summary>Modifier les informations…</summary>
-            <EditOrganizationForm organization={organization} />
-          </details>
+          {readOnly ? null : (
+            <details className="ad-disclosure">
+              <summary>Modifier les informations…</summary>
+              <EditOrganizationForm organization={organization} />
+            </details>
+          )}
         </section>
 
-        <section className="ad-org-panel ad-org-panel-quiet" aria-labelledby="delete-title">
-          <h2 id="delete-title" className="ad-org-panel-title">
-            Supprimer l’organisation
-          </h2>
-          <p className="ad-org-panel-lede">
-            Réservé à une organisation créée par erreur : sans membre, sans événement, sans source
-            ni droit associé. Une organisation qui a servi se termine par le statut « Terminé ».
-          </p>
-          <details className="ad-disclosure">
-            <summary>Supprimer…</summary>
-            <ConsoleAction
-              action={deleteOrganizationAction}
-              fields={{ organizationId: organization.organizationId }}
-              label="Supprimer définitivement"
-              variant="destructive"
-              confirm="Je confirme supprimer définitivement cette organisation"
-            />
-          </details>
-        </section>
+        {readOnly ? null : (
+          <section className="ad-org-panel ad-org-panel-quiet" aria-labelledby="delete-title">
+            <h2 id="delete-title" className="ad-org-panel-title">
+              Supprimer l’organisation
+            </h2>
+            {dependencies.length === 0 ? (
+              <>
+                <p className="ad-org-panel-lede">
+                  Rien ne retient cette organisation : elle peut être supprimée. La suppression est
+                  définitive ; le journal garde son slug.
+                </p>
+                <details className="ad-disclosure">
+                  <summary>Supprimer…</summary>
+                  <ConsoleAction
+                    action={deleteOrganizationAction}
+                    fields={{ organizationId: organization.organizationId }}
+                    label="Supprimer définitivement"
+                    variant="destructive"
+                    confirm="Je confirme supprimer définitivement cette organisation"
+                  />
+                </details>
+              </>
+            ) : isSuperAdmin ? (
+              <>
+                <p className="ad-org-panel-lede">
+                  L’organisation disparaît de PLUKA. Ce qu’elle porte est traité ainsi :
+                </p>
+                <dl className="ad-org-facts">
+                  <dt>Retiré</dt>
+                  <dd>{removedSummary(dependencies)}</dd>
+                  <dt>Détaché</dt>
+                  <dd>{detachedSummary(dependencies)}</dd>
+                  <dt>Conservé</dt>
+                  <dd>
+                    Préparations et droits des coureurs, provenance des informations publiées.
+                  </dd>
+                </dl>
+                <details className="ad-disclosure">
+                  <summary>Supprimer…</summary>
+                  <ConsoleAction
+                    action={deleteOrganizationAction}
+                    fields={{ organizationId: organization.organizationId }}
+                    label="Supprimer l’organisation"
+                    variant="destructive"
+                    confirm="Je confirme supprimer cette organisation et détacher ce qu’elle porte"
+                  />
+                </details>
+              </>
+            ) : (
+              <>
+                <p className="ad-org-panel-lede">
+                  Seul un super-admin peut supprimer une organisation qui porte des données :
+                </p>
+                <ul className="ad-org-blockers" aria-label="Ce qui retient l’organisation">
+                  {dependencies.map((dependency) => (
+                    <li key={dependency.kind}>{dependencyLabel(dependency)}</li>
+                  ))}
+                </ul>
+                <p className="ad-org-panel-lede">
+                  Sinon, une organisation qui a servi se termine par le statut « Terminé », dans les
+                  informations ci-dessus.
+                </p>
+              </>
+            )}
+          </section>
+        )}
       </div>
     </main>
   );

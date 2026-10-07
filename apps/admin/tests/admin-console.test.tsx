@@ -135,9 +135,10 @@ describe('libellés de statut', () => {
 
     // La file de Validation nomme le type de chaque information extraite.
     for (const category of enumValues('fact_category')) {
-      expect(factCategoryLabel(category), `catégorie d’information ${category} sans libellé`).not.toBe(
-        category,
-      );
+      expect(
+        factCategoryLabel(category),
+        `catégorie d’information ${category} sans libellé`,
+      ).not.toBe(category);
     }
   });
 
@@ -184,8 +185,9 @@ describe('libellés de statut', () => {
 });
 
 describe('navigation', () => {
-  it('porte les dix destinations du prototype', () => {
-    expect(ADMIN_NAV).toHaveLength(10);
+  it('porte les destinations du prototype, moins le journal rangé sous Paramètres', () => {
+    expect(ADMIN_NAV).toHaveLength(9);
+    expect(ADMIN_NAV.map((destination) => destination.href)).not.toContain('/journal');
 
     // `/courses/[raceId]` n'en fait pas partie : l'administration d'une épreuve
     // se rejoint par Événements → événement → épreuve, et `adminNav` ne change
@@ -195,7 +197,7 @@ describe('navigation', () => {
 
   it('n’allume la racine que sur la racine', () => {
     expect(isCurrent('/', '/')).toBe(true);
-    expect(isCurrent('/journal', '/')).toBe(false);
+    expect(isCurrent('/parametres/journal', '/')).toBe(false);
     expect(isCurrent('/utilisateurs/abc', '/')).toBe(false);
   });
 
@@ -225,7 +227,6 @@ describe('navigation', () => {
       '/signalements/7f1a',
       '/utilisateurs',
       '/traitements',
-      '/journal',
     ]) {
       const lit = ADMIN_NAV.filter((destination) => isCurrent(pathname, destination.href));
 

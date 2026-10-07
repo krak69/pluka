@@ -30,7 +30,10 @@ export default async function ProductReportsPage() {
       <BankHeader current="/produits/signalements" />
 
       <AdminEmpty icon="Flag" title="Aucun signalement.">
-        <p>Signaler une fiche nutrition n’existe pas encore : le modèle de données ne connaît que les signalements de contenus de forum.</p>
+        <p>
+          Signaler une fiche nutrition n’existe pas encore : le modèle de données ne connaît que les
+          signalements de contenus de forum.
+        </p>
         <p>
           Ceux-là ont leur file :{' '}
           <Link href="/signalements" className="pk-link">

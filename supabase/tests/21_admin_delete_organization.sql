@@ -15,7 +15,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(14);
+select plan(16);
 
 \ir _personas.psql
 
@@ -101,8 +101,21 @@ select throws_ok(
 -- Org B a des membres et un événement : les deux sont nommés.
 select throws_like(
   $$ select public.admin_delete_organization('aaaaaaaa-0000-4000-8000-000000000002') $$,
-  '%organization_members, events%',
+  '%events, members%',
   'ADMD-08 — le refus nomme les donnees encore liees'
+);
+
+-- 0037 : la fiche lit, avant le clic, ce qui retient l'organisation.
+select results_eq(
+  $$ select kind, total from public.admin_get_organization_dependencies('aaaaaaaa-0000-4000-8000-000000000002')
+     where kind in ('members', 'events') order by kind $$,
+  $$ values ('events'::text, 1::bigint), ('members'::text, 1::bigint) $$,
+  'ADMD-15 — administrateur : la fiche dit ce qui retient l''organisation, famille par famille'
+);
+
+select is_empty(
+  $$ select * from public.admin_get_organization_dependencies('aaaaaaaa-0000-4000-8000-0000000000c1') $$,
+  'ADMD-16 — une organisation vide n''a rien qui la retienne'
 );
 
 select lives_ok(
@@ -137,7 +150,7 @@ select is(
 
 select is(
   (select after_data from private.audit_logs where action = 'organization.delete'),
-  jsonb_build_object('slug', 'org-c', 'status', 'prospect'),
+  jsonb_build_object('slug', 'org-c', 'status', 'prospect', 'mode', 'erased'),
   'ADMD-13 — l''audit garde le slug et le statut de la ligne supprimee'
 );
 

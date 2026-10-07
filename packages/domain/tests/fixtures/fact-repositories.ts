@@ -95,7 +95,7 @@ export function baseFactState(overrides: Partial<FactFakeState> = {}): FactFakeS
       { organizationId: ORG_A, userId: EDITOR_A, role: 'editor' },
       { organizationId: ORG_A, userId: VIEWER_A, role: 'viewer' },
     ],
-    identities: [{ id: PLUKA_ADMIN, platformRole: 'pluka_admin' }],
+    identities: [{ id: PLUKA_ADMIN, platformRole: 'pluka_admin', staffRole: 'admin' }],
     published: [],
     decided: [],
     invisibleTo: [],

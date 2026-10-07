@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AdminShell } from '@/components/admin-shell';
-import { ADMIN_NAV } from '@/components/admin-nav';
+import { ADMIN_NAV, isFocusMode } from '@/components/admin-nav';
 
 /**
  * Shell de la console — barre latérale du prototype (`screen === 'admin'`).
@@ -32,12 +32,14 @@ function render(
   pendingValidation: number | null,
   appUrl = APP_URL,
   withSession = true,
+  staffRole: 'super_admin' | 'admin' | 'support' | null = 'admin',
 ): string {
   return renderToStaticMarkup(
     <AdminShell
       pendingValidation={pendingValidation}
       appUrl={appUrl}
       signOut={withSession ? signOut : null}
+      staffRole={staffRole}
     >
       <main>contenu</main>
     </AdminShell>,
@@ -64,7 +66,7 @@ describe('barre latérale', () => {
     expect(aside).toContain('Équipe PLUKA · toutes organisations');
   });
 
-  it('porte les dix destinations, chacune libellée et munie d’une icône décorative', () => {
+  it('porte les neuf sections et Paramètres, chacune libellée et munie d’une icône décorative', () => {
     const aside = sidebar(render(null));
 
     for (const destination of ADMIN_NAV) {
@@ -143,7 +145,7 @@ describe('bandeau du haut', () => {
 });
 
 describe('variante étroite', () => {
-  it('rend aussi les dix destinations en onglets, sans icône', () => {
+  it('rend aussi les neuf sections et Paramètres en onglets, sans icône', () => {
     const markup = render(null);
     const tabs = /<nav[^>]*class="pk-tabs ad-mobile-nav"[^>]*>([\s\S]*?)<\/nav>/.exec(markup)?.[1];
 
@@ -173,5 +175,59 @@ describe('contenu', () => {
 
     expect(markup).toContain('href="#contenu"');
     expect(markup).toContain('<div id="contenu" class="ad-content"><main>contenu</main></div>');
+  });
+
+  it('« Paramètres » tout en bas, pour toute l’équipe : le journal y vit', () => {
+    for (const role of ['super_admin', 'admin', 'support'] as const) {
+      const aside = sidebar(render(null, APP_URL, true, role));
+
+      expect(aside, role).toContain('href="/parametres"');
+      // Le journal n'est plus une section de travail.
+      expect(aside, role).not.toContain('href="/journal"');
+      // Après les sections de travail : dans le pied de la barre, avant les autres espaces.
+      expect(aside.indexOf('href="/parametres"')).toBeGreaterThan(
+        aside.indexOf('href="/traitements"'),
+      );
+      expect(aside.indexOf('href="/parametres"')).toBeLessThan(
+        aside.indexOf('Espace organisateur'),
+      );
+    }
+    // Rôle inconnu : pas de Paramètres.
+    expect(sidebar(render(null, APP_URL, true, null))).not.toContain('href="/parametres"');
+  });
+
+  it('ne montre au support que ce qu’il peut lire', () => {
+    const support = sidebar(render(null, APP_URL, true, 'support'));
+
+    for (const href of [
+      '/vue-d-ensemble',
+      '/organisations',
+      '/utilisateurs',
+      '/traitements',
+      '/parametres',
+    ]) {
+      expect(support).toContain(`href="${href}"`);
+    }
+    for (const href of ['/validation', '/sources', '/produits', '/signalements']) {
+      expect(support).not.toContain(`href="${href}"`);
+    }
+  });
+});
+
+describe('plein écran', () => {
+  it('garde la barre latérale et efface le bandeau pendant la création d’un événement', () => {
+    pathname = '/evenements/nouveau';
+    const markup = render(null);
+
+    expect(markup).toContain('ad-sidebar');
+    expect(markup).not.toContain('ad-topbar');
+    expect(markup).toContain('href="#contenu"');
+    expect(markup).toContain('<main>contenu</main>');
+  });
+
+  it('ne touche à aucun autre écran, fiche d’événement comprise', () => {
+    expect(isFocusMode('/evenements/nouveau')).toBe(true);
+    expect(isFocusMode('/evenements/abc')).toBe(false);
+    expect(isFocusMode('/evenements/nouveautes')).toBe(false);
   });
 });

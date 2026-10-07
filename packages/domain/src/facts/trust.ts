@@ -1,6 +1,7 @@
 import type { FactRepositories } from '@pluka/db';
 
 import {
+  canWritePlatform,
   hasOrganizationRole,
   type Actor,
   type OrganizationRole,
@@ -53,7 +54,7 @@ export async function resolvePublicationAuthority(
       : await repositories.identity.findMembership(actor.userId, organizationId);
 
   return {
-    isPlatformAdmin: identity?.platformRole === 'pluka_admin',
+    isPlatformAdmin: canWritePlatform(identity),
     organizationRole: membership?.role ?? null,
   };
 }

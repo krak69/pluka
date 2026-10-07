@@ -91,6 +91,10 @@ export default async function RacePage({
       <Link href={`/courses/${race.id}/revue`} className="pk-link">
         Ouvrir la revue
       </Link>
+      {' · '}
+      <Link href={`/courses/${race.id}/informations`} className="pk-link">
+        Informations publiées — corriger ou supprimer
+      </Link>
 
       <Divider spaced />
 

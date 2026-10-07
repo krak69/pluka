@@ -1288,3 +1288,905 @@ a.ad-card:hover {
   color: var(--pk-dawn-ink);
   font-weight: 600;
 }
+
+/*
+ * « Paramètres », tout en bas du menu (0035, 0036) : séparé des sections de
+ * travail par un filet, au-dessus des liens vers les autres espaces.
+ */
+.ad-settings-nav {
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-2);
+  border-bottom: 1px solid color-mix(in srgb, var(--pk-text-on-dark) 14%, transparent);
+}
+
+/* Ce qui retient une organisation (0037) : une liste courte, lue avant le clic. */
+.ad-org-blockers {
+  margin: 0;
+  padding-left: var(--space-5);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--pk-text);
+}
+
+/* ══ Banque Nutrition — migration 0039 ════════════════════════════════════
+ *
+ * Sur le modèle du catalogue nutra.run, dans la grammaire PLUKA : une ligne à
+ * filets par fiche (06_DESIGN_SYSTEM §38), vignette, nom, type, nutrition,
+ * tags, achat, statut, gestes. Sous 1100 px, la ligne passe sur plusieurs
+ * rangs plutôt que de déborder.
+ */
+.ad-bank-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ad-bank-search {
+  max-width: 40rem;
+}
+
+.ad-products .ad-product {
+  align-items: center;
+}
+
+.ad-product-thumb {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  color: var(--pk-text-muted);
+}
+
+.ad-product-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.ad-product-nutrition {
+  flex: 1 1 14rem;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--pk-text-secondary);
+}
+
+.ad-product-tags {
+  display: flex;
+  flex: 0 1 12rem;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.ad-product-purchase {
+  flex: none;
+  min-width: 4.5rem;
+  font-size: 13px;
+}
+
+/* §98 : un lien affilié se dit, toujours, à côté du lien. */
+.ad-affiliate {
+  color: var(--pk-text-muted);
+  font-size: 12px;
+}
+
+.ad-product-actions {
+  flex: none;
+}
+
+.ad-product-preview {
+  display: inline-flex;
+  width: 120px;
+  height: 120px;
+  padding: var(--space-2);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+}
+
+.ad-product-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Formulaire de fiche : sections en panneaux, champs en grille. */
+.ad-product-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 64rem;
+}
+
+.ad-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: var(--space-4) var(--space-5);
+}
+
+.ad-form-grid-wide {
+  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
+}
+
+.ad-form-grid-nutrients {
+  grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
+}
+
+.ad-form-narrow {
+  max-width: 24rem;
+}
+
+.ad-tag-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.ad-tag-choices legend {
+  margin-bottom: var(--space-2);
+}
+
+.ad-tag-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  cursor: pointer;
+  font-size: 13.5px;
+}
+
+.ad-tag-choice:has(input:checked) {
+  border-color: var(--pk-forest);
+  background: color-mix(in srgb, var(--pk-lichen) 22%, var(--pk-surface));
+}
+
+.ad-tag-choice:has(input:focus-visible) {
+  outline: 2px solid var(--pk-forest);
+  outline-offset: 2px;
+}
+
+.ad-tag-choice input {
+  accent-color: var(--pk-forest);
+}
+
+.ad-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.ad-bank-search {
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Gestes compacts : 44 px, la cible minimale (§29) — pas le CTA de 52 px. */
+.ad-products .pk-btn,
+.ad-product-form .pk-btn,
+.ad-bank-actions .pk-btn {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  font-size: 13.5px;
+}
+
+.ad-bank-search input {
+  flex: 1;
+  min-width: 0;
+}
+
+/*
+ * Au-delà de 1100 px, une fiche tient sur une ligne, en colonnes alignées —
+ * le tableau de nutra.run, sans en-têtes de tableau : chaque cellule dit ce
+ * qu'elle est. Un geste déplié (archiver, supprimer) s'ouvre sous la ligne.
+ */
+@media (width >= 1100px) {
+  .ad-products .ad-product {
+    display: grid;
+    grid-template-columns:
+      44px minmax(12rem, 1.3fr) 8.5rem minmax(12rem, 1.5fr) minmax(8rem, 1fr)
+      5.5rem 6rem auto;
+    align-items: center;
+  }
+
+  .ad-products .ad-row-main {
+    min-width: 0;
+  }
+
+  .ad-products .ad-product-actions {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+  }
+
+  .ad-products .ad-row-disclosure[open] {
+    position: relative;
+  }
+}
+
+@media (width >= 1100px) {
+  .ad-products .ad-product {
+    grid-template-columns:
+      44px minmax(11rem, 1.3fr) auto minmax(10rem, 1.2fr) minmax(7rem, 1fr)
+      auto auto minmax(11rem, auto);
+  }
+
+  /* Une pastille garde sa taille : elle ne s'étire pas sur sa colonne. */
+  .ad-products .ad-product > .ad-chip {
+    justify-self: start;
+  }
+
+  .ad-products .ad-product-actions {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+}
+
+/*
+ * Chaque ligne est sa propre grille : des pistes `auto` s'y dimensionneraient
+ * ligne par ligne, et les colonnes ne s'aligneraient plus. Largeurs fixes pour
+ * ce qui est court, fractions pour le reste.
+ */
+@media (width >= 1100px) {
+  .ad-products .ad-product {
+    grid-template-columns:
+      44px minmax(11rem, 1.4fr) 8.5rem minmax(10rem, 1.3fr) minmax(8rem, 1fr)
+      5rem 6.5rem 16rem;
+  }
+}
+
+.ad-product-nutrition {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (width >= 1100px) {
+  .ad-products .ad-product {
+    column-gap: var(--space-3);
+    grid-template-columns:
+      44px minmax(10rem, 1.4fr) 8rem minmax(9rem, 1.2fr) minmax(7rem, 1fr)
+      4.5rem 6rem 14rem;
+  }
+
+  .ad-products .ad-product-actions {
+    justify-content: flex-end;
+    column-gap: var(--space-3);
+  }
+}
+
+/* ── Création depuis le site officiel (0040) ────────────────────────────*/
+
+/*
+ * Fil des étapes : cinq segments côte à côte, chacun une barre qui se remplit
+ * — Forêt une fois faite, Aube pour l'étape en cours (§43) — au-dessus de son
+ * numéro et de son nom. Sur écran étroit, seul le nom de l'étape en cours
+ * reste écrit ; les autres gardent leur numéro.
+ */
+.ad-stepper {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ad-stepper-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 44px;
+  padding-top: var(--space-3);
+  border-top: 3px solid var(--pk-hairline);
+  color: var(--pk-text-secondary);
+  font-size: 14px;
+}
+
+.ad-stepper-step.is-done {
+  border-top-color: var(--pk-forest);
+}
+
+.ad-stepper-step.is-current {
+  border-top-color: var(--pk-dawn);
+}
+
+@media (width < 640px) {
+  .ad-stepper-step:not(.is-current) .ad-stepper-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+.ad-stepper-step.is-current {
+  color: var(--pk-text);
+  font-weight: 600;
+}
+
+.ad-stepper-number {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/*
+ * L'étape courante porte le repère Aube : la prochaine action (§43). Le
+ * chiffre reste en couleur de texte — l'Aube sur fond clair n'atteint pas le
+ * contraste AA d'un texte de 12 px ; le filet suffit à marquer l'étape.
+ */
+.ad-stepper-step.is-current .ad-stepper-number {
+  border: 2px solid var(--pk-dawn);
+}
+
+.ad-stepper-step.is-done .ad-stepper-number {
+  background: var(--pk-forest);
+  border-color: var(--pk-forest);
+  color: var(--pk-surface);
+}
+
+.ad-similar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ad-review-races {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.ad-review-race {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.ad-review-race-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ad-review-race-remove {
+  margin-left: auto;
+}
+
+.ad-docs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.ad-doc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 52px;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.ad-doc-choice {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  min-width: min(18rem, 100%);
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.ad-doc-choice input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--pk-forest);
+}
+
+.ad-doc-title {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.ad-doc-scope select {
+  min-width: 12rem;
+}
+
+.ad-doc-upload {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 40rem;
+}
+
+.ad-doc-upload .pk-field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ad-findings {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), 1fr));
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.ad-finding {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.ad-finding-count {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Informations publiées (0043) ───────────────────────────────────────*/
+
+.ad-quote {
+  max-width: var(--content-reading);
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-left: 2px solid var(--pk-hairline);
+  color: var(--pk-text-secondary);
+}
+
+/* ── Création d'un événement : un écran par étape ───────────────────────*/
+
+.ad-stepper-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ad-stepper-link:hover {
+  text-decoration: underline;
+}
+
+.ad-stepper-link:focus-visible {
+  outline: 2px solid var(--pk-forest);
+  outline-offset: 2px;
+}
+
+/* Une étape occupe l'écran : une colonne de lecture, pas une grille de panneaux. */
+.ad-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 44rem;
+  padding: var(--space-6) 0 var(--space-2);
+}
+
+.ad-step[hidden] {
+  display: none;
+}
+
+.ad-step-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ad-step-count {
+  margin: 0;
+  color: var(--pk-text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.ad-step-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.ad-step-title:focus {
+  outline: none;
+}
+
+.ad-step-lede {
+  max-width: var(--content-reading);
+  margin: 0;
+  color: var(--pk-text-secondary);
+}
+
+.ad-step-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Réglages qu'on change rarement — slug, fuseau : repliés, jamais cachés. */
+.ad-advanced {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.ad-advanced > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--pk-text-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+
+.ad-advanced > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Le repli dit qu'il se déplie : un chevron, tourné une fois ouvert. */
+.ad-advanced > summary::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  flex: none;
+}
+
+.ad-advanced[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ad-advanced > summary::before {
+    transition: transform 120ms ease;
+  }
+}
+
+.ad-advanced[open] > summary {
+  margin-bottom: var(--space-3);
+}
+
+.ad-race-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ad-race-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+}
+
+.ad-recap {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.ad-recap-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.ad-recap-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ad-recap-edit {
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.ad-recap-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.ad-recap-list > div {
+  display: grid;
+  grid-template-columns: minmax(7rem, 10rem) 1fr;
+  gap: var(--space-3);
+}
+
+.ad-recap-list dt {
+  color: var(--pk-text-secondary);
+}
+
+.ad-recap-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.ad-step-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  max-width: 44rem;
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.ad-step-actions .pk-button-primary {
+  margin-left: auto;
+}
+
+/* ── Parcours de création : bandeau de terrain + carte d'étape ──────────*/
+
+/*
+ * Deux blocs : à gauche la scène — le relief, le nom qui se compose, le fil
+ * des étapes et un conseil — ; à droite la carte de l'étape. Sous 1000 px, la
+ * scène passe au-dessus et le fil se couche (1200 px : barre latérale comprise).
+ */
+.ad-wizard {
+  display: grid;
+  /* `minmax(0, …)` : sans lui, un champ large pousse la colonne hors de l'écran. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+@media (width >= 1200px) {
+  .ad-wizard {
+    grid-template-columns: minmax(17rem, 21rem) minmax(0, 46rem);
+  }
+
+  .ad-wizard-aside {
+    position: sticky;
+    top: var(--space-5);
+    min-height: 34rem;
+  }
+}
+
+.ad-wizard-aside .pk-terrain-title {
+  font-size: clamp(26px, 2.6vw, 34px);
+  overflow-wrap: anywhere;
+}
+
+.ad-wizard-aside .pk-terrain-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.ad-wizard-sub {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--pk-lichen);
+}
+
+.ad-wizard-tip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid color-mix(in srgb, currentcolor 16%, transparent);
+  color: color-mix(in srgb, var(--pk-text-on-dark) 82%, transparent);
+}
+
+.ad-wizard-tip .pk-label {
+  color: var(--pk-lichen);
+}
+
+/* La carte de l'étape : une surface, un filet, aucune ombre. */
+.ad-wizard-card {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--space-6);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+}
+
+.ad-wizard-card .ad-step {
+  max-width: none;
+  padding: 0 0 var(--space-2);
+}
+
+.ad-wizard-card .ad-step-actions {
+  max-width: none;
+  margin-top: var(--space-5);
+}
+
+/* Dans la carte, une épreuve est un bloc Calcaire, pas une carte de plus. */
+.ad-wizard-card .ad-race-card {
+  border: 0;
+  background: var(--pk-limestone);
+}
+
+.ad-wizard-card .ad-recap {
+  border-top: 0;
+  gap: var(--space-3);
+}
+
+.ad-wizard-card .ad-recap-block {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 0;
+  border-radius: var(--radius-sm);
+  background: var(--pk-limestone);
+}
+
+@media (width < 640px) {
+  .ad-wizard-card {
+    padding: var(--space-5) var(--space-4);
+  }
+}
+
+/* Étape 5 : la phrase et le fil côte à côte, le fil couché sur une ligne. */
+.ad-wizard-done {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 44rem;
+}
+
+.ad-wizard-done p {
+  margin: 0;
+}
+
+/* ── Plein écran : le parcours de création ──────────────────────────────*/
+
+.ad-wizard-page {
+  min-height: 100dvh;
+}
+
+.ad-wizard-page .ad-wizard {
+  gap: 0;
+  min-height: 100dvh;
+}
+
+.ad-wizard-page .ad-wizard-aside {
+  box-sizing: border-box;
+  border-radius: 0;
+  padding: var(--space-6);
+  /* Contre la barre latérale, de la même encre : un filet Lichen les sépare. */
+  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--pk-lichen) 28%, transparent);
+}
+
+.ad-wizard-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--space-5) var(--space-4) var(--space-8);
+}
+
+.ad-wizard-top {
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ad-wizard-page a.pk-btn {
+  text-decoration: none;
+}
+
+.ad-wizard-exit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  color: var(--pk-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ad-wizard-exit:hover {
+  text-decoration: underline;
+}
+
+.ad-wizard-exit:focus-visible {
+  outline: 2px solid var(--pk-forest);
+  outline-offset: 2px;
+}
+
+/*
+ * Deux colonnes dès que la place le permet, barre latérale comprise
+ * (~266 px) : la scène et la carte côte à côte.
+ */
+@media (width >= 1200px) {
+  .ad-wizard-page .ad-wizard {
+    grid-template-columns: minmax(18rem, 26rem) minmax(0, 1fr);
+  }
+
+  /* La scène tient toute la hauteur ; la carte défile à côté. */
+  .ad-wizard-page .ad-wizard-aside {
+    top: 0;
+    height: 100dvh;
+    min-height: 0;
+    padding: var(--space-10) var(--space-10);
+    justify-content: center;
+  }
+
+  .ad-wizard-page .ad-wizard-aside .pk-terrain-title {
+    font-size: clamp(32px, 3.2vw, 46px);
+  }
+
+  .ad-wizard-main {
+    padding: var(--space-6) var(--space-10) var(--space-10);
+  }
+
+  /* La sortie, le fil des étapes et la carte partagent la même colonne. */
+  .ad-wizard-main > * {
+    width: 100%;
+    max-width: 48rem;
+    margin-inline: auto;
+  }
+}

@@ -3,24 +3,35 @@ import {
   createAdminActionsRepositories,
   createAdminConsoleRepositories,
   createCourseRepositories,
+  createEventDiscoveryRepositories,
+  createFactEditingRepositories,
   createFactRepositories,
   createGpxRepositories,
+  createNutritionCatalogueRepositories,
   createOrganizationTeamRepositories,
+  createStaffTeamRepositories,
   type DbErrorCode,
 } from '@pluka/db';
 import {
   DomainError,
   getAdminPlatformCounters,
+  getMyStaffRole,
   type AdminActionsContext,
   type AdminConsoleContext,
   type CourseContext,
+  type EventDiscoveryContext,
+  type FactEditingContext,
   type DomainErrorCode,
   type FactReviewContext,
   type GpxImportContext,
+  type NutritionCatalogueContext,
   type OrganizationTeamContext,
+  type StaffTeamContext,
 } from '@pluka/domain';
+import { createServerClient } from '@pluka/db/server';
 import { notFound, redirect } from 'next/navigation';
 
+import { publicEnv } from '@/lib/env';
 import { requireSession, type Session } from '@/lib/session';
 import { createDataClient } from '@/lib/supabase/data';
 
@@ -127,6 +138,86 @@ export function organizationTeamContext(session: Session): OrganizationTeamConte
     }),
     actor: { userId: session.userId },
   };
+}
+
+/**
+ * Équipe PLUKA — migrations 0035, 0036. La garde (super-admin pour gérer, la
+ * session pour lire son propre rôle) est dans chaque fonction SQL.
+ */
+export function staffTeamContext(session: Session): StaffTeamContext {
+  return {
+    repositories: createStaffTeamRepositories({ client: createDataClient(session.accessToken) }),
+    actor: { userId: session.userId },
+  };
+}
+
+/**
+ * Création d'un événement depuis son site officiel — migration 0040. La garde
+ * (administration qui écrit) et l'audit sont dans chaque fonction SQL ; le
+ * dépôt de PDF passe par la policy du bucket, sous cette même session.
+ */
+export function eventDiscoveryContext(session: Session): EventDiscoveryContext {
+  return {
+    repositories: createEventDiscoveryRepositories({
+      client: createDataClient(session.accessToken),
+    }),
+    actor: { userId: session.userId },
+  };
+}
+
+/**
+ * Correction des informations publiées — migration 0043. L'autorité (éditeur
+ * de l'organisation de la course, ou administration PLUKA), le journal et le
+ * signal d'impact sont dans chaque fonction SQL.
+ */
+export function factEditingContext(session: Session): FactEditingContext {
+  return {
+    repositories: createFactEditingRepositories({
+      client: createDataClient(session.accessToken),
+    }),
+    actor: { userId: session.userId },
+  };
+}
+
+/**
+ * Catalogue Nutrition — migration 0039. La garde (administration qui écrit)
+ * et l'audit sont dans chaque fonction SQL.
+ */
+export function nutritionCatalogueContext(session: Session): NutritionCatalogueContext {
+  return {
+    repositories: createNutritionCatalogueRepositories({
+      client: createDataClient(session.accessToken),
+    }),
+    actor: { userId: session.userId },
+  };
+}
+
+/**
+ * Aperçu d'un lien d'invitation à l'équipe PLUKA, avant connexion (§115) :
+ * clé publiable, sans jeton. La fonction de 0036 n'en rend que le rôle et
+ * l'état du lien.
+ */
+export function anonymousStaffTeamContext(): StaffTeamContext {
+  const env = publicEnv();
+
+  return {
+    repositories: createStaffTeamRepositories({
+      client: createServerClient({
+        url: env.NEXT_PUBLIC_SUPABASE_URL,
+        publishableKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      }),
+    }),
+    actor: { userId: 'anonymous' },
+  };
+}
+
+/**
+ * La session est-elle celle d'un support (0035) ? Sert à ne pas proposer des
+ * gestes que la base refuserait — jamais à autoriser : chaque écriture garde
+ * sa propre garde en base.
+ */
+export async function isSupportSession(session: Session): Promise<boolean> {
+  return (await getMyStaffRole(staffTeamContext(session))) === 'support';
 }
 
 export function adminActionsContext(session: Session): AdminActionsContext {

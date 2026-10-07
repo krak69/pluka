@@ -1622,15 +1622,29 @@ export type Database = {
           carbs_g: number
           category: Database["public"]["Enums"]["nutrition_product_category"]
           created_at: string
+          fat_g: number | null
+          fiber_g: number | null
+          glucose_fructose_ratio: string | null
           hydration_ml: number
           id: string
+          image_url: string | null
+          is_gluten_free: boolean | null
+          is_organic: boolean | null
+          is_vegan: boolean | null
+          magnesium_mg: number | null
           name: string
+          potassium_mg: number | null
+          protein_g: number | null
+          purchase_is_affiliate: boolean
+          purchase_url: string | null
           serving_label: string | null
           serving_quantity: number | null
           serving_unit: string | null
           sodium_mg: number
           source_url: string | null
           status: Database["public"]["Enums"]["nutrition_product_status"]
+          tags: string[]
+          texture: Database["public"]["Enums"]["nutrition_texture"] | null
           updated_at: string
           variant: string | null
           verified_at: string | null
@@ -1642,15 +1656,29 @@ export type Database = {
           carbs_g?: number
           category: Database["public"]["Enums"]["nutrition_product_category"]
           created_at?: string
+          fat_g?: number | null
+          fiber_g?: number | null
+          glucose_fructose_ratio?: string | null
           hydration_ml?: number
           id?: string
+          image_url?: string | null
+          is_gluten_free?: boolean | null
+          is_organic?: boolean | null
+          is_vegan?: boolean | null
+          magnesium_mg?: number | null
           name: string
+          potassium_mg?: number | null
+          protein_g?: number | null
+          purchase_is_affiliate?: boolean
+          purchase_url?: string | null
           serving_label?: string | null
           serving_quantity?: number | null
           serving_unit?: string | null
           sodium_mg?: number
           source_url?: string | null
           status?: Database["public"]["Enums"]["nutrition_product_status"]
+          tags?: string[]
+          texture?: Database["public"]["Enums"]["nutrition_texture"] | null
           updated_at?: string
           variant?: string | null
           verified_at?: string | null
@@ -1662,15 +1690,29 @@ export type Database = {
           carbs_g?: number
           category?: Database["public"]["Enums"]["nutrition_product_category"]
           created_at?: string
+          fat_g?: number | null
+          fiber_g?: number | null
+          glucose_fructose_ratio?: string | null
           hydration_ml?: number
           id?: string
+          image_url?: string | null
+          is_gluten_free?: boolean | null
+          is_organic?: boolean | null
+          is_vegan?: boolean | null
+          magnesium_mg?: number | null
           name?: string
+          potassium_mg?: number | null
+          protein_g?: number | null
+          purchase_is_affiliate?: boolean
+          purchase_url?: string | null
           serving_label?: string | null
           serving_quantity?: number | null
           serving_unit?: string | null
           sodium_mg?: number
           source_url?: string | null
           status?: Database["public"]["Enums"]["nutrition_product_status"]
+          tags?: string[]
+          texture?: Database["public"]["Enums"]["nutrition_texture"] | null
           updated_at?: string
           variant?: string | null
           verified_at?: string | null
@@ -2060,6 +2102,8 @@ export type Database = {
         Row: {
           contact_email: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by_user_id: string | null
           id: string
           logo_url: string | null
           name: string
@@ -2071,6 +2115,8 @@ export type Database = {
         Insert: {
           contact_email?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by_user_id?: string | null
           id?: string
           logo_url?: string | null
           name: string
@@ -2082,6 +2128,8 @@ export type Database = {
         Update: {
           contact_email?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by_user_id?: string | null
           id?: string
           logo_url?: string | null
           name?: string
@@ -2090,7 +2138,15 @@ export type Database = {
           updated_at?: string
           website_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "organizations_deleted_by_user_id_fkey"
+            columns: ["deleted_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organizer_briefs: {
         Row: {
@@ -3612,6 +3668,7 @@ export type Database = {
       }
       race_change_events: {
         Row: {
+          change_kind: string
           created_at: string
           fact_id: string
           from_version_id: string | null
@@ -3623,9 +3680,10 @@ export type Database = {
           severity: Database["public"]["Enums"]["change_severity"]
           summary: string | null
           title: string
-          to_version_id: string
+          to_version_id: string | null
         }
         Insert: {
+          change_kind?: string
           created_at?: string
           fact_id: string
           from_version_id?: string | null
@@ -3637,9 +3695,10 @@ export type Database = {
           severity?: Database["public"]["Enums"]["change_severity"]
           summary?: string | null
           title: string
-          to_version_id: string
+          to_version_id?: string | null
         }
         Update: {
+          change_kind?: string
           created_at?: string
           fact_id?: string
           from_version_id?: string | null
@@ -3651,7 +3710,7 @@ export type Database = {
           severity?: Database["public"]["Enums"]["change_severity"]
           summary?: string | null
           title?: string
-          to_version_id?: string
+          to_version_id?: string | null
         }
         Relationships: [
           {
@@ -5038,6 +5097,75 @@ export type Database = {
           },
         ]
       }
+      staff_invitations: {
+        Row: {
+          accepted_by_user_id: string | null
+          activated_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by_user_id: string | null
+          last_send_error: string | null
+          revoked_at: string | null
+          send_attempts: number
+          sent_at: string | null
+          staff_role: Database["public"]["Enums"]["staff_role"]
+          status: Database["public"]["Enums"]["invitation_status"]
+          token_hash: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_by_user_id?: string | null
+          activated_at?: string | null
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          invited_by_user_id?: string | null
+          last_send_error?: string | null
+          revoked_at?: string | null
+          send_attempts?: number
+          sent_at?: string | null
+          staff_role: Database["public"]["Enums"]["staff_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token_hash?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_by_user_id?: string | null
+          activated_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by_user_id?: string | null
+          last_send_error?: string | null
+          revoked_at?: string | null
+          send_attempts?: number
+          sent_at?: string | null
+          staff_role?: Database["public"]["Enums"]["staff_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token_hash?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_invitations_accepted_by_user_id_fkey"
+            columns: ["accepted_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_invitations_invited_by_user_id_fkey"
+            columns: ["invited_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           completed_at: string | null
@@ -5237,6 +5365,7 @@ export type Database = {
           last_name: string | null
           locale: string
           platform_role: Database["public"]["Enums"]["platform_role"]
+          staff_role: Database["public"]["Enums"]["staff_role"] | null
           timezone: string
           updated_at: string
         }
@@ -5249,6 +5378,7 @@ export type Database = {
           last_name?: string | null
           locale?: string
           platform_role?: Database["public"]["Enums"]["platform_role"]
+          staff_role?: Database["public"]["Enums"]["staff_role"] | null
           timezone?: string
           updated_at?: string
         }
@@ -5261,6 +5391,7 @@ export type Database = {
           last_name?: string | null
           locale?: string
           platform_role?: Database["public"]["Enums"]["platform_role"]
+          staff_role?: Database["public"]["Enums"]["staff_role"] | null
           timezone?: string
           updated_at?: string
         }
@@ -5463,10 +5594,37 @@ export type Database = {
         Args: { p_token_hash: string }
         Returns: string
       }
+      accept_staff_invitation: {
+        Args: { p_token_hash: string }
+        Returns: Database["public"]["Enums"]["staff_role"]
+      }
+      admin_add_edition_documents: {
+        Args: { p_documents: Json; p_edition_id: string }
+        Returns: number
+      }
+      admin_add_edition_file: {
+        Args: {
+          p_content_hash: string
+          p_edition_id: string
+          p_race_id?: string
+          p_size_bytes: number
+          p_storage_path: string
+          p_title: string
+        }
+        Returns: string
+      }
       admin_archive_nutrition_product: {
         Args: { p_product_id: string }
         Returns: undefined
       }
+      admin_count_nutrition_products: {
+        Args: never
+        Returns: {
+          status: Database["public"]["Enums"]["nutrition_product_status"]
+          total: number
+        }[]
+      }
+      admin_create_event: { Args: { p_payload: Json }; Returns: string }
       admin_create_organization: {
         Args: {
           p_contact_email?: string
@@ -5476,6 +5634,10 @@ export type Database = {
         }
         Returns: string
       }
+      admin_delete_nutrition_product: {
+        Args: { p_product_id: string }
+        Returns: undefined
+      }
       admin_delete_organization: {
         Args: { p_organization_id: string }
         Returns: undefined
@@ -5483,6 +5645,50 @@ export type Database = {
       admin_dismiss_report: {
         Args: { p_report_id: string }
         Returns: undefined
+      }
+      admin_get_event_discovery: { Args: { p_event_id: string }; Returns: Json }
+      admin_get_nutrition_product: {
+        Args: { p_product_id: string }
+        Returns: {
+          brand: string | null
+          caffeine_mg: number
+          calories_kcal: number | null
+          carbs_g: number
+          category: Database["public"]["Enums"]["nutrition_product_category"]
+          created_at: string
+          fat_g: number | null
+          fiber_g: number | null
+          glucose_fructose_ratio: string | null
+          hydration_ml: number
+          id: string
+          image_url: string | null
+          is_gluten_free: boolean | null
+          is_organic: boolean | null
+          is_vegan: boolean | null
+          magnesium_mg: number | null
+          name: string
+          potassium_mg: number | null
+          protein_g: number | null
+          purchase_is_affiliate: boolean
+          purchase_url: string | null
+          serving_label: string | null
+          serving_quantity: number | null
+          serving_unit: string | null
+          sodium_mg: number
+          source_url: string | null
+          status: Database["public"]["Enums"]["nutrition_product_status"]
+          tags: string[]
+          texture: Database["public"]["Enums"]["nutrition_texture"] | null
+          updated_at: string
+          variant: string | null
+          verified_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "nutrition_products"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       admin_get_organization: {
         Args: { p_organization_id: string }
@@ -5495,6 +5701,13 @@ export type Database = {
           status: Database["public"]["Enums"]["organization_status"]
           updated_at: string
           website_url: string
+        }[]
+      }
+      admin_get_organization_dependencies: {
+        Args: { p_organization_id: string }
+        Returns: {
+          kind: string
+          total: number
         }[]
       }
       admin_get_report: {
@@ -5532,6 +5745,13 @@ export type Database = {
         Args: { p_report_id: string }
         Returns: number
       }
+      admin_import_nutrition_products: {
+        Args: { p_products: Json }
+        Returns: {
+          created_count: number
+          updated_count: number
+        }[]
+      }
       admin_list_audit: {
         Args: { p_limit?: number }
         Returns: {
@@ -5545,6 +5765,10 @@ export type Database = {
           organization_name: string
           request_id: string
         }[]
+      }
+      admin_list_edition_documents: {
+        Args: { p_edition_id: string }
+        Returns: Json
       }
       admin_list_fact_candidates: {
         Args: { p_limit?: number }
@@ -5583,19 +5807,28 @@ export type Database = {
       admin_list_nutrition_products: {
         Args: {
           p_limit?: number
+          p_query?: string
           p_status?: Database["public"]["Enums"]["nutrition_product_status"]
         }
         Returns: {
           brand: string
           caffeine_mg: number
+          calories_kcal: number
           carbs_g: number
           category: Database["public"]["Enums"]["nutrition_product_category"]
           hydration_ml: number
+          image_url: string
+          in_use: boolean
           name: string
           product_id: string
+          purchase_is_affiliate: boolean
+          purchase_url: string
+          serving_quantity: number
+          serving_unit: string
           sodium_mg: number
           source_url: string
           status: Database["public"]["Enums"]["nutrition_product_status"]
+          tags: string[]
           updated_at: string
           variant: string
           verified_at: string
@@ -5659,7 +5892,15 @@ export type Database = {
           sources_failed: number
         }[]
       }
+      admin_refresh_event_discovery: {
+        Args: { p_event_id: string }
+        Returns: string
+      }
       admin_retry_job: { Args: { p_job_id: string }; Returns: number }
+      admin_save_nutrition_product: {
+        Args: { p_product: Json; p_product_id: string }
+        Returns: string
+      }
       admin_search_users: {
         Args: { p_limit?: number; p_query?: string }
         Returns: {
@@ -5804,6 +6045,15 @@ export type Database = {
           race_fact_version_id: string
         }[]
       }
+      list_race_fact_history: { Args: { p_fact_id: string }; Returns: Json }
+      list_race_facts_for_editing: {
+        Args: { p_race_id: string }
+        Returns: Json
+      }
+      my_staff_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["staff_role"]
+      }
       org_change_member_role: {
         Args: {
           p_organization_id: string
@@ -5875,6 +6125,13 @@ export type Database = {
           state: string
         }[]
       }
+      preview_staff_invitation: {
+        Args: { p_token_hash: string }
+        Returns: {
+          staff_role: Database["public"]["Enums"]["staff_role"]
+          state: string
+        }[]
+      }
       publish_fact_candidate: {
         Args: {
           p_actor_user_id: string
@@ -5895,9 +6152,71 @@ export type Database = {
           version_number: number
         }[]
       }
+      restore_race_fact: {
+        Args: { p_fact_id: string; p_note?: string }
+        Returns: undefined
+      }
+      retire_race_fact: {
+        Args: { p_fact_id: string; p_note?: string }
+        Returns: undefined
+      }
+      revise_race_fact: {
+        Args: {
+          p_fact_id: string
+          p_note?: string
+          p_trust_level: Database["public"]["Enums"]["trust_level"]
+          p_unit: string
+          p_value_number: number
+          p_value_text: string
+        }
+        Returns: string
+      }
       set_race_waypoints: {
         Args: { p_race_id: string; p_waypoints: Json }
         Returns: Json
+      }
+      staff_change_role: {
+        Args: {
+          p_staff_role: Database["public"]["Enums"]["staff_role"]
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      staff_invite: {
+        Args: {
+          p_email: string
+          p_staff_role: Database["public"]["Enums"]["staff_role"]
+        }
+        Returns: string
+      }
+      staff_list_invitations: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          expires_at: string
+          invitation_id: string
+          send_failed: boolean
+          sent_at: string
+          staff_role: Database["public"]["Enums"]["staff_role"]
+          status: Database["public"]["Enums"]["invitation_status"]
+        }[]
+      }
+      staff_list_members: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          first_name: string
+          last_name: string
+          staff_role: Database["public"]["Enums"]["staff_role"]
+          user_id: string
+        }[]
+      }
+      staff_remove: { Args: { p_user_id: string }; Returns: undefined }
+      staff_revoke_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: undefined
       }
       worker_analyze_change_impact: {
         Args: { p_change_event_id: string }
@@ -5914,6 +6233,10 @@ export type Database = {
           p_elevation_loss_m: number
         }
         Returns: boolean
+      }
+      worker_begin_event_discovery: {
+        Args: { p_discovery_id: string }
+        Returns: string
       }
       worker_block_course_preprocessing: {
         Args: { p_course_geometry_id: string; p_issue: string }
@@ -5959,6 +6282,27 @@ export type Database = {
           sendable: boolean
         }[]
       }
+      worker_claim_staff_invitation: {
+        Args: { p_invitation_id: string; p_token_hash: string }
+        Returns: {
+          attempt: number
+          email: string
+          expires_at: string
+          inviter_name: string
+          sendable: boolean
+          staff_role: Database["public"]["Enums"]["staff_role"]
+        }[]
+      }
+      worker_complete_event_discovery: {
+        Args: {
+          p_discovery_id: string
+          p_discovery_version: string
+          p_final_url: string
+          p_inventory: Json
+          p_pages_read: number
+        }
+        Returns: undefined
+      }
       worker_complete_extraction_run: {
         Args: {
           p_input_tokens: number
@@ -5992,11 +6336,19 @@ export type Database = {
         }
         Returns: number
       }
+      worker_complete_staff_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: undefined
+      }
       worker_course_preprocessing_input: {
         Args: { p_race_id: string }
         Returns: Json
       }
       worker_dispatch_outbox: { Args: { p_limit?: number }; Returns: number }
+      worker_fail_event_discovery: {
+        Args: { p_discovery_id: string; p_error_code: string }
+        Returns: undefined
+      }
       worker_fail_extraction_run: {
         Args: { p_error: string; p_error_code: string; p_run_id: string }
         Returns: undefined
@@ -6016,6 +6368,10 @@ export type Database = {
       worker_fail_parse_run: {
         Args: { p_error: string; p_run_id: string }
         Returns: undefined
+      }
+      worker_fail_staff_invitation: {
+        Args: { p_error: string; p_invitation_id: string }
+        Returns: number
       }
       worker_mark_source_failed: {
         Args: { p_source_id: string }
@@ -6380,8 +6736,12 @@ export type Database = {
         | "salty"
         | "generic_aid"
         | "other"
+        | "puree"
+        | "capsule"
+        | "electrolyte"
       nutrition_product_status: "draft" | "validated" | "archived"
       nutrition_recalculation_status: "proposed" | "applied" | "rejected"
+      nutrition_texture: "gel" | "liquid" | "semi_liquid" | "solid" | "chewy"
       nutrition_waypoint_origin:
         | "plan_waypoint"
         | "outing_waypoint"
@@ -6452,6 +6812,7 @@ export type Database = {
       source_status: "uploaded" | "processing" | "ready" | "failed" | "archived"
       source_type: "url" | "pdf" | "gpx" | "file" | "manual" | "organizer_input"
       sport_type: "trail" | "road_running" | "cycling" | "triathlon" | "other"
+      staff_role: "super_admin" | "admin" | "support"
       task_origin:
         | "personal"
         | "pluka"
@@ -6771,9 +7132,13 @@ export const Constants = {
         "salty",
         "generic_aid",
         "other",
+        "puree",
+        "capsule",
+        "electrolyte",
       ],
       nutrition_product_status: ["draft", "validated", "archived"],
       nutrition_recalculation_status: ["proposed", "applied", "rejected"],
+      nutrition_texture: ["gel", "liquid", "semi_liquid", "solid", "chewy"],
       nutrition_waypoint_origin: [
         "plan_waypoint",
         "outing_waypoint",
@@ -6833,6 +7198,7 @@ export const Constants = {
       source_status: ["uploaded", "processing", "ready", "failed", "archived"],
       source_type: ["url", "pdf", "gpx", "file", "manual", "organizer_input"],
       sport_type: ["trail", "road_running", "cycling", "triathlon", "other"],
+      staff_role: ["super_admin", "admin", "support"],
       task_origin: [
         "personal",
         "pluka",

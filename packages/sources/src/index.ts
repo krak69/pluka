@@ -146,3 +146,29 @@ export {
   type PdfParseResult,
   type PdfRejectionReason,
 } from './parsing/pdf.js';
+
+export {
+  DISCOVERY_VERSION,
+  DiscoveryError,
+  discoverSite,
+  isDiscoveryError,
+  type DiscoveryErrorCode,
+  type DiscoveryIO,
+  type DiscoveryOutcome,
+  type InventoryDocument,
+  type InventoryPage,
+  type SiteInventory,
+} from './discovery/discover.js';
+export {
+  documentKindOf,
+  extractPageOutline,
+  isCourseDocument,
+  isSameSite,
+  resolveLink,
+  siteHostOf,
+  type DocumentKind,
+  type PageLink,
+  type PageOutline,
+} from './discovery/links.js';
+export { DISCOVERY_LIMITS, selectPagesToRead } from './discovery/pages.js';
+export { DISCOVERY_USER_AGENT, parseRobots, type RobotsPolicy } from './discovery/robots.js';

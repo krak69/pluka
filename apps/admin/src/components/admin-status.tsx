@@ -172,17 +172,37 @@ export function sourceTypeLabel(type: string): string {
   return SOURCE_TYPES[type] ?? type;
 }
 
-/** `nutrition_product_category` — 0001. */
+/**
+ * `nutrition_product_category` — 0001 et 0039. Les libellés mêlent la base et
+ * le catalogue réel importé (décision du 2026-10-07) : « Boisson d'effort »,
+ * « Gummies ».
+ */
 const PRODUCT_CATEGORIES: Readonly<Record<string, string>> = {
   gel: 'Gel',
-  drink: 'Boisson',
+  drink: 'Boisson d’effort',
   bar: 'Barre',
-  chew: 'Pâte de fruits',
+  chew: 'Gummies',
+  puree: 'Purée',
   solid: 'Solide',
   salty: 'Salé',
+  capsule: 'Capsule',
+  electrolyte: 'Électrolytes',
   generic_aid: 'Ravitaillement générique',
   other: 'Autre',
 };
+
+/** `nutrition_texture` — 0039. */
+const PRODUCT_TEXTURES: Readonly<Record<string, string>> = {
+  gel: 'Gel',
+  liquid: 'Liquide',
+  semi_liquid: 'Semi-liquide',
+  solid: 'Solide',
+  chewy: 'Gomme',
+};
+
+export function productTextureLabel(texture: string): string {
+  return PRODUCT_TEXTURES[texture] ?? texture;
+}
 
 export function productCategoryLabel(category: string): string {
   return PRODUCT_CATEGORIES[category] ?? category;

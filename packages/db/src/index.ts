@@ -126,6 +126,7 @@ export type {
   AdminNutritionProductRecord,
   AdminOrganizationDetailRecord,
   AdminOrganizationRecord,
+  OrganizationDependencyRecord,
   AdminPlatformCountersRecord,
   AdminReportDetailRecord,
   AdminReportRecord,
@@ -158,6 +159,45 @@ export {
   type CreateOrganizationInput,
   type UpdateOrganizationInput,
 } from './repositories/admin-actions.js';
+export {
+  createNutritionCatalogueRepositories,
+  nutritionCatalogueRepository,
+  type NutritionCatalogueQuery,
+  type NutritionCatalogueRepositories,
+  type NutritionCatalogueRepository,
+  type NutritionCatalogueRow,
+  type NutritionCategory,
+  type NutritionProductDetail,
+  type NutritionProductInput,
+  type NutritionStatus,
+  type NutritionTexture,
+} from './repositories/nutrition-catalogue.js';
+export {
+  createEventDiscoveryRepositories,
+  editionDocumentStoragePath,
+  eventDiscoveryRepository,
+  type CreateEventInput,
+  type EditionDocument,
+  type EditionDocumentInput,
+  type EditionDocumentState,
+  type EditionDocumentsRecord,
+  type EditionFileInput,
+  type EventDiscoveryRecord,
+  type EventDiscoveryRepositories,
+  type EventDiscoveryRepository,
+  type EventDiscoveryStatus,
+} from './repositories/event-discovery.js';
+export {
+  createStaffTeamRepositories,
+  staffTeamRepository,
+  type StaffInvitationPreviewRecord,
+  type StaffInvitationPreviewState,
+  type StaffInvitationRecord,
+  type StaffMemberRecord,
+  type StaffRole,
+  type StaffTeamRepositories,
+  type StaffTeamRepository,
+} from './repositories/staff-team.js';
 export {
   createOrganizationTeamRepositories,
   organizationTeamRepository,
@@ -201,3 +241,13 @@ export type {
   UpdateRow,
 } from './types.js';
 export { assertSupabaseUrl } from './url.js';
+export {
+  createFactEditingRepositories,
+  factEditingRepository,
+  type EditableFactRecord,
+  type FactEditingRepositories,
+  type FactEditingRepository,
+  type FactHistoryAction,
+  type FactHistoryEntry,
+  type ReviseFactInput,
+} from './repositories/fact-editing.js';

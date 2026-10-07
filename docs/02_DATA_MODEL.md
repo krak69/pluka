@@ -216,7 +216,8 @@ Contient uniquement les informations utiles à l'application :
 - avatar ;
 - locale ;
 - timezone ;
-- rôle plateforme.
+- rôle plateforme ;
+- rôle dans l’équipe PLUKA (`staff_role` : `super_admin`, `admin`, `support`, migration 0035), présent si et seulement si `platform_role = 'pluka_admin'`.
 
 Le mot de passe et les mécanismes d'authentification restent exclusivement dans Supabase Auth.
 
@@ -280,6 +281,10 @@ Le moteur doit rester masqué ou feature-flaggé tant qu'une spec validée n'exi
 
 Entité contractuelle / éditoriale organisatrice.
 
+Suppression (migrations 0032, 0038) : une organisation vide est effacée ; une organisation qui porte des données, supprimée par un super-admin, reste en **pierre tombale** — `deleted_at`, `deleted_by_user_id`, statut `archived`, slug libéré — invisible de toutes les lectures, pour que droits « Inclus organisateur », notices officielles et provenance des informations publiées gardent leur référence. Ses événements sont détachés (`organization_id` nul, `management_status = 'pluka_managed'`).
+
+Création d'un événement (décision produit du 2026-10-07) : avec une organisation, `management_status = 'organizer_managed'` ; sans, `pluka_managed`.
+
 ## 5.2 `organization_members`
 
 Table d'appartenance avec rôles :
@@ -288,6 +293,10 @@ Table d'appartenance avec rôles :
 - admin ;
 - editor ;
 - viewer.
+
+## 5.4 `staff_invitations`
+
+Invitation à rejoindre l’équipe PLUKA (migration 0036) : adresse, rôle d’équipe, statut, expiration à 7 jours, auteur, suivi d’envoi. Même mécanique de jeton que `organization_invitations` : tiré par le worker à l’envoi, seul son SHA-256 stocké. Une seule invitation ouverte par adresse. Aucune policy : accès par les fonctions `staff_*`, `preview_staff_invitation`, `accept_staff_invitation` et `worker_*_staff_invitation`, réservées au super-admin sauf l’aperçu et l’acceptation.
 
 ## 5.3 `organization_invitations`
 
@@ -473,6 +482,11 @@ fact_key = equipment.waterproof_jacket
 
 `race_facts` ne contient pas directement la valeur publiée. Il pointe vers sa version courante.
 
+Retrait (0043) : `archived_at` posé par un geste humain ; le fact et ses versions
+disparaissent des lectures publiques, rien n'est effacé, et la restauration lève
+`archived_at`. Les changements portent un `race_change_events.change_kind`
+(`published`, `revised`, `retired`, `restored`) ; un retrait n'a pas de version d'arrivée.
+
 ## 7.5 `race_fact_versions`
 
 Version sémantique d'un fait.
@@ -534,6 +548,29 @@ Une source plus récente est un signal de revue, jamais une autorité automatiqu
 Une version `official` doit être validée par une organisation autorisée.
 
 Une source publique officielle consultée par PLUKA peut donner une donnée `pluka_validated`, mais cela ne signifie pas automatiquement que l'organisation utilise PLUKA.
+
+## 7.10 `private.event_discoveries` — inventaire d'un site officiel (0040, 0042)
+
+Inventaire du site officiel d'un événement, sans IA (SOURCES_EXTRACTION §11.1) : pages
+lues et documents liés, proposés à l'analyse à l'étape 4 de la création.
+
+```text
+id, event_id (obligatoire), requested_by_user_id, site_url, final_url
+status            queued | running | ready | failed
+error_code        code technique, jamais un message du fournisseur
+pages_read        nombre de pages HTML lues (≤ 15)
+discovery_version
+inventory         jsonb au schéma contrôlé : siteTitle, pages[], documents[]
+created_at, updated_at, completed_at
+```
+
+Créé dans la transaction de création de l'événement quand un site est donné, ou par une
+relance. `inventory` n'est jamais une donnée publiée. Schéma privé : lecture et écriture
+par fonctions `security definer` seulement (§25).
+
+Les documents déposés depuis un poste (PDF) vont dans le bucket privé `race-sources`, sous
+`editions/<edition_id>/documents/<sha256>.pdf` ; ils deviennent une `source` de type `pdf`
+dont le snapshot est créé au dépôt.
 
 # 8. Informations structurées de course
 
@@ -928,7 +965,15 @@ Le même domaine fonctionne sur une course et sur une sortie.
 
 ### `nutrition_products`
 
-Catalogue canonique PLUKA.
+Catalogue canonique PLUKA (migration 0039 pour les champs au-delà de 0001).
+
+- **Identité** : type (`category`), marque, nom, saveur (`variant`), portion (`serving_quantity` + `serving_unit`, le poids en g), image (`image_url`).
+- **Valeurs par portion** : glucides, sodium, caféine, hydratation — les seules que lit le moteur (`NUTRITION_ENGINE.md` §765) — puis kcal, potassium, magnésium, protéines, lipides, fibres, nullables : une valeur absente reste `null`, jamais 0 inventé (AGENTS §38).
+- **Description** : texture (`gel`, `liquid`, `semi_liquid`, `solid`, `chewy`), ratio glucose/fructose, Vegan / Bio / Sans gluten (nullables : inconnu n’est pas « non »).
+- **Tags** : liste fermée de faits — Caféiné, Riche en glucides, Riche en sodium, Salé, Isotonique, Hydrogel. Aucune allégation (« naturel », « scientifique », « estomac sensible »…), décision produit du 2026-10-07 ; le moteur ne les lit pas.
+- **Achat** : `purchase_url` et `purchase_is_affiliate` — transparence de `06_DESIGN_SYSTEM.md` §98.
+- **Statut** : `draft` (À vérifier), `validated`, `archived`. Une fiche se supprime seulement si aucun coureur ne l’a dans ses produits ; sinon elle s’archive. Une stratégie confirmée garde ses valeurs (snapshot, §734).
+- Clé naturelle : marque + nom + saveur, sans casse — l’import met à jour une fiche existante plutôt que de la dupliquer.
 
 ### `user_nutrition_products`
 

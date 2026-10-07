@@ -714,13 +714,15 @@ export const identityRepository = defineRepository<IdentityRepository>((context)
     const row = unwrapMaybe(
       await context.client
         .from('users')
-        .select(selectColumns('users', ['id', 'platform_role']))
+        .select(selectColumns('users', ['id', 'platform_role', 'staff_role']))
         .eq('id', userId)
         .maybeSingle(),
       'users.findPlatformIdentity',
     );
 
-    return row === null ? null : { id: row.id, platformRole: row.platform_role };
+    return row === null
+      ? null
+      : { id: row.id, platformRole: row.platform_role, staffRole: row.staff_role };
   },
 }));
 

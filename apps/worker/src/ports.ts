@@ -345,6 +345,42 @@ export interface InvitationStore {
   fail(invitationId: string, error: string): Promise<number>;
 }
 
+/** Envoi d'une invitation à l'équipe PLUKA — migration 0036. Même contrat que `InvitationStore`. */
+export interface StaffInvitationSendClaim {
+  readonly sendable: boolean;
+  readonly email: string | null;
+  readonly staffRole: string | null;
+  readonly inviterName: string | null;
+  readonly expiresAt: string | null;
+  readonly attempt: number;
+}
+
+export interface StaffInvitationStore {
+  claim(invitationId: string, tokenHash: string): Promise<StaffInvitationSendClaim>;
+  complete(invitationId: string): Promise<void>;
+  fail(invitationId: string, error: string): Promise<number>;
+}
+
+/**
+ * Inventaire d'un site officiel — migrations 0040, 0042, SOURCES_EXTRACTION §11.1.
+ *
+ * `begin` rend l'URL à lire, ou `null` si l'inventaire n'est plus à faire :
+ * un message rejoué après succès s'arrête là.
+ */
+export interface DiscoveryCompletion {
+  readonly discoveryId: string;
+  readonly finalUrl: string;
+  readonly inventory: unknown;
+  readonly pagesRead: number;
+  readonly discoveryVersion: string;
+}
+
+export interface DiscoveryStore {
+  begin(discoveryId: string): Promise<string | null>;
+  complete(input: DiscoveryCompletion): Promise<void>;
+  fail(discoveryId: string, errorCode: string): Promise<void>;
+}
+
 export interface WorkerPorts {
   readonly queue: Queue;
   readonly jobs: JobStore;
@@ -357,6 +393,8 @@ export interface WorkerPorts {
   readonly impacts: ImpactStore;
   readonly notifications: NotificationStore;
   readonly invitations: InvitationStore;
+  readonly staffInvitations: StaffInvitationStore;
+  readonly discoveries: DiscoveryStore;
   /**
    * Fournisseur email, ou son absence.
    *
@@ -366,6 +404,8 @@ export interface WorkerPorts {
   readonly email: EmailProvider | null;
   /** Base des liens envoyés au coureur — `APP_URL`, reçue au démarrage. */
   readonly appUrl: string;
+  /** Base des liens d'invitation à l'équipe PLUKA — `ADMIN_URL` (0036). */
+  readonly adminUrl: string;
   readonly ai: ConfiguredAI | null;
   readonly outbox: OutboxDispatcher;
   readonly logger: Logger;

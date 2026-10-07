@@ -1,11 +1,11 @@
 import { DbError } from '@pluka/db';
-import { DomainError, getAdminPlatformCounters } from '@pluka/domain';
+import { DomainError, getAdminPlatformCounters, getMyStaffRole } from '@pluka/domain';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
 import { signOutAction } from '@/app/actions';
 import { AdminShell } from '@/components/admin-shell';
-import { adminConsoleContext } from '@/lib/admin';
+import { adminConsoleContext, staffTeamContext } from '@/lib/admin';
 import { publicEnv } from '@/lib/env';
 import { getSession, type Session } from '@/lib/session';
 
@@ -50,6 +50,8 @@ async function pendingValidation(session: Session | null): Promise<number | null
 
 export default async function RootLayout({ children }: { readonly children: ReactNode }) {
   const session = await getSession();
+  // Le rôle compose le menu (0035) ; il n'autorise rien.
+  const staffRole = session === null ? null : await getMyStaffRole(staffTeamContext(session));
 
   return (
     <html lang="fr">
@@ -58,6 +60,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
           pendingValidation={await pendingValidation(session)}
           appUrl={publicEnv().NEXT_PUBLIC_APP_URL}
           signOut={session === null ? null : signOutAction}
+          staffRole={staffRole}
         >
           {children}
         </AdminShell>

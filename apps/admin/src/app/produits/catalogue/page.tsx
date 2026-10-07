@@ -1,36 +1,14 @@
-import { listAdminNutritionProducts } from '@pluka/domain';
+import type { ConsoleNoticeParams } from '@/lib/console-notice';
 
-import { CatalogList } from '@/app/produits/product-list';
-import { BankHeader } from '@/app/produits/tabs';
-import { ConsoleNotice } from '@/components/console-action';
-import { consoleNotice, type ConsoleNoticeParams } from '@/lib/console-notice';
-import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
+import { BankTabPage } from '../bank-page';
 
-/**
- * Banque Nutrition, catalogue — tous statuts.
- *
- * Le prototype affiche la pastille de statut sur chaque ligne de cet onglet :
- * le catalogue n'est donc pas « les fiches validées » mais « les fiches, avec
- * leur état ». `nutrition_products__select__validated` n'ouvre que les
- * validées, d'où `admin_list_nutrition_products`.
- */
-export const metadata = { title: 'Banque Nutrition' };
+/** Banque Nutrition — Fiches validées. Les fiches trouvables par tous les coureurs. */
+export const metadata = { title: 'Fiches validées' };
 
-export default async function ProductCatalogPage({
+export default function Page({
   searchParams,
 }: {
   readonly searchParams: Promise<ConsoleNoticeParams>;
 }) {
-  const context = await requireAdminConsoleContext('/produits/catalogue');
-  const products = await listAdminNutritionProducts(context, {}).catch(redirectOnReadError);
-
-  return (
-    <main className="ad-page">
-      <BankHeader current="/produits/catalogue" />
-
-      <ConsoleNotice notice={consoleNotice(await searchParams)} />
-
-      <CatalogList products={products} />
-    </main>
-  );
+  return <BankTabPage tab="catalogue" status="validated" searchParams={searchParams} />;
 }

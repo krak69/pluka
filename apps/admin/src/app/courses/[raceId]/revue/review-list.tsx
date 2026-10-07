@@ -262,16 +262,56 @@ function CandidateCard({
             <option value="pluka_validated">Validée PLUKA</option>
           </select>
 
-          <label className="pk-label" htmlFor={`value-${candidate.candidateId}`}>
-            Valeur publiée (laisser vide pour reprendre la proposition)
-          </label>
+          {/*
+            La valeur arrive préremplie de la proposition, et chaque part en est
+            modifiable : texte, nombre, unité. Les valeurs d'origine voyagent à
+            côté — l'action ne transmet une correction que si quelque chose a
+            changé, pour que la base n'enregistre pas « corrigé » ce qui ne
+            l'a pas été (§31).
+          */}
+          <input type="hidden" name="original.valueText" value={candidate.valueText ?? ''} />
           <input
+            type="hidden"
+            name="original.valueNumber"
+            value={candidate.valueNumber === null ? '' : String(candidate.valueNumber)}
+          />
+          <input type="hidden" name="original.unit" value={candidate.unit ?? ''} />
+
+          <label className="pk-label" htmlFor={`value-${candidate.candidateId}`}>
+            Valeur publiée
+          </label>
+          <textarea
             id={`value-${candidate.candidateId}`}
             name="valueText"
             className="pk-input"
-            defaultValue=""
-            placeholder={proposedValue(candidate)}
+            rows={2}
+            defaultValue={candidate.valueText ?? ''}
           />
+          <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+            <span style={{ display: 'grid', gap: 'var(--space-1)' }}>
+              <label className="pk-label" htmlFor={`number-${candidate.candidateId}`}>
+                Nombre
+              </label>
+              <input
+                id={`number-${candidate.candidateId}`}
+                name="valueNumber"
+                className="pk-input"
+                inputMode="decimal"
+                defaultValue={candidate.valueNumber === null ? '' : String(candidate.valueNumber)}
+              />
+            </span>
+            <span style={{ display: 'grid', gap: 'var(--space-1)' }}>
+              <label className="pk-label" htmlFor={`unit-${candidate.candidateId}`}>
+                Unité
+              </label>
+              <input
+                id={`unit-${candidate.candidateId}`}
+                name="unit"
+                className="pk-input"
+                defaultValue={candidate.unit ?? ''}
+              />
+            </span>
+          </div>
 
           <label className="pk-label" htmlFor={`note-publish-${candidate.candidateId}`}>
             Note de revue
@@ -303,10 +343,9 @@ function CandidateCard({
         <form action={decide} style={{ display: 'grid', gap: 'var(--space-2)', alignSelf: 'end' }}>
           <input type="hidden" name="raceId" value={raceId} />
           <input type="hidden" name="candidateId" value={candidate.candidateId} />
-          <input type="hidden" name="decision" value="reject" />
 
           <label className="pk-label" htmlFor={`note-reject-${candidate.candidateId}`}>
-            Motif du rejet
+            Motif (facultatif)
           </label>
           <input
             id={`note-reject-${candidate.candidateId}`}
@@ -315,14 +354,41 @@ function CandidateCard({
             defaultValue=""
           />
 
-          <button
-            type="submit"
-            className="pk-btn pk-button-secondary"
-            disabled={deciding}
-            style={{ minHeight: '44px' }}
-          >
-            Rejeter
-          </button>
+          {/* §31 : les trois décisions qui ne publient rien. Le bouton porte la décision. */}
+          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            <button
+              type="submit"
+              name="decision"
+              value="reject"
+              className="pk-btn pk-button-secondary"
+              disabled={deciding}
+              style={{ minHeight: '44px' }}
+            >
+              Supprimer la proposition
+            </button>
+            <button
+              type="submit"
+              name="decision"
+              value="mark_duplicate"
+              className="pk-btn pk-button-secondary"
+              disabled={deciding}
+              style={{ minHeight: '44px' }}
+            >
+              Doublon
+            </button>
+            {candidate.status === 'needs_review' ? null : (
+              <button
+                type="submit"
+                name="decision"
+                value="needs_review"
+                className="pk-btn pk-button-secondary"
+                disabled={deciding}
+                style={{ minHeight: '44px' }}
+              >
+                À revoir plus tard
+              </button>
+            )}
+          </div>
         </form>
       </div>
     </li>

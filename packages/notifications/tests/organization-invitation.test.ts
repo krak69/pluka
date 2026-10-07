@@ -5,9 +5,12 @@ import {
   INVITATION_TEMPLATE_VERSION,
   NotificationError,
   ORGANIZATION_ROLES,
+  STAFF_ROLES,
   renderOrganizationInvitation,
   roleLabel,
   sendOrganizationInvitation,
+  sendStaffInvitation,
+  staffRoleLabel,
   type OrganizationInvitationNotice,
 } from '../src/index.js';
 
@@ -82,5 +85,29 @@ describe('envoi de l’invitation', () => {
     expect(error).toBeInstanceOf(NotificationError);
     expect((error as NotificationError).permanent).toBe(true);
     expect(sent).toEqual([]);
+  });
+});
+
+describe('invitation à l’équipe PLUKA', () => {
+  it('dit le rôle et sa portée, le lien et l’échéance ; un seul destinataire', async () => {
+    const { provider, sent } = recordingProvider();
+
+    await sendStaffInvitation(provider, {
+      idempotencyKey: 'staff-invitation:s-1:1',
+      notice: {
+        recipientEmail: 'anne@pluka.fr',
+        staffRole: 'support',
+        inviterName: null,
+        expiresAt: '2026-10-14T08:00:00.000Z',
+        acceptUrl: 'http://localhost:3002/invitation-equipe/abc',
+      },
+    });
+
+    expect(sent[0]?.to).toEqual([{ address: 'anne@pluka.fr' }]);
+    expect(sent[0]?.subject).toBe('Invitation à rejoindre l’équipe PLUKA');
+    expect(sent[0]?.textBody).toContain('Support : la console en lecture seule');
+    expect(sent[0]?.textBody).toContain('http://localhost:3002/invitation-equipe/abc');
+    expect(sent[0]?.textBody).toContain('14 octobre 2026');
+    for (const role of STAFF_ROLES) expect(staffRoleLabel(role)).not.toBe(role);
   });
 });

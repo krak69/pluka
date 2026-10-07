@@ -31,6 +31,13 @@ const ACTIONS: Readonly<Record<string, string>> = {
   'fact.reject': 'a écarté une information extraite',
   'fact.mark_duplicate': 'a marqué une information extraite comme doublon',
   'fact.needs_review': 'a renvoyé une information extraite en revue',
+  'fact.revise': 'a corrigé une information publiée',
+  'fact.retire': 'a retiré une information publiée',
+  'fact.restore': 'a restauré une information retirée',
+  'event.create': 'a créé un événement',
+  'event_discovery.refresh': 'a relancé la lecture d’un site officiel',
+  'edition.add_documents': 'a ajouté des documents à analyser',
+  'edition.add_file': 'a déposé un document',
 };
 
 export function auditActionLabel(action: string): string {

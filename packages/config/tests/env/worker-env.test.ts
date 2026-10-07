@@ -64,6 +64,12 @@ describe('loadWorkerEnv', () => {
     expect(() => loadWorkerEnv(sans)).toThrow(/APP_URL/);
   });
 
+  it('refuse une base de liens d’administration absente — invitations PLUKA (0036)', () => {
+    const { ADMIN_URL: _absent, ...sans } = workerEnvFixture();
+
+    expect(() => loadWorkerEnv(sans)).toThrow(/ADMIN_URL/);
+  });
+
   it('refuse une base de liens qui n’est pas une URL', () => {
     expect(() => loadWorkerEnv(workerEnvFixture({ APP_URL: 'localhost:3001' }))).toThrow(/APP_URL/);
   });

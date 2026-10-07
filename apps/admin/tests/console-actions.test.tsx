@@ -1,9 +1,9 @@
-import type { AdminNutritionProductRecord } from '@pluka/db';
+import type { NutritionCatalogueRow } from '@pluka/db';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import type { ActionState } from '@/app/actions';
-import { CatalogList, PendingList } from '@/app/produits/product-list';
+import { ProductTable } from '@/app/produits/product-table';
 import { ConsoleAction, ConsoleNotice } from '@/components/console-action';
 import { consoleNotice } from '@/lib/console-notice';
 import { checked } from '@/lib/form';
@@ -110,6 +110,7 @@ describe('compte rendu d’un geste', () => {
       'role-modifie',
       'role-inchange',
       'membre-retire',
+      'acces-admin-retire',
     ]) {
       expect(consoleNotice({ fait }), fait).not.toBeNull();
     }
@@ -138,8 +139,9 @@ describe('compte rendu d’un geste', () => {
 
 function product(
   productId: string,
-  status: AdminNutritionProductRecord['status'],
-): AdminNutritionProductRecord {
+  status: NutritionCatalogueRow['status'],
+  inUse = false,
+): NutritionCatalogueRow {
   return {
     productId,
     brand: 'Marque',
@@ -147,50 +149,72 @@ function product(
     variant: null,
     category: 'gel',
     status,
+    servingQuantity: 32,
+    servingUnit: 'g',
     carbsG: 22,
     sodiumMg: 50,
     caffeineMg: 0,
     hydrationMl: 0,
-    sourceUrl: null,
-    verifiedAt: null,
+    caloriesKcal: 90,
+    tags: [],
+    imageUrl: null,
+    purchaseUrl: null,
+    purchaseIsAffiliate: false,
+    inUse,
     updatedAt: '2026-10-01T10:00:00Z',
   };
 }
 
 describe('gestes de la Banque Nutrition', () => {
-  it('À vérifier : une fiche se valide, ou se refuse après confirmation', () => {
-    const markup = renderToStaticMarkup(<PendingList products={[product('p-draft', 'draft')]} />);
-
+  it('À vérifier : une fiche se valide, se refuse ou se supprime — ces deux-là confirmés', () => {
+    const markup = renderToStaticMarkup(
+      <ProductTable products={[product('p-draft', 'draft')]} tab="a-verifier" />,
+    );
     const posted = forms(markup);
 
-    expect(posted).toHaveLength(2);
+    expect(posted).toHaveLength(3);
     expect(hidden(posted[0] as string)).toEqual({ productId: 'p-draft', from: 'a-verifier' });
     expect(posted[0]).toContain('>Valider<');
     expect(posted[0]).not.toContain('type="checkbox"');
-
-    expect(hidden(posted[1] as string)).toEqual({ productId: 'p-draft', from: 'a-verifier' });
     expect(posted[1]).toContain('name="confirmed"');
+    expect(posted[2]).toContain('name="confirmed"');
     expect(markup).toMatch(/<details[^>]*><summary>Refuser…<\/summary>/);
+    expect(markup).toContain('href="/produits/p-draft"');
   });
 
-  it('Catalogue : une fiche validée s’archive après confirmation, une archivée n’a aucun geste', () => {
+  it('une fiche utilisée par un coureur ne se supprime pas : elle s’archive seulement', () => {
     const markup = renderToStaticMarkup(
-      <CatalogList
-        products={[
-          product('p-valid', 'validated'),
-          product('p-archived', 'archived'),
-          product('p-draft', 'draft'),
-        ]}
-      />,
+      <ProductTable products={[product('p-valid', 'validated', true)]} tab="catalogue" />,
     );
-
     const posted = forms(markup);
 
-    // Une seule cible : la fiche validée. La proposition renvoie vers « À
-    // vérifier », l'archivée n'a pas de désarchivage.
     expect(posted).toHaveLength(1);
     expect(hidden(posted[0] as string)).toEqual({ productId: 'p-valid', from: 'catalogue' });
-    expect(posted[0]).toContain('name="confirmed"');
-    expect(markup).toContain('href="/produits/a-verifier"');
+    expect(markup).toMatch(/<summary>Archiver…<\/summary>/);
+    expect(markup).not.toContain('Supprimer…');
+  });
+
+  it('une fiche archivée n’a pas de désarchivage ; inutilisée, elle se supprime', () => {
+    const markup = renderToStaticMarkup(
+      <ProductTable products={[product('p-archived', 'archived')]} tab="archives" />,
+    );
+
+    expect(forms(markup)).toHaveLength(1);
+    expect(markup).toContain('Supprimer…');
+    expect(markup).not.toContain('Archiver…');
+  });
+
+  it('un lien affilié se dit, toujours, à côté du lien (§98)', () => {
+    const affiliate = {
+      ...product('p-aff', 'validated'),
+      purchaseUrl: 'https://exemple.test/a',
+      purchaseIsAffiliate: true,
+    };
+    const plain = { ...product('p-plain', 'validated'), purchaseUrl: 'https://exemple.test/b' };
+
+    const markup = renderToStaticMarkup(<ProductTable products={[affiliate, plain]} tab="tous" />);
+
+    expect(markup.match(/lien affilié/g)).toHaveLength(1);
+    expect(markup.match(/>Acheter/g)).toHaveLength(2);
   });
 });

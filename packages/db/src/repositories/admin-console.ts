@@ -8,6 +8,7 @@ import type {
   AdminNutritionProductRecord,
   AdminOrganizationDetailRecord,
   AdminOrganizationRecord,
+  OrganizationDependencyRecord,
   AdminPlatformCountersRecord,
   AdminReportDetailRecord,
   AdminReportRecord,
@@ -104,6 +105,10 @@ export interface AdminConsoleRepository {
   listOrganizations(limit: number): Promise<readonly AdminOrganizationRecord[]>;
   /** Migration 0031. `null` pour une organisation inexistante. */
   getOrganization(organizationId: string): Promise<AdminOrganizationDetailRecord | null>;
+  /** Migration 0037. Vide : rien ne retient l'organisation. */
+  getOrganizationDependencies(
+    organizationId: string,
+  ): Promise<readonly OrganizationDependencyRecord[]>;
   listSources(limit: number): Promise<readonly AdminSourceRecord[]>;
   listNutritionProducts(
     status: AdminNutritionProductRecord['status'] | null,
@@ -195,6 +200,22 @@ export const adminConsoleRepository = defineRepository<AdminConsoleRepository>((
       createdAt: requiredText(row, 'created_at', operation),
       updatedAt: requiredText(row, 'updated_at', operation),
     };
+  },
+
+  async getOrganizationDependencies(organizationId) {
+    const operation = 'admin_get_organization_dependencies';
+    const data = rows(
+      unwrapRpc(
+        await rpc(context.client).rpc(operation, { p_organization_id: organizationId }),
+        operation,
+      ),
+      operation,
+    );
+
+    return data.map((row) => ({
+      kind: requiredText(row, 'kind', operation) as OrganizationDependencyRecord['kind'],
+      total: count(row, 'total'),
+    }));
   },
 
   async listSources(limit) {

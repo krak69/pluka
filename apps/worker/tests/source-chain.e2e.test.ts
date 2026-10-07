@@ -84,8 +84,11 @@ beforeAll(async () => {
 
   // Seule la capture réseau est remplacée.
   ports = {
-    ...createPorts(client, { appUrl: TEST_APP_URL }),
-    sources: { ...createPorts(client, { appUrl: TEST_APP_URL }).sources, fetch: fakeCapture },
+    ...createPorts(client, { appUrl: TEST_APP_URL, adminUrl: 'http://localhost:3002' }),
+    sources: {
+      ...createPorts(client, { appUrl: TEST_APP_URL, adminUrl: 'http://localhost:3002' }).sources,
+      fetch: fakeCapture,
+    },
   };
 
   await cleanup().catch(() => undefined);
@@ -252,7 +255,8 @@ describe.runIf(process.env.SUPABASE_SERVICE_ROLE_KEY !== undefined)('ingestion d
       ...ports,
       sources: {
         ...ports.sources,
-        fetch: createPorts(client, { appUrl: TEST_APP_URL }).sources.fetch,
+        fetch: createPorts(client, { appUrl: TEST_APP_URL, adminUrl: 'http://localhost:3002' })
+          .sources.fetch,
       },
     };
 

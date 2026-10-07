@@ -64,6 +64,8 @@ export const EDITOR_A = '55555555-5555-4555-8555-555555555555';
 export const VIEWER_A = '66666666-6666-4666-8666-666666666666';
 export const OWNER_B = '77777777-7777-4777-8777-777777777777';
 export const PLUKA_ADMIN = '88888888-8888-4888-8888-888888888888';
+/** Équipe PLUKA en lecture seule (0035). */
+export const PLUKA_SUPPORT = '99999999-9999-4999-8999-999999999999';
 export const OUTSIDER = '11111111-1111-4111-8111-111111111111';
 
 export function baseState(overrides: Partial<FakeState> = {}): FakeState {
@@ -153,13 +155,14 @@ export function baseState(overrides: Partial<FakeState> = {}): FakeState {
       { organizationId: ORG_B, userId: OWNER_B, role: 'owner' },
     ],
     identities: [
-      { id: OWNER_A, platformRole: 'user' },
-      { id: ADMIN_A, platformRole: 'user' },
-      { id: EDITOR_A, platformRole: 'user' },
-      { id: VIEWER_A, platformRole: 'user' },
-      { id: OWNER_B, platformRole: 'user' },
-      { id: OUTSIDER, platformRole: 'user' },
-      { id: PLUKA_ADMIN, platformRole: 'pluka_admin' },
+      { id: OWNER_A, platformRole: 'user', staffRole: null },
+      { id: ADMIN_A, platformRole: 'user', staffRole: null },
+      { id: EDITOR_A, platformRole: 'user', staffRole: null },
+      { id: VIEWER_A, platformRole: 'user', staffRole: null },
+      { id: OWNER_B, platformRole: 'user', staffRole: null },
+      { id: OUTSIDER, platformRole: 'user', staffRole: null },
+      { id: PLUKA_ADMIN, platformRole: 'pluka_admin', staffRole: 'admin' },
+      { id: PLUKA_SUPPORT, platformRole: 'pluka_admin', staffRole: 'support' },
     ],
     ...overrides,
   };

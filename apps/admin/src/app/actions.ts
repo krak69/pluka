@@ -7,7 +7,6 @@ import {
   createEdition,
   importRaceGpx,
   setRaceWaypoints,
-  createEvent,
   createRace,
   decideFactCandidate,
   publishFactCandidate,
@@ -18,7 +17,7 @@ import { redirect } from 'next/navigation';
 
 import { actionFailure, courseContext, factReviewContext, gpxImportContext } from '@/lib/admin';
 import { publicEnv } from '@/lib/env';
-import { createEventCommand, file, optionalNumber, raceWaypointsCommand, text } from '@/lib/form';
+import { candidateCorrection, file, optionalNumber, raceWaypointsCommand, text } from '@/lib/form';
 import { safeReturnTo } from '@/lib/return-to';
 import { requireSession } from '@/lib/session';
 import { createAuthClient } from '@/lib/supabase/auth';
@@ -47,22 +46,6 @@ import { createAuthClient } from '@/lib/supabase/auth';
 export interface ActionState {
   readonly error?: string;
   readonly fieldErrors?: Readonly<Record<string, string>>;
-}
-
-export async function createEventAction(
-  _previous: ActionState,
-  form: FormData,
-): Promise<ActionState> {
-  const context = courseContext(await requireSession('/'));
-
-  try {
-    await createEvent(context, createEventCommand(form));
-  } catch (error) {
-    return actionFailure(error);
-  }
-
-  revalidatePath('/');
-  redirect('/');
 }
 
 export async function createEditionAction(
@@ -358,8 +341,10 @@ export async function publishCandidateAction(
       candidateId: text(form, 'candidateId') ?? '',
       trustLevel: trustLevel(form),
       // Corriger avant de publier reste une correction : §31 la fait auditer,
-      // et c'est la base qui en tire `edit_and_publish`.
-      valueText: text(form, 'valueText') ?? null,
+      // et c'est la base qui en tire `edit_and_publish`. Elle n'est transmise
+      // que si quelque chose a changé, et alors en entier — la base remet à
+      // vide ce qu'une correction ne nomme pas.
+      ...candidateCorrection(form),
       note: text(form, 'note') ?? null,
       // §38 : publier par-dessus une valeur contradictoire demande de le dire.
       // La case est décochée par défaut ; sans elle, le domaine refuse.

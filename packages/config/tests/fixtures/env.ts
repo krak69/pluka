@@ -28,6 +28,7 @@ export function workerEnvFixture(overrides: EnvSource = {}): EnvSource {
     SUPABASE_URL: 'http://127.0.0.1:54321',
     SUPABASE_SERVICE_ROLE_KEY: 'service-role-de-test',
     APP_URL: 'http://localhost:3001',
+    ADMIN_URL: 'http://localhost:3002',
     ...overrides,
   };
 }

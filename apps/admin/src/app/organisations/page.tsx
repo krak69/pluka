@@ -7,7 +7,8 @@ import { AdminStatus } from '@/components/admin-status';
 import { ConsoleNotice } from '@/components/console-action';
 import { consoleNotice, type ConsoleNoticeParams } from '@/lib/console-notice';
 import { day } from '@/lib/format';
-import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
+import { isSupportSession, redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
+import { requireSession } from '@/lib/session';
 
 /**
  * Organisations — `adminOrgs` du prototype.
@@ -44,17 +45,23 @@ export default async function OrganizationsPage({
   const context = await requireAdminConsoleContext('/organisations');
   const organizations = await listAdminOrganizations(context, {}).catch(redirectOnReadError);
   const notice = consoleNotice(await searchParams);
+  // Support lit la liste sans le geste de création (0035).
+  const readOnly = await isSupportSession(await requireSession('/organisations'));
 
   return (
     <main className="ad-page">
       <AdminPageHeader
         title="Organisations"
-        aside={
-          <Link href="/organisations/nouvelle" className="pk-btn pk-button-primary">
-            <AdminIcon name="Plus" size={16} />
-            Créer une organisation
-          </Link>
-        }
+        {...(readOnly
+          ? {}
+          : {
+              aside: (
+                <Link href="/organisations/nouvelle" className="pk-btn pk-button-primary">
+                  <AdminIcon name="Plus" size={16} />
+                  Créer une organisation
+                </Link>
+              ),
+            })}
       />
 
       <ConsoleNotice notice={notice} />
@@ -64,7 +71,10 @@ export default async function OrganizationsPage({
           <p>La première se crée avec « Créer une organisation ».</p>
         </AdminEmpty>
       ) : (
-        <ul className="ad-cards" aria-label={`${organizations.length} organisation${organizations.length > 1 ? 's' : ''}, tous statuts`}>
+        <ul
+          className="ad-cards"
+          aria-label={`${organizations.length} organisation${organizations.length > 1 ? 's' : ''}, tous statuts`}
+        >
           {organizations.map((organization) => (
             <li key={organization.organizationId} className="ad-card">
               <div className="ad-card-main">

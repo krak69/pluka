@@ -104,8 +104,8 @@ export function participationBaseState(): ParticipationState {
   );
 
   course.identities.push(
-    { id: RUNNER_A, platformRole: 'user' },
-    { id: RUNNER_B, platformRole: 'user' },
+    { id: RUNNER_A, platformRole: 'user', staffRole: null },
+    { id: RUNNER_B, platformRole: 'user', staffRole: null },
   );
 
   return {

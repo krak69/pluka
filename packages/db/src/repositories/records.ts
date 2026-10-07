@@ -18,9 +18,11 @@ export interface EventRecord {
    */
   readonly organizationId: string | null;
   /**
-   * Qui maintient l'événement — `management_status`, 0001. Indépendant
-   * d'`organizationId` en base : aucune contrainte ne lie les deux, et le
-   * badge « Partenaire » / « Communautaire » de l'admin se lit sur ce champ.
+   * Qui maintient l'événement — `management_status`, 0001. Aucune contrainte
+   * ne le lie à `organizationId` ; la création le pose (décision du
+   * 2026-10-07) : avec une organisation `organizer_managed`, sans
+   * `pluka_managed`. Le badge « Partenaire » / « Communautaire » de l'admin se
+   * lit sur ce champ.
    */
   readonly managementStatus: Enum<'management_status'>;
   readonly name: string;
@@ -177,6 +179,11 @@ export interface MembershipRecord {
 export interface PlatformIdentityRecord {
   readonly id: string;
   readonly platformRole: Enum<'platform_role'>;
+  /**
+   * Rôle dans l'équipe PLUKA (0035) — nul hors équipe. `super_admin` et
+   * `admin` écrivent ; `support` lit seulement.
+   */
+  readonly staffRole: Enum<'staff_role'> | null;
 }
 
 /**
@@ -569,6 +576,24 @@ export interface AdminOrganizationDetailRecord {
   readonly websiteUrl: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;
+}
+
+/**
+ * Une famille de données qui retient une organisation — migration 0037. La
+ * suppression (0032) est refusée tant qu'il en reste une.
+ */
+export interface OrganizationDependencyRecord {
+  readonly kind:
+    | 'members'
+    | 'events'
+    | 'sources'
+    | 'published_facts'
+    | 'notices'
+    | 'change_events'
+    | 'entitlements'
+    | 'participant_imports'
+    | 'enrichment_imports';
+  readonly total: number;
 }
 
 export interface AdminSourceRecord {

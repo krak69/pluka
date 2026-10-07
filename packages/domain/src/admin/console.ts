@@ -8,6 +8,7 @@ import type {
   AdminNutritionProductRecord,
   AdminOrganizationDetailRecord,
   AdminOrganizationRecord,
+  OrganizationDependencyRecord,
   AdminPlatformCountersRecord,
   AdminReportDetailRecord,
   AdminReportRecord,
@@ -123,6 +124,48 @@ export async function getAdminOrganization(
 
   return organization;
 }
+
+/**
+ * Ce qui retient une organisation — migration 0037. La même définition que
+ * la suppression (0032) : la fiche peut dire pourquoi avant le clic.
+ */
+export async function getAdminOrganizationDependencies(
+  context: AdminConsoleContext,
+  input: unknown,
+): Promise<readonly OrganizationDependencyRecord[]> {
+  const query = parseCommand(
+    getAdminOrganizationQuerySchema,
+    input,
+    'getAdminOrganizationDependencies',
+  );
+
+  return context.repositories.adminConsole.getOrganizationDependencies(query.organizationId);
+}
+
+/**
+ * Ce que la suppression d'une organisation fait de chaque famille — 0038.
+ *
+ * - `removed` : ce qui faisait vivre l'organisation disparaît ;
+ * - `detached` : ses événements restent, « Maintenus par PLUKA » ;
+ * - `kept` : la référence reste sur la pierre tombale — provenance des
+ *   informations publiées, notices, droits des coureurs, sources.
+ *
+ * La règle est en base ; ce tableau la nomme pour l'écran, qui l'annonce
+ * avant la confirmation.
+ */
+export const ORGANIZATION_DELETION_EFFECTS: Readonly<
+  Record<OrganizationDependencyRecord['kind'], 'removed' | 'detached' | 'kept'>
+> = {
+  members: 'removed',
+  participant_imports: 'removed',
+  enrichment_imports: 'removed',
+  events: 'detached',
+  sources: 'kept',
+  published_facts: 'kept',
+  notices: 'kept',
+  change_events: 'kept',
+  entitlements: 'kept',
+};
 
 /** Sources, toutes éditions — y compris celles d'un événement non publié. */
 export async function listAdminSources(

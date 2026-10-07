@@ -129,6 +129,10 @@ export async function createEvent(context: CourseContext, input: unknown): Promi
 
   return context.repositories.events.insert({
     organization_id: command.organizationId,
+    // Décision produit du 2026-10-07 : un événement créé avec une organisation
+    // est « Partenaire » ; sans organisation, « Maintenu par PLUKA ». Même règle
+    // que `admin_create_event_from_discovery` (0041).
+    management_status: command.organizationId === null ? 'pluka_managed' : 'organizer_managed',
     name: command.name,
     slug: command.slug,
   });

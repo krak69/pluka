@@ -1,7 +1,12 @@
 import type { PlukaClient } from '@pluka/db';
 
 import { transient } from './errors.js';
-import type { InvitationSendClaim, InvitationStore } from './ports.js';
+import type {
+  InvitationSendClaim,
+  InvitationStore,
+  StaffInvitationSendClaim,
+  StaffInvitationStore,
+} from './ports.js';
 
 /**
  * Adaptateur des envois d'invitation d'équipe — migration 0033.
@@ -80,6 +85,58 @@ export function createInvitationStore(client: PlukaClient): InvitationStore {
         operation,
       );
 
+      return typeof data === 'number' ? data : 0;
+    },
+  };
+}
+
+/** Même adaptateur pour l'équipe PLUKA — fonctions `worker_*_staff_invitation` de 0036. */
+export function createStaffInvitationStore(client: PlukaClient): StaffInvitationStore {
+  return {
+    async claim(invitationId, tokenHash): Promise<StaffInvitationSendClaim> {
+      const operation = 'worker_claim_staff_invitation';
+      const data = unwrapRpc(
+        await rpc(client).rpc(operation, {
+          p_invitation_id: invitationId,
+          p_token_hash: tokenHash,
+        }),
+        operation,
+      );
+      const row = (Array.isArray(data) ? data[0] : undefined) as
+        Record<string, unknown> | undefined;
+
+      if (row === undefined || row['sendable'] !== true) {
+        return {
+          sendable: false,
+          email: null,
+          staffRole: null,
+          inviterName: null,
+          expiresAt: null,
+          attempt: 0,
+        };
+      }
+
+      return {
+        sendable: true,
+        email: text(row['email']),
+        staffRole: text(row['staff_role']),
+        inviterName: text(row['inviter_name']),
+        expiresAt: text(row['expires_at']),
+        attempt: typeof row['attempt'] === 'number' ? row['attempt'] : 1,
+      };
+    },
+
+    async complete(invitationId) {
+      const operation = 'worker_complete_staff_invitation';
+      unwrapRpc(await rpc(client).rpc(operation, { p_invitation_id: invitationId }), operation);
+    },
+
+    async fail(invitationId, error) {
+      const operation = 'worker_fail_staff_invitation';
+      const data = unwrapRpc(
+        await rpc(client).rpc(operation, { p_invitation_id: invitationId, p_error: error }),
+        operation,
+      );
       return typeof data === 'number' ? data : 0;
     },
   };

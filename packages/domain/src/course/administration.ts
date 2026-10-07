@@ -7,7 +7,7 @@ import type {
   RaceStatusTransitionRecord,
 } from '@pluka/db';
 
-import { assertPlatformAdmin } from '../authorization/organization-role.js';
+import { assertPlatformStaff } from '../authorization/organization-role.js';
 import { notFoundError, parseCommand } from '../errors.js';
 import {
   getEditionAdministrationQuerySchema,
@@ -24,7 +24,8 @@ import type { CourseContext } from './use-cases.js';
  * question : non pas « que puis-je voir en tant que participant ou
  * organisation », mais « que contient la base ». Elles traversent donc les
  * brouillons et les événements sans organisation gestionnaire, et sont
- * réservées à `pluka_admin`.
+ * ouvertes à toute l'équipe PLUKA, support compris (0035) — ce sont des
+ * lectures.
  *
  * Le rôle est relu en base à chaque appel (03_PRIVACY_RLS §11, §178) — comme
  * partout ailleurs dans ce paquet.
@@ -56,7 +57,7 @@ export async function listEventsForAdministration(
   const useCase = 'listEventsForAdministration';
   const query = parseCommand(listEventsForAdministrationQuerySchema, input, useCase);
 
-  await assertPlatformAdmin(context.repositories, context.actor, useCase);
+  await assertPlatformStaff(context.repositories, context.actor, useCase);
 
   return context.repositories.events.list(query.limit);
 }
@@ -68,7 +69,7 @@ export async function getEventAdministration(
   const useCase = 'getEventAdministration';
   const query = parseCommand(getEventAdministrationQuerySchema, input, useCase);
 
-  await assertPlatformAdmin(context.repositories, context.actor, useCase);
+  await assertPlatformStaff(context.repositories, context.actor, useCase);
 
   const event = await context.repositories.events.findById(query.eventId);
   if (event === null) throw notFoundError(useCase, 'événement');
@@ -87,7 +88,7 @@ export async function getEditionAdministration(
   const useCase = 'getEditionAdministration';
   const query = parseCommand(getEditionAdministrationQuerySchema, input, useCase);
 
-  await assertPlatformAdmin(context.repositories, context.actor, useCase);
+  await assertPlatformStaff(context.repositories, context.actor, useCase);
 
   const edition = await context.repositories.editions.findById(query.editionId);
   if (edition === null) throw notFoundError(useCase, 'édition');
@@ -129,7 +130,7 @@ export async function getRaceAdministration(
   const useCase = 'getRaceAdministration';
   const query = parseCommand(getRaceAdministrationQuerySchema, input, useCase);
 
-  await assertPlatformAdmin(context.repositories, context.actor, useCase);
+  await assertPlatformStaff(context.repositories, context.actor, useCase);
 
   const race = await context.repositories.races.findById(query.raceId);
   if (race === null) throw notFoundError(useCase, 'épreuve');

@@ -166,7 +166,8 @@ Le moteur ne fait pas :
 - historique d’achat ;
 - commande e-commerce ;
 - marketplace ;
-- prix ou affiliation ;
+- prix ;
+- toute prise en compte d’un lien d’achat ou d’une affiliation dans le calcul — une fiche produit peut porter un lien d’achat, éventuellement affilié (décision produit du 2026-10-07, `02_DATA_MODEL.md` §15.1, `06_DESIGN_SYSTEM.md` §98), mais le moteur ne le lit jamais et ne choisit jamais un produit pour son lien ;
 - validation communautaire automatique d’un produit ;
 - apprentissage automatique sur les habitudes de consommation ;
 - correction automatique de la stratégie de course à partir d’un retour de sortie ;

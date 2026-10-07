@@ -126,7 +126,7 @@ beforeAll(async () => {
   if (!available) return;
 
   client = createServiceRoleClient({ url: SUPABASE_URL, secretKey: SERVICE_KEY });
-  ports = createPorts(client, { appUrl: TEST_APP_URL });
+  ports = createPorts(client, { appUrl: TEST_APP_URL, adminUrl: 'http://localhost:3002' });
 
   await client.from('organizations').delete().eq('id', ORG_ID);
 

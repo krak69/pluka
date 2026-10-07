@@ -39,15 +39,26 @@ export {
 } from './templates/organization-invitation.js';
 
 export {
+  STAFF_ROLES,
+  renderStaffInvitation,
+  staffRoleLabel,
+  type StaffInvitationNotice,
+  type StaffRole,
+} from './templates/staff-invitation.js';
+
+export {
   INVITATION_TEMPLATE_VERSION,
+  STAFF_INVITATION_TEMPLATE_VERSION,
   NOTIFICATION_ERROR_CODES,
   NOTIFICATION_TEMPLATE_VERSION,
   NotificationError,
   isNotificationError,
   sendChangeImpactNotice,
   sendOrganizationInvitation,
+  sendStaffInvitation,
   type ChangeImpactDelivery,
   type OrganizationInvitationDelivery,
+  type StaffInvitationDelivery,
   type NotificationErrorCode,
   type NotificationSent,
 } from './send.js';

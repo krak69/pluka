@@ -2436,6 +2436,8 @@ Proscrire :
 
 Principes :
 
+**Lien d’achat d’un produit nutrition** (décision produit du 2026-10-07) : une fiche du catalogue peut porter un lien « Acheter ». S’il est affilié, la mention « Lien affilié » est visible à côté, toujours — jamais dans une infobulle. Le lien n’est ni mis en avant ni trié en premier, et ne figure jamais dans une recommandation ou une stratégie Nutrition.
+
 ```text
 contextuel
 utile

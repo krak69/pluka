@@ -49,14 +49,16 @@ export type SupabaseServiceEnv = z.infer<typeof supabaseServiceEnvSchema>;
  * voir imposer des secrets dont elle n'a pas l'usage ». La règle vaut dans les
  * deux sens.
  *
- * Trois variables, et rien d'autre :
+ * Quatre variables, et rien d'autre :
  *
  * - `SUPABASE_URL` : le point d'accès. Même valeur que celle des applications
  *   web, sans le préfixe qui n'a de sens que pour elles ;
  * - `SUPABASE_SERVICE_ROLE_KEY` : son unique secret (03_PRIVACY_RLS §8) ;
  * - `APP_URL` : la base des liens envoyés au coureur. Le worker n'affiche rien
  *   mais il écrit des courriels, et un lien y est une donnée de production —
- *   pas une valeur à deviner quand la variable manque (AGENTS §38).
+ *   pas une valeur à deviner quand la variable manque (AGENTS §38) ;
+ * - `ADMIN_URL` : la base des liens d'invitation à l'équipe PLUKA (0036), qui
+ *   s'acceptent dans la console d'administration. Même règle que `APP_URL`.
  *
  * Les providers externes n'y figurent pas : ils sont facultatifs par
  * construction et se désactivent proprement (`providerEnvSchema`).
@@ -65,6 +67,7 @@ export const workerEnvSchema = z.object({
   SUPABASE_URL: httpUrl('SUPABASE_URL'),
   SUPABASE_SERVICE_ROLE_KEY: requiredText('SUPABASE_SERVICE_ROLE_KEY'),
   APP_URL: httpUrl('APP_URL'),
+  ADMIN_URL: httpUrl('ADMIN_URL'),
 });
 
 export type WorkerEnv = z.infer<typeof workerEnvSchema>;

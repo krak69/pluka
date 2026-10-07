@@ -32,7 +32,8 @@ create extension if not exists pgtap;
 select plan(46);
 
 -- Les organisations déjà présentes dans la base locale, avant celles du test.
-select count(*) as orgs_before from public.organizations \gset
+-- Les supprimées (0038) restent en base mais hors compteurs : elles n'entrent pas dans la base de comparaison.
+select count(*) as orgs_before from public.organizations where deleted_at is null \gset
 
 \ir _personas.psql
 
@@ -96,6 +97,12 @@ delete from private.audit_logs;
 -- 1. L'admin plateforme lit ses onze écrans
 -- ============================================================
 
+-- Compte de référence, lu en propriétaire : sous une session, la RLS cache les
+-- propositions privées de coureurs que la console, elle, doit rendre.
+create temp table product_total on commit drop as
+  select count(*) as n from public.nutrition_products;
+grant select on product_total to authenticated;
+
 select pg_temp.act_as('88888888-8888-4888-8888-888888888888');
 
 select isnt_empty(
@@ -133,9 +140,11 @@ select isnt_empty(
   'ADMIN-06 — Sources, toutes editions'
 );
 
+-- Toutes les fiches de la base, quel que soit leur statut — pas un compte
+-- fixe : un catalogue importé en local (0039) ne doit pas faire mentir le test.
 select is(
-  (select count(*) from public.admin_list_nutrition_products(null, 200)),
-  2::bigint,
+  (select count(*) from public.admin_list_nutrition_products(null, 1000)),
+  (select n from product_total),
   'ADMIN-07 — Produits rend tous les statuts'
 );
 

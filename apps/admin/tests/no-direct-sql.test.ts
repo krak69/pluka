@@ -153,14 +153,18 @@ describe('autorisations', () => {
       'app/validation/page.tsx',
       'app/organisations/page.tsx',
       'app/sources/page.tsx',
-      'app/produits/catalogue/page.tsx',
-      'app/produits/a-verifier/page.tsx',
+      // Les quatre onglets de la Banque partagent leur lecture (0039).
+      'app/produits/bank-page.tsx',
+      'app/produits/[productId]/page.tsx',
       'app/signalements/page.tsx',
       'app/signalements/[reportId]/page.tsx',
       'app/utilisateurs/page.tsx',
       'app/utilisateurs/[userId]/page.tsx',
       'app/traitements/page.tsx',
-      'app/journal/page.tsx',
+      'app/parametres/journal/page.tsx',
+      // Création depuis le site officiel (0040).
+      'app/evenements/nouveau/page.tsx',
+      'app/evenements/[eventId]/documents/page.tsx',
     ];
 
     for (const screen of screens) {
@@ -218,6 +222,13 @@ describe('fonctions SQL', () => {
       'admin_get_organization',
       'admin_update_organization',
       'admin_delete_organization',
+      'admin_get_organization_dependencies',
+      // 0039 : le catalogue Nutrition.
+      'admin_save_nutrition_product',
+      'admin_import_nutrition_products',
+      'admin_delete_nutrition_product',
+      'admin_count_nutrition_products',
+      'admin_get_nutrition_product',
       // 0033 : l'équipe d'une organisation. Même contrat : garde et audit en base,
       // confirmation du retrait revérifiée par le domaine.
       'org_list_members',
@@ -226,6 +237,17 @@ describe('fonctions SQL', () => {
       'org_revoke_invitation',
       'org_change_member_role',
       'org_remove_member',
+      // 0035, 0036 : rôles et équipe PLUKA. Garde super-admin en base,
+      // jeton haché par le domaine.
+      'my_staff_role',
+      'staff_list_members',
+      'staff_list_invitations',
+      'staff_invite',
+      'staff_revoke_invitation',
+      'staff_change_role',
+      'staff_remove',
+      'preview_staff_invitation',
+      'accept_staff_invitation',
       'assert_pluka_admin',
       'record_audit',
     ];
@@ -298,7 +320,11 @@ describe('stockage', () => {
     // annonce du fichier qu'il envoie.
     const offenders = sourceFiles()
       .filter((moduleId) => /crypto\.subtle|createHash/.test(withoutComments(read(moduleId))))
-      .filter((moduleId) => moduleId !== 'app/actions.ts');
+      // Les deux fichiers de Server Actions qui reçoivent un fichier : le GPX
+      // d'une épreuve, les PDF d'une édition (0040).
+      .filter(
+        (moduleId) => moduleId !== 'app/actions.ts' && moduleId !== 'app/discovery-actions.ts',
+      );
 
     expect(offenders, 'empreinte calculée hors des Server Actions').toEqual([]);
   });

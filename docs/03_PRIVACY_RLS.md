@@ -157,6 +157,24 @@ Règles :
 - le frontend ne doit pas considérer une valeur client comme preuve d’administration ;
 - l’administration sensible peut exiger une vérification serveur additionnelle.
 
+## 4.1 Rôles de l’équipe PLUKA (migration 0035, décision produit du 2026-10-07)
+
+`platform_role = 'pluka_admin'` dit « fait partie de l’équipe PLUKA ». Le rôle précis est `users.staff_role`, nul hors équipe :
+
+| Rôle | Peut |
+|---|---|
+| `super_admin` | tout, y compris Paramètres et la gestion de l’équipe PLUKA |
+| `admin` | toute la console d’administration, sauf Paramètres |
+| `support` | lecture seule : vue d’ensemble, événements, organisations (et leur équipe), utilisateurs, traitements, journal — aucune écriture |
+
+Règles :
+
+- **refus par défaut** : `is_pluka_admin`, `user_id_is_pluka_admin` et `assert_pluka_admin` signifient « peut écrire » (super-admin ou admin). Les lectures ouvertes à Support le sont une à une — `private.staff_read_actions()` pour les RPC de console, des policies SELECT `__select__pluka_staff` pour les tables. Un oubli ne produit qu’un refus ;
+- `staff_role` est protégé comme `platform_role` : aucun client ne le change. Seules les fonctions de 0036 lèvent le verrou, pour leur transaction, après avoir vérifié le super-admin ;
+- l’équipe garde toujours au moins un super-admin ;
+- entrer dans l’équipe passe par une invitation email (0036), acceptée par le compte de l’adresse invitée ; aucune impersonation (§105, AGENTS §83) ;
+- le menu de la console suit le rôle (`my_staff_role`), mais n’autorise rien : chaque page et chaque écriture gardent leur garde en base.
+
 ---
 
 # 5. Matrice de confidentialité générale

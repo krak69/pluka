@@ -91,6 +91,13 @@ export default async function EventPage({
 
       <h2 className="pk-h2">Éditions</h2>
 
+      <p className="pk-body">
+        <Link href={`/evenements/${event.id}/documents`} className="pk-link">
+          Documents de course
+        </Link>{' '}
+        — ajouter des documents et suivre leur analyse (0040).
+      </p>
+
       {editionsWithRaces.length === 0 ? (
         <p className="pk-body" style={{ color: 'var(--pk-text-muted)' }}>
           Aucune édition.

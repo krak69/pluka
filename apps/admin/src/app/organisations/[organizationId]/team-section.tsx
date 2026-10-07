@@ -51,9 +51,12 @@ function displayName(member: Member): string {
 export function TeamSection({
   organizationId,
   team,
+  readOnly = false,
 }: {
   readonly organizationId: string;
   readonly team: OrganizationTeam;
+  /** Support (0035) : la liste, sans ses gestes — la base les refuserait. */
+  readonly readOnly?: boolean;
 }) {
   return (
     <>
@@ -78,26 +81,30 @@ export function TeamSection({
                 </span>
               </div>
 
-              <div className="ad-row-actions">
-                <MemberRoleForm
-                  organizationId={organizationId}
-                  userId={member.userId}
-                  memberName={displayName(member)}
-                  role={member.role}
-                  roles={ORGANIZATION_ROLE_OPTIONS}
-                />
-
-                <details className="ad-disclosure ad-row-disclosure">
-                  <summary>Retirer…</summary>
-                  <ConsoleAction
-                    action={removeMemberAction}
-                    fields={{ organizationId, userId: member.userId }}
-                    label="Retirer de l’équipe"
-                    variant="destructive"
-                    confirm={`Je confirme retirer ${displayName(member)} : ses accès cessent immédiatement`}
+              {readOnly ? (
+                <span className="ad-row-meta">{organizationRoleLabel(member.role)}</span>
+              ) : (
+                <div className="ad-row-actions">
+                  <MemberRoleForm
+                    organizationId={organizationId}
+                    userId={member.userId}
+                    memberName={displayName(member)}
+                    role={member.role}
+                    roles={ORGANIZATION_ROLE_OPTIONS}
                   />
-                </details>
-              </div>
+
+                  <details className="ad-disclosure ad-row-disclosure">
+                    <summary>Retirer…</summary>
+                    <ConsoleAction
+                      action={removeMemberAction}
+                      fields={{ organizationId, userId: member.userId }}
+                      label="Retirer de l’équipe"
+                      variant="destructive"
+                      confirm={`Je confirme retirer ${displayName(member)} : ses accès cessent immédiatement`}
+                    />
+                  </details>
+                </div>
+              )}
             </li>
           ))}
         </ul>
@@ -120,13 +127,15 @@ export function TeamSection({
                       {organizationRoleLabel(invitation.role)} · {invitationDetail(invitation)}
                     </span>
                   </div>
-                  <div className="ad-row-actions">
-                    <ConsoleAction
-                      action={revokeInvitationAction}
-                      fields={{ organizationId, invitationId: invitation.invitationId }}
-                      label="Révoquer"
-                    />
-                  </div>
+                  {readOnly ? null : (
+                    <div className="ad-row-actions">
+                      <ConsoleAction
+                        action={revokeInvitationAction}
+                        fields={{ organizationId, invitationId: invitation.invitationId }}
+                        label="Révoquer"
+                      />
+                    </div>
+                  )}
                 </li>
               );
             })}

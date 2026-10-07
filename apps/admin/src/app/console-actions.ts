@@ -109,11 +109,15 @@ export async function retryJobAction(_previous: ActionState, form: FormData): Pr
 const PRODUCT_TABS = {
   catalogue: '/produits/catalogue',
   'a-verifier': '/produits/a-verifier',
+  archives: '/produits/archives',
+  tous: '/produits/tous',
 } as const;
 
 function productTab(form: FormData): string {
   const from = text(form, 'from');
-  return from === 'a-verifier' ? PRODUCT_TABS['a-verifier'] : PRODUCT_TABS.catalogue;
+  return from !== undefined && from in PRODUCT_TABS
+    ? PRODUCT_TABS[from as keyof typeof PRODUCT_TABS]
+    : PRODUCT_TABS.catalogue;
 }
 
 export async function validateNutritionProductAction(
@@ -155,8 +159,7 @@ export async function archiveNutritionProductAction(
 }
 
 function revalidateProducts(): void {
-  revalidatePath(PRODUCT_TABS.catalogue);
-  revalidatePath(PRODUCT_TABS['a-verifier']);
+  for (const tab of Object.values(PRODUCT_TABS)) revalidatePath(tab);
   revalidatePath('/vue-d-ensemble');
 }
 

@@ -5,6 +5,7 @@ import {
   renderOrganizationInvitation,
   type OrganizationInvitationNotice,
 } from './templates/organization-invitation.js';
+import { renderStaffInvitation, type StaffInvitationNotice } from './templates/staff-invitation.js';
 
 /**
  * Orchestration d'envoi — `01_ARCHITECTURE.md` §4.5, §35.
@@ -23,6 +24,8 @@ import {
 export const NOTIFICATION_TEMPLATE_VERSION = 'change-impact-1.0.0';
 
 export const INVITATION_TEMPLATE_VERSION = 'organization-invitation-1.0.0';
+
+export const STAFF_INVITATION_TEMPLATE_VERSION = 'staff-invitation-1.0.0';
 
 /**
  * Échecs d'envoi, dans un vocabulaire stable.
@@ -194,5 +197,48 @@ export async function sendOrganizationInvitation(
     providerMessageId: result.providerMessageId,
     acceptedAt: result.acceptedAt,
     templateVersion: INVITATION_TEMPLATE_VERSION,
+  };
+}
+
+export interface StaffInvitationDelivery {
+  readonly notice: StaffInvitationNotice;
+  /** Inclut le numéro de tentative, comme l'invitation d'organisation. */
+  readonly idempotencyKey: string;
+}
+
+/** Écrit puis envoie l'invitation à l'équipe PLUKA (migration 0036). */
+export async function sendStaffInvitation(
+  provider: EmailProvider,
+  delivery: StaffInvitationDelivery,
+): Promise<NotificationSent> {
+  const { notice } = delivery;
+
+  if (!isPlausibleAddress(notice.recipientEmail)) {
+    throw new NotificationError('RECIPIENT_INVALID', 'adresse destinataire inexploitable');
+  }
+
+  const rendered = renderStaffInvitation(notice);
+  let result: EmailSendResult;
+
+  try {
+    result = await provider.send({
+      to: [{ address: notice.recipientEmail }],
+      subject: rendered.subject,
+      textBody: rendered.textBody,
+      idempotencyKey: delivery.idempotencyKey,
+    });
+  } catch (error) {
+    throw new NotificationError(
+      'PROVIDER_UNAVAILABLE',
+      'envoi refusé par le fournisseur',
+      error instanceof Error ? error.name : 'inconnu',
+    );
+  }
+
+  return {
+    provider: provider.name,
+    providerMessageId: result.providerMessageId,
+    acceptedAt: result.acceptedAt,
+    templateVersion: STAFF_INVITATION_TEMPLATE_VERSION,
   };
 }

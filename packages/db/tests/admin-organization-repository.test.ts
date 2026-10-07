@@ -105,3 +105,26 @@ describe('suppression d’organisation', () => {
     expect((failure as { code: string }).code).toBe('invalid_state');
   });
 });
+
+describe('ce qui retient une organisation — 0037', () => {
+  it('traduit les familles et leurs comptes', async () => {
+    const { client, calls } = fakeClient({
+      data: [
+        { kind: 'events', total: 2 },
+        { kind: 'published_facts', total: '4' },
+      ],
+      error: null,
+    });
+
+    await expect(
+      adminConsoleRepository({ client }).getOrganizationDependencies('o-1'),
+    ).resolves.toEqual([
+      { kind: 'events', total: 2 },
+      { kind: 'published_facts', total: 4 },
+    ]);
+    expect(calls[0]).toEqual({
+      name: 'admin_get_organization_dependencies',
+      args: { p_organization_id: 'o-1' },
+    });
+  });
+});

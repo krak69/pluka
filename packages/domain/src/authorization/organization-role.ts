@@ -1,4 +1,4 @@
-import type { IdentityRepository } from '@pluka/db';
+import type { IdentityRepository, PlatformIdentityRecord } from '@pluka/db';
 
 import { forbiddenError } from '../errors.js';
 
@@ -71,7 +71,7 @@ export async function resolveAuthority(
   organizationId: string | null,
 ): Promise<Authority | null> {
   const identity = await repositories.identity.findPlatformIdentity(actor.userId);
-  if (identity?.platformRole === 'pluka_admin') return { kind: 'platform_admin' };
+  if (canWritePlatform(identity)) return { kind: 'platform_admin' };
 
   if (organizationId === null) return null;
 
@@ -111,7 +111,35 @@ export async function assertPlatformAdmin(
   useCase: string,
 ): Promise<Authority> {
   const identity = await repositories.identity.findPlatformIdentity(actor.userId);
-  if (identity?.platformRole !== 'pluka_admin') throw forbiddenError(useCase);
+  if (!canWritePlatform(identity)) throw forbiddenError(useCase);
 
   return { kind: 'platform_admin' };
+}
+
+/**
+ * Lecture d'administration : tout membre de l'équipe PLUKA, support compris
+ * (0035). Les écritures passent par `assertPlatformAdmin`.
+ */
+export async function assertPlatformStaff(
+  repositories: AuthorizationRepositories,
+  actor: Actor,
+  useCase: string,
+): Promise<void> {
+  const identity = await repositories.identity.findPlatformIdentity(actor.userId);
+  if (!isPlatformStaff(identity)) throw forbiddenError(useCase);
+}
+
+/**
+ * « Peut écrire » en administration : super-admin ou admin. Le même partage
+ * que `private.is_pluka_admin()` (0035) — support n'y entre pas.
+ */
+export function canWritePlatform(identity: PlatformIdentityRecord | null): boolean {
+  return (
+    identity?.platformRole === 'pluka_admin' &&
+    (identity.staffRole === 'super_admin' || identity.staffRole === 'admin')
+  );
+}
+
+export function isPlatformStaff(identity: PlatformIdentityRecord | null): boolean {
+  return identity?.platformRole === 'pluka_admin' && identity.staffRole !== null;
 }
