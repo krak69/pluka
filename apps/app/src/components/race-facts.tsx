@@ -1,4 +1,5 @@
 import type { PublishedRaceFactRecord, RaceCutoffRecord, RaceWaypointRecord } from '@pluka/db';
+import { equipmentValueOf } from '@pluka/domain';
 import { Divider, EmptyState, MicroLabel, SourceDrawer, TrustBadge } from '@pluka/ui';
 
 /**
@@ -56,7 +57,8 @@ const CATEGORY_LABELS: Readonly<Record<PublishedRaceFactRecord['category'], stri
   gpx: 'Trace GPX',
   aid: 'Ravitaillement',
   cutoff: 'Barrières horaires',
-  equipment: 'Matériel obligatoire',
+  // Obligatoire, conditionnel ou recommandé : chaque élément le dit (0045, §82).
+  equipment: 'Matériel',
   assistance: 'Assistance',
   bag: 'Sacs',
   transport: 'Transport',
@@ -118,18 +120,52 @@ function pageLabel(fact: PublishedRaceFactRecord): string | undefined {
     : `pages ${String(source.pageStart)} à ${String(source.pageEnd)}`;
 }
 
+/**
+ * L'exigence d'un matériel, dite en toutes lettres. SOURCES_EXTRACTION §82 :
+ * un « recommandé » ne se lit jamais comme « obligatoire » ; une exigence
+ * que la source ne précise pas reste dite comme telle.
+ */
+const REQUIREMENT_LABELS = {
+  mandatory: 'Obligatoire',
+  conditional: 'Conditionnel',
+  recommended: 'Recommandé',
+} as const;
+
+function EquipmentRequirement({ fact }: { readonly fact: PublishedRaceFactRecord }) {
+  const value = equipmentValueOf(fact.valueJson);
+
+  return (
+    <>
+      <p className="rp-fact-row-requirement">
+        <strong>
+          {value.requirement === null
+            ? 'Exigence non précisée par la source'
+            : REQUIREMENT_LABELS[value.requirement]}
+        </strong>
+        {value.requirement === 'conditional' && value.condition !== null
+          ? ` — ${value.condition}`
+          : ''}
+      </p>
+      {value.detail === null ? null : <p className="rp-fact-row-detail">{value.detail}</p>}
+    </>
+  );
+}
+
 function FactRow({ fact }: { readonly fact: PublishedRaceFactRecord }) {
   const source = fact.source;
   const page = pageLabel(fact);
+  const equipment = fact.category === 'equipment';
 
   return (
     <div className="rp-fact-row">
       <div className="rp-fact-row-head">
-        <span className="rp-fact-row-key">{fact.factKey}</span>
+        {/* Un matériel se nomme par son nom, pas par sa clé technique. */}
+        <span className="rp-fact-row-key">{equipment ? 'Matériel' : fact.factKey}</span>
         <TrustBadge level={fact.trustLevel} />
       </div>
 
       <p className="rp-fact-row-value">{factValue(fact)}</p>
+      {equipment ? <EquipmentRequirement fact={fact} /> : null}
 
       {source === null ? (
         <p className="rp-fact-row-nosource">

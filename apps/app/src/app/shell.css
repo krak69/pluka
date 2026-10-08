@@ -733,6 +733,21 @@ select.pk-input {
   color: var(--pk-text);
 }
 
+/* L'exigence d'un matériel (0045) : en mots, jamais par la seule couleur. */
+.rp-fact-row-requirement,
+.rp-fact-row-detail {
+  max-width: 70ch;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--pk-text-secondary);
+}
+
+.rp-fact-row-requirement strong {
+  color: var(--pk-text);
+}
+
 .rp-fact-row-nosource {
   max-width: 70ch;
   margin: 0;
