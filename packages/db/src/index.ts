@@ -249,5 +249,8 @@ export {
   type FactEditingRepository,
   type FactHistoryAction,
   type FactHistoryEntry,
+  type AddEquipmentInput,
+  type EquipmentRequirement,
+  type ReviseEquipmentInput,
   type ReviseFactInput,
 } from './repositories/fact-editing.js';

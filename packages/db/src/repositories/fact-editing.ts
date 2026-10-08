@@ -24,6 +24,8 @@ export interface EditableFactRecord {
   readonly valueText: string | null;
   readonly valueNumber: number | null;
   readonly unit: string | null;
+  /** Valeur structurée de la version — l'exigence d'un matériel (0045). */
+  readonly valueJson: Readonly<Record<string, unknown>> | null;
   readonly trustLevel: TrustLevel;
   readonly publishedAt: string | null;
   readonly source: {
@@ -64,6 +66,30 @@ export interface ReviseFactInput {
   readonly note: string | null;
 }
 
+/** Matériel — migration 0045. */
+export type EquipmentRequirement = 'mandatory' | 'conditional' | 'recommended';
+
+export interface AddEquipmentInput {
+  readonly raceIds: readonly string[];
+  readonly factKey: string;
+  readonly label: string;
+  readonly requirement: EquipmentRequirement;
+  readonly condition: string | null;
+  readonly detail: string | null;
+  readonly trustLevel: TrustLevel;
+  readonly note: string | null;
+}
+
+export interface ReviseEquipmentInput {
+  readonly factId: string;
+  readonly label: string;
+  readonly requirement: EquipmentRequirement;
+  readonly condition: string | null;
+  readonly detail: string | null;
+  readonly trustLevel: TrustLevel;
+  readonly note: string | null;
+}
+
 export interface FactEditingRepository {
   listForEditing(raceId: string): Promise<readonly EditableFactRecord[]>;
   history(factId: string): Promise<readonly FactHistoryEntry[]>;
@@ -71,6 +97,10 @@ export interface FactEditingRepository {
   revise(input: ReviseFactInput): Promise<string>;
   retire(factId: string, note: string | null): Promise<void>;
   restore(factId: string, note: string | null): Promise<void>;
+  /** Rend le nombre d'épreuves où le matériel a été ajouté. */
+  addEquipment(input: AddEquipmentInput): Promise<number>;
+  /** Rend la nouvelle version. */
+  reviseEquipment(input: ReviseEquipmentInput): Promise<string>;
 }
 
 interface RpcCapableClient {
@@ -125,6 +155,10 @@ export const factEditingRepository = defineRepository<FactEditingRepository>((co
         valueText: text(row, 'valueText'),
         valueNumber: num(row, 'valueNumber'),
         unit: text(row, 'unit'),
+        valueJson:
+          row['valueJson'] !== null && typeof row['valueJson'] === 'object'
+            ? (row['valueJson'] as Record<string, unknown>)
+            : null,
         trustLevel: (text(row, 'trustLevel') ?? 'community') as TrustLevel,
         publishedAt: text(row, 'publishedAt'),
         source:
@@ -181,6 +215,49 @@ export const factEditingRepository = defineRepository<FactEditingRepository>((co
 
   async restore(factId, note) {
     await invoke(context, 'restore_race_fact', { p_fact_id: factId, p_note: note });
+  },
+
+  async addEquipment(input) {
+    const operation = 'add_race_equipment';
+    const data = await invoke(context, operation, {
+      p_race_ids: input.raceIds,
+      p_fact_key: input.factKey,
+      p_label: input.label,
+      p_requirement: input.requirement,
+      p_condition: input.condition,
+      p_detail: input.detail,
+      p_trust_level: input.trustLevel,
+      p_note: input.note,
+    });
+    if (typeof data !== 'number') {
+      throw new DbError({
+        code: 'unknown',
+        operation,
+        message: 'la fonction devait rendre un entier',
+      });
+    }
+    return data;
+  },
+
+  async reviseEquipment(input) {
+    const operation = 'revise_race_equipment';
+    const data = await invoke(context, operation, {
+      p_fact_id: input.factId,
+      p_label: input.label,
+      p_requirement: input.requirement,
+      p_condition: input.condition,
+      p_detail: input.detail,
+      p_trust_level: input.trustLevel,
+      p_note: input.note,
+    });
+    if (typeof data !== 'string') {
+      throw new DbError({
+        code: 'unknown',
+        operation,
+        message: 'la fonction devait rendre un uuid',
+      });
+    }
+    return data;
   },
 }));
 

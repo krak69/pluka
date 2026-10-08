@@ -5598,6 +5598,19 @@ export type Database = {
         Args: { p_token_hash: string }
         Returns: Database["public"]["Enums"]["staff_role"]
       }
+      add_race_equipment: {
+        Args: {
+          p_condition: string
+          p_detail: string
+          p_fact_key: string
+          p_label: string
+          p_note?: string
+          p_race_ids: string[]
+          p_requirement: string
+          p_trust_level: Database["public"]["Enums"]["trust_level"]
+        }
+        Returns: number
+      }
       admin_add_edition_documents: {
         Args: { p_documents: Json; p_edition_id: string }
         Returns: number
@@ -5616,6 +5629,10 @@ export type Database = {
       admin_archive_nutrition_product: {
         Args: { p_product_id: string }
         Returns: undefined
+      }
+      admin_change_event_organization: {
+        Args: { p_event_id: string; p_organization_id: string }
+        Returns: boolean
       }
       admin_count_nutrition_products: {
         Args: never
@@ -6159,6 +6176,18 @@ export type Database = {
       retire_race_fact: {
         Args: { p_fact_id: string; p_note?: string }
         Returns: undefined
+      }
+      revise_race_equipment: {
+        Args: {
+          p_condition: string
+          p_detail: string
+          p_fact_id: string
+          p_label: string
+          p_note?: string
+          p_requirement: string
+          p_trust_level: Database["public"]["Enums"]["trust_level"]
+        }
+        Returns: string
       }
       revise_race_fact: {
         Args: {

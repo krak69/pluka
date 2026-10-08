@@ -58,6 +58,11 @@ export interface AdminActionsRepository {
   createOrganization(input: CreateOrganizationInput): Promise<string>;
   /** Migration 0031. Rend le nombre de champs modifiés — 0 si rien n'a changé. */
   updateOrganization(input: UpdateOrganizationInput): Promise<number>;
+  /**
+   * Migration 0044 — super-admin seul. `organizationId` nul détache
+   * l'événement. Rend `false` quand il était déjà à cette organisation.
+   */
+  changeEventOrganization(eventId: string, organizationId: string | null): Promise<boolean>;
   /** Migration 0032. `invalid_state` tant que des données y restent liées. */
   deleteOrganization(organizationId: string): Promise<void>;
 }
@@ -150,6 +155,27 @@ export const adminActionsRepository = defineRepository<AdminActionsRepository>((
     );
 
     return scalarCount(data, operation);
+  },
+
+  async changeEventOrganization(eventId, organizationId) {
+    const operation = 'admin_change_event_organization';
+    const data = unwrapRpc(
+      await rpc(context.client).rpc(operation, {
+        p_event_id: eventId,
+        p_organization_id: organizationId,
+      }),
+      operation,
+    );
+
+    if (typeof data !== 'boolean') {
+      throw new DbError({
+        code: 'unknown',
+        operation,
+        message: 'la fonction devait rendre un booléen',
+      });
+    }
+
+    return data;
   },
 
   async deleteOrganization(organizationId) {
