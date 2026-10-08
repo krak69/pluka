@@ -117,6 +117,17 @@ export const deleteOrganizationCommandSchema = z
 
 export type DeleteOrganizationCommand = z.infer<typeof deleteOrganizationCommandSchema>;
 
+/**
+ * Migration 0044. `organizationId` nul détache l'événement : il devient
+ * « Maintenu par PLUKA ». La confirmation est exigée — le geste déplace
+ * l'accès organisateur à l'événement et à ses inscrits.
+ */
+export const changeEventOrganizationCommandSchema = z
+  .object({ eventId: uuid, organizationId: uuid.nullable(), confirmed })
+  .strict();
+
+export type ChangeEventOrganizationCommand = z.infer<typeof changeEventOrganizationCommandSchema>;
+
 export type CreateOrganizationCommand = z.infer<typeof createOrganizationCommandSchema>;
 
 export type HideReportedContentCommand = z.infer<typeof hideReportedContentCommandSchema>;
@@ -330,4 +341,38 @@ export async function deleteOrganization(
     'cette organisation porte encore des données (membres, événements, sources ou droits) : passez-la au statut « Terminé »',
     () => context.repositories.adminActions.deleteOrganization(command.organizationId),
   );
+}
+
+export interface ChangeEventOrganizationResult {
+  /** `false` quand l'événement était déjà à cette organisation. */
+  readonly changed: boolean;
+}
+
+/**
+ * Change l'organisation qui gère un événement — migration 0044.
+ *
+ * Super-admin seul : la fonction SQL le vérifie, et un trigger interdit tout
+ * autre chemin vers `events.organization_id`. L'ancienne organisation perd
+ * l'accès à l'événement et à ses inscrits, la nouvelle le reçoit ; imports,
+ * provenance des informations et droits des coureurs ne bougent pas.
+ */
+export async function changeEventOrganization(
+  context: AdminActionsContext,
+  input: unknown,
+): Promise<ChangeEventOrganizationResult> {
+  const useCase = 'changeEventOrganization';
+  const command = parseCommand(changeEventOrganizationCommandSchema, input, useCase);
+
+  const changed = await run(
+    useCase,
+    'événement ou organisation',
+    'changement d’organisation refusé',
+    () =>
+      context.repositories.adminActions.changeEventOrganization(
+        command.eventId,
+        command.organizationId,
+      ),
+  );
+
+  return { changed };
 }

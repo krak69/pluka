@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DomainError,
   archiveNutritionProduct,
+  changeEventOrganization,
   createOrganization,
   deleteOrganization,
   dismissReport,
@@ -34,7 +35,7 @@ interface Recorded {
   readonly calls: string[];
 }
 
-function contextWith(answer: () => Promise<number | string | void>): Recorded {
+function contextWith(answer: () => Promise<number | string | boolean | void>): Recorded {
   const calls: string[] = [];
 
   const record =
@@ -55,6 +56,10 @@ function contextWith(answer: () => Promise<number | string | void>): Recorded {
       return answer() as Promise<never>;
     },
     deleteOrganization: record('deleteOrganization'),
+    changeEventOrganization: async (eventId, organizationId) => {
+      calls.push(`changeEventOrganization:${eventId}:${organizationId ?? 'null'}`);
+      return answer() as Promise<never>;
+    },
     updateOrganization: async (input) => {
       calls.push(`updateOrganization:${input.organizationId}:${input.status}`);
       return answer() as Promise<never>;
@@ -340,5 +345,49 @@ describe('supprimer une organisation — migration 0032', () => {
 
     expect(error.code).toBe('invalid_state');
     expect(error.message).toContain('Terminé');
+  });
+});
+
+describe('changer l’organisation d’un événement — 0044', () => {
+  const EVENT = '00000000-0000-4000-8000-000000000051';
+  const ORG = '00000000-0000-4000-8000-000000000061';
+
+  it('transmet l’événement et l’organisation, rend si quelque chose a changé', async () => {
+    const { context, calls } = contextWith(() => Promise.resolve(true));
+
+    await expect(
+      changeEventOrganization(context, { eventId: EVENT, organizationId: ORG, confirmed: true }),
+    ).resolves.toEqual({ changed: true });
+    expect(calls).toEqual([`changeEventOrganization:${EVENT}:${ORG}`]);
+  });
+
+  it('une organisation nulle détache l’événement', async () => {
+    const { context, calls } = contextWith(() => Promise.resolve(false));
+
+    await expect(
+      changeEventOrganization(context, { eventId: EVENT, organizationId: null, confirmed: true }),
+    ).resolves.toEqual({ changed: false });
+    expect(calls).toEqual([`changeEventOrganization:${EVENT}:null`]);
+  });
+
+  it('sans confirmation, n’atteint jamais la base', async () => {
+    const { context, calls } = contextWith(() => Promise.resolve(true));
+
+    const error = await failure(
+      changeEventOrganization(context, { eventId: EVENT, organizationId: ORG }),
+    );
+    expect(error.code).toBe('validation');
+    expect(calls).toEqual([]);
+  });
+
+  it('un admin qui n’est pas super-admin est refusé en « forbidden »', async () => {
+    const error = await failure(
+      changeEventOrganization(refusedWith('permission_denied').context, {
+        eventId: EVENT,
+        organizationId: ORG,
+        confirmed: true,
+      }),
+    );
+    expect(error.code).toBe('forbidden');
   });
 });

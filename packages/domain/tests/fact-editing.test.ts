@@ -30,6 +30,8 @@ function context(overrides: Partial<FactEditingRepository> = {}): {
     restore: async (factId, note) => {
       calls.push({ restore: factId, note });
     },
+    addEquipment: async () => 0,
+    reviseEquipment: async () => 'version-id',
     ...overrides,
   };
 

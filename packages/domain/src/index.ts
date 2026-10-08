@@ -177,6 +177,24 @@ export {
 } from './course/race-information.js';
 
 export {
+  currentEditionOf,
+  eventReadiness,
+  isRaceVisibleToRunners,
+  raceVisibilityChain,
+  type EditionReadinessInput,
+  type RaceVisibilityChain,
+  type VisibilityCondition,
+  type VisibilityConditionKey,
+  type EventReadiness,
+  type EventReadinessInput,
+  type RaceReadinessInput,
+  type ReadinessItem,
+  type ReadinessItemKey,
+  type ReadinessTodo,
+  type ReadinessTodoKind,
+} from './course/readiness.js';
+
+export {
   conflictError,
   DOMAIN_ERROR_CODES,
   DomainError,
@@ -315,6 +333,8 @@ export {
   createOrganizationCommandSchema,
   deleteOrganization,
   deleteOrganizationCommandSchema,
+  changeEventOrganization,
+  changeEventOrganizationCommandSchema,
   dismissReport,
   updateOrganization,
   updateOrganizationCommandSchema,
@@ -558,3 +578,19 @@ export {
   type FactEditingContext,
   type ReviseRaceFactCommand,
 } from './facts/editing.js';
+
+export {
+  addRaceEquipment,
+  addRaceEquipmentCommandSchema,
+  EQUIPMENT_REQUIREMENTS,
+  equipmentKey,
+  equipmentOf,
+  equipmentValueOf,
+  listRaceEquipment,
+  reviseRaceEquipment,
+  reviseRaceEquipmentCommandSchema,
+  type AddRaceEquipmentCommand,
+  type EquipmentValue,
+  type RaceEquipmentItem,
+  type ReviseRaceEquipmentCommand,
+} from './facts/equipment.js';
