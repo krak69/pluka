@@ -23,6 +23,15 @@ delete from private.outbox_events;
 
 -- La fixture attache déjà une preuve principale à la version 1 du matériel.
 
+-- Depuis 0045, le matériel a son propre geste de correction
+-- (`revise_race_equipment`), et la correction générique le refuse — pièce
+-- testée en 31. Ce fichier éprouve la correction générique : l'information
+-- de la fixture y est donc lue comme une consigne de sécurité — catégorie
+-- critique elle aussi (§43), pour que FIX-10 garde son sens — sans rien
+-- changer d'autre à ce qu'elle porte.
+update public.race_facts set category = 'safety'
+where id = 'aaaaaaaa-0000-4000-8000-000000000093';
+
 -- ============================================================
 -- 1. Qui corrige
 -- ============================================================
@@ -89,7 +98,7 @@ select results_eq(
   $$ select change_kind, severity::text from public.race_change_events
      where fact_id = 'aaaaaaaa-0000-4000-8000-000000000093' $$,
   $$ values ('revised'::text, 'critical'::text) $$,
-  'FIX-10 — corriger le materiel signale un changement critique');
+  'FIX-10 — corriger une information critique signale un changement critique');
 
 select is(
   (select count(*)::integer from private.outbox_events where event_type = 'race.fact.revised'),

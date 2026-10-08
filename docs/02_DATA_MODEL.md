@@ -285,6 +285,8 @@ Suppression (migrations 0032, 0038) : une organisation vide est effacée ; une o
 
 Création d'un événement (décision produit du 2026-10-07) : avec une organisation, `management_status = 'organizer_managed'` ; sans, `pluka_managed`.
 
+Changement d'organisation (décision produit du 2026-10-08, migration 0044) : `events.organization_id` ne change que par `admin_change_event_organization`, **réservée au super-admin PLUKA** ; un trigger refuse toute autre écriture de la colonne par un utilisateur, y compris par les policies UPDATE d'organisation et de `pluka_admin`. Le statut de gestion suit la règle de création. L'accès organisateur à l'événement et aux inscrits de ses épreuves passe d'un bloc à la nouvelle organisation ; imports de participants, provenance des informations publiées et droits des coureurs gardent leur organisation d'origine. Le geste est audité (`event.change_organization`).
+
 ## 5.2 `organization_members`
 
 Table d'appartenance avec rôles :
@@ -588,9 +590,19 @@ Règles d'assistance globales ou par point.
 
 Catalogue canonique de matériel.
 
+**Non utilisé (décision produit du 2026-10-08, migration 0045).** Pas de catalogue : chaque événement nomme son matériel comme son règlement l'écrit, et un rapprochement imposé bloquerait la saisie. La table reste en place, vide.
+
 ## 8.4 `race_equipment_requirements`
 
 Exigences de course : obligatoire, conditionnel, recommandé.
+
+**Non utilisé (même décision).** Le matériel d'une épreuve est porté par des `race_facts` de catégorie `equipment`, pour hériter des versions immuables, du retrait, de la preuve et du signal d'impact :
+
+- `race_facts.fact_key` = `equipment.<slug du nom>` — une clé de rapprochement contre les doublons, pas une normalisation ;
+- `race_fact_versions.value_text` = le nom, tel que l'organisation l'écrit ;
+- `race_fact_versions.value_json` = `{ "requirement": "mandatory" | "conditional" | "recommended", "condition": texte | null, "detail": texte | null }`. Un conditionnel porte sa condition (SOURCES_EXTRACTION §82). Une version sans `requirement` — matériel extrait sans exigence précisée — se lit « non précisée », jamais « obligatoire ».
+
+La saisie (`add_race_equipment`, plusieurs épreuves d'une même édition en un geste) et la correction (`revise_race_equipment`, version N+1) ont l'autorité des autres gestes sur une information (0043). La correction générique `revise_race_fact` refuse le matériel : elle effacerait sa structure. Une saisie a pour source une source sans document par édition : `organizer_input` « Saisie de l'organisation » quand un éditeur de l'organisation saisit, `manual` « Saisie PLUKA » pour l'équipe PLUKA.
 
 ## 8.5 `race_aid_station_items`
 

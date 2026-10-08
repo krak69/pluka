@@ -413,7 +413,7 @@ Mais la landing organisateurs promet explicitement : « Partagez-le avec votre �
 /organisations/[organizationId]  Fiche et édition d'une organisation — migration 0031
 /evenements                      → redirige vers /
 /evenements/nouveau              Créer un événement — `adminNewEvent`, un écran par étape (`?etape=1…4`)
-/evenements/[eventId]
+/evenements/[eventId]            Fiche : à faire, éditions et épreuves, statut, organisation (changement : super-admin, 0044)
 /evenements/[eventId]/documents  Étape 5 : pages et documents du site, dépôt de PDF, analyse (0040, 0042)
 /courses/[raceId]                Administration d'une course
 /courses/[raceId]/revue          Revue des extractions de cette course
