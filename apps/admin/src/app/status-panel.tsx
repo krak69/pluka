@@ -4,6 +4,7 @@ import type { StatusTransition, TransitionAuthority } from '@pluka/domain';
 import { useActionState } from 'react';
 
 import type { ActionState } from '@/app/actions';
+import { statusLabel, type StatusDomain } from '@/components/admin-status';
 
 const INITIAL: ActionState = {};
 
@@ -41,6 +42,7 @@ export function StatusPanel({
   status,
   transitions,
   subject,
+  domain,
 }: {
   readonly action: (previous: ActionState, form: FormData) => Promise<ActionState>;
   /** Nom du champ qui porte l'identifiant — `eventId`, `editionId`, `raceId`. */
@@ -50,13 +52,16 @@ export function StatusPanel({
   readonly transitions: readonly StatusTransition<string>[];
   /** Nommé dans la phrase d'absence de transition : « cet événement », etc. */
   readonly subject: string;
+  /** Le dictionnaire de libellés : un statut se lit en français, jamais en enum. */
+  readonly domain: StatusDomain;
 }) {
   const [state, submit, pending] = useActionState(action, INITIAL);
 
   if (transitions.length === 0) {
     return (
       <p className="pk-body" style={{ color: 'var(--pk-text-muted)' }}>
-        Aucune transition possible pour {subject} depuis <strong>{status}</strong>.
+        Aucune transition possible pour {subject} depuis{' '}
+        <strong>{statusLabel(domain, status)}</strong>.
       </p>
     );
   }
@@ -84,7 +89,7 @@ export function StatusPanel({
                 disabled={pending}
                 style={{ minHeight: '44px' }}
               >
-                Passer en {transition.to}
+                Passer en « {statusLabel(domain, transition.to)} »
               </button>
             </form>
 

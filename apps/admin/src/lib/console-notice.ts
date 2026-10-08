@@ -43,6 +43,10 @@ export function consoleNotice(params: ConsoleNoticeParams): string | null {
       return 'Fiche supprimée.';
     case 'information-modifiee':
       return 'Information corrigée : une nouvelle version est publiée, l’ancienne reste dans l’historique. Les plans qui en dépendaient sont signalés à revoir.';
+    case 'materiel-ajoute':
+      return 'Matériel ajouté et publié. Les coureurs concernés seront prévenus du changement.';
+    case 'materiel-modifie':
+      return 'Matériel corrigé : une nouvelle version est publiée, l’ancienne reste dans l’historique.';
     case 'information-retiree':
       return 'Information retirée : elle n’est plus visible des coureurs. Son historique est conservé ; elle peut être restaurée.';
     case 'information-restauree':
@@ -67,6 +71,10 @@ export function consoleNotice(params: ConsoleNoticeParams): string | null {
       return 'Membre retiré de l’équipe PLUKA : ses accès à l’administration ont cessé.';
     case 'membre-retire':
       return 'Membre retiré : ses accès à l’organisation ont cessé.';
+    case 'organisation-evenement':
+      return 'Organisation de l’événement modifiée. L’ancienne organisation n’y a plus accès ; la nouvelle voit l’événement et ses inscrits.';
+    case 'organisation-evenement-inchangee':
+      return 'Aucune modification : l’événement était déjà rattaché à cette organisation.';
     case 'organisation-inchangee':
       return 'Aucune modification : la fiche était déjà à jour.';
     default:

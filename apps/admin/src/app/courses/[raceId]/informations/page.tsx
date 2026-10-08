@@ -54,7 +54,12 @@ function FactRow({ raceId, fact }: { readonly raceId: string; readonly fact: Edi
       <div className="ad-row-actions">
         {fact.archivedAt === null ? (
           <Link
-            href={`/courses/${raceId}/informations/${fact.factId}`}
+            // Le matériel a son propre geste de correction (0045), sur la fiche.
+            href={
+              fact.category === 'equipment'
+                ? `/courses/${raceId}#materiel`
+                : `/courses/${raceId}/informations/${fact.factId}`
+            }
             className="pk-btn pk-button-secondary"
             aria-label={`Modifier ou supprimer : ${fact.factKey}`}
           >

@@ -75,8 +75,12 @@ function selectedTypes(markup: string): readonly string[] {
   );
 }
 
-const EMPTY = renderToStaticMarkup(<WaypointsForm raceId={RACE_ID} waypoints={[]} />);
-const FILLED = renderToStaticMarkup(<WaypointsForm raceId={RACE_ID} waypoints={SAVED} />);
+const EMPTY = renderToStaticMarkup(
+  <WaypointsForm raceId={RACE_ID} waypoints={[]} timezone="Europe/Paris" />,
+);
+const FILLED = renderToStaticMarkup(
+  <WaypointsForm raceId={RACE_ID} waypoints={SAVED} timezone="Europe/Paris" />,
+);
 
 describe('chaîne vide', () => {
   it('part d’un départ et d’une arrivée', () => {
@@ -106,9 +110,10 @@ describe('chaîne existante', () => {
     expect(submitted(FILLED).getAll('waypointId')).toEqual(SAVED.map((point) => point.id));
   });
 
-  it('présente la barrière au format que le champ accepte', () => {
-    // `datetime-local` n'accepte ni fuseau ni secondes.
-    expect(submitted(FILLED).getAll('cutoffAt')).toEqual(['', '2026-06-20T11:00', '']);
+  it('présente la barrière à l’heure de la course, au format que le champ accepte', () => {
+    // `datetime-local` n'accepte ni fuseau ni secondes : 11:00 UTC se lit
+    // 13:00 à Paris en juin — l'heure du règlement.
+    expect(submitted(FILLED).getAll('cutoffAt')).toEqual(['', '2026-06-20T13:00', '']);
   });
 
   it('retient le type enregistré de chaque point', () => {
@@ -134,7 +139,7 @@ describe('transmission jusqu’à la Server Action', () => {
     // lui, poste l'option retenue. On la reconstitue dans le même ordre.
     for (const type of selectedTypes(FILLED)) form.append('waypointType', type);
 
-    const command = raceWaypointsCommand(form);
+    const command = raceWaypointsCommand(form, 'Europe/Paris');
 
     expect(setRaceWaypointsCommandSchema.safeParse(command).success).toBe(true);
   });
@@ -143,7 +148,7 @@ describe('transmission jusqu’à la Server Action', () => {
     const form = submitted(FILLED);
     for (const type of selectedTypes(FILLED)) form.append('waypointType', type);
 
-    expect(raceWaypointsCommand(form)).toEqual({
+    expect(raceWaypointsCommand(form, 'Europe/Paris')).toEqual({
       raceId: RACE_ID,
       waypoints: [
         {
@@ -158,8 +163,9 @@ describe('transmission jusqu’à la Server Action', () => {
           name: 'Ravito 1',
           waypointType: 'aid_station',
           distanceKm: 18.5,
-          // Le champ rend une heure sans fuseau : l'action la complète en UTC.
-          cutoffAt: '2026-06-20T11:00:00Z',
+          // L'heure murale repart dans le fuseau de la course : même instant
+          // qu'enregistré, sans dérive au réenregistrement.
+          cutoffAt: '2026-06-20T13:00:00+02:00',
         },
         {
           id: SAVED[2]?.id,
@@ -172,11 +178,39 @@ describe('transmission jusqu’à la Server Action', () => {
     });
   });
 
+  it('accepte une heure envoyée avec ses secondes', () => {
+    const form = submitted(FILLED);
+    for (const type of selectedTypes(FILLED)) form.append('waypointType', type);
+    form.set('cutoffAt', '');
+    form.delete('cutoffAt');
+    for (const value of ['', '2026-06-20T13:00:00', '']) form.append('cutoffAt', value);
+
+    const command = raceWaypointsCommand(form, 'Europe/Paris') as {
+      waypoints: { cutoffAt: string | null }[];
+    };
+    expect(command.waypoints[1]?.cutoffAt).toBe('2026-06-20T13:00:00+02:00');
+    expect(setRaceWaypointsCommandSchema.safeParse(command).success).toBe(true);
+  });
+
+  it('un réenregistrement ne déplace pas la barrière', () => {
+    const form = submitted(FILLED);
+    for (const type of selectedTypes(FILLED)) form.append('waypointType', type);
+    const command = raceWaypointsCommand(form, 'Europe/Paris') as {
+      waypoints: { cutoffAt: string | null }[];
+    };
+
+    expect(Date.parse(command.waypoints[1]?.cutoffAt ?? '')).toBe(
+      Date.parse('2026-06-20T11:00:00Z'),
+    );
+  });
+
   it('n’invente aucune identité pour un point ajouté', () => {
     const form = submitted(EMPTY);
     for (const type of selectedTypes(EMPTY)) form.append('waypointType', type);
 
-    const command = raceWaypointsCommand(form) as { waypoints: Record<string, unknown>[] };
+    const command = raceWaypointsCommand(form, 'Europe/Paris') as {
+      waypoints: Record<string, unknown>[];
+    };
 
     expect(command.waypoints.every((point) => !('id' in point))).toBe(true);
   });
@@ -187,7 +221,9 @@ describe('transmission jusqu’à la Server Action', () => {
 
     // L'arrivée n'a pas de kilomètre par défaut : la commande porte
     // `undefined`, et le schéma nomme le champ plutôt que de compter `NaN`.
-    const result = setRaceWaypointsCommandSchema.safeParse(raceWaypointsCommand(form));
+    const result = setRaceWaypointsCommandSchema.safeParse(
+      raceWaypointsCommand(form, 'Europe/Paris'),
+    );
 
     expect(result.success).toBe(false);
   });

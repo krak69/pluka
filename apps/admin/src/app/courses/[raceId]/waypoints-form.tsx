@@ -5,6 +5,7 @@ import { Input } from '@pluka/ui';
 import { useActionState, useState } from 'react';
 
 import { setRaceWaypointsAction, type ActionState } from '@/app/actions';
+import { localParts } from '@/lib/zoned';
 
 const INITIAL: ActionState = {};
 
@@ -27,17 +28,28 @@ interface Row {
   readonly cutoffAt: string;
 }
 
+/**
+ * `datetime-local` n'accepte ni fuseau ni secondes : la barrière s'y lit à
+ * l'heure murale du fuseau de l'épreuve — celle du règlement — et l'action la
+ * reconvertit dans le fuseau de l'épreuve lu en base (`setRaceWaypointsAction`).
+ */
+function localDateTime(instant: string | null, timezone: string): string {
+  const parts = localParts(instant, timezone);
+  return parts === null ? '' : `${parts.date}T${parts.time}`;
+}
+
 /** Une chaîne vide part d'un départ et d'une arrivée : le minimum qu'exige §7. */
-function initialRows(waypoints: readonly RaceWaypointView[]): readonly Row[] {
+function initialRows(waypoints: readonly RaceWaypointView[], timezone: string): readonly Row[] {
   if (waypoints.length > 0) {
-    return waypoints.map((waypoint, index) => ({
-      key: `existing-${index}`,
+    return waypoints.map((waypoint) => ({
+      // L'identité du point, pas son rang : après un enregistrement, les
+      // champs se remontent avec les valeurs relues en base.
+      key: `existing-${waypoint.id}`,
       id: waypoint.id,
       name: waypoint.name,
       waypointType: waypoint.waypointType,
       distanceKm: String(waypoint.distanceKm),
-      // `datetime-local` n'accepte ni fuseau ni secondes.
-      cutoffAt: waypoint.cutoffAt === null ? '' : waypoint.cutoffAt.slice(0, 16),
+      cutoffAt: localDateTime(waypoint.cutoffAt, timezone),
     }));
   }
 
@@ -65,12 +77,39 @@ function initialRows(waypoints: readonly RaceWaypointView[]): readonly Row[] {
 export function WaypointsForm({
   raceId,
   waypoints,
+  timezone,
 }: {
   readonly raceId: string;
   readonly waypoints: readonly RaceWaypointView[];
+  /** Fuseau de la ligne de départ : les barrières s'y saisissent. */
+  readonly timezone: string;
 }) {
   const [state, action, pending] = useActionState(setRaceWaypointsAction, INITIAL);
-  const [rows, setRows] = useState<readonly Row[]>(() => initialRows(waypoints));
+  const [rows, setRows] = useState<readonly Row[]>(() => initialRows(waypoints, timezone));
+
+  // Après un enregistrement, la page relit la chaîne en base et la repasse
+  // ici. L'état local doit la suivre : sinon, React remettant le formulaire à
+  // zéro après l'action, l'écran retombait sur la chaîne d'ouverture — vide —
+  // et l'enregistrement semblait perdu.
+  const saved = waypoints
+    .map((waypoint) => `${waypoint.id}:${waypoint.distanceKm}:${waypoint.cutoffAt ?? ''}`)
+    .join('|');
+  const [seen, setSeen] = useState(saved);
+  if (seen !== saved) {
+    setSeen(saved);
+    setRows(initialRows(waypoints, timezone));
+  }
+
+  // Champs contrôlés : la saisie vit dans `rows`. React remet à zéro les
+  // champs non contrôlés après une action de formulaire ; ceux-ci gardent ce
+  // qui a été tapé, jusqu'à ce que la chaîne relue en base les remplace.
+  const update = (
+    index: number,
+    field: 'name' | 'waypointType' | 'distanceKm' | 'cutoffAt',
+    value: string,
+  ): void => {
+    setRows(rows.map((row, position) => (position === index ? { ...row, [field]: value } : row)));
+  };
 
   const move = (index: number, by: number): void => {
     const target = index + by;
@@ -107,7 +146,8 @@ export function WaypointsForm({
             name="name"
             label="Nom"
             required
-            defaultValue={row.name}
+            value={row.name}
+            onChange={(change) => update(index, 'name', change.target.value)}
             error={state.fieldErrors?.[`waypoints.${index}.name`]}
           />
 
@@ -119,7 +159,8 @@ export function WaypointsForm({
               id={`waypoint-type-${row.key}`}
               name="waypointType"
               className="pk-input"
-              defaultValue={row.waypointType}
+              value={row.waypointType}
+              onChange={(change) => update(index, 'waypointType', change.target.value)}
             >
               {AUTHORED_WAYPOINT_TYPES.map((type) => (
                 <option key={type} value={type}>
@@ -137,7 +178,8 @@ export function WaypointsForm({
             step="0.01"
             min="0"
             required
-            defaultValue={row.distanceKm}
+            value={row.distanceKm}
+            onChange={(change) => update(index, 'distanceKm', change.target.value)}
             hint="Distance officielle. Le GPX mesuré peut en différer — l’écart est signalé, jamais corrigé."
             error={state.fieldErrors?.[`waypoints.${index}.distanceKm`]}
           />
@@ -147,8 +189,9 @@ export function WaypointsForm({
             name="cutoffAt"
             label="Barrière horaire"
             type="datetime-local"
-            defaultValue={row.cutoffAt}
-            hint="Facultative."
+            value={row.cutoffAt}
+            onChange={(change) => update(index, 'cutoffAt', change.target.value)}
+            hint={`Facultative. Heure locale de la course (${timezone}).`}
             error={state.fieldErrors?.[`waypoints.${index}.cutoffAt`]}
           />
 
@@ -216,6 +259,12 @@ export function WaypointsForm({
       {state.error === undefined ? null : (
         <p className="pk-field-error" role="alert">
           {state.error}
+        </p>
+      )}
+
+      {state.done === undefined || pending ? null : (
+        <p className="ad-done" role="status">
+          {state.done}
         </p>
       )}
     </form>

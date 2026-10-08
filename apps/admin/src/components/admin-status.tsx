@@ -86,8 +86,24 @@ const EVENT: Readonly<Record<string, StatusStyle>> = {
   archived: { label: 'Archivé', tone: 'neutral' },
 };
 
+/**
+ * `edition_status` et `race_status` — 0001, sens de 00_PRODUCT_SPEC §4.1.
+ * Accordés au féminin : une édition, une épreuve.
+ */
+const EDITION: Readonly<Record<string, StatusStyle>> = {
+  draft: { label: 'En préparation', tone: 'glacier' },
+  published: { label: 'Diffusée', tone: 'success' },
+  completed: { label: 'Courue', tone: 'neutral' },
+  cancelled: { label: 'Annulée', tone: 'error' },
+  archived: { label: 'Archivée', tone: 'neutral' },
+};
+
+const RACE: Readonly<Record<string, StatusStyle>> = EDITION;
+
 const DICTIONARIES = {
   event: EVENT,
+  edition: EDITION,
+  race: RACE,
   organization: ORGANIZATION,
   source: SOURCE,
   product: PRODUCT,
@@ -276,7 +292,7 @@ const FACT_CATEGORIES: Readonly<Record<string, string>> = {
   gpx: 'Trace GPX',
   aid: 'Ravitaillement',
   cutoff: 'Barrières horaires',
-  equipment: 'Matériel obligatoire',
+  equipment: 'Matériel',
   assistance: 'Assistance',
   bag: 'Sacs',
   transport: 'Transport',
@@ -305,4 +321,34 @@ const JOB_TYPES: Readonly<Record<string, string>> = {
 
 export function jobTypeLabel(jobType: string): string {
   return JOB_TYPES[jobType] ?? jobType;
+}
+
+/**
+ * `race_visibility` — 0001, 03_PRIVACY_RLS §17. Les descriptions disent ce
+ * que le code fait aujourd'hui (05_ROUTES_FLOWS §1.8, §12.10) : seule une
+ * épreuve publique s'ouvre sans session ; une non listée accepte encore des
+ * inscriptions ; une privée n'en accepte plus.
+ */
+export const RACE_VISIBILITY_OPTIONS = [
+  {
+    value: 'public',
+    label: 'Publique',
+    description: 'Listée sur PLUKA et dans la recherche, ouverte à tous.',
+  },
+  {
+    value: 'unlisted',
+    label: 'Non listée',
+    description:
+      'Absente des listes et de la recherche. Les coureurs peuvent s’y inscrire ; la page demande une connexion.',
+  },
+  {
+    value: 'private',
+    label: 'Privée',
+    description:
+      'Réservée à l’organisation, à PLUKA et aux inscrits déjà présents. Aucune nouvelle inscription.',
+  },
+] as const;
+
+export function raceVisibilityLabel(visibility: string): string {
+  return RACE_VISIBILITY_OPTIONS.find((option) => option.value === visibility)?.label ?? visibility;
 }

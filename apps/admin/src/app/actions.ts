@@ -8,8 +8,11 @@ import {
   importRaceGpx,
   setRaceWaypoints,
   createRace,
+  getRaceAdministration,
   decideFactCandidate,
+  DomainError,
   publishFactCandidate,
+  setRaceVisibility,
   updateRace,
 } from '@pluka/domain';
 import { revalidatePath } from 'next/cache';
@@ -17,7 +20,15 @@ import { redirect } from 'next/navigation';
 
 import { actionFailure, courseContext, factReviewContext, gpxImportContext } from '@/lib/admin';
 import { publicEnv } from '@/lib/env';
-import { candidateCorrection, file, optionalNumber, raceWaypointsCommand, text } from '@/lib/form';
+import {
+  candidateCorrection,
+  createRaceCommand,
+  file,
+  localInstant,
+  optionalNumber,
+  raceWaypointsCommand,
+  text,
+} from '@/lib/form';
 import { safeReturnTo } from '@/lib/return-to';
 import { requireSession } from '@/lib/session';
 import { createAuthClient } from '@/lib/supabase/auth';
@@ -46,6 +57,12 @@ import { createAuthClient } from '@/lib/supabase/auth';
 export interface ActionState {
   readonly error?: string;
   readonly fieldErrors?: Readonly<Record<string, string>>;
+  /**
+   * Compte rendu d'un enregistrement réussi qui reste sur l'écran. Sans lui,
+   * un formulaire que React remet à zéro après l'action laisse croire que
+   * rien n'est parti.
+   */
+  readonly done?: string;
 }
 
 export async function createEditionAction(
@@ -79,19 +96,7 @@ export async function createRaceAction(
   const eventId = text(form, 'eventId');
 
   try {
-    await createRace(context, {
-      editionId: text(form, 'editionId'),
-      name: text(form, 'name'),
-      slug: text(form, 'slug'),
-      distanceKm: optionalNumber(form, 'distanceKm'),
-      elevationGainM: optionalNumber(form, 'elevationGainM') ?? null,
-      elevationLossM: optionalNumber(form, 'elevationLossM') ?? null,
-      startDatetime: text(form, 'startDatetime'),
-      cutoffDatetime: text(form, 'cutoffDatetime') ?? null,
-      timezone: text(form, 'timezone'),
-      startLocationName: text(form, 'startLocationName') ?? null,
-      finishLocationName: text(form, 'finishLocationName') ?? null,
-    });
+    await createRace(context, createRaceCommand(form));
   } catch (error) {
     return actionFailure(error);
   }
@@ -114,8 +119,9 @@ export async function updateRaceAction(
       distanceKm: optionalNumber(form, 'distanceKm'),
       elevationGainM: optionalNumber(form, 'elevationGainM'),
       elevationLossM: optionalNumber(form, 'elevationLossM'),
-      startDatetime: text(form, 'startDatetime'),
-      cutoffDatetime: text(form, 'cutoffDatetime') ?? null,
+      // Saisis en date et heure locales, dans le fuseau du formulaire.
+      startDatetime: localInstant(form, 'start'),
+      cutoffDatetime: localInstant(form, 'cutoff') ?? null,
       timezone: text(form, 'timezone'),
       startLocationName: text(form, 'startLocationName') ?? null,
       finishLocationName: text(form, 'finishLocationName') ?? null,
@@ -149,6 +155,31 @@ export async function changeRaceStatusAction(
   }
 
   revalidatePath(`/courses/${raceId}`);
+  // La fiche événement dit ce qui est visible : elle suit.
+  revalidatePath('/evenements/[eventId]', 'page');
+  return {};
+}
+
+/**
+ * Visibilité d'une épreuve — 03_PRIVACY_RLS §17. `setRaceVisibility` relit
+ * l'autorité (éditeur de l'organisation, ou `pluka_admin`) ; la policy
+ * UPDATE de `races` la revérifie.
+ */
+export async function setRaceVisibilityAction(
+  _previous: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const context = courseContext(await requireSession('/'));
+  const raceId = text(form, 'raceId');
+
+  try {
+    await setRaceVisibility(context, { raceId, visibility: text(form, 'visibility') });
+  } catch (error) {
+    return actionFailure(error);
+  }
+
+  revalidatePath(`/courses/${raceId}`);
+  revalidatePath('/evenements/[eventId]', 'page');
   return {};
 }
 
@@ -261,13 +292,16 @@ export async function setRaceWaypointsAction(
   const raceId = text(form, 'raceId');
 
   try {
-    await setRaceWaypoints(context, raceWaypointsCommand(form));
+    // Le fuseau qui fait foi est celui de l'épreuve en base, pas une valeur
+    // postée : les barrières se saisissent à l'heure de sa ligne de départ.
+    const { race } = await getRaceAdministration(context, { raceId });
+    await setRaceWaypoints(context, raceWaypointsCommand(form, race.timezone));
   } catch (error) {
     return actionFailure(error);
   }
 
   revalidatePath(`/courses/${raceId}`);
-  return {};
+  return { done: 'Parcours enregistré. Le prétraitement est relancé avec ces points.' };
 }
 
 /** Empreinte SHA-256 du contenu, en hexadécimal minuscule — la forme qu'attend le schéma. */
@@ -351,6 +385,19 @@ export async function publishCandidateAction(
       resolveConflict: form.get('resolveConflict') === 'on',
     });
   } catch (error) {
+    // §32 : le refus d'un niveau « Officielle » se dit tel quel — c'est une
+    // règle du métier, pas un droit manquant sur la console. Le message
+    // générique « action non autorisée » laissait croire l'inverse.
+    if (
+      error instanceof DomainError &&
+      error.code === 'forbidden' &&
+      error.details['reason'] === 'OFFICIAL_AUTHORIZATION_REQUIRED'
+    ) {
+      return {
+        error:
+          'Le niveau « Officielle » est réservé à un éditeur de l’organisation de cette course. En tant qu’admin PLUKA, publie en « Validée PLUKA ».',
+      };
+    }
     return actionFailure(error);
   }
 

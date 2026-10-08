@@ -74,7 +74,7 @@ describe('écran Event', () => {
   it('propose la publication d’un événement en brouillon', () => {
     // Le premier maillon : sans lui, ni édition ni épreuve ne se publient.
     expect(offeredTargets(markup)).toEqual(['published']);
-    expect(markup).toContain('Passer en published');
+    expect(markup).toContain('Passer en « Publié »');
   });
 
   it('transmet l’identifiant de l’événement et le statut visé', () => {

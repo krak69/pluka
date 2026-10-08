@@ -87,10 +87,10 @@ export function isCurrent(pathname: string, href: string): boolean {
 
 /**
  * Écrans en plein écran : un parcours qui demande toute l'attention — la
- * création d'un événement. La barre latérale reste ; le bandeau du haut
+ * création d'un événement ou d'une organisation. La barre latérale reste ; le bandeau du haut
  * s'efface et l'écran porte sa propre sortie.
  */
-const FOCUS_PATHS: readonly string[] = ['/evenements/nouveau'];
+const FOCUS_PATHS: readonly string[] = ['/evenements/nouveau', '/organisations/nouvelle'];
 
 export function isFocusMode(pathname: string): boolean {
   return FOCUS_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));

@@ -3,7 +3,7 @@
 import type { EditionRecord, EventRecord } from '@pluka/db';
 import type { EditionTransition, EventTransition } from '@pluka/domain';
 import { Input } from '@pluka/ui';
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 
 import {
   changeEditionStatusAction,
@@ -13,6 +13,7 @@ import {
   type ActionState,
 } from '@/app/actions';
 import { StatusPanel } from '@/app/status-panel';
+import { slugify } from '@/lib/slug';
 
 const INITIAL: ActionState = {};
 
@@ -54,6 +55,7 @@ export function EventStatusPanel({
       status={status}
       transitions={transitions}
       subject="cet événement"
+      domain="event"
     />
   );
 }
@@ -82,58 +84,90 @@ export function EditionStatusPanel({
       status={status}
       transitions={transitions}
       subject="cette édition"
+      domain="edition"
     />
   );
 }
 
 /**
- * Formulaires de création.
+ * Formulaires de création — sous l'événement existant.
  *
- * Client Components pour la seule restitution du message d'erreur du domaine
- * (§6.2). Aucune validation locale : les schémas Zod du use case font foi, et
- * dupliquer une règle ici la ferait diverger.
+ * Même grammaire que le parcours de création (0042) : l'essentiel visible, le
+ * slug proposé et replié dans « Réglages avancés », le départ saisi en date et
+ * heure locales. Aucune validation locale : les schémas Zod du use case font
+ * foi, et dupliquer une règle ici la ferait diverger.
  */
-export function CreateEditionForm({ eventId }: { readonly eventId: string }) {
+export function CreateEditionForm({
+  eventId,
+  defaultYear,
+}: {
+  readonly eventId: string;
+  readonly defaultYear: number;
+}) {
   const [state, action, pending] = useActionState(createEditionAction, INITIAL);
+  const [slug, setSlug] = useState(String(defaultYear));
+  const [touched, setTouched] = useState(false);
+  const errors = state.fieldErrors ?? {};
 
   return (
-    <form action={action} style={{ display: 'grid', gap: 'var(--space-5)', maxWidth: '32rem' }}>
+    <form action={action} className="ad-event-form">
       <input type="hidden" name="eventId" value={eventId} />
 
-      <Input
-        id="edition-year"
-        name="year"
-        label="Année"
-        type="number"
-        required
-        error={state.fieldErrors?.['year']}
-      />
-      <Input
-        id="edition-slug"
-        name="slug"
-        label="Slug"
-        required
-        error={state.fieldErrors?.['slug']}
-      />
-      <Input
-        id="edition-start"
-        name="startDate"
-        label="Date de début"
-        type="date"
-        required
-        error={state.fieldErrors?.['startDate']}
-      />
-      <Input
-        id="edition-end"
-        name="endDate"
-        label="Date de fin"
-        type="date"
-        error={state.fieldErrors?.['endDate']}
-      />
+      <div className="ad-form-grid">
+        <Input
+          id="edition-year"
+          name="year"
+          label="Année"
+          type="number"
+          required
+          defaultValue={defaultYear}
+          onChange={(change) => {
+            if (!touched) setSlug(change.target.value.trim());
+          }}
+          error={errors['year']}
+        />
+        <Input
+          id="edition-start"
+          name="startDate"
+          label="Date de début"
+          type="date"
+          required
+          error={errors['startDate']}
+        />
+        <Input
+          id="edition-end"
+          name="endDate"
+          label="Date de fin (facultative)"
+          type="date"
+          hint="Pour un événement sur plusieurs jours."
+          error={errors['endDate']}
+        />
+      </div>
 
-      <div>
+      <details className="ad-advanced" open={errors['slug'] !== undefined}>
+        <summary>Réglages avancés — slug</summary>
+        <div className="ad-form-grid">
+          <Input
+            id="edition-slug"
+            name="slug"
+            label="Slug de l’édition"
+            required
+            autoComplete="off"
+            spellCheck={false}
+            hint="Proposé depuis l’année."
+            value={slug}
+            onChange={(change) => {
+              setTouched(true);
+              setSlug(change.target.value);
+            }}
+            error={errors['slug']}
+          />
+        </div>
+      </details>
+
+      <div className="ad-form-actions">
         <button type="submit" className="pk-btn pk-button-primary" disabled={pending}>
-          Créer l’édition
+          {pending ? 'Création…' : 'Créer l’édition'}
         </button>
       </div>
 
@@ -145,82 +179,134 @@ export function CreateEditionForm({ eventId }: { readonly eventId: string }) {
 export function CreateRaceForm({
   editionId,
   eventId,
+  defaultDate,
 }: {
   readonly editionId: string;
   readonly eventId: string;
+  /** Le premier jour de l'édition : le départ de la plupart des épreuves. */
+  readonly defaultDate: string;
 }) {
   const [state, action, pending] = useActionState(createRaceAction, INITIAL);
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [touched, setTouched] = useState(false);
+  const errors = state.fieldErrors ?? {};
+  const id = (field: string) => `race-${field}-${editionId}`;
 
   return (
-    <form action={action} style={{ display: 'grid', gap: 'var(--space-5)', maxWidth: '32rem' }}>
+    <form action={action} className="ad-event-form">
       <input type="hidden" name="editionId" value={editionId} />
       <input type="hidden" name="eventId" value={eventId} />
 
-      <Input
-        id={`race-name-${editionId}`}
-        name="name"
-        label="Nom"
-        required
-        error={state.fieldErrors?.['name']}
-      />
-      <Input
-        id={`race-slug-${editionId}`}
-        name="slug"
-        label="Slug"
-        required
-        error={state.fieldErrors?.['slug']}
-      />
-      <Input
-        id={`race-distance-${editionId}`}
-        name="distanceKm"
-        label="Distance (km)"
-        type="number"
-        step="0.01"
-        required
-        error={state.fieldErrors?.['distanceKm']}
-      />
-      <Input
-        id={`race-start-${editionId}`}
-        name="startDatetime"
-        label="Départ (ISO 8601 avec décalage)"
-        required
-        hint="Exemple : 2026-06-20T04:00:00Z"
-        error={state.fieldErrors?.['startDatetime']}
-      />
-      <Input
-        id={`race-cutoff-${editionId}`}
-        name="cutoffDatetime"
-        label="Barrière finale"
-        hint="Facultative. Doit suivre le départ."
-        error={state.fieldErrors?.['cutoffDatetime']}
-      />
-      <Input
-        id={`race-timezone-${editionId}`}
-        name="timezone"
-        label="Fuseau (IANA)"
-        defaultValue="Europe/Paris"
-        required
-        hint="Structurant pour les heures de passage et les Conditions."
-        error={state.fieldErrors?.['timezone']}
-      />
-      <Input
-        id={`race-gain-${editionId}`}
-        name="elevationGainM"
-        label="D+ (m)"
-        type="number"
-        error={state.fieldErrors?.['elevationGainM']}
-      />
-      <Input
-        id={`race-loss-${editionId}`}
-        name="elevationLossM"
-        label="D- (m)"
-        type="number"
-        error={state.fieldErrors?.['elevationLossM']}
-      />
+      <div className="ad-form-grid">
+        <Input
+          id={id('name')}
+          name="name"
+          label="Nom"
+          placeholder="Ex. Grand Trail"
+          required
+          autoComplete="off"
+          value={name}
+          onChange={(change) => {
+            setName(change.target.value);
+            if (!touched) setSlug(slugify(change.target.value));
+          }}
+          error={errors['name']}
+        />
+        <Input
+          id={id('distance')}
+          name="distanceKm"
+          label="Distance (km)"
+          inputMode="decimal"
+          required
+          autoComplete="off"
+          error={errors['distanceKm']}
+        />
+        <Input
+          id={id('gain')}
+          name="elevationGainM"
+          label="D+ (m, facultatif)"
+          inputMode="numeric"
+          autoComplete="off"
+          error={errors['elevationGainM']}
+        />
+        <Input
+          id={id('loss')}
+          name="elevationLossM"
+          label="D- (m, facultatif)"
+          inputMode="numeric"
+          autoComplete="off"
+          error={errors['elevationLossM']}
+        />
+        <Input
+          id={id('start-date')}
+          name="startDate"
+          type="date"
+          label="Date de départ"
+          required
+          defaultValue={defaultDate}
+          error={errors['startDatetime']}
+        />
+        <Input
+          id={id('start-time')}
+          name="startTime"
+          type="time"
+          label="Heure de départ"
+          required
+        />
+        <Input
+          id={id('cutoff-date')}
+          name="cutoffDate"
+          type="date"
+          label="Barrière finale — date (facultative)"
+          error={errors['cutoffDatetime']}
+        />
+        <Input
+          id={id('cutoff-time')}
+          name="cutoffTime"
+          type="time"
+          label="Barrière finale — heure"
+          hint="Doit suivre le départ."
+        />
+      </div>
 
-      <div>
+      <details
+        className="ad-advanced"
+        open={errors['slug'] !== undefined || errors['timezone'] !== undefined}
+      >
+        <summary>Réglages avancés — slug, fuseau horaire</summary>
+        <div className="ad-form-grid">
+          <Input
+            id={id('slug')}
+            name="slug"
+            label="Slug de l’épreuve"
+            required
+            autoComplete="off"
+            spellCheck={false}
+            hint="Proposé depuis le nom."
+            value={slug}
+            onChange={(change) => {
+              setTouched(true);
+              setSlug(change.target.value);
+            }}
+            error={errors['slug']}
+          />
+          <Input
+            id={id('timezone')}
+            name="timezone"
+            label="Fuseau horaire"
+            required
+            autoComplete="off"
+            defaultValue="Europe/Paris"
+            hint="Fuseau IANA de la ligne de départ : les heures saisies s’y lisent."
+            error={errors['timezone']}
+          />
+        </div>
+      </details>
+
+      <div className="ad-form-actions">
         <button type="submit" className="pk-btn pk-button-primary" disabled={pending}>
-          Créer l’épreuve
+          {pending ? 'Création…' : 'Créer l’épreuve'}
         </button>
       </div>
 

@@ -2,6 +2,7 @@
 
 import {
   archiveNutritionProduct,
+  changeEventOrganization,
   createOrganization,
   deleteOrganization,
   dismissReport,
@@ -242,4 +243,35 @@ export async function deleteOrganizationAction(
   revalidatePath('/evenements/nouveau');
   revalidatePath('/vue-d-ensemble');
   redirect('/organisations?fait=organisation-supprimee');
+}
+
+/**
+ * Change l'organisation qui gère un événement — migration 0044, super-admin
+ * seul. Le menu poste une chaîne vide pour « aucune organisation » : elle
+ * devient `null`, et l'événement est détaché.
+ */
+export async function changeEventOrganizationAction(
+  _previous: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const eventId = text(form, 'eventId') ?? '';
+  const context = adminActionsContext(await requireSession(`/evenements/${eventId}`));
+
+  let changed: boolean;
+  try {
+    ({ changed } = await changeEventOrganization(context, {
+      eventId,
+      organizationId: text(form, 'organizationId') ?? null,
+      confirmed: checked(form, 'confirmed'),
+    }));
+  } catch (error) {
+    return actionFailure(error);
+  }
+
+  revalidatePath(`/evenements/${eventId}`);
+  revalidatePath('/');
+  revalidatePath('/organisations');
+  redirect(
+    `/evenements/${eventId}?fait=${changed ? 'organisation-evenement' : 'organisation-evenement-inchangee'}`,
+  );
 }

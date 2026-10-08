@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { CreateOrganizationForm } from '@/app/create-organization-form';
 import { createOrganizationCommand } from '@/lib/form';
+import { slugify } from '@/lib/slug';
 
 /**
  * Même chaîne que `create-event-form.test.tsx` : le balisage rendu, les champs
@@ -61,5 +62,16 @@ describe('formulaire de création d’organisation', () => {
     );
 
     expect(createOrganizationCommandSchema.safeParse(command).success).toBe(true);
+  });
+
+  it('nomme le slug « Adresse web » et le propose depuis le nom', () => {
+    expect(MARKUP).toContain('Adresse web');
+    expect(MARKUP).not.toMatch(/>Slug</);
+    expect(slugify('Association Trail des Crêtes')).toBe('association-trail-des-cretes');
+  });
+
+  it('une seule action dominante, et une sortie', () => {
+    expect(MARKUP.match(/pk-button-primary/g)).toHaveLength(1);
+    expect(MARKUP).toContain('href="/organisations"');
   });
 });

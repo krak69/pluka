@@ -256,10 +256,16 @@ function CandidateCard({
             id={`trust-${candidate.candidateId}`}
             name="trustLevel"
             className="pk-input"
-            defaultValue="official"
+            defaultValue="pluka_validated"
           >
-            <option value="official">Officielle — au nom de l’organisation</option>
+            {/*
+              « Validée PLUKA » d'abord : c'est ce que la console publie le plus
+              souvent, et le seul niveau d'un admin PLUKA qui n'est pas membre
+              de l'organisation (§32). « Officielle » reste au choix d'un
+              éditeur de l'organisation ; le domaine tranche.
+            */}
             <option value="pluka_validated">Validée PLUKA</option>
+            <option value="official">Officielle — réservé à un éditeur de l’organisation</option>
           </select>
 
           {/*

@@ -1,5 +1,8 @@
 import { Badge } from '@pluka/ui';
 
+import { statusLabel, type StatusDomain } from '@/components/admin-status';
+import { dateTime } from '@/lib/format';
+
 /**
  * Journal des changements de statut — 00_PRODUCT_SPEC §4.1.
  *
@@ -19,7 +22,20 @@ export interface StatusHistoryEntry {
   readonly createdAt: string;
 }
 
-export function StatusHistory({ entries }: { readonly entries: readonly StatusHistoryEntry[] }) {
+/**
+ * `domain` traduit les statuts et date l'entrée en clair ; sans lui, le
+ * journal se lit brut — enum et instant ISO.
+ */
+export function StatusHistory({
+  entries,
+  domain,
+}: {
+  readonly entries: readonly StatusHistoryEntry[];
+  readonly domain?: StatusDomain;
+}) {
+  const label = (status: string): string =>
+    domain === undefined ? status : statusLabel(domain, status);
+
   if (entries.length === 0) {
     return (
       <p className="pk-body" style={{ color: 'var(--pk-text-muted)' }}>
@@ -41,11 +57,11 @@ export function StatusHistory({ entries }: { readonly entries: readonly StatusHi
             borderTop: '1px solid var(--pk-hairline)',
           }}
         >
-          <Badge tone="neutral">{entry.fromStatus}</Badge>
+          <Badge tone="neutral">{label(entry.fromStatus)}</Badge>
           <span aria-hidden="true">→</span>
-          <Badge tone="glacier">{entry.toStatus}</Badge>
+          <Badge tone="glacier">{label(entry.toStatus)}</Badge>
           <span className="pk-label" style={{ marginLeft: 'auto' }}>
-            {entry.createdAt}
+            {domain === undefined ? entry.createdAt : dateTime(entry.createdAt)}
           </span>
         </li>
       ))}

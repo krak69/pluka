@@ -9,6 +9,7 @@ import type { ActionState } from '@/app/actions';
 import { createEventWithEditionAction } from '@/app/discovery-actions';
 import { AdminIcon } from '@/components/admin-icon';
 import { CreationStepper } from '@/components/creation-stepper';
+import { slugify } from '@/lib/slug';
 
 /**
  * Créer un événement — un écran par étape (décisions produit du 2026-10-07) :
@@ -46,18 +47,6 @@ const TIPS = [
   'Barrières, ravitaillements, matériel : inutile de les saisir. Ils viendront des documents, à l’étape 5.',
   'Rien n’est encore enregistré. Tu peux tout modifier avant de créer l’événement.',
 ] as const;
-
-/** Slug proposé depuis un nom : minuscules, sans accent, tirets simples. Modifiable. */
-export function slugify(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80)
-    .replace(/-+$/g, '');
-}
 
 function stepOfField(field: string): number {
   if (field.startsWith('event.')) return 1;

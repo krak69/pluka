@@ -251,6 +251,9 @@ describe('actions', () => {
     // par l'écran. Les deux niveaux sont donc proposés.
     expect(html).toContain('value="official"');
     expect(html).toContain('value="pluka_validated"');
+    // « Validée PLUKA » par défaut : « Officielle » refuserait un admin PLUKA
+    // qui n'est pas éditeur de l'organisation (§32).
+    expect(html).toMatch(/<option value="pluka_validated" selected="">/);
   });
 
   it('permet de corriger la valeur avant publication — §31', () => {

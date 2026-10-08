@@ -29,6 +29,16 @@ export interface RaceOption {
 
 const INITIAL: ActionState = {};
 
+/**
+ * À quelle épreuve un document s'applique. Par défaut, à toutes : un
+ * règlement vaut pour l'édition entière, et ses informations sont proposées
+ * pour chaque épreuve. Une épreuve en particulier se choisit quand le
+ * document ne parle que d'elle — un roadbook, un guide de course.
+ *
+ * Le libellé est visible : sans lui, le menu passait pour un choix
+ * obligatoire d'épreuve. Avec une seule épreuve (ou aucune), il n'y a rien à
+ * choisir et le menu ne s'affiche pas.
+ */
 function RaceScope({
   id,
   name,
@@ -44,16 +54,19 @@ function RaceScope({
 
   return (
     <span className="ad-doc-scope">
-      <label htmlFor={id} className="ad-visually-hidden">
-        {label}
+      <label htmlFor={id} className="ad-doc-scope-label">
+        Concerne
+        <span className="ad-visually-hidden"> — {label}</span>
       </label>
       <select id={id} name={name} className="pk-input" defaultValue="">
-        <option value="">Toutes les épreuves</option>
-        {races.map((race) => (
-          <option key={race.id} value={race.id}>
-            {race.name}
-          </option>
-        ))}
+        <option value="">Toutes les épreuves ({races.length})</option>
+        <optgroup label="Une épreuve en particulier">
+          {races.map((race) => (
+            <option key={race.id} value={race.id}>
+              {race.name}
+            </option>
+          ))}
+        </optgroup>
       </select>
     </span>
   );
@@ -77,6 +90,12 @@ export function DocumentsForm({
       <h2 id="documents-title" className="ad-org-panel-title">
         Pages et documents à analyser
       </h2>
+      {races.length < 2 ? null : (
+        <p className="ad-org-panel-lede">
+          Chaque document concerne par défaut <strong>toutes les épreuves</strong>. Choisis une
+          épreuve en particulier quand il ne parle que d’elle — un roadbook, par exemple.
+        </p>
+      )}
       <input type="hidden" name="eventId" value={eventId} />
       <input type="hidden" name="editionId" value={editionId} />
 

@@ -1724,8 +1724,21 @@ a.ad-card:hover {
   overflow-wrap: anywhere;
 }
 
+/* « Concerne : [Toutes les épreuves] » — le libellé à gauche du menu. */
+.ad-doc-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ad-doc-scope-label {
+  color: var(--pk-text-secondary);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .ad-doc-scope select {
-  min-width: 12rem;
+  min-width: 13rem;
 }
 
 .ad-doc-upload {
@@ -2211,4 +2224,504 @@ a.ad-card:hover {
 .ad-wizard-done p {
   max-width: 44rem;
   margin: 0;
+}
+
+/* ── Créer une organisation : bandeau de terrain, puis carte ────────────*/
+
+/* Ce qui suit la création : trois jalons, comme des points de passage. */
+.ad-org-create-next {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: color-mix(in srgb, var(--pk-text-on-dark) 86%, transparent);
+}
+
+.ad-org-create-next li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.ad-org-create-next strong {
+  color: var(--pk-surface);
+}
+
+.ad-org-create-step {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: var(--pk-lichen);
+  color: var(--pk-ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ad-org-create-card {
+  gap: var(--space-6);
+}
+
+.ad-org-create-card .ad-step-actions {
+  max-width: none;
+}
+
+.ad-org-create-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ad-org-create-section + .ad-org-create-section {
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.ad-org-create-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* L'adresse : le champ, puis l'aperçu de ce qu'il donnera, en Calcaire. */
+.ad-org-create-address {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ad-org-create-preview .ad-mono {
+  font-size: 13px;
+}
+
+.ad-org-create-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--pk-limestone);
+  color: var(--pk-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.ad-org-create-reset {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pk-forest);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ad-org-create-cancel {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  color: var(--pk-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ad-org-create-cancel:hover {
+  text-decoration: underline;
+}
+
+.ad-org-create-cancel:focus-visible,
+.ad-org-create-reset:focus-visible {
+  outline: 2px solid var(--pk-forest);
+  outline-offset: 2px;
+}
+
+/* ══ Fiche événement ══════════════════════════════════════════════════════
+ *
+ * La grammaire de la fiche organisation (`.ad-org-*`) : bande, « À faire »,
+ * tuiles, panneaux. En propre : un panneau par édition, ses épreuves en
+ * lignes à filets, et la visibilité dite en mots — la couleur seule ne porte
+ * jamais l'information (AGENTS §44).
+ */
+.ad-event-band-footer {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ad-event-band-footer a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+.ad-event-editions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.ad-event-edition-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.ad-event-edition-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ad-event-edition-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--pk-text);
+}
+
+.ad-event-edition-head .ad-row-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.ad-event-race-name {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pk-text);
+  text-decoration: none;
+}
+
+.ad-event-race-name:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ad-event-race-name:focus-visible {
+  outline: 2px solid var(--pk-focus-light);
+  outline-offset: 2px;
+}
+
+.ad-event-race-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ad-event-visibility {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pk-success);
+}
+
+.ad-event-hidden {
+  color: var(--pk-text-muted);
+  font-weight: 500;
+}
+
+.ad-event-edition-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.ad-event-edition-links .pk-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+}
+
+.ad-event-form,
+.ad-event-status {
+  display: grid;
+  gap: var(--space-4);
+  padding-top: var(--space-3);
+}
+
+.ad-event-form .ad-form-actions {
+  margin: 0;
+}
+
+/* Changer l'organisation (0044) : les effets se lisent avant la case. */
+.ad-event-effects {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-6);
+  border-left: 2px solid var(--pk-dawn);
+  background: var(--pk-limestone);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pk-text);
+}
+
+/* ══ Fiche épreuve — Publication ═════════════════════════════════════════
+ * La chaîne qui décide de la visibilité (0005), lue d'un coup : chaque
+ * condition dit son état en mots, la coche ne fait que le souligner.
+ */
+.ad-race-publication {
+  margin-top: var(--space-6);
+}
+
+.ad-race-verdict {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 2px solid var(--pk-dawn);
+  background: var(--pk-limestone);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pk-text);
+}
+
+.ad-race-verdict-ok {
+  border-left-color: var(--pk-success-signal);
+  background: var(--pk-success-bg);
+}
+
+.ad-race-chain {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.ad-race-step {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--pk-hairline);
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--pk-dawn-ink);
+}
+
+.ad-race-step-ok {
+  color: var(--pk-success);
+}
+
+.ad-race-step-label {
+  flex: 1;
+  min-width: min(12rem, 100%);
+  color: var(--pk-text);
+  font-weight: 500;
+}
+
+.ad-race-step-state {
+  font-weight: 600;
+}
+
+.ad-race-publication-block {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.ad-race-visibility {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* ── Fiche événement : en-tête de l'Accueil (prototype `orgOverview`) ───── */
+.ad-event-head {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.ad-event-name {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(30px, 4vw, 42px);
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--pk-text);
+}
+
+.ad-event-sub {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--pk-text-secondary);
+}
+
+.ad-event-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ad-event-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--pk-text);
+  text-decoration: none;
+}
+
+.ad-event-pill:hover {
+  border-color: var(--pk-forest);
+}
+
+.ad-event-pill:focus-visible {
+  outline: 2px solid var(--pk-focus-light);
+  outline-offset: 2px;
+}
+
+/* La phrase d'état tient sur la largeur de lecture, comme au prototype. */
+.ad-event-band .pk-terrain-title {
+  max-width: 22ch;
+}
+
+.ad-event-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (width >= 1100px) {
+  .ad-event-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ad-event-section {
+  margin: var(--space-6) 0 0;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--pk-text);
+}
+
+.ad-event .pk-actions-action .ad-action {
+  margin: 0;
+}
+
+/* ── Fiche épreuve ─────────────────────────────────────────────────────── */
+.ad-race-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--pk-text-muted);
+}
+
+.ad-race-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ad-race-categories li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  padding: 0 var(--space-3) 0 var(--space-1);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--pk-text);
+}
+
+.ad-race-links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ad-race-links .pk-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.ad-race-edit {
+  display: grid;
+  gap: var(--space-4);
+  padding-top: var(--space-3);
+}
+
+.ad-race-edit .ad-form-actions {
+  margin: 0;
+}
+
+/* ── Matériel (0045) ───────────────────────────────────────────────────── */
+.ad-equipment-group {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ad-equipment-form,
+.ad-equipment-edit {
+  display: grid;
+  gap: var(--space-4);
+  padding-top: var(--space-3);
+}
+
+.ad-equipment-form .ad-form-actions {
+  margin: 0;
+}
+
+.ad-equipment-requirements {
+  max-width: 40rem;
+}
+
+.ad-equipment-scope {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ad-equipment-row .ad-row-disclosure[open] {
+  flex-basis: 100%;
 }

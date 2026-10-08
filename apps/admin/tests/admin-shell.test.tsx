@@ -227,6 +227,8 @@ describe('plein écran', () => {
 
   it('ne touche à aucun autre écran, fiche d’événement comprise', () => {
     expect(isFocusMode('/evenements/nouveau')).toBe(true);
+    expect(isFocusMode('/organisations/nouvelle')).toBe(true);
+    expect(isFocusMode('/organisations')).toBe(false);
     expect(isFocusMode('/evenements/abc')).toBe(false);
     expect(isFocusMode('/evenements/nouveautes')).toBe(false);
   });

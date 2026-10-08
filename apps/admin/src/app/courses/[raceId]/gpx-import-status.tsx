@@ -49,6 +49,8 @@ function gap(measured: number | null, official: number | null): string | null {
   return ratio === null ? null : `${(ratio * 100).toFixed(1)} % d’écart`;
 }
 
+export { STAGE_LABEL };
+
 export function GpxImportStatus({ status }: { readonly status: RaceGpxImport }) {
   const { stage, job, snapshot, geometry, quality } = status;
   const distanceGap =

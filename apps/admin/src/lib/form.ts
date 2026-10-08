@@ -1,5 +1,7 @@
 import type { CreateOrganizationCommand, UpdateOrganizationCommand } from '@pluka/domain';
 
+import { zonedInstant } from '@/lib/zoned';
+
 /**
  * Lecture d'un `FormData` de Server Action.
  *
@@ -66,6 +68,45 @@ export function texts(form: FormData, field: string): readonly string[] {
 }
 
 /**
+ * Un instant saisi en heure locale : `<prefix>Date` et `<prefix>Time`, dans le
+ * fuseau du champ `timezone`. Rien de saisi rend `undefined`. Une saisie que
+ * la conversion ne lit pas passe telle quelle : le schéma du use case la
+ * refuse, contre son champ, plutôt qu'un oubli silencieux.
+ */
+export function localInstant(form: FormData, prefix: string): string | undefined {
+  const date = text(form, `${prefix}Date`);
+  const time = text(form, `${prefix}Time`);
+  if (date === undefined && time === undefined) return undefined;
+
+  const timezone = text(form, 'timezone') ?? '';
+  return zonedInstant(date ?? '', time ?? '', timezone) ?? `${date ?? ''}T${time ?? ''}`;
+}
+
+/**
+ * Commande de création d'une épreuve sous une édition existante.
+ *
+ * Départ et barrière finale se saisissent en date et heure locales
+ * (`startDate`, `startTime`, `cutoffDate`, `cutoffTime`) ; les refus du
+ * domaine portent sur `startDatetime` et `cutoffDatetime`, que le formulaire
+ * pose contre le champ date.
+ */
+export function createRaceCommand(form: FormData): Record<string, unknown> {
+  return {
+    editionId: text(form, 'editionId'),
+    name: text(form, 'name'),
+    slug: text(form, 'slug'),
+    distanceKm: optionalNumber(form, 'distanceKm'),
+    elevationGainM: optionalNumber(form, 'elevationGainM') ?? null,
+    elevationLossM: optionalNumber(form, 'elevationLossM') ?? null,
+    startDatetime: localInstant(form, 'start'),
+    cutoffDatetime: localInstant(form, 'cutoff') ?? null,
+    timezone: text(form, 'timezone'),
+    startLocationName: text(form, 'startLocationName') ?? null,
+    finishLocationName: text(form, 'finishLocationName') ?? null,
+  };
+}
+
+/**
  * Commande de réécriture du référentiel de parcours.
  *
  * Les quatre colonnes sont lues en parallèle : chaque `fieldset` du formulaire
@@ -73,7 +114,10 @@ export function texts(form: FormData, field: string): readonly string[] {
  * Rien n'est validé ici — `setRaceWaypoints` a un schéma, et les invariants de
  * chaîne sont dans le domaine.
  */
-export function raceWaypointsCommand(form: FormData): Record<string, unknown> {
+export function raceWaypointsCommand(
+  form: FormData,
+  timezone: string | undefined,
+): Record<string, unknown> {
   const ids = texts(form, 'waypointId');
   const names = texts(form, 'name');
   const types = texts(form, 'waypointType');
@@ -88,7 +132,7 @@ export function raceWaypointsCommand(form: FormData): Record<string, unknown> {
       name,
       waypointType: types[index],
       distanceKm: toNumber(distances[index]),
-      cutoffAt: toInstant(cutoffs[index]),
+      cutoffAt: toInstant(cutoffs[index], timezone),
     })),
   };
 }
@@ -109,10 +153,20 @@ function toNumber(value: string | undefined): number | undefined {
  * d'administration travaille en temps universel, et la timezone de l'épreuve
  * sert à l'affichage coureur, pas à interpréter une barrière saisie ici.
  */
-function toInstant(value: string | undefined): string | null {
+/**
+ * Une barrière de `datetime-local` (« 2027-06-13T17:00 ») est une heure
+ * murale : elle se convertit dans le fuseau de l'épreuve. La lire en UTC
+ * décalait chaque barrière du décalage du fuseau — deux heures à Paris l'été.
+ * Une valeur qui n'a pas cette forme passe telle quelle, et le schéma juge.
+ */
+function toInstant(value: string | undefined, timezone: string | undefined): string | null {
   if (value === undefined || value === '') return null;
 
-  return value.length === 16 ? `${value}:00Z` : value;
+  // Les secondes, quand un navigateur les envoie, sont ignorées : une barrière se dit à la minute.
+  const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?$/.exec(value);
+  if (match === null || timezone === undefined) return value;
+
+  return zonedInstant(match[1] as string, match[2] as string, timezone) ?? value;
 }
 
 /**

@@ -3,9 +3,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 import { DocumentsForm } from '@/app/evenements/[eventId]/documents/documents-form';
-import { EventWizard, slugify } from '@/app/evenements/nouveau/event-wizard';
+import { EventWizard } from '@/app/evenements/nouveau/event-wizard';
 import { CREATION_STEPS } from '@/components/creation-stepper';
 import { createEventWithEditionCommand } from '@/lib/form';
+import { slugify } from '@/lib/slug';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: () => undefined, push: () => undefined, replace: () => undefined }),
@@ -147,5 +148,9 @@ describe('étape 4 : pages et documents', () => {
     expect(markup).toContain('name="documents" value="page|https://trail.example/presse|Presse"');
     expect(markup).toContain('accept="application/pdf,.pdf"');
     expect(markup).toContain('name="scope.https://trail.example/reglement.pdf"');
+    // Par défaut, un document concerne toutes les épreuves ; le choix est nommé.
+    expect(markup).toContain('<option value="" selected="">Toutes les épreuves (2)</option>');
+    expect(markup).toContain('label="Une épreuve en particulier"');
+    expect(markup).toMatch(/class="ad-doc-scope-label"[^>]*>Concerne/);
   });
 });
