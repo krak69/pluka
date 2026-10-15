@@ -1,3 +1,4 @@
+import { EQUIPMENT_REQUIREMENTS, equipmentFactKey } from '@pluka/contracts';
 import { z } from 'zod';
 
 import { DbError, type EditableFactRecord, type EquipmentRequirement } from '@pluka/db';
@@ -27,7 +28,7 @@ import type { FactEditingContext } from './editing.js';
  * et la provenance sont en base.
  */
 
-export const EQUIPMENT_REQUIREMENTS = ['mandatory', 'conditional', 'recommended'] as const;
+export { EQUIPMENT_REQUIREMENTS };
 
 const uuid = z.uuid();
 const optionalText = (max: number) =>
@@ -80,27 +81,15 @@ export const reviseRaceEquipmentCommandSchema = z
 
 export type ReviseRaceEquipmentCommand = z.infer<typeof reviseRaceEquipmentCommandSchema>;
 
-/**
- * La clé de rapprochement d'un nom : « Veste imperméable » →
- * `equipment.veste-impermeable`. Elle n'est qu'un identifiant — elle évite
- * le doublon d'un même élément sur une épreuve, elle ne normalise rien de ce
- * que lit le coureur.
- */
+/** La clé de rapprochement d'un nom — la même que celle de l'extraction (`@pluka/contracts`). */
 export function equipmentKey(label: string): string | null {
-  const slug = label
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80)
-    .replace(/-+$/g, '');
-
-  return slug === '' ? null : `equipment.${slug}`;
+  return equipmentFactKey(label);
 }
 
 export interface RaceEquipmentItem {
   readonly factId: string;
+  /** La clé de rapprochement : la même pièce d'une épreuve à l'autre de l'édition. */
+  readonly factKey: string;
   readonly label: string;
   /**
    * `null` pour un matériel extrait d'un document sans exigence précisée :
@@ -151,6 +140,7 @@ export function equipmentValueOf(
 export function equipmentOf(fact: EditableFactRecord): RaceEquipmentItem {
   return {
     factId: fact.factId,
+    factKey: fact.factKey,
     label: fact.valueText ?? '',
     ...equipmentValueOf(fact.valueJson),
     trustLevel: fact.trustLevel,
@@ -159,6 +149,27 @@ export function equipmentOf(fact: EditableFactRecord): RaceEquipmentItem {
     publishedAt: fact.publishedAt,
     source: fact.source,
   };
+}
+
+/**
+ * Ce qui manque à une structure de matériel pour être publiée — la même règle
+ * que la base (0045, 0046), dite champ par champ pour le formulaire de revue.
+ * `null` si elle est bien formée.
+ */
+export function equipmentStructureIssue(
+  valueJson: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, string>> | null {
+  const unknownKey = Object.keys(valueJson).find(
+    (key) => key !== 'requirement' && key !== 'condition' && key !== 'detail',
+  );
+  if (unknownKey !== undefined) return { requirement: `structure inconnue (${unknownKey})` };
+
+  const value = equipmentValueOf(valueJson);
+  if (value.requirement === null) return { requirement: 'choisis une exigence' };
+  if (!conditionStated({ requirement: value.requirement, condition: value.condition })) {
+    return { condition: CONDITION_REQUIRED.error };
+  }
+  return null;
 }
 
 /** Refus de la base, nommés. `reason` porte le code de §32 quand c'est le niveau de confiance. */
@@ -238,4 +249,196 @@ export async function reviseRaceEquipment(
     }
     throw translate(error, useCase, 'matériel retiré : restaure-le avant de le corriger');
   }
+}
+
+// ============================================================
+// Le matériel d'une édition — migration 0047
+// ============================================================
+
+const editionEquipmentLineSchema = z.object({
+  /** La ligne modifiée ; absente pour un ajout, la clé se tire alors du nom. */
+  factKey: z.string().trim().min(1).max(90).nullable().default(null),
+  label: equipmentFields.label,
+  condition: optionalText(300),
+  detail: optionalText(500),
+  /** Par épreuve : son exigence, ou `null` si elle n'est pas concernée. */
+  requirements: z.record(uuid, z.enum(EQUIPMENT_REQUIREMENTS).nullable()),
+});
+
+export const saveEditionEquipmentCommandSchema = z
+  .object({
+    editionId: uuid,
+    lines: z.array(editionEquipmentLineSchema).min(1, { error: 'rien à enregistrer' }).max(200),
+    trustLevel: equipmentFields.trustLevel,
+    note: equipmentFields.note,
+  })
+  .superRefine((command, context) => {
+    command.lines.forEach((line, index) => {
+      const cells = Object.values(line.requirements);
+      // §82 : une case conditionnelle se lit avec sa condition.
+      if (cells.includes('conditional') && line.condition === null) {
+        context.addIssue({
+          code: 'custom',
+          path: ['lines', index, 'condition'],
+          message: CONDITION_REQUIRED.error,
+        });
+      }
+      if (line.factKey === null && !cells.some((cell) => cell !== null)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['lines', index, 'requirements'],
+          message: 'règle au moins une épreuve',
+        });
+      }
+    });
+  });
+
+export type SaveEditionEquipmentCommand = z.infer<typeof saveEditionEquipmentCommandSchema>;
+
+/**
+ * Enregistre le brouillon du tableau du matériel — migration 0048. Chaque
+ * ligne porte une exigence par épreuve ; la base fait les gestes case par
+ * case, en une transaction. Une ligne sans `factKey` est un ajout : sa clé
+ * se tire du nom, et une pièce déjà dans l'édition est refusée.
+ */
+export async function saveEditionEquipment(
+  context: FactEditingContext,
+  input: unknown,
+): Promise<{ readonly changed: number }> {
+  const useCase = 'saveEditionEquipment';
+  const command = parseCommand(saveEditionEquipmentCommandSchema, input, useCase);
+
+  const lines = command.lines.map((line, index) => {
+    const factKey = line.factKey ?? equipmentKey(line.label);
+    if (factKey === null) {
+      throw validationError(useCase, 'nom illisible', {
+        [`lines.${index}.label`]: 'le nom doit contenir au moins une lettre ou un chiffre',
+      });
+    }
+    return {
+      factKey,
+      create: line.factKey === null,
+      label: line.label,
+      condition: line.condition,
+      detail: line.detail,
+      requirements: line.requirements,
+    };
+  });
+
+  const seen = new Set<string>();
+  lines.forEach((line, index) => {
+    if (seen.has(line.factKey)) {
+      throw validationError(useCase, 'doublon', {
+        [`lines.${index}.label`]: 'ce matériel figure deux fois dans le tableau',
+      });
+    }
+    seen.add(line.factKey);
+  });
+
+  try {
+    return {
+      changed: await context.repositories.factEditing.saveEditionEquipment({
+        editionId: command.editionId,
+        lines,
+        trustLevel: command.trustLevel,
+        note: command.note,
+      }),
+    };
+  } catch (error) {
+    if (error instanceof DbError && error.code === 'conflict') {
+      throw validationError(useCase, 'déjà présent', {
+        lines: 'un matériel ajouté existe déjà dans l’édition : règle plutôt sa ligne',
+      });
+    }
+    if (error instanceof DbError && error.code === 'invalid_state') {
+      throw validationError(useCase, 'aucune modification', { lines: 'rien n’a changé' });
+    }
+    throw translate(error, useCase, 'enregistrement impossible dans l’état actuel');
+  }
+}
+
+export interface EditionEquipmentRace {
+  readonly raceId: string;
+  readonly raceName: string;
+  /** `null` si la lecture a échoué pour cette épreuve. */
+  readonly items: readonly RaceEquipmentItem[] | null;
+}
+
+export interface EditionEquipmentRow {
+  readonly factKey: string;
+  readonly label: string;
+  /** L'exigence commune ; `'mixed'` si elle diffère d'une épreuve à l'autre. */
+  readonly requirement: EquipmentRequirement | null | 'mixed';
+  /** L'exigence la plus forte de la ligne : c'est elle qui la classe. */
+  readonly strongest: EquipmentRequirement | null;
+  /** La condition des cases conditionnelles ; la ligne n'en porte qu'une. */
+  readonly condition: string | null;
+  readonly detail: string | null;
+  /** Dans l'ordre des épreuves reçues : l'élément de chaque épreuve, ou `null`. */
+  readonly cells: readonly (RaceEquipmentItem | null)[];
+  readonly trustLevel: EditableFactRecord['trustLevel'];
+  /** Les titres de source distincts — « Règlement 2026 », « Saisie PLUKA ». */
+  readonly sources: readonly string[];
+}
+
+const STRENGTH: Readonly<Record<EquipmentRequirement, number>> = {
+  mandatory: 0,
+  conditional: 1,
+  recommended: 2,
+};
+
+/**
+ * Le tableau « matériel × épreuves » d'une édition. Une ligne par clé ; une
+ * case par épreuve, vide où l'élément n'est pas (ou plus) affiché, et chaque
+ * case garde sa propre exigence. Les lignes se classent par leur exigence la
+ * plus forte, puis par nom. Les retirés n'apparaissent pas.
+ */
+export function editionEquipmentRows(
+  races: readonly EditionEquipmentRace[],
+): readonly EditionEquipmentRow[] {
+  const keys = new Map<string, RaceEquipmentItem>();
+  for (const race of races) {
+    for (const item of race.items ?? []) {
+      if (!item.retired && !keys.has(item.factKey)) keys.set(item.factKey, item);
+    }
+  }
+
+  const rows = [...keys.entries()].map(([factKey, first]): EditionEquipmentRow => {
+    const cells = races.map(
+      (race) => race.items?.find((item) => item.factKey === factKey && !item.retired) ?? null,
+    );
+    const present = cells.filter((cell): cell is RaceEquipmentItem => cell !== null);
+    const firstOf = (pick: (item: RaceEquipmentItem) => string | null): string | null =>
+      present.map(pick).find((value) => value !== null) ?? null;
+    const known = present
+      .map((item) => item.requirement)
+      .filter((requirement): requirement is EquipmentRequirement => requirement !== null)
+      .sort((left, right) => STRENGTH[left] - STRENGTH[right]);
+
+    return {
+      factKey,
+      label: first.label,
+      requirement: present.every((item) => item.requirement === first.requirement)
+        ? first.requirement
+        : 'mixed',
+      strongest: known[0] ?? null,
+      condition: firstOf((item) => (item.requirement === 'conditional' ? item.condition : null)),
+      detail: firstOf((item) => item.detail),
+      cells,
+      trustLevel: first.trustLevel,
+      sources: [
+        ...new Set(
+          present
+            .map((item) => item.source?.title ?? null)
+            .filter((title): title is string => title !== null),
+        ),
+      ],
+    };
+  });
+
+  return rows.sort((left, right) => {
+    const rank = (row: EditionEquipmentRow) =>
+      row.strongest === null ? 3 : STRENGTH[row.strongest];
+    return rank(left) - rank(right) || left.label.localeCompare(right.label, 'fr');
+  });
 }

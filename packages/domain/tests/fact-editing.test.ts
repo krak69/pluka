@@ -32,6 +32,10 @@ function context(overrides: Partial<FactEditingRepository> = {}): {
     },
     addEquipment: async () => 0,
     reviseEquipment: async () => 'version-id',
+    saveEditionEquipment: async (input) => {
+      calls.push(input);
+      return input.lines.length;
+    },
     ...overrides,
   };
 

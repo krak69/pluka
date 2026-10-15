@@ -12,12 +12,14 @@ import {
   invalidStateError,
   notFoundError,
   parseCommand,
+  validationError,
 } from '../errors.js';
 import {
   decideFactCandidateCommandSchema,
   listCandidatesForReviewQuerySchema,
   publishFactCommandSchema,
 } from './commands.js';
+import { equipmentStructureIssue } from './equipment.js';
 import { canReviewFacts, refusalForTrustLevel, resolvePublicationAuthority } from './trust.js';
 
 /**
@@ -135,6 +137,13 @@ export async function publishFactCandidate(
       reason: 'FACT_CONFLICT_UNRESOLVED',
       publishedFactId: scope.matchedFactId ?? '',
     });
+  }
+
+  // §82 : un matériel publié depuis la revue porte une exigence bien formée.
+  // La base le refuse aussi (0046) ; le dire ici le dit au bon champ.
+  if (scope.category === 'equipment' && parsed.valueJson !== null && parsed.valueJson !== undefined) {
+    const issue = equipmentStructureIssue(parsed.valueJson);
+    if (issue !== null) throw validationError(useCase, 'matériel incomplet', issue);
   }
 
   // §32 et §4.2.

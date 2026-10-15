@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   addRaceEquipment,
+  editionEquipmentRows,
+  saveEditionEquipment,
   equipmentKey,
   equipmentOf,
   listRaceEquipment,
@@ -57,6 +59,10 @@ function context(overrides: Partial<FactEditingRepository> = {}): {
     reviseEquipment: async (input) => {
       calls.push(input);
       return 'v2';
+    },
+    saveEditionEquipment: async (input) => {
+      calls.push(input);
+      return input.lines.length;
     },
     ...overrides,
   };
@@ -177,5 +183,124 @@ describe('lire et corriger', () => {
       }),
     ).resolves.toEqual({ versionId: 'v2' });
     expect(calls[0]).toMatchObject({ label: 'Gants chauds', condition: null, detail: null });
+  });
+});
+
+const EDITION = '00000000-0000-4000-8000-000000000300';
+
+describe('le tableau du matériel d’une édition (0048)', () => {
+  const save = (lines: readonly Record<string, unknown>[], overrides: Partial<FactEditingRepository> = {}) => {
+    const { context: ctx, calls } = context(overrides);
+    return {
+      calls,
+      result: saveEditionEquipment(ctx, { editionId: EDITION, trustLevel: 'pluka_validated', lines }),
+    };
+  };
+
+  it('une exigence par épreuve ; un ajout tire sa clé du nom', async () => {
+    const { calls, result } = save([
+      {
+        label: 'Couverture de survie',
+        requirements: { [RACE_A]: 'mandatory', [RACE_B]: 'recommended' },
+      },
+      { factKey: 'equipment.gants', label: 'Gants', requirements: { [RACE_B]: null } },
+    ]);
+    await result;
+
+    expect(calls[0]).toMatchObject({
+      lines: [
+        {
+          factKey: 'equipment.couverture-de-survie',
+          create: true,
+          requirements: { [RACE_A]: 'mandatory', [RACE_B]: 'recommended' },
+        },
+        { factKey: 'equipment.gants', create: false, requirements: { [RACE_B]: null } },
+      ],
+    });
+  });
+
+  it('une case conditionnelle demande la condition de sa ligne', async () => {
+    await expect(
+      save([{ factKey: 'equipment.gants', label: 'Gants', requirements: { [RACE_A]: 'conditional' } }])
+        .result,
+    ).rejects.toMatchObject({ details: { 'lines.0.condition': expect.any(String) } });
+  });
+
+  it('un ajout sans aucune épreuve réglée est refusé', async () => {
+    await expect(
+      save([{ label: 'Frontale', requirements: { [RACE_A]: null } }]).result,
+    ).rejects.toMatchObject({ details: { 'lines.0.requirements': expect.any(String) } });
+  });
+
+  it('refuse deux fois la même pièce dans un enregistrement', async () => {
+    await expect(
+      save([
+        { label: 'Frontale', requirements: { [RACE_A]: 'mandatory' } },
+        { label: 'frontale', requirements: { [RACE_B]: 'mandatory' } },
+      ]).result,
+    ).rejects.toMatchObject({ details: { 'lines.1.label': expect.any(String) } });
+  });
+
+  it('dit « existe déjà » plutôt qu’une erreur technique', async () => {
+    await expect(
+      save([{ label: 'Gants', requirements: { [RACE_A]: 'mandatory' } }], {
+        saveEditionEquipment: async () => {
+          throw new DbError({ code: 'conflict', operation: 'save_edition_equipment', message: 'x' });
+        },
+      }).result,
+    ).rejects.toMatchObject({ details: { lines: expect.stringContaining('existe déjà') } });
+  });
+});
+
+describe('tableau matériel × épreuves', () => {
+  const item = (overrides: Partial<EditableFactRecord> = {}) => equipmentOf(fact(overrides));
+
+  it('une ligne par pièce, une case par épreuve, triée par exigence', () => {
+    const rows = editionEquipmentRows([
+      {
+        raceId: RACE_A,
+        raceName: '80K',
+        items: [
+          item(),
+          item({
+            factId: 'f2',
+            factKey: 'equipment.frontale',
+            valueText: 'Frontale',
+            valueJson: { requirement: 'mandatory', condition: null, detail: null },
+          }),
+        ],
+      },
+      { raceId: RACE_B, raceName: '20K', items: [item({ factId: 'f3' })] },
+    ]);
+
+    expect(rows.map((row) => row.label)).toEqual(['Frontale', 'Gants']);
+    expect(rows[0]?.cells.map((cell) => cell?.factId ?? null)).toEqual(['f2', null]);
+    expect(rows[1]?.cells.map((cell) => cell?.factId ?? null)).toEqual([FACT, 'f3']);
+    expect(rows[1]?.requirement).toBe('conditional');
+  });
+
+  it('dit qu’une exigence diffère selon l’épreuve, sans en choisir une', () => {
+    const rows = editionEquipmentRows([
+      { raceId: RACE_A, raceName: '80K', items: [item()] },
+      {
+        raceId: RACE_B,
+        raceName: '20K',
+        items: [item({ factId: 'f3', valueJson: { requirement: 'recommended' } })],
+      },
+    ]);
+
+    expect(rows[0]?.requirement).toBe('mixed');
+    expect(rows[0]?.strongest).toBe('conditional');
+    // La condition est celle de la case conditionnelle.
+    expect(rows[0]?.condition).toBe('Si température < 5 °C');
+  });
+
+  it('ignore les retirés, et une épreuve illisible ne casse pas le tableau', () => {
+    const rows = editionEquipmentRows([
+      { raceId: RACE_A, raceName: '80K', items: [item({ archivedAt: '2026-10-10T00:00:00Z' })] },
+      { raceId: RACE_B, raceName: '20K', items: null },
+    ]);
+
+    expect(rows).toEqual([]);
   });
 });

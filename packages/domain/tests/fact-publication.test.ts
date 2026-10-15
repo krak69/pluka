@@ -389,3 +389,65 @@ describe('résolution de l’autorité', () => {
     expect(ORG_A).not.toBe('ffffffff-0000-4000-8000-000000000001');
   });
 });
+
+// ============================================================
+// §82, 0046 — un matériel publié depuis la revue
+// ============================================================
+
+describe('matériel publié depuis la revue', () => {
+  it('refuse un conditionnel sans condition, au bon champ', async () => {
+    const state = baseFactState();
+
+    const error = await failure(
+      publishFactCandidate(contextFor(EDITOR_A, state), {
+        candidateId: CANDIDATE_CONFLICT,
+        trustLevel: 'official',
+        valueText: 'Veste imperméable',
+        valueJson: { requirement: 'conditional', condition: null, detail: null },
+        resolveConflict: true,
+      }),
+    );
+
+    expect(error.code).toBe('validation');
+    expect(error.details['condition']).toBeDefined();
+    expect(state.published).toEqual([]);
+  });
+
+  it('refuse une structure sans exigence ou inconnue', async () => {
+    const state = baseFactState();
+    const publish = (valueJson: Readonly<Record<string, unknown>>) =>
+      failure(
+        publishFactCandidate(contextFor(EDITOR_A, state), {
+          candidateId: CANDIDATE_CONFLICT,
+          trustLevel: 'official',
+          valueText: 'Veste imperméable',
+          valueJson,
+          resolveConflict: true,
+        }),
+      );
+
+    expect((await publish({ requirement: 'optional' })).details['requirement']).toBeDefined();
+    expect(
+      (await publish({ requirement: 'mandatory', taille: 'XL' })).details['requirement'],
+    ).toContain('taille');
+    expect(state.published).toEqual([]);
+  });
+
+  it('publie l’exigence choisie par le relecteur', async () => {
+    const state = baseFactState();
+
+    await publishFactCandidate(contextFor(EDITOR_A, state), {
+      candidateId: CANDIDATE_CONFLICT,
+      trustLevel: 'official',
+      valueText: 'Veste imperméable',
+      valueJson: { requirement: 'mandatory', condition: null, detail: 'coutures étanchées' },
+      resolveConflict: true,
+    });
+
+    expect(state.published[0]?.valueJson).toEqual({
+      requirement: 'mandatory',
+      condition: null,
+      detail: 'coutures étanchées',
+    });
+  });
+});

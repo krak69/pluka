@@ -580,11 +580,25 @@ export {
 } from './facts/editing.js';
 
 export {
+  acceptEquipmentProposal,
+  acceptEquipmentProposalCommandSchema,
+  equipmentProposals,
+  rejectEquipmentProposal,
+  rejectEquipmentProposalCommandSchema,
+  type EquipmentCandidatesOfRace,
+  type EquipmentProposal,
+  type ProposalOutcome,
+  type ProposedEquipmentCell,
+} from './facts/equipment-review.js';
+
+export {
   addRaceEquipment,
   addRaceEquipmentCommandSchema,
   EQUIPMENT_REQUIREMENTS,
   equipmentKey,
+  editionEquipmentRows,
   equipmentOf,
+  equipmentStructureIssue,
   equipmentValueOf,
   listRaceEquipment,
   reviseRaceEquipment,
@@ -593,4 +607,9 @@ export {
   type EquipmentValue,
   type RaceEquipmentItem,
   type ReviseRaceEquipmentCommand,
+  saveEditionEquipment,
+  saveEditionEquipmentCommandSchema,
+  type EditionEquipmentRace,
+  type EditionEquipmentRow,
+  type SaveEditionEquipmentCommand,
 } from './facts/equipment.js';
