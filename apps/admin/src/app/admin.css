@@ -2694,6 +2694,13 @@ a.ad-card:hover {
 }
 
 /* ── Matériel (0045) ───────────────────────────────────────────────────── */
+.ad-equipment-pending {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--pk-dawn);
+  background: var(--pk-warning-bg);
+}
+
 .ad-equipment-group {
   display: grid;
   gap: var(--space-2);
@@ -2724,4 +2731,777 @@ a.ad-card:hover {
 
 .ad-equipment-row .ad-row-disclosure[open] {
   flex-basis: 100%;
+}
+
+/* ── Matériel de l'édition (0047) ─────────────────────────────────────────
+ * Un tableau « matériel × épreuves » à filets : une ligne par pièce, une case
+ * par épreuve, groupé par exigence. Chaque exigence a sa marque (Forêt pour
+ * l'obligatoire, Glacier pour le conditionnel, Sable pour le recommandé) et
+ * se dit aussi en toutes lettres : la couleur ne porte jamais seule le sens.
+ */
+.ad-gear {
+  --gear-mandatory: var(--pk-forest);
+  --gear-conditional: var(--pk-glacier);
+  --gear-recommended: var(--pk-sand);
+  --gear-mixed: var(--pk-dawn);
+  --gear-unknown: var(--pk-granite);
+  --gear-cell: 72px;
+
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+}
+
+.ad-gear-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.ad-gear-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--pk-text);
+}
+
+.ad-gear-lede {
+  max-width: 46rem;
+  margin: var(--space-1) 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--pk-text-secondary);
+}
+
+.ad-gear-counts {
+  display: flex;
+  gap: var(--space-5);
+  margin: 0;
+}
+
+.ad-gear-count {
+  display: grid;
+  gap: 2px;
+  padding-left: var(--space-3);
+  border-left: 3px solid var(--gear-unknown);
+}
+
+.ad-gear-count[data-requirement='mandatory'] {
+  border-color: var(--gear-mandatory);
+}
+
+.ad-gear-count[data-requirement='conditional'] {
+  border-color: var(--gear-conditional);
+}
+
+.ad-gear-count[data-requirement='recommended'] {
+  border-color: var(--gear-recommended);
+}
+
+.ad-gear-count dt {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pk-text-muted);
+}
+
+.ad-gear-count dd {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--pk-text);
+}
+
+.ad-gear-empty {
+  margin: 0;
+  padding: var(--space-5);
+  border: 1px dashed var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--pk-text-secondary);
+}
+
+.ad-gear-warning,
+.ad-gear-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pk-text-secondary);
+}
+
+.ad-gear-warning {
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--gear-mixed);
+  background: var(--pk-warning-bg);
+  color: var(--pk-text);
+}
+
+/* Fiche épreuve : le lien de gestion à côté du titre. */
+.ad-equipment-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+
+/* ── Tableau du matériel (0048) ───────────────────────────────────────────
+ * Une ligne par pièce, une colonne par épreuve, une case par exigence. Les
+ * pictos montent en remplissage avec l'exigence : point (non concernée),
+ * cercle (recommandé), demi-carré (conditionnel), carré coché (obligatoire).
+ * La forme porte le sens ; la couleur le renforce, elle ne le porte jamais
+ * seule.
+ */
+.ad-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.ad-grid-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  align-items: center;
+  font-size: 13px;
+  color: var(--pk-text-secondary);
+}
+
+.ad-grid-legend-item {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.ad-grid-legend-help {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--pk-text-muted);
+}
+
+.ad-grid-swatch {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+}
+
+/* Les pictos */
+.ad-grid-glyph {
+  width: 22px;
+  height: 22px;
+  overflow: visible;
+}
+
+.ad-grid-glyph-fill {
+  fill: var(--pk-forest);
+}
+
+.ad-grid-glyph-mark {
+  fill: none;
+  stroke: var(--pk-lichen);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ad-grid-glyph-frame {
+  fill: var(--pk-surface);
+  stroke: var(--pk-forest);
+  stroke-width: 1.5;
+}
+
+.ad-grid-glyph-half {
+  fill: var(--pk-glacier);
+  stroke: var(--pk-forest);
+  stroke-width: 1.5;
+}
+
+.ad-grid-glyph-ring {
+  fill: var(--pk-sand);
+  stroke: var(--pk-granite);
+  stroke-width: 1.5;
+}
+
+.ad-grid-glyph-dot {
+  fill: var(--pk-granite);
+  opacity: 0.45;
+}
+
+.ad-grid-glyph-dashed {
+  fill: var(--pk-surface);
+  stroke: var(--pk-dawn);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+}
+
+.ad-grid-glyph-question {
+  fill: none;
+  stroke: var(--pk-dawn-ink, var(--pk-dawn));
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+/* Le tableau : défile horizontalement, la colonne du matériel reste visible. */
+.ad-grid-scroll {
+  overflow-x: auto;
+  border-top: 1px solid var(--pk-ink);
+}
+
+.ad-grid-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Sans spécificité : les classes des cellules décident de leur marge. */
+:where(.ad-grid-table) th,
+:where(.ad-grid-table) td {
+  padding: 0;
+  border-bottom: 1px solid var(--pk-hairline);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.ad-grid-th-item,
+.ad-grid-th,
+.ad-grid-th-all {
+  padding: var(--space-3) var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pk-text-muted);
+}
+
+.ad-grid-th-item {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 14rem;
+  padding-left: var(--space-3);
+  background: var(--pk-surface);
+}
+
+.ad-grid-th {
+  width: 84px;
+  min-width: 72px;
+  text-align: center;
+}
+
+.ad-grid-th-name {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--pk-text);
+}
+
+.ad-grid-th-meta {
+  display: block;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ad-grid-th-all {
+  width: 7.5rem;
+}
+
+.ad-grid-tr:hover > *,
+.ad-grid-tr:focus-within > * {
+  background: var(--pk-limestone);
+}
+
+.ad-grid-tr[data-dirty='true'] > .ad-grid-item {
+  box-shadow: inset 3px 0 0 var(--pk-dawn);
+}
+
+.ad-grid-item {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--pk-surface);
+}
+
+.ad-grid-item-button {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--space-2);
+  align-items: baseline;
+  width: 100%;
+  min-height: 52px;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ad-grid-item-button:focus-visible,
+.ad-grid-cell:focus-visible,
+.ad-grid-all-select:focus-visible {
+  outline: 2px solid var(--pk-forest);
+  outline-offset: -2px;
+}
+
+.ad-grid-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pk-text);
+}
+
+.ad-grid-item-button[aria-expanded='false'] .ad-grid-name {
+  text-decoration: underline transparent;
+  text-underline-offset: 3px;
+}
+
+.ad-grid-item-button:hover .ad-grid-name {
+  text-decoration-color: var(--pk-hairline);
+}
+
+.ad-grid-meta {
+  flex-basis: 100%;
+  font-size: 13px;
+  color: var(--pk-text-muted);
+}
+
+.ad-grid-flag {
+  padding: 1px 6px;
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pk-text-secondary);
+}
+
+.ad-grid-flag-warn {
+  border-color: var(--pk-dawn);
+  color: var(--pk-dawn-ink, var(--pk-text));
+}
+
+/* Une case : une cible de 44 px, le picto au centre. */
+.ad-grid-td {
+  position: relative;
+  text-align: center;
+}
+
+.ad-grid-td[data-changed='true']::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pk-dawn);
+  pointer-events: none;
+}
+
+.ad-grid-cell {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 4px 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.ad-grid-cell:hover {
+  border-color: var(--pk-hairline);
+  background: var(--pk-surface);
+}
+
+.ad-grid-cell:active .ad-grid-glyph {
+  transform: scale(0.9);
+}
+
+/* Le choix direct : clic droit, appui long, ou menu contextuel du clavier. */
+.ad-grid-menu {
+  position: absolute;
+  top: calc(100% - 4px);
+  left: 50%;
+  z-index: 5;
+  display: grid;
+  min-width: 12rem;
+  padding: var(--space-1);
+  border: 1px solid var(--pk-ink);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  transform: translateX(-50%);
+}
+
+.ad-grid-menu-item {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: 40px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  color: var(--pk-text);
+  cursor: pointer;
+}
+
+.ad-grid-menu-item:hover,
+.ad-grid-menu-item:focus-visible {
+  outline: none;
+  background: var(--pk-limestone);
+}
+
+.ad-grid-menu-item[aria-checked='true'] {
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--pk-forest);
+}
+
+.ad-grid-menu-item kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--pk-text-muted);
+}
+
+.ad-grid-all {
+  padding: 0 var(--space-2);
+}
+
+.ad-grid-all-select {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  font: inherit;
+  font-size: 13px;
+  color: var(--pk-text-secondary);
+  cursor: pointer;
+}
+
+/* La ligne ouverte : nom, condition, précision. */
+.ad-grid-edit-tr > td {
+  background: var(--pk-limestone);
+}
+
+.ad-grid-edit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-4) var(--space-3);
+}
+
+.ad-grid-edit-foot {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ad-grid-edit-foot .pk-link {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ad-grid-empty {
+  padding: var(--space-5) var(--space-3);
+  font-size: 14px;
+  color: var(--pk-text-secondary);
+}
+
+/* Ajouter : une ligne, comme une ligne de plus du tableau. */
+.ad-grid-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.ad-grid-add-input {
+  flex: 1 1 18rem;
+}
+
+.ad-grid-add-select {
+  flex: 0 1 14rem;
+}
+
+/* Le brouillon : une barre collée en bas de l'écran tant qu'il existe. */
+.ad-grid-save {
+  position: sticky;
+  bottom: var(--space-3);
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--pk-ink);
+  color: var(--pk-text-on-dark);
+}
+
+.ad-grid-save-count {
+  margin: 0 auto 0 0;
+  font-size: 14px;
+}
+
+.ad-grid-save-select,
+.ad-grid-save-note {
+  flex: 0 1 14rem;
+  min-height: 40px;
+}
+
+.ad-grid-save .pk-button-secondary {
+  border-color: var(--pk-text-on-dark);
+  background: transparent;
+  color: var(--pk-text-on-dark);
+}
+
+.ad-grid-save-error {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--pk-dawn);
+}
+
+@media (width < 720px) {
+  .ad-grid-legend-help {
+    margin-left: 0;
+  }
+
+  .ad-grid-th-item {
+    min-width: 10rem;
+  }
+
+  .ad-grid-save {
+    bottom: 0;
+    border-radius: 0;
+  }
+
+  .ad-grid-save-select,
+  .ad-grid-save-note {
+    flex: 1 1 100%;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ad-grid-glyph {
+    transition: transform 90ms ease;
+  }
+}
+
+/* ── Tableau du matériel : outils, propositions (0046, 0048) ───────────── */
+.ad-grid-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.ad-grid-undo {
+  margin-left: auto;
+}
+
+.ad-grid-undo:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ad-grid-paste {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-limestone);
+}
+
+.ad-grid-paste-text {
+  min-height: 8rem;
+  font-family: var(--font-body);
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.ad-grid-paste-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.ad-grid-notice {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--pk-forest);
+  background: var(--pk-success-bg, var(--pk-limestone));
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pk-text);
+}
+
+/* Les sections du tableau : « À relire », puis « Publié ». */
+.ad-grid-section {
+  padding: var(--space-4) var(--space-3) var(--space-2);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  color: var(--pk-text);
+  background: var(--pk-surface);
+}
+
+.ad-grid-group-count {
+  margin-left: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pk-text-muted);
+}
+
+.ad-grid-section-lede {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--pk-text-muted);
+}
+
+/* Une ligne proposée : en pointillé, à côté de ce qui est publié. */
+.ad-grid-proposal > * {
+  background: var(--pk-glacier-bg, var(--pk-limestone));
+}
+
+.ad-grid-proposal > .ad-grid-item {
+  box-shadow: inset 3px 0 0 var(--pk-glacier);
+}
+
+.ad-grid-proposals {
+  border-bottom: 2px dashed var(--pk-glacier);
+}
+
+.ad-grid-proposal-item {
+  cursor: default;
+}
+
+.ad-grid-flag-proposal {
+  border-style: dashed;
+  border-color: var(--pk-forest);
+  color: var(--pk-forest);
+}
+
+.ad-grid-evidence {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--pk-text-secondary);
+}
+
+.ad-grid-evidence > summary {
+  width: fit-content;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ad-grid-evidence blockquote {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--pk-hairline);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.ad-grid-proposal-td {
+  height: 52px;
+}
+
+.ad-grid-proposal-td[data-diff='new'] .ad-grid-glyph,
+.ad-grid-proposal-td[data-diff='change'] .ad-grid-diff > .ad-grid-glyph {
+  opacity: 0.8;
+}
+
+.ad-grid-same {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--pk-text-muted);
+}
+
+.ad-grid-diff {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--pk-text-muted);
+}
+
+.ad-grid-diff-before .ad-grid-glyph {
+  width: 16px;
+  height: 16px;
+  opacity: 0.55;
+}
+
+.ad-grid-proposal-td[data-diff='change'] {
+  box-shadow: inset 0 0 0 1px var(--pk-dawn);
+}
+
+.ad-grid-proposal-actions {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2) 0;
+}
+
+.ad-grid-proposal-button {
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  font-size: 13px;
+}
+
+.ad-grid-proposal-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ad-grid-th-all {
+  min-width: 8rem;
+}
+
+/* Peindre : pas de sélection de texte pendant le geste. */
+.ad-grid-table {
+  user-select: none;
+}
+
+.ad-grid-table input,
+.ad-grid-table textarea,
+.ad-grid-edit,
+.ad-grid-evidence {
+  user-select: text;
 }

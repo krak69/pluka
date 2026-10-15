@@ -43,10 +43,12 @@ export function consoleNotice(params: ConsoleNoticeParams): string | null {
       return 'Fiche supprimée.';
     case 'information-modifiee':
       return 'Information corrigée : une nouvelle version est publiée, l’ancienne reste dans l’historique. Les plans qui en dépendaient sont signalés à revoir.';
-    case 'materiel-ajoute':
-      return 'Matériel ajouté et publié. Les coureurs concernés seront prévenus du changement.';
-    case 'materiel-modifie':
-      return 'Matériel corrigé : une nouvelle version est publiée, l’ancienne reste dans l’historique.';
+    case 'materiel-accepte':
+      return 'Proposition acceptée : le matériel est publié pour les épreuves concernées, avec la source comme preuve.';
+    case 'materiel-ecarte':
+      return 'Proposition écartée : rien n’a été publié.';
+    case 'materiel-enregistre':
+      return 'Matériel enregistré. Chaque case modifiée crée une nouvelle version, l’historique est conservé, et les coureurs concernés sont prévenus.';
     case 'information-retiree':
       return 'Information retirée : elle n’est plus visible des coureurs. Son historique est conservé ; elle peut être restaurée.';
     case 'information-restauree':

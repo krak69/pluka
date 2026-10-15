@@ -22,6 +22,7 @@ import { actionFailure, courseContext, factReviewContext, gpxImportContext } fro
 import { publicEnv } from '@/lib/env';
 import {
   candidateCorrection,
+  equipmentCandidateCorrection,
   createRaceCommand,
   file,
   localInstant,
@@ -378,7 +379,9 @@ export async function publishCandidateAction(
       // et c'est la base qui en tire `edit_and_publish`. Elle n'est transmise
       // que si quelque chose a changé, et alors en entier — la base remet à
       // vide ce qu'une correction ne nomme pas.
-      ...candidateCorrection(form),
+      ...(form.get('kind') === 'equipment'
+        ? equipmentCandidateCorrection(form)
+        : candidateCorrection(form)),
       note: text(form, 'note') ?? null,
       // §38 : publier par-dessus une valeur contradictoire demande de le dire.
       // La case est décochée par défaut ; sans elle, le domaine refuse.

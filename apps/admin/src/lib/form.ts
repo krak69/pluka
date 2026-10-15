@@ -323,3 +323,35 @@ export function candidateCorrection(form: FormData): {
 
   return edited ? { valueText, valueNumber, unit } : {};
 }
+
+/**
+ * La correction d'un candidat « Matériel » — 0046. Le nom, l'exigence, la
+ * condition et la précision se comparent à la proposition, arrivée en champs
+ * cachés : rien n'est transmis si le relecteur publie tel quel.
+ *
+ * Sans exigence choisie, la structure est vide : le matériel sera publié
+ * « À préciser », comme une source qui ne dit pas l'exigence.
+ */
+export function equipmentCandidateCorrection(form: FormData): {
+  valueText?: string | null;
+  valueJson?: Readonly<Record<string, string | null>> | null;
+} {
+  const field = (name: string) => text(form, name) ?? null;
+  const label = field('label');
+  const requirement = field('requirement');
+  const condition = requirement === 'conditional' ? field('condition') : null;
+  const detail = field('detail');
+
+  const edited =
+    label !== field('original.label') ||
+    requirement !== field('original.requirement') ||
+    condition !== (field('original.requirement') === 'conditional' ? field('original.condition') : null) ||
+    detail !== field('original.detail');
+
+  if (!edited) return {};
+
+  return {
+    valueText: label,
+    valueJson: requirement === null ? null : { requirement, condition, detail },
+  };
+}

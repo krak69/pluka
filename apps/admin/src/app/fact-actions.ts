@@ -1,18 +1,19 @@
 'use server';
 
 import {
-  addRaceEquipment,
+  acceptEquipmentProposal,
   DomainError,
+  rejectEquipmentProposal,
   restoreRaceFact,
   retireRaceFact,
-  reviseRaceEquipment,
   reviseRaceFact,
+  saveEditionEquipment,
 } from '@pluka/domain';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import type { ActionState } from '@/app/actions';
-import { actionFailure, factEditingContext } from '@/lib/admin';
+import { actionFailure, factEditingContext, factReviewContext } from '@/lib/admin';
 import { checked, text, texts } from '@/lib/form';
 import { requireSession } from '@/lib/session';
 
@@ -155,53 +156,88 @@ function equipmentFailure(error: unknown): ActionState {
   return actionFailure(error);
 }
 
-function equipmentFields(form: FormData) {
-  return {
-    label: text(form, 'label') ?? '',
-    requirement: text(form, 'requirement'),
-    condition: text(form, 'condition') ?? null,
-    detail: text(form, 'detail') ?? null,
-    trustLevel: text(form, 'trustLevel'),
-    note: text(form, 'note') ?? null,
-  };
-}
 
-export async function addEquipmentAction(
+/**
+ * Le tableau du matériel d'une édition — migration 0048. Le brouillon arrive
+ * en JSON : une ligne par pièce modifiée, une exigence par épreuve. La base
+ * fait les gestes case par case, en une transaction.
+ */
+export async function saveEditionEquipmentAction(
   _previous: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const raceId = raceOf(form);
-  if (raceId === null) return { error: 'Épreuve introuvable.' };
+  const eventId = text(form, 'eventId');
+  if (eventId === undefined || !UUID.test(eventId)) return { error: 'Événement introuvable.' };
+
+  let lines: unknown;
+  try {
+    lines = JSON.parse(text(form, 'lines') ?? '[]');
+  } catch {
+    return { error: 'Le tableau n’a pas pu être lu. Recharge la page et recommence.' };
+  }
 
   try {
-    await addRaceEquipment(factEditingContext(await requireSession(`/courses/${raceId}`)), {
-      raceIds: texts(form, 'raceIds').filter((id) => id !== ''),
-      ...equipmentFields(form),
-    });
+    await saveEditionEquipment(
+      factEditingContext(await requireSession(`/evenements/${eventId}`)),
+      {
+        editionId: text(form, 'editionId') ?? '',
+        lines,
+        trustLevel: text(form, 'trustLevel'),
+        note: text(form, 'note') ?? null,
+      },
+    );
   } catch (error) {
     return equipmentFailure(error);
   }
 
-  revalidateRace(raceId);
-  redirect(`/courses/${raceId}?fait=materiel-ajoute#materiel`);
+  revalidatePath(`/evenements/${eventId}`);
+  revalidatePath('/courses/[raceId]', 'page');
+  redirect(`/evenements/${eventId}?fait=materiel-enregistre#materiel`);
 }
 
-export async function reviseEquipmentAction(
+/**
+ * Accepter ou écarter une ligne de matériel proposée par les sources — 0046.
+ * Chaque candidat passe par la revue habituelle ; un refus n'arrête pas les
+ * autres, et se dit.
+ */
+export async function decideEquipmentProposalAction(
   _previous: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const raceId = raceOf(form);
-  if (raceId === null) return { error: 'Épreuve introuvable.' };
+  const eventId = text(form, 'eventId');
+  if (eventId === undefined || !UUID.test(eventId)) return { error: 'Événement introuvable.' };
 
+  const context = factReviewContext(await requireSession(`/evenements/${eventId}`));
+  const accept = text(form, 'decision') === 'accept';
+  const candidateIds = texts(form, 'candidateIds').filter((id) => id !== '');
+
+  let outcome;
   try {
-    await reviseRaceEquipment(factEditingContext(await requireSession(`/courses/${raceId}`)), {
-      factId: text(form, 'factId') ?? '',
-      ...equipmentFields(form),
-    });
+    outcome = accept
+      ? await acceptEquipmentProposal(context, {
+          candidateIds,
+          duplicateIds: texts(form, 'duplicateIds').filter((id) => id !== ''),
+          trustLevel: text(form, 'trustLevel'),
+        })
+      : await rejectEquipmentProposal(context, { candidateIds });
   } catch (error) {
     return equipmentFailure(error);
   }
 
-  revalidateRace(raceId);
-  redirect(`/courses/${raceId}?fait=materiel-modifie#materiel`);
+  revalidatePath(`/evenements/${eventId}`);
+  revalidatePath('/courses/[raceId]', 'page');
+
+  const [failure] = outcome.failures;
+  if (failure !== undefined) {
+    const message = equipmentFailure(failure).error ?? 'Une partie n’a pas pu être traitée.';
+    return {
+      error: `${outcome.done} sur ${outcome.done + outcome.failures.length} traitée${
+        outcome.done > 1 ? 's' : ''
+      }. ${message}`,
+    };
+  }
+
+  redirect(
+    `/evenements/${eventId}?fait=${accept ? 'materiel-accepte' : 'materiel-ecarte'}#materiel`,
+  );
 }

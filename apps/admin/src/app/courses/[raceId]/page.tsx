@@ -1,6 +1,5 @@
 import {
   allowedRaceTransitions,
-  getEditionAdministration,
   getRaceAdministration,
   getRaceGpxImport,
   getRaceWaypoints,
@@ -96,14 +95,10 @@ export default async function RacePage({
   ]);
 
   const session = await requireSession(returnTo);
-  const [facts, candidates, equipment, editionRaces] = await Promise.all([
+  const [facts, candidates, equipment] = await Promise.all([
     listRaceFactsForEditing(factEditingContext(session), { raceId }).catch(() => null),
     listCandidatesForReview(factReviewContext(session), { raceId, limit: 100 }).catch(() => null),
     listRaceEquipment(factEditingContext(session), { raceId }).catch(() => null),
-    // Les autres épreuves de l'édition : le matériel s'y ajoute en un geste.
-    getEditionAdministration(context, { editionId: edition.id })
-      .then(({ races }) => races)
-      .catch(() => []),
   ]);
 
   const live = facts?.filter((fact) => fact.archivedAt === null) ?? null;
@@ -371,12 +366,13 @@ export default async function RacePage({
       </div>
 
       <EquipmentPanel
-        raceId={race.id}
-        raceName={race.name}
         items={equipment}
-        siblings={editionRaces
-          .filter((candidate) => candidate.id !== race.id)
-          .map((candidate) => ({ id: candidate.id, name: candidate.name }))}
+        pendingFromSources={
+          candidates === null
+            ? null
+            : candidates.filter((candidate) => candidate.category === 'equipment').length
+        }
+        manageHref={`${eventHref}#materiel`}
       />
 
       <section className="ad-org-panel" aria-labelledby="waypoints-title">

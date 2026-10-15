@@ -1,49 +1,25 @@
 'use client';
 
-import type { RaceEquipmentItem } from '@pluka/domain';
 import { Input } from '@pluka/ui';
-import { useActionState, useId, useState } from 'react';
+import { useState } from 'react';
 
 import type { ActionState } from '@/app/actions';
-import { addEquipmentAction, reviseEquipmentAction } from '@/app/fact-actions';
-
-const INITIAL: ActionState = {};
+import {
+  REQUIREMENT_OPTIONS,
+  type Requirement,
+} from '@/app/courses/[raceId]/equipment-requirements';
 
 /**
- * Saisie du matériel d'une épreuve — migration 0045.
+ * Les champs d'un matériel — migrations 0045, 0046, 0047. Partagés par
+ * l'écran événement (ajout, modification) et la revue d'un candidat extrait.
  *
  * Pas de catalogue : le nom est celui du règlement. Trois exigences décrites
  * (SOURCES_EXTRACTION §82) ; la condition n'est demandée que pour un
  * conditionnel, et c'est le domaine qui la rend obligatoire. Aucune règle
- * ici : l'autorité, la preuve « Saisie manuelle » et le journal sont en base.
+ * ici : l'autorité, la preuve et le journal sont en base.
  */
 
-export const REQUIREMENT_OPTIONS = [
-  {
-    value: 'mandatory',
-    label: 'Obligatoire',
-    description: 'Exigé au départ ou contrôlé en course.',
-  },
-  {
-    value: 'conditional',
-    label: 'Conditionnel',
-    description: 'Exigé selon une condition annoncée — météo, horaire, décision de l’organisation.',
-  },
-  {
-    value: 'recommended',
-    label: 'Recommandé',
-    description: 'Conseillé par l’organisation, jamais exigé.',
-  },
-] as const;
-
-type Requirement = (typeof REQUIREMENT_OPTIONS)[number]['value'];
-
-export interface SiblingRace {
-  readonly id: string;
-  readonly name: string;
-}
-
-function TrustSelect({ id, defaultValue }: { readonly id: string; readonly defaultValue: string }) {
+export function TrustSelect({ id, defaultValue }: { readonly id: string; readonly defaultValue: string }) {
   return (
     <div className="pk-field">
       <label className="pk-field-label" htmlFor={id}>
@@ -57,15 +33,32 @@ function TrustSelect({ id, defaultValue }: { readonly id: string; readonly defau
   );
 }
 
-/** Nom, exigence, condition, précision : les champs communs à l'ajout et à la correction. */
-function EquipmentFields({
+/** Ce qu'un formulaire de matériel préremplit : un élément publié, ou un candidat extrait. */
+export interface EquipmentDraft {
+  readonly label: string;
+  readonly requirement: Requirement | null;
+  readonly condition: string | null;
+  readonly detail: string | null;
+}
+
+/**
+ * Nom, exigence, condition, précision : les champs communs à l'ajout, à la
+ * correction et à la revue d'un candidat extrait.
+ */
+export function EquipmentFields({
   prefix,
   errors,
   initial,
+  allowUnstated = false,
 }: {
   readonly prefix: string;
   readonly errors: Readonly<Record<string, string>>;
-  readonly initial?: RaceEquipmentItem;
+  readonly initial?: EquipmentDraft;
+  /**
+   * En revue, la source peut ne pas dire l'exigence (§82) : le relecteur peut
+   * alors publier le matériel « À préciser » plutôt que de choisir à sa place.
+   */
+  readonly allowUnstated?: boolean;
 }) {
   const [requirement, setRequirement] = useState<Requirement | ''>(initial?.requirement ?? '');
 
@@ -95,7 +88,7 @@ function EquipmentFields({
               type="radio"
               name="requirement"
               value={option.value}
-              required
+              required={!allowUnstated}
               checked={requirement === option.value}
               onChange={() => setRequirement(option.value)}
             />
@@ -105,6 +98,24 @@ function EquipmentFields({
             </span>
           </label>
         ))}
+        {allowUnstated ? (
+          <label className="ad-role-choice" htmlFor={`${prefix}-unstated`}>
+            <input
+              id={`${prefix}-unstated`}
+              type="radio"
+              name="requirement"
+              value=""
+              checked={requirement === ''}
+              onChange={() => setRequirement('')}
+            />
+            <span className="ad-role-choice-text">
+              <span className="ad-role-choice-label">Non précisée par la source</span>
+              <span className="ad-role-choice-description">
+                Publié « À préciser » : les coureurs lisent que la source ne dit pas l’exigence.
+              </span>
+            </span>
+          </label>
+        ) : null}
         {errors['requirement'] === undefined ? null : (
           <p className="pk-field-error">{errors['requirement']}</p>
         )}
@@ -135,105 +146,11 @@ function EquipmentFields({
   );
 }
 
-function Failure({ state }: { readonly state: ActionState }) {
+export function Failure({ state }: { readonly state: ActionState }) {
   if (state.error === undefined) return null;
   return (
     <p className="pk-field-error" role="alert">
       {state.error}
     </p>
-  );
-}
-
-export function AddEquipmentForm({
-  raceId,
-  raceName,
-  siblings,
-}: {
-  readonly raceId: string;
-  readonly raceName: string;
-  /** Les autres épreuves de l'édition : le matériel d'un règlement vaut souvent pour toutes. */
-  readonly siblings: readonly SiblingRace[];
-}) {
-  const [state, action, pending] = useActionState(addEquipmentAction, INITIAL);
-  const id = useId();
-  const errors = state.fieldErrors ?? {};
-
-  return (
-    <form action={action} className="ad-equipment-form">
-      <input type="hidden" name="raceId" value={raceId} />
-      {/* L'épreuve de la fiche est toujours visée. */}
-      <input type="hidden" name="raceIds" value={raceId} />
-
-      <EquipmentFields prefix={`${id}-add`} errors={errors} />
-
-      {siblings.length === 0 ? null : (
-        <fieldset className="ad-equipment-scope">
-          <legend className="pk-field-label">Ajouter aussi à</legend>
-          <p className="ad-org-panel-lede">
-            Pour {raceName}, et pour les épreuves cochées. Une épreuve qui l’a déjà est laissée
-            telle quelle.
-          </p>
-          {siblings.map((sibling) => (
-            <label key={sibling.id} className="ad-confirm" htmlFor={`${id}-race-${sibling.id}`}>
-              <input
-                id={`${id}-race-${sibling.id}`}
-                type="checkbox"
-                name="raceIds"
-                value={sibling.id}
-              />
-              <span>{sibling.name}</span>
-            </label>
-          ))}
-        </fieldset>
-      )}
-
-      <TrustSelect id={`${id}-trust`} defaultValue="pluka_validated" />
-
-      <div className="ad-form-actions">
-        <button type="submit" className="pk-btn pk-button-primary" disabled={pending}>
-          {pending ? 'Ajout…' : 'Ajouter le matériel'}
-        </button>
-      </div>
-      <Failure state={state} />
-    </form>
-  );
-}
-
-export function ReviseEquipmentForm({
-  raceId,
-  item,
-}: {
-  readonly raceId: string;
-  readonly item: RaceEquipmentItem;
-}) {
-  const [state, action, pending] = useActionState(reviseEquipmentAction, INITIAL);
-  const id = useId();
-
-  return (
-    <form action={action} className="ad-equipment-form">
-      <input type="hidden" name="raceId" value={raceId} />
-      <input type="hidden" name="factId" value={item.factId} />
-
-      <EquipmentFields prefix={`${id}-revise`} errors={state.fieldErrors ?? {}} initial={item} />
-
-      <TrustSelect
-        id={`${id}-trust`}
-        defaultValue={item.trustLevel === 'official' ? 'official' : 'pluka_validated'}
-      />
-      <Input
-        id={`${id}-note`}
-        name="note"
-        label="Motif de la correction (facultatif)"
-        placeholder="Ex. règlement 2026, article 7"
-        autoComplete="off"
-      />
-
-      <div className="ad-form-actions">
-        <button type="submit" className="pk-btn pk-button-secondary" disabled={pending}>
-          {pending ? 'Enregistrement…' : 'Publier la correction'}
-        </button>
-      </div>
-      <Failure state={state} />
-    </form>
   );
 }

@@ -14,6 +14,10 @@ import {
   listEditionDocuments,
   listRaceFactsForEditing,
   type ReadinessTodo,
+  editionEquipmentRows,
+  equipmentOf,
+  equipmentProposals,
+  listCandidatesForReview,
 } from '@pluka/domain';
 import { ActionList, ActivityFeed, Checklist, StatTiles, TerrainBand } from '@pluka/ui';
 import Link from 'next/link';
@@ -43,11 +47,13 @@ import {
   redirectOnDomainError,
   requireAdminContext,
   staffTeamContext,
+  factReviewContext,
 } from '@/lib/admin';
 import { consoleNotice, type ConsoleNoticeParams } from '@/lib/console-notice';
 import { dateTime } from '@/lib/format';
 import { requireSession } from '@/lib/session';
 
+import { EditionEquipmentPanel } from './edition-equipment';
 import { EventOrganizationForm } from './event-organization-form';
 import {
   activityOf,
@@ -195,12 +201,15 @@ export default async function EventPage({
   // informations publiées — les trois sources de « Préparation ».
   const gpx = gpxImportContext(session);
   const factContext = factEditingContext(session);
+  const reviewContext = factReviewContext(session);
   const currentRaces = await Promise.all(
     (current?.races ?? []).map(async (race) => {
-      const [gpxImport, waypoints, facts] = await Promise.all([
+      const [gpxImport, waypoints, facts, candidates] = await Promise.all([
         getRaceGpxImport(gpx, { raceId: race.id }).catch(() => null),
         getRaceWaypoints(context, { raceId: race.id }).catch(() => null),
         listRaceFactsForEditing(factContext, { raceId: race.id }).catch(() => null),
+        // La file de revue : le tableau du matériel en montre les propositions.
+        listCandidatesForReview(reviewContext, { raceId: race.id, limit: 200 }).catch(() => null),
       ]);
       const live = facts?.filter((fact) => fact.archivedAt === null) ?? null;
       const courseReference =
@@ -211,7 +220,20 @@ export default async function EventPage({
               aidStations: waypoints.filter((waypoint) => waypoint.waypointType === 'aid_station')
                 .length,
             };
-      return { race, gpxStage: gpxImport?.stage ?? null, courseReference, facts: live };
+      // Retirés compris : le tableau Matériel les écarte lui-même, et la base
+      // restaure une case recochée.
+      const equipment =
+        facts === null
+          ? null
+          : facts.filter((fact) => fact.category === 'equipment').map(equipmentOf);
+      return {
+        race,
+        gpxStage: gpxImport?.stage ?? null,
+        courseReference,
+        facts: live,
+        equipment,
+        candidates,
+      };
     }),
   );
 
@@ -261,6 +283,51 @@ export default async function EventPage({
       })),
     ),
   });
+
+  const equipmentRaces = currentRaces.map(({ race }) => ({
+    id: race.id,
+    name: race.name,
+    detail: raceMeasures(race).split(' · ')[0] ?? null,
+  }));
+  const equipmentRows = currentRaces.every(({ equipment }) => equipment === null)
+    ? null
+    : editionEquipmentRows(
+        currentRaces.map(({ race, equipment }) => ({
+          raceId: race.id,
+          raceName: race.name,
+          items: equipment,
+        })),
+      );
+  const proposals = equipmentProposals(
+    currentRaces.map(({ race, candidates }) => ({ raceId: race.id, candidates })),
+  );
+
+  // L'édition précédente : son matériel se reprend d'un geste dans le brouillon.
+  const previousEdition = editionsWithRaces[1];
+  const previousEquipment =
+    previousEdition === undefined || previousEdition.races.length === 0
+      ? null
+      : {
+          year: previousEdition.edition.year,
+          races: previousEdition.races.map((race) => ({
+            id: race.id,
+            name: race.name,
+            detail: raceMeasures(race).split(' · ')[0] ?? null,
+          })),
+          rows: editionEquipmentRows(
+            await Promise.all(
+              previousEdition.races.map(async (race) => ({
+                raceId: race.id,
+                raceName: race.name,
+                items: await listRaceFactsForEditing(factContext, { raceId: race.id })
+                  .then((facts) =>
+                    facts.filter((fact) => fact.category === 'equipment').map(equipmentOf),
+                  )
+                  .catch(() => null),
+              })),
+            ),
+          ),
+        };
 
   const siteUrl = inventory?.finalUrl ?? inventory?.siteUrl ?? null;
   const documentsHref = `/evenements/${event.id}/documents`;
@@ -422,6 +489,18 @@ export default async function EventPage({
           }))}
         />
       </div>
+
+      {current === undefined ? null : (
+        <EditionEquipmentPanel
+          eventId={event.id}
+          editionId={current.edition.id}
+          editionYear={current.edition.year}
+          races={equipmentRaces}
+          rows={currentRaces.length === 0 ? [] : equipmentRows}
+          proposals={proposals}
+          previous={previousEquipment}
+        />
+      )}
 
       <h2 className="ad-event-section">Éditions et épreuves</h2>
 

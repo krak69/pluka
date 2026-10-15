@@ -10,9 +10,13 @@ import {
   StatusBadge,
   TrustBadge,
 } from '@pluka/ui';
+import { equipmentValueOf } from '@pluka/domain';
 import { useActionState } from 'react';
 
 import { decideCandidateAction, publishCandidateAction, type ActionState } from '@/app/actions';
+import { EquipmentFields, type EquipmentDraft } from '@/app/courses/[raceId]/equipment-forms';
+import { REQUIREMENT_OPTIONS } from '@/app/courses/[raceId]/equipment-requirements';
+import { factCategoryLabel } from '@/components/admin-status';
 
 const INITIAL: ActionState = {};
 
@@ -48,7 +52,35 @@ const ORIGIN_LABEL: Readonly<Record<string, string>> = {
   ai: 'Proposition d’un modèle',
 };
 
+const REQUIREMENT_LABEL: Readonly<Record<string, string>> = Object.fromEntries(
+  REQUIREMENT_OPTIONS.map((option) => [option.value, option.label]),
+);
+
+/** « Gants · Conditionnel — si température < 5 °C » : un matériel se lit avec son exigence (§82). */
+function equipmentLine(
+  label: string | null,
+  valueJson: Readonly<Record<string, unknown>> | null,
+): string {
+  const value = equipmentValueOf(valueJson);
+  const requirement =
+    value.requirement === null
+      ? 'exigence non précisée'
+      : `${REQUIREMENT_LABEL[value.requirement] ?? value.requirement}${
+          value.condition === null ? '' : ` — ${value.condition}`
+        }`;
+
+  return [label ?? '—', requirement, value.detail].filter((part) => part !== null).join(' · ');
+}
+
+function equipmentDraftOf(candidate: FactCandidateReviewRecord): EquipmentDraft {
+  const value = equipmentValueOf(candidate.valueJson);
+  return { label: candidate.valueText ?? '', ...value };
+}
+
 function proposedValue(candidate: FactCandidateReviewRecord): string {
+  if (candidate.category === 'equipment') {
+    return equipmentLine(candidate.valueText, candidate.valueJson);
+  }
   if (candidate.valueText !== null) return candidate.valueText;
   if (candidate.valueNumber !== null) {
     return candidate.unit === null
@@ -82,6 +114,37 @@ function LocatorRows({ locator }: { readonly locator: Readonly<Record<string, un
   );
 }
 
+/**
+ * Les champs d'un candidat « Matériel » — 0046. Préremplis de ce que
+ * l'extraction a lu ; la proposition voyage en champs cachés pour que publier
+ * tel quel reste « publier », et corriger reste « corriger » (§31).
+ */
+function EquipmentCandidateFields({
+  candidate,
+  errors,
+}: {
+  readonly candidate: FactCandidateReviewRecord;
+  readonly errors: Readonly<Record<string, string>>;
+}) {
+  const draft = equipmentDraftOf(candidate);
+
+  return (
+    <>
+      <input type="hidden" name="kind" value="equipment" />
+      <input type="hidden" name="original.label" value={draft.label} />
+      <input type="hidden" name="original.requirement" value={draft.requirement ?? ''} />
+      <input type="hidden" name="original.condition" value={draft.condition ?? ''} />
+      <input type="hidden" name="original.detail" value={draft.detail ?? ''} />
+      <EquipmentFields
+        prefix={`candidate-${candidate.candidateId}`}
+        errors={errors}
+        initial={draft}
+        allowUnstated
+      />
+    </>
+  );
+}
+
 function CandidateCard({
   raceId,
   candidate,
@@ -93,6 +156,7 @@ function CandidateCard({
   const [decideState, decide, deciding] = useActionState(decideCandidateAction, INITIAL);
 
   const conflicting = candidate.status === 'conflict';
+  const equipment = candidate.category === 'equipment';
   const error = publishState.error ?? decideState.error;
 
   return (
@@ -115,7 +179,7 @@ function CandidateCard({
         <StatusBadge tone={STATUS_TONE[candidate.status] ?? 'neutral'}>
           {STATUS_LABEL[candidate.status] ?? candidate.status}
         </StatusBadge>
-        <Badge tone="neutral">{candidate.category}</Badge>
+        <Badge tone="neutral">{factCategoryLabel(candidate.category)}</Badge>
         {candidate.origin === null ? null : (
           <Badge tone="neutral">{ORIGIN_LABEL[candidate.origin] ?? candidate.origin}</Badge>
         )}
@@ -132,7 +196,14 @@ function CandidateCard({
           <DataValue label="Fact courant" value="aucun" />
         ) : (
           <span style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-            <DataValue label="Fact courant" value={candidate.publishedValueText} />
+            <DataValue
+              label="Fact courant"
+              value={
+                equipment
+                  ? equipmentLine(candidate.publishedValueText, candidate.publishedValueJson)
+                  : candidate.publishedValueText
+              }
+            />
             {candidate.publishedTrustLevel === null ? null : (
               <TrustBadge level={candidate.publishedTrustLevel} />
             )}
@@ -268,56 +339,67 @@ function CandidateCard({
             <option value="official">Officielle — réservé à un éditeur de l’organisation</option>
           </select>
 
-          {/*
-            La valeur arrive préremplie de la proposition, et chaque part en est
-            modifiable : texte, nombre, unité. Les valeurs d'origine voyagent à
-            côté — l'action ne transmet une correction que si quelque chose a
-            changé, pour que la base n'enregistre pas « corrigé » ce qui ne
-            l'a pas été (§31).
-          */}
-          <input type="hidden" name="original.valueText" value={candidate.valueText ?? ''} />
-          <input
-            type="hidden"
-            name="original.valueNumber"
-            value={candidate.valueNumber === null ? '' : String(candidate.valueNumber)}
-          />
-          <input type="hidden" name="original.unit" value={candidate.unit ?? ''} />
+          {equipment ? (
+            <EquipmentCandidateFields
+              candidate={candidate}
+              errors={publishState.fieldErrors ?? {}}
+            />
+          ) : (
+            <>
+              {/*
+              La valeur arrive préremplie de la proposition, et chaque part en est
+              modifiable : texte, nombre, unité. Les valeurs d'origine voyagent à
+              côté — l'action ne transmet une correction que si quelque chose a
+              changé, pour que la base n'enregistre pas « corrigé » ce qui ne
+              l'a pas été (§31).
+            */}
+              <input type="hidden" name="original.valueText" value={candidate.valueText ?? ''} />
+              <input
+                type="hidden"
+                name="original.valueNumber"
+                value={candidate.valueNumber === null ? '' : String(candidate.valueNumber)}
+              />
+              <input type="hidden" name="original.unit" value={candidate.unit ?? ''} />
 
-          <label className="pk-label" htmlFor={`value-${candidate.candidateId}`}>
-            Valeur publiée
-          </label>
-          <textarea
-            id={`value-${candidate.candidateId}`}
-            name="valueText"
-            className="pk-input"
-            rows={2}
-            defaultValue={candidate.valueText ?? ''}
-          />
-          <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-            <span style={{ display: 'grid', gap: 'var(--space-1)' }}>
-              <label className="pk-label" htmlFor={`number-${candidate.candidateId}`}>
-                Nombre
+              <label className="pk-label" htmlFor={`value-${candidate.candidateId}`}>
+                Valeur publiée
               </label>
-              <input
-                id={`number-${candidate.candidateId}`}
-                name="valueNumber"
+              <textarea
+                id={`value-${candidate.candidateId}`}
+                name="valueText"
                 className="pk-input"
-                inputMode="decimal"
-                defaultValue={candidate.valueNumber === null ? '' : String(candidate.valueNumber)}
+                rows={2}
+                defaultValue={candidate.valueText ?? ''}
               />
-            </span>
-            <span style={{ display: 'grid', gap: 'var(--space-1)' }}>
-              <label className="pk-label" htmlFor={`unit-${candidate.candidateId}`}>
-                Unité
-              </label>
-              <input
-                id={`unit-${candidate.candidateId}`}
-                name="unit"
-                className="pk-input"
-                defaultValue={candidate.unit ?? ''}
-              />
-            </span>
-          </div>
+              <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+                <span style={{ display: 'grid', gap: 'var(--space-1)' }}>
+                  <label className="pk-label" htmlFor={`number-${candidate.candidateId}`}>
+                    Nombre
+                  </label>
+                  <input
+                    id={`number-${candidate.candidateId}`}
+                    name="valueNumber"
+                    className="pk-input"
+                    inputMode="decimal"
+                    defaultValue={
+                      candidate.valueNumber === null ? '' : String(candidate.valueNumber)
+                    }
+                  />
+                </span>
+                <span style={{ display: 'grid', gap: 'var(--space-1)' }}>
+                  <label className="pk-label" htmlFor={`unit-${candidate.candidateId}`}>
+                    Unité
+                  </label>
+                  <input
+                    id={`unit-${candidate.candidateId}`}
+                    name="unit"
+                    className="pk-input"
+                    defaultValue={candidate.unit ?? ''}
+                  />
+                </span>
+              </div>
+            </>
+          )}
 
           <label className="pk-label" htmlFor={`note-publish-${candidate.candidateId}`}>
             Note de revue

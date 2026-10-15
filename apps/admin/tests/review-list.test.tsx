@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import { CandidateReviewList } from '@/app/courses/[raceId]/revue/review-list';
-import { candidateCorrection } from '@/lib/form';
+import { candidateCorrection, equipmentCandidateCorrection } from '@/lib/form';
 
 /**
  * L'écran de revue rend la provenance consultable — SOURCES_EXTRACTION §30, §20.
@@ -37,6 +37,7 @@ function candidate(overrides: Partial<FactCandidateReviewRecord> = {}): FactCand
     publishedValueText: null,
     publishedVersionId: null,
     publishedTrustLevel: null,
+    publishedValueJson: null,
     conflictType: null,
     conflictStatus: null,
     excerpt: 'Assistance autorisée uniquement à Lenk.',
@@ -300,5 +301,87 @@ describe('correction d’une proposition avant publication', () => {
     expect(
       candidateCorrection(form({ ...ORIGINAL, valueText: '', valueNumber: '43,1', unit: 'km' })),
     ).toEqual({ valueText: null, valueNumber: 43.1, unit: 'km' });
+  });
+});
+
+describe('candidat « Matériel » (0046)', () => {
+  const equipment = (overrides: Partial<FactCandidateReviewRecord> = {}) =>
+    candidate({
+      category: 'equipment',
+      factKey: 'equipment.gants',
+      valueText: 'Gants',
+      valueJson: { requirement: 'mandatory', condition: null, detail: 'chauds' },
+      ...overrides,
+    });
+
+  it('se lit avec son exigence, et la revue la propose préremplie', () => {
+    const html = render([equipment()]);
+
+    expect(html).toContain('Matériel');
+    expect(html).toContain('Gants · Obligatoire · chauds');
+    expect(html).toContain('name="kind" value="equipment"');
+    expect(html).toMatch(/value="mandatory"[^>]*checked|checked=""[^>]*value="mandatory"/);
+    // Les champs nombre et unité n'ont pas de sens pour un matériel.
+    expect(html).not.toContain('name="valueNumber"');
+  });
+
+  it('montre l’exigence publiée face à celle lue, pour lire la contradiction', () => {
+    const html = render([
+      equipment({
+        status: 'conflict',
+        publishedValueText: 'Gants',
+        publishedValueJson: { requirement: 'recommended', condition: null, detail: null },
+      }),
+    ]);
+
+    expect(html).toContain('Gants · Recommandé');
+    expect(html).toContain('Gants · Obligatoire');
+  });
+
+  it('permet de publier sans exigence quand la source ne la dit pas', () => {
+    const html = render([equipment({ valueJson: null })]);
+
+    expect(html).toContain('Gants · exigence non précisée');
+    expect(html).toContain('Non précisée par la source');
+  });
+});
+
+describe('correction d’un matériel avant publication', () => {
+  function form(fields: Readonly<Record<string, string>>): FormData {
+    const data = new FormData();
+    for (const [name, value] of Object.entries(fields)) data.set(name, value);
+    return data;
+  }
+
+  const ORIGINAL = {
+    'original.label': 'Gants',
+    'original.requirement': 'mandatory',
+    'original.condition': '',
+    'original.detail': '',
+  };
+
+  it('ne transmet rien quand le relecteur publie tel quel', () => {
+    expect(
+      equipmentCandidateCorrection(
+        form({ ...ORIGINAL, label: 'Gants', requirement: 'mandatory', condition: 'ignorée', detail: '' }),
+      ),
+    ).toEqual({});
+  });
+
+  it('transmet le nom et la structure quand l’exigence change', () => {
+    expect(
+      equipmentCandidateCorrection(
+        form({ ...ORIGINAL, label: 'Gants', requirement: 'conditional', condition: 'si < 5 °C' }),
+      ),
+    ).toEqual({
+      valueText: 'Gants',
+      valueJson: { requirement: 'conditional', condition: 'si < 5 °C', detail: null },
+    });
+  });
+
+  it('publie « À préciser » quand le relecteur dit la source muette', () => {
+    expect(
+      equipmentCandidateCorrection(form({ ...ORIGINAL, label: 'Gants', requirement: '' })),
+    ).toEqual({ valueText: 'Gants', valueJson: null });
   });
 });
