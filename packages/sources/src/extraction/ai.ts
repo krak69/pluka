@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import type { AIEvidence, AIProvider, AIUsage, AIModelDescriptor } from '@pluka/contracts';
+import { EQUIPMENT_REQUIREMENTS, equipmentFactKey } from '@pluka/contracts';
 import { z } from 'zod';
 
 import type { ParsedBlock } from '../parsing/blocks.js';
@@ -40,13 +41,13 @@ import { ExtractionError, type RejectedCandidate } from './errors.js';
  */
 
 /** Version du schéma d'extraction — §76 `extractor_schema_version`. */
-export const EXTRACTOR_SCHEMA_VERSION = 'extractor-1.0.0';
+export const EXTRACTOR_SCHEMA_VERSION = 'extractor-1.1.0';
 
 /**
  * Version du prompt — §26 : « ne jamais dépendre uniquement d'un prompt non
  * versionné dans le code ».
  */
-export const AI_PROMPT_VERSION = 'extract-facts-1.0.0';
+export const AI_PROMPT_VERSION = 'extract-facts-1.1.0';
 
 /**
  * Consignes système.
@@ -76,8 +77,14 @@ export const AI_INSTRUCTIONS = [
   '   le candidat.',
   '',
   'RÈGLES MÉTIER',
-  '- Matériel : distingue obligatoire, conditionnel et recommandé. Ne transforme',
-  '  jamais un équipement recommandé en équipement obligatoire.',
+  '- Matériel : un candidat par pièce de matériel, `factType` "equipment".',
+  '  `subjectKey` et `valueText` portent le nom tel que le document l’écrit, sans',
+  '  l’exigence. Renseigne `equipment` : `requirement` vaut "mandatory"',
+  '  (obligatoire), "conditional" (exigé selon une condition annoncée) ou',
+  '  "recommended" (conseillé, recommandé) ; `condition` dit la condition d’un',
+  '  conditionnel ; `detail` une précision du document (taille, norme, quantité).',
+  '  Ne transforme jamais un équipement recommandé en équipement obligatoire. Si',
+  '  le document ne dit pas l’exigence, `requirement` vaut null.',
   "- Barrières : si le document ne dit pas si l'horaire est celui de l'arrivée ou",
   '  du départ, laisse le contexte vide plutôt que de choisir.',
   "- Ravitaillements : la présence d'un ravito n'implique ni eau, ni assistance,",
@@ -101,7 +108,7 @@ export const AI_INSTRUCTIONS = [
  * vérifiée par un test — changer les consignes casse la vérification, ce qui
  * oblige à revoir la version.
  */
-export const AI_PROMPT_HASH = '14762fb8ebed91fe35209161cb51ed6df7befc57dff3890a4aab35942d204212';
+export const AI_PROMPT_HASH = '8493b13b6671837357ba6fe0fcf9f4528577ddbe8ebc1ebc86cfc97b111663ec';
 
 export function promptHash(): string {
   return createHash('sha256').update(AI_INSTRUCTIONS, 'utf8').digest('hex');
@@ -132,6 +139,18 @@ export const aiCandidateSchema = z
     notes: z.string().max(500).nullable(),
     evidenceIds: z.array(z.string().min(1)).min(1).max(10),
     quote: z.string().min(1).max(400),
+    /**
+     * Structure d'un matériel — §82, migration 0045. Absente ou nulle pour les
+     * autres catégories ; une exigence que le document ne dit pas reste nulle,
+     * la revue la tranche.
+     */
+    equipment: z
+      .strictObject({
+        requirement: z.enum(EQUIPMENT_REQUIREMENTS).nullable(),
+        condition: z.string().min(1).max(300).nullable(),
+        detail: z.string().min(1).max(500).nullable(),
+      })
+      .nullish(),
   })
   .refine((candidate) => candidate.valueText !== null || candidate.valueNumber !== null, {
     message: 'un candidat sans valeur ne propose rien',
@@ -242,6 +261,26 @@ function renderDocument(evidence: readonly AIEvidence[]): string {
   ].join('\n\n');
 }
 
+/**
+ * La structure d'un matériel proposé, telle que la revue la lira (0045). Un
+ * conditionnel sans condition garde son exigence : la revue demandera la
+ * condition plutôt que de la perdre.
+ */
+function equipmentJsonOf(
+  equipment: z.infer<typeof aiCandidateSchema>['equipment'] | null,
+): Readonly<Record<string, unknown>> | null {
+  if (equipment === null || equipment === undefined) return null;
+  if (equipment.requirement === null && equipment.condition === null && equipment.detail === null) {
+    return null;
+  }
+
+  return {
+    requirement: equipment.requirement,
+    condition: equipment.condition,
+    detail: equipment.detail,
+  };
+}
+
 interface MappedCandidates {
   readonly candidates: readonly ExtractedCandidate[];
   readonly rejected: readonly RejectedCandidate[];
@@ -288,7 +327,12 @@ function mapCandidates(
       continue;
     }
 
-    const factKey = factKeyOf(proposed);
+    const isEquipment = proposed.factType === 'equipment';
+    // Un matériel porte la clé de la saisie manuelle, tirée du nom seul : un
+    // contexte (« conditionnel ») ferait de la même pièce deux informations.
+    const factKey = isEquipment
+      ? (equipmentFactKey(proposed.valueText ?? proposed.subjectKey) ?? 'equipment')
+      : factKeyOf(proposed);
 
     if (factKey === proposed.factType || factKey.endsWith('/')) {
       rejected.push({ reason: 'unusable_identity', subjectKey: proposed.subjectKey });
@@ -298,12 +342,12 @@ function mapCandidates(
     candidates.push({
       factType: proposed.factType,
       subjectKey: proposed.subjectKey,
-      context: proposed.context,
+      context: isEquipment ? null : proposed.context,
       factKey,
-      valueText: proposed.valueText,
-      valueNumber: proposed.valueNumber,
-      unit: proposed.unit,
-      valueJson: null,
+      valueText: isEquipment ? (proposed.valueText ?? proposed.subjectKey) : proposed.valueText,
+      valueNumber: isEquipment ? null : proposed.valueNumber,
+      unit: isEquipment ? null : proposed.unit,
+      valueJson: isEquipment ? equipmentJsonOf(proposed.equipment ?? null) : null,
       validFrom: proposed.validFrom,
       validTo: proposed.validTo,
       evidence: evidenceFor(citedChunks, host, proposed.quote, blockByIndex),

@@ -672,3 +672,113 @@ describe('traçabilité du run', () => {
     expect(evidenceIdOf(3)).toBe('chunk-3');
   });
 });
+
+// ============================================================
+// §82 — matériel : exigence structurée, clé de la saisie manuelle
+// ============================================================
+
+describe('matériel extrait', () => {
+  const MATERIEL = `<html><body><main>
+    <h2>Matériel</h2>
+    <p>Matériel obligatoire : veste imperméable avec capuche, membrane 10 000 mm.</p>
+    <p>Gants obligatoires si la température prévue est inférieure à 5 °C.</p>
+    <p>Bâtons recommandés.</p>
+  </main></body></html>`;
+
+  function equipmentCandidate(
+    evidenceId: string,
+    overrides: Readonly<Record<string, unknown>>,
+  ): Record<string, unknown> {
+    return {
+      factType: 'equipment',
+      subjectKey: 'Veste imperméable',
+      context: null,
+      valueText: 'Veste imperméable avec capuche',
+      valueNumber: null,
+      unit: null,
+      validFrom: null,
+      validTo: null,
+      confidence: 'high',
+      notes: null,
+      evidenceIds: [evidenceId],
+      quote: 'veste imperméable avec capuche',
+      ...overrides,
+    };
+  }
+
+  it('range l’exigence, la condition et la précision dans la valeur structurée', async () => {
+    const { blocks, chunks } = documentOf(MATERIEL);
+    const id = chunkIdContaining(chunks, 'veste');
+
+    const outcome = await extractCandidates({
+      blocks,
+      chunks,
+      provider: fakeProvider(() => ({
+        candidates: [
+          equipmentCandidate(id, {
+            equipment: { requirement: 'mandatory', condition: null, detail: 'membrane 10 000 mm' },
+          }),
+          equipmentCandidate(id, {
+            subjectKey: 'Gants',
+            context: 'conditional',
+            valueText: 'Gants',
+            quote: 'Gants obligatoires si la température prévue est inférieure à 5 °C',
+            equipment: {
+              requirement: 'conditional',
+              condition: 'si la température prévue est inférieure à 5 °C',
+              detail: null,
+            },
+          }),
+        ],
+      })),
+    });
+
+    const veste = outcome.candidates.find((c) => c.factKey === 'equipment.veste-impermeable-avec-capuche');
+    expect(veste?.valueJson).toEqual({
+      requirement: 'mandatory',
+      condition: null,
+      detail: 'membrane 10 000 mm',
+    });
+    expect(veste?.valueText).toBe('Veste imperméable avec capuche');
+
+    // Le contexte « conditionnel » ne fait pas de la même pièce une autre information.
+    const gants = outcome.candidates.find((c) => c.factType === 'equipment' && c.valueText === 'Gants');
+    expect(gants?.factKey).toBe('equipment.gants');
+    expect(gants?.context).toBeNull();
+    expect(gants?.valueJson?.['requirement']).toBe('conditional');
+    expect(gants?.reviewState).toBe('needs_review');
+  });
+
+  it('laisse l’exigence inconnue quand le document ne la dit pas', async () => {
+    const { blocks, chunks } = documentOf(MATERIEL);
+    const id = chunkIdContaining(chunks, 'veste');
+
+    const outcome = await extractCandidates({
+      blocks,
+      chunks,
+      provider: fakeProvider(() => ({ candidates: [equipmentCandidate(id, {})] })),
+    });
+
+    const veste = outcome.candidates.find((c) => c.factType === 'equipment');
+    expect(veste?.valueJson).toBeNull();
+  });
+
+  it('refuse une exigence hors des trois de §82', async () => {
+    const { blocks, chunks } = documentOf(MATERIEL);
+    const id = chunkIdContaining(chunks, 'veste');
+
+    await expect(
+      extractCandidates({
+        blocks,
+        chunks,
+        provider: fakeProvider(() => ({
+          candidates: [
+            equipmentCandidate(id, {
+              equipment: { requirement: 'optional', condition: null, detail: null },
+            }),
+          ],
+        })),
+      }),
+    ).rejects.toThrow(ExtractionError);
+  });
+});

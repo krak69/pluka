@@ -20,6 +20,12 @@ export {
 } from './events/envelope.js';
 export { DOMAIN_EVENT_TYPES, domainEventTypeSchema, type DomainEventType } from './events/names.js';
 
+export {
+  EQUIPMENT_REQUIREMENTS,
+  equipmentFactKey,
+  type EquipmentRequirementValue,
+} from './facts/equipment.js';
+
 export { latitudeSchema, longitudeSchema, routeAltitudeMetersSchema } from './primitives/geo.js';
 export { nonEmptyStringSchema, sha256HexSchema, uuidSchema } from './primitives/ids.js';
 export {
