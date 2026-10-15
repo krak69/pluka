@@ -94,6 +94,8 @@ function toReview(row: Record<string, unknown>): FactCandidateReviewRecord {
     publishedTrustLevel: text(
       row.published_trust_level,
     ) as FactCandidateReviewRecord['publishedTrustLevel'],
+    publishedValueJson: (row.published_value_json ??
+      null) as FactCandidateReviewRecord['publishedValueJson'],
     conflictType: text(row.conflict_type),
     conflictStatus: text(row.conflict_status),
     excerpt: text(row.excerpt),

@@ -90,6 +90,26 @@ export interface ReviseEquipmentInput {
   readonly note: string | null;
 }
 
+/** 0048 : une ligne du tableau du matériel d'une édition. */
+export interface EditionEquipmentLine {
+  readonly factKey: string;
+  /** Ajout : refuse une clé déjà présente dans l'édition. */
+  readonly create: boolean;
+  readonly label: string;
+  /** Écrite dans les seules cases conditionnelles. */
+  readonly condition: string | null;
+  readonly detail: string | null;
+  /** Par épreuve : son exigence, ou `null` si elle n'est pas concernée. Une épreuve absente reste telle quelle. */
+  readonly requirements: Readonly<Record<string, EquipmentRequirement | null>>;
+}
+
+export interface SaveEditionEquipmentInput {
+  readonly editionId: string;
+  readonly lines: readonly EditionEquipmentLine[];
+  readonly trustLevel: TrustLevel;
+  readonly note: string | null;
+}
+
 export interface FactEditingRepository {
   listForEditing(raceId: string): Promise<readonly EditableFactRecord[]>;
   history(factId: string): Promise<readonly FactHistoryEntry[]>;
@@ -101,6 +121,8 @@ export interface FactEditingRepository {
   addEquipment(input: AddEquipmentInput): Promise<number>;
   /** Rend la nouvelle version. */
   reviseEquipment(input: ReviseEquipmentInput): Promise<string>;
+  /** Rend le nombre de cases modifiées. */
+  saveEditionEquipment(input: SaveEditionEquipmentInput): Promise<number>;
 }
 
 interface RpcCapableClient {
@@ -215,6 +237,31 @@ export const factEditingRepository = defineRepository<FactEditingRepository>((co
 
   async restore(factId, note) {
     await invoke(context, 'restore_race_fact', { p_fact_id: factId, p_note: note });
+  },
+
+  async saveEditionEquipment(input) {
+    const operation = 'save_edition_equipment';
+    const data = await invoke(context, operation, {
+      p_edition_id: input.editionId,
+      p_items: input.lines.map((line) => ({
+        factKey: line.factKey,
+        create: line.create,
+        label: line.label,
+        condition: line.condition,
+        detail: line.detail,
+        requirements: line.requirements,
+      })),
+      p_trust_level: input.trustLevel,
+      p_note: input.note,
+    });
+    if (typeof data !== 'number') {
+      throw new DbError({
+        code: 'unknown',
+        operation,
+        message: 'la fonction devait rendre un entier',
+      });
+    }
+    return data;
   },
 
   async addEquipment(input) {

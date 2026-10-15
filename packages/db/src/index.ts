@@ -252,5 +252,7 @@ export {
   type AddEquipmentInput,
   type EquipmentRequirement,
   type ReviseEquipmentInput,
+  type EditionEquipmentLine,
+  type SaveEditionEquipmentInput,
   type ReviseFactInput,
 } from './repositories/fact-editing.js';

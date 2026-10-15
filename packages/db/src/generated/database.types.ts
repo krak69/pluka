@@ -6019,6 +6019,7 @@ export type Database = {
           page_number: number
           provider: string
           published_trust_level: Database["public"]["Enums"]["trust_level"]
+          published_value_json: Json
           published_value_text: string
           published_version_id: string
           race_id: string
@@ -6199,6 +6200,15 @@ export type Database = {
           p_value_text: string
         }
         Returns: string
+      }
+      save_edition_equipment: {
+        Args: {
+          p_edition_id: string
+          p_items: Json
+          p_note?: string
+          p_trust_level: Database["public"]["Enums"]["trust_level"]
+        }
+        Returns: number
       }
       set_race_waypoints: {
         Args: { p_race_id: string; p_waypoints: Json }

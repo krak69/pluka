@@ -298,6 +298,8 @@ export interface FactCandidateReviewRecord {
   readonly publishedValueText: string | null;
   readonly publishedVersionId: string | null;
   readonly publishedTrustLevel: Enum<'trust_level'> | null;
+  /** 0046 : la structure publiée — l'exigence d'un matériel, pour lire une contradiction. */
+  readonly publishedValueJson: Readonly<Record<string, unknown>> | null;
   readonly conflictType: string | null;
   readonly conflictStatus: string | null;
   readonly excerpt: string | null;
