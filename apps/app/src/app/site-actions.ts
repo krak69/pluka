@@ -4,6 +4,7 @@ import {
   DomainError,
   removeEventSiteImage,
   saveEventSite,
+  setEventSiteDocumentPublic,
   setEventSiteStatus,
   uploadEventSiteImage,
 } from '@pluka/domain';
@@ -42,6 +43,7 @@ const FORBIDDEN: Readonly<Record<string, string>> = {
   uploadEventSiteImage: 'Votre rôle permet de voir le site, pas de le modifier.',
   removeEventSiteImage: 'Votre rôle permet de voir le site, pas de le modifier.',
   setEventSiteStatus: 'Seuls un propriétaire ou un administrateur mettent le site en ligne.',
+  setEventSiteDocumentPublic: 'Seuls un propriétaire ou un administrateur diffusent un document.',
 };
 
 function failure(error: unknown): SiteActionState {
@@ -135,6 +137,26 @@ export async function setSiteStatusAction(
   }
 
   done(form, status === 'published' ? 'en-ligne' : 'hors-ligne');
+}
+
+export async function setDocumentPublicAction(
+  _previous: SiteActionState,
+  form: FormData,
+): Promise<SiteActionState> {
+  const isPublic = text(form, 'public') === 'true';
+
+  try {
+    await setEventSiteDocumentPublic(await context(form), {
+      organizationId: text(form, 'organizationId'),
+      eventId: text(form, 'eventId'),
+      sourceId: text(form, 'sourceId'),
+      public: isPublic,
+    });
+  } catch (error) {
+    return failure(error);
+  }
+
+  done(form, isPublic ? 'document-diffuse' : 'document-retire');
 }
 
 export async function uploadSiteImageAction(

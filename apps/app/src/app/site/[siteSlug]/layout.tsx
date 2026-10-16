@@ -80,6 +80,7 @@ export default async function SiteLayout({
             <Link href="/#infos">Infos pratiques</Link>
             {site.documents.length === 0 ? null : <Link href="/#documents">Documents</Link>}
             {site.partners.length === 0 ? null : <Link href="/#partenaires">Partenaires</Link>}
+            {site.hasContact ? <Link href="/#contact">Contact</Link> : null}
           </nav>
           {registration === null ? null : (
             <a href={registration} className="es-cta es-cta-small" rel="noopener" target="_blank">

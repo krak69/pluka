@@ -1,6 +1,6 @@
 # PLUKA — Site de l'événement
 
-**Statut :** adoptée le 2026-10-16 — modèle (0049–0051), pages publiques et éditeur (`/org/[id]/parametres/site`) en place ; contact et téléchargement des fichiers à venir
+**Statut :** adoptée le 2026-10-16 — modèle (0049–0052), pages publiques, éditeur (`/org/[id]/parametres/site`), contact et documents en place ; paiement à venir
 **Décisions produit :** 2026-10-16
 **Portée :** organisateurs (`apps/app`, espace `/org`) et visiteurs anonymes
 
@@ -50,7 +50,7 @@ Ce que le site **n'est pas** :
 | Fiches épreuves | Les fiches publiques existantes (`05_ROUTES_FLOWS.md` §1.8), habillées. Une seule fiche par épreuve. |
 | Pages V0 | Accueil, épreuves, infos pratiques, documents et règlement, communiqués, partenaires, contact. |
 | Inscription | Un lien par édition, surchargeable par épreuve. |
-| Contact | Un formulaire. Le message part par mail à l'organisation ; PLUKA n'en garde qu'une trace sans contenu. |
+| Contact | Un formulaire. Le message part par le worker, par mail à l'organisation ; son contenu est effacé une fois envoyé, seule reste une trace sans contenu. |
 | Anti-spam | Champ pot de miel et limite de débit. Pas de captcha en V0. |
 | Commerce | Paiement en ligne à terme. **Bêta ouverte à toutes les organisations d'abord.** Tarif non fixé. |
 | Édition affichée | La prochaine à venir ; à défaut, la dernière. Pas d'archive en V0. |
@@ -99,9 +99,9 @@ affiché tel quel.
 ## 3.4 Documents et règlement
 
 Les documents de l'édition que l'organisation **autorise explicitement** à diffuser
-(AGENTS §66 : un document officiel n'est pas redistribuable par défaut). Téléchargement par
-URL signée ou point d'accès serveur, jamais par URL brute de Storage
-(`03_PRIVACY_RLS.md` §84).
+(AGENTS §66 : un document officiel n'est pas redistribuable par défaut). Un fichier se
+télécharge par `/documents/[sourceId]`, qui signe une adresse valable une minute ; jamais
+par URL brute de Storage (`03_PRIVACY_RLS.md` §84). Un lien externe s'ouvre tel quel.
 
 ## 3.5 Communiqués
 
@@ -176,20 +176,26 @@ Sans lien, le bouton d'inscription n'apparaît pas — il n'est jamais remplacé
 - nom, adresse e-mail de l'expéditeur, message ;
 - l'épreuve concernée, facultative.
 
-Le message part par l'`EmailProvider` (`packages/notifications`) vers l'adresse de contact
-de l'événement. L'expéditeur PLUKA est l'émetteur technique ; l'en-tête `Reply-To` porte
+Le message part par le worker (`email.event_site_contact`, file `pluka_email`), via
+l'`EmailProvider` de `packages/notifications`, vers l'adresse de contact de l'événement.
+L'app ne tient ni clé de service ni clé d'e-mail (décision du 2026-10-16). L'expéditeur PLUKA est l'émetteur technique ; l'en-tête `Reply-To` porte
 l'adresse du coureur, pour que l'organisation réponde directement.
 
 ## 6.2 Ce que PLUKA garde
 
-Une trace **sans contenu** : événement, horodatage, statut d'envoi, empreinte d'IP salée et
-tournante pour la limite de débit. Ni le nom, ni l'adresse, ni le message ne sont stockés.
+Le message attend en file privée le temps de l'envoi — quelques instants. Envoyé, ou
+abandonné après cinq échecs, son contenu est effacé ; un message resté en file plus de
+sept jours l'est aussi.
+
+Reste une trace **sans contenu** : événement, horodatage, statut d'envoi, empreinte d'IP
+salée par la base, avec un sel changé chaque jour. Elle sert la limite de débit et
+s'efface après trente jours.
 
 ## 6.3 Anti-abus
 
 - un champ pot de miel ;
 - une durée minimale entre l'affichage et l'envoi ;
-- une limite de débit par empreinte d'IP et par événement ;
+- une limite de débit : 5 messages par heure et par empreinte, 50 par événement (0052) ;
 - un captcha, derrière une interface, seulement si le spam passe.
 
 ---
@@ -273,7 +279,7 @@ Rien d'autre : pas de bandeau, pas d'encart publicitaire.
 
 ---
 
-# 11. Modèle de données — écrit en 0049 à 0051 (`02_DATA_MODEL.md` §6.9)
+# 11. Modèle de données — écrit en 0049 à 0052 (`02_DATA_MODEL.md` §6.9)
 
 Seuils de la limite de débit du contact : passés par le serveur, depuis sa configuration.
 

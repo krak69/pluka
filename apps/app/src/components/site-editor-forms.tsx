@@ -6,6 +6,7 @@ import { useActionState, useId, useState } from 'react';
 import {
   removeSiteImageAction,
   saveSiteAction,
+  setDocumentPublicAction,
   setSiteStatusAction,
   uploadSiteImageAction,
   type SiteActionState,
@@ -323,7 +324,7 @@ export function SiteEditorForm({
           type="email"
           label="Adresse qui reçoit les messages du site"
           defaultValue={contactEmail ?? ''}
-          hint="Elle n’est jamais affichée sur le site. Le formulaire de contact arrive bientôt."
+          hint="Elle n’est jamais affichée sur le site. Sans adresse, le site n’a pas de formulaire de contact."
           error={errors['contactEmail']}
         />
       </fieldset>
@@ -369,6 +370,43 @@ export function SiteStatusForm({
         disabled={pending}
       >
         {label}
+      </button>
+      <FormError state={state} />
+    </form>
+  );
+}
+
+export function SiteDocumentForm({
+  organizationId,
+  eventId,
+  eventSlug,
+  sourceId,
+  title,
+  isPublic,
+}: {
+  readonly organizationId: string;
+  readonly eventId: string;
+  readonly eventSlug: string;
+  readonly sourceId: string;
+  readonly title: string;
+  readonly isPublic: boolean;
+}) {
+  const [state, action, pending] = useActionState(setDocumentPublicAction, INITIAL);
+
+  return (
+    <form action={action} className="or-inline-form">
+      <input type="hidden" name="organizationId" value={organizationId} />
+      <input type="hidden" name="eventId" value={eventId} />
+      <input type="hidden" name="eventSlug" value={eventSlug} />
+      <input type="hidden" name="sourceId" value={sourceId} />
+      <input type="hidden" name="public" value={isPublic ? 'false' : 'true'} />
+      <button
+        type="submit"
+        className={`pk-btn ${isPublic ? 'pk-button-ghost' : 'pk-button-secondary'}`}
+        disabled={pending}
+        aria-label={`${isPublic ? 'Retirer du site' : 'Diffuser sur le site'} : ${title}`}
+      >
+        {isPublic ? 'Retirer du site' : 'Diffuser'}
       </button>
       <FormError state={state} />
     </form>

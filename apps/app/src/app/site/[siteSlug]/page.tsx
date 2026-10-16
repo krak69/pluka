@@ -3,6 +3,7 @@ import { listRaceInformation, registrationUrlOf, type PublicEventSite } from '@p
 import { TrustBadge } from '@pluka/ui';
 import Link from 'next/link';
 
+import { SiteContactForm } from '@/components/site-contact-form';
 import { loadEventSite, siteAssetUrl } from '@/lib/event-site';
 import { anonymousRaceContext } from '@/lib/race-information';
 import { editionDateRange, raceDayLabel, raceTimeLabel, safeHttpUrl } from '@/app/site/format';
@@ -15,8 +16,8 @@ import { editionDateRange, raceDayLabel, raceTimeLabel, safeHttpUrl } from '@/ap
  * publiés des épreuves publiques ; une section sans contenu disparaît plutôt
  * que d'afficher un vide habillé.
  *
- * Le formulaire de contact et le téléchargement des fichiers arrivent avec le
- * point d'accès serveur qui les porte (§6, §3.4) : ils ne sont pas simulés ici.
+ * Le contact n'apparaît que si l'organisation a donné une adresse ; les
+ * fichiers se téléchargent par la route `/documents/[sourceId]` (§3.4, §6).
  */
 
 type Params = { readonly siteSlug: string };
@@ -108,9 +109,14 @@ export default async function SiteHome({ params }: { readonly params: Promise<Pa
   const cover = siteAssetUrl(site.appearance.coverPath);
   const registration = safeHttpUrl(site.edition?.registrationUrl ?? null);
   const latestNotice = site.notices[0];
+  // Un fichier se télécharge par la route du site, qui signe l'adresse ; un
+  // lien externe s'ouvre tel quel, s'il est http(s).
   const documents = site.documents.flatMap((document) => {
+    if (document.hasFile) {
+      return [{ ...document, href: `/documents/${document.id}`, external: false, action: 'Télécharger' }];
+    }
     const url = safeHttpUrl(document.url);
-    return url === null ? [] : [{ ...document, url }];
+    return url === null ? [] : [{ ...document, href: url, external: true, action: 'Ouvrir' }];
   });
   const raceCount = site.races.length;
 
@@ -281,9 +287,16 @@ export default async function SiteHome({ params }: { readonly params: Promise<Pa
               {documents.map((document) => (
                 <li key={document.id} className="es-doc">
                   <span className="es-doc-title">{document.title}</span>
-                  <a href={document.url} className="es-link" rel="noopener" target="_blank">
-                    Ouvrir<span aria-hidden="true"> ↗</span>
-                  </a>
+                  {document.external ? (
+                    <a href={document.href} className="es-link" rel="noopener" target="_blank">
+                      {document.action}
+                      <span aria-hidden="true"> ↗</span>
+                    </a>
+                  ) : (
+                    <a href={document.href} className="es-link">
+                      {document.action}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
@@ -322,6 +335,25 @@ export default async function SiteHome({ params }: { readonly params: Promise<Pa
           </div>
         </section>
       )}
+
+      {site.hasContact ? (
+        <section id="contact" className="es-section">
+          <div className="es-wrap es-contact">
+            <div className="es-contact-intro">
+              <h2 className="es-h2">Une question ?</h2>
+              <p>
+                Votre message part directement à l’équipe de {site.event.name}, qui vous répond à
+                votre adresse.
+              </p>
+              <p className="es-contact-note">PLUKA transmet le message sans le conserver.</p>
+            </div>
+            <SiteContactForm
+              eventName={site.event.name}
+              races={site.races.map((race) => ({ slug: race.slug, name: race.name }))}
+            />
+          </div>
+        </section>
+      ) : null}
     </>
   );
 }

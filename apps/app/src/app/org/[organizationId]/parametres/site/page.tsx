@@ -9,7 +9,12 @@ import { MicroLabel } from '@pluka/ui';
 import Link from 'next/link';
 
 import { HEADING_STYLE, siteFontVariables } from '@/app/site/fonts';
-import { SiteEditorForm, SiteImageForm, SiteStatusForm } from '@/components/site-editor-forms';
+import {
+  SiteDocumentForm,
+  SiteEditorForm,
+  SiteImageForm,
+  SiteStatusForm,
+} from '@/components/site-editor-forms';
 import { publicEnv } from '@/lib/env';
 import { sessionEventSiteContext } from '@/lib/event-site-editing';
 import { siteAssetUrl } from '@/lib/event-site';
@@ -34,6 +39,8 @@ const NOTICES: Readonly<Record<string, string>> = {
   logo: 'Logo mis à jour.',
   couverture: 'Image de couverture mise à jour.',
   'image-retiree': 'Image retirée.',
+  'document-diffuse': 'Document diffusé : il se télécharge depuis le site.',
+  'document-retire': 'Document retiré du site.',
 };
 
 const FONT_LABELS: Readonly<Record<(typeof SITE_HEADING_FONTS)[number], string>> = {
@@ -221,6 +228,44 @@ export default async function SitePage({
                 canEdit={permissions.canEdit}
               />
             </div>
+          </section>
+
+          <section aria-labelledby="site-documents" className="st-documents">
+            <h2 id="site-documents" className="pk-h2">
+              Documents
+            </h2>
+            <p className="pk-body">
+              Un document de l’édition n’apparaît sur le site que si vous le diffusez. Diffuser un
+              fichier le rend téléchargeable par tous.
+            </p>
+            {editor.documents.length === 0 ? (
+              <p className="pk-field-hint">Aucun document dans cette édition.</p>
+            ) : (
+              <ul className="or-list">
+                {editor.documents.map((document) => (
+                  <li key={document.id} className="or-row">
+                    <div className="or-row-main">
+                      <span className="pk-body">{document.title}</span>
+                      <span className="or-row-meta">
+                        {document.hasFile ? 'Fichier' : document.url === null ? 'Saisie' : 'Lien'}
+                        {' · '}
+                        {document.publicDownloadAt === null ? 'Non diffusé' : 'Diffusé sur le site'}
+                      </span>
+                    </div>
+                    {permissions.canPublish && (document.hasFile || document.url !== null) ? (
+                      <SiteDocumentForm
+                        organizationId={organizationId}
+                        eventId={event.id}
+                        eventSlug={event.slug}
+                        sourceId={document.id}
+                        title={document.title}
+                        isPublic={document.publicDownloadAt !== null}
+                      />
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           <SiteEditorForm

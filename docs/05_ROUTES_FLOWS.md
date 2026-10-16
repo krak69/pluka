@@ -160,6 +160,7 @@ Spécification : `docs/features/EVENT_SITE.md`.
 | --- | --- | --- |
 | `/` | `/site/[siteSlug]` | Accueil : épreuves, infos pratiques, documents, partenaires |
 | `/epreuves/[raceSlug]` | `/site/[siteSlug]/epreuves/[raceSlug]` | Fiche épreuve habillée |
+| `/documents/[sourceId]` | `/site/[siteSlug]/documents/[sourceId]` | Téléchargement d'un document diffusé (redirection vers une adresse signée, 1 min) |
 
 Règles :
 

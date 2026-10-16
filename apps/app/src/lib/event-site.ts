@@ -24,7 +24,7 @@ import { SITE_PATH_HEADER } from '@/lib/event-site-route';
  * qu'il montre ne doit pas dépendre de qui le regarde. La base décide de ce
  * qui est en ligne (`event_site_public`) ; aucune clé de service n'entre ici.
  */
-function eventSiteContext(): EventSiteContext {
+export function eventSiteContext(): EventSiteContext {
   const env = publicEnv();
 
   return {
