@@ -3580,3 +3580,415 @@ a.ad-card:hover {
 .ad-event-tabs ~ .ad-gear {
   margin-top: var(--space-4);
 }
+
+/* ── Points de passage et ravitaillements ────────────────────────────────
+ * Une frise du départ à l'arrivée, puis la chaîne en liste à filets : un
+ * picto par type, le nom, le kilomètre et son écart, la barrière en jour de
+ * course et heure. Les types se distinguent par le picto et le mot ; la
+ * couleur ne fait que les rapprocher de la frise.
+ */
+.ad-wp {
+  --wp-start: var(--pk-forest);
+  --wp-aid: var(--pk-lichen);
+  --wp-assistance: var(--pk-glacier);
+  --wp-checkpoint: var(--pk-granite);
+  --wp-cutoff: var(--pk-dawn);
+
+  display: grid;
+  gap: var(--space-4);
+}
+
+.ad-wp-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--pk-text-secondary);
+}
+
+.ad-wp-summary li {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.ad-wp-summary strong {
+  font-family: var(--font-mono);
+  color: var(--pk-text);
+}
+
+.ad-wp-summary-warn {
+  padding-left: var(--space-2);
+  border-left: 3px solid var(--pk-dawn);
+  color: var(--pk-text);
+}
+
+/* La frise */
+.ad-wp-strip {
+  margin: 0;
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--pk-ink);
+}
+
+/* La piste : les points à leur kilomètre, en pourcentage — aucune déformation. */
+.ad-wp-strip-track {
+  position: relative;
+  height: 92px;
+  margin: 0 var(--space-4);
+}
+
+.ad-wp-strip-track::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: var(--pk-text-on-dark);
+  opacity: 0.3;
+}
+
+.ad-wp-strip-point {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  justify-items: center;
+  transform: translate(-50%, -50%);
+}
+
+.ad-wp-strip-mark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--pk-ink);
+  border-radius: 50%;
+  background: var(--wp-aid);
+  color: var(--pk-ink);
+}
+
+.ad-wp-strip-point[data-type='start'] .ad-wp-strip-mark,
+.ad-wp-strip-point[data-type='finish'] .ad-wp-strip-mark {
+  border-radius: var(--radius-sm);
+  background: var(--pk-text-on-dark);
+}
+
+.ad-wp-strip-point[data-type='assistance'] .ad-wp-strip-mark {
+  border-radius: var(--radius-sm);
+  background: var(--wp-assistance);
+}
+
+.ad-wp-strip-point[data-type='checkpoint'] .ad-wp-strip-mark {
+  width: 16px;
+  height: 16px;
+  background: var(--pk-sand);
+}
+
+.ad-wp-strip-point[data-type='checkpoint'] .ad-wp-strip-mark svg {
+  display: none;
+}
+
+.ad-wp-strip-point[data-type='cutoff'] .ad-wp-strip-mark {
+  background: var(--wp-cutoff);
+}
+
+/* Une barrière : un trait Aube au-dessus du point. */
+.ad-wp-strip-cutoff {
+  position: absolute;
+  bottom: calc(100% - 2px);
+  width: 3px;
+  height: 12px;
+  background: var(--wp-cutoff);
+}
+
+.ad-wp-strip-name {
+  position: absolute;
+  max-width: 9rem;
+  overflow: hidden;
+  font-family: var(--font-body);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--pk-text-on-dark);
+}
+
+.ad-wp-strip-point[data-side='top'] .ad-wp-strip-name {
+  bottom: calc(100% + 14px);
+}
+
+.ad-wp-strip-point[data-side='bottom'] .ad-wp-strip-name {
+  top: calc(100% + 6px);
+}
+
+.ad-wp-strip-scale {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--pk-text-on-dark);
+  opacity: 0.7;
+}
+
+/* La liste */
+.ad-wp-table {
+  display: grid;
+  border-top: 1px solid var(--pk-ink);
+}
+
+.ad-wp-head,
+.ad-wp-row {
+  display: grid;
+  grid-template-columns: minmax(16rem, 2.2fr) minmax(7.5rem, 0.9fr) minmax(15rem, 1.6fr) 5.5rem;
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.ad-wp-head {
+  padding-block: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pk-text-muted);
+}
+
+.ad-wp-row:hover,
+.ad-wp-row:focus-within {
+  background: var(--pk-limestone);
+}
+
+.ad-wp-point {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.ad-wp-icon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-top: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--wp-aid);
+  color: var(--pk-ink);
+}
+
+.ad-wp-row[data-type='start'] .ad-wp-icon,
+.ad-wp-row[data-type='finish'] .ad-wp-icon {
+  background: var(--wp-start);
+  color: var(--pk-text-on-dark);
+}
+
+.ad-wp-row[data-type='assistance'] .ad-wp-icon {
+  background: var(--wp-assistance);
+}
+
+.ad-wp-row[data-type='checkpoint'] .ad-wp-icon {
+  background: var(--pk-sand);
+}
+
+.ad-wp-row[data-type='cutoff'] .ad-wp-icon {
+  background: var(--wp-cutoff);
+}
+
+.ad-wp-point-fields {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ad-wp-name {
+  font-weight: 600;
+}
+
+/* Le type se lit sous le nom, comme une étiquette qu'on change d'un clic. */
+.ad-wp-type {
+  justify-self: start;
+  min-height: 28px;
+  padding: 0 var(--space-5) 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pk-text-secondary);
+  cursor: pointer;
+}
+
+.ad-wp-type:hover {
+  background: var(--pk-surface);
+  color: var(--pk-text);
+}
+
+.ad-wp-type:focus-visible,
+.ad-wp-action:focus-visible {
+  outline: 2px solid var(--pk-forest);
+  outline-offset: 1px;
+}
+
+.ad-wp-km,
+.ad-wp-cutoff {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ad-wp-km-field {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  font-size: 13px;
+  color: var(--pk-text-muted);
+}
+
+.ad-wp-km-input {
+  width: 6rem;
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+.ad-wp-cutoff-fields {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.ad-wp-day {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+.ad-wp-time {
+  flex: 0 0 6.5rem;
+  font-family: var(--font-mono);
+}
+
+.ad-wp-time:disabled {
+  opacity: 0.4;
+}
+
+.ad-wp-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--pk-text-muted);
+}
+
+.ad-wp-actions {
+  display: flex;
+  gap: var(--space-1);
+  justify-content: flex-end;
+}
+
+.ad-wp-action {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--pk-text-secondary);
+  cursor: pointer;
+}
+
+.ad-wp-action:hover:not(:disabled) {
+  border-color: var(--pk-hairline);
+  background: var(--pk-surface);
+  color: var(--pk-text);
+}
+
+.ad-wp-action:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.ad-wp-add {
+  justify-self: start;
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.ad-wp-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pk-text-muted);
+}
+
+/* La saisie à enregistrer : une barre collée en bas tant qu'elle existe. */
+.ad-wp-save {
+  position: sticky;
+  bottom: var(--space-3);
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--pk-ink);
+  color: var(--pk-text-on-dark);
+}
+
+.ad-wp-save-text {
+  margin: 0 auto 0 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ad-wp-save .pk-button-secondary {
+  border-color: var(--pk-text-on-dark);
+  background: transparent;
+  color: var(--pk-text-on-dark);
+}
+
+/* Étroit : chaque point devient une carte à filets, kilomètre et barrière côte à côte. */
+@media (width < 860px) {
+  .ad-wp-head {
+    display: none;
+  }
+
+  .ad-wp-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ad-wp-point {
+    grid-column: 1 / -1;
+  }
+
+  .ad-wp-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .ad-wp-strip-track {
+    height: 44px;
+  }
+
+  .ad-wp-strip-name {
+    display: none;
+  }
+}
+
+@media (width < 520px) {
+  .ad-wp-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ad-wp-save {
+    bottom: 0;
+    border-radius: 0;
+  }
+}

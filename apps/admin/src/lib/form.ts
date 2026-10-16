@@ -52,7 +52,8 @@ export function optionalNumber(form: FormData, field: string): number | null | u
   const value = text(form, field);
   if (value === undefined) return undefined;
 
-  const parsed = Number(value);
+  // « 12,5 » se tape en France : la virgule vaut le point.
+  const parsed = Number(value.replace(',', '.'));
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
@@ -141,7 +142,8 @@ export function raceWaypointsCommand(
 function toNumber(value: string | undefined): number | undefined {
   if (value === undefined || value === '') return undefined;
 
-  const parsed = Number(value);
+  // « 12,5 » se tape en France : la virgule vaut le point.
+  const parsed = Number(value.replace(',', '.'));
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 

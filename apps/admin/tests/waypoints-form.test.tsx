@@ -68,18 +68,32 @@ function submitted(markup: string): FormData {
   return form;
 }
 
-/** Valeurs des `<select>` retenues par le rendu, dans l'ordre. */
+/** Types retenus par le rendu, dans l'ordre — les seuls `<select>` nommés `waypointType`. */
 function selectedTypes(markup: string): readonly string[] {
-  return [...markup.matchAll(/<option[^>]*\bvalue="([^"]*)"[^>]*\bselected/g)].map(
-    (match) => match[1] as string,
+  return [...markup.matchAll(/<select\b[^>]*name="waypointType"[^>]*>([\s\S]*?)<\/select>/g)].map(
+    (match) => /<option[^>]*\bvalue="([^"]*)"[^>]*\bselected/.exec(match[1] ?? '')?.[1] ?? '',
   );
 }
 
+const START = { date: '2026-06-20', time: '06:00' };
+
 const EMPTY = renderToStaticMarkup(
-  <WaypointsForm raceId={RACE_ID} waypoints={[]} timezone="Europe/Paris" />,
+  <WaypointsForm
+    raceId={RACE_ID}
+    waypoints={[]}
+    timezone="Europe/Paris"
+    start={START}
+    officialDistanceKm={70}
+  />,
 );
 const FILLED = renderToStaticMarkup(
-  <WaypointsForm raceId={RACE_ID} waypoints={SAVED} timezone="Europe/Paris" />,
+  <WaypointsForm
+    raceId={RACE_ID}
+    waypoints={SAVED}
+    timezone="Europe/Paris"
+    start={START}
+    officialDistanceKm={70}
+  />,
 );
 
 describe('chaîne vide', () => {
@@ -101,7 +115,8 @@ describe('chaîne existante', () => {
     const form = submitted(FILLED);
 
     expect(form.getAll('name')).toEqual(['Départ', 'Ravito 1', 'Arrivée']);
-    expect(form.getAll('distanceKm')).toEqual(['0', '18.5', '70']);
+    // Écrit à la française ; l'action lit la virgule comme le point.
+    expect(form.getAll('distanceKm')).toEqual(['0', '18,5', '70']);
   });
 
   it('reporte l’identité de chaque point existant', () => {
@@ -110,10 +125,29 @@ describe('chaîne existante', () => {
     expect(submitted(FILLED).getAll('waypointId')).toEqual(SAVED.map((point) => point.id));
   });
 
-  it('présente la barrière à l’heure de la course, au format que le champ accepte', () => {
-    // `datetime-local` n'accepte ni fuseau ni secondes : 11:00 UTC se lit
-    // 13:00 à Paris en juin — l'heure du règlement.
+  it('présente la barrière à l’heure de la course, en jour de course et heure', () => {
+    // 11:00 UTC se lit 13:00 à Paris en juin — l'heure du règlement, le jour J.
     expect(submitted(FILLED).getAll('cutoffAt')).toEqual(['', '2026-06-20T13:00', '']);
+    expect(FILLED).toContain('value="13:00"');
+    expect(FILLED).toMatch(/<option value="0" selected="">sam\. 20 juin<\/option>/);
+    // 13:00 pour un départ à 06:00 : sept heures de course.
+    expect(FILLED).toContain('7 h après le départ');
+  });
+
+  it('dit l’écart avec le point précédent', () => {
+    expect(FILLED).toContain('+18,5 km');
+    expect(FILLED).toContain('+51,5 km');
+  });
+
+  it('montre le parcours en frise, et résume ses points', () => {
+    expect(FILLED).toContain('role="img"');
+    expect(FILLED).toContain('Parcours de 70 km : 3 points, dont 1 ravitaillement.');
+    expect(FILLED).toMatch(/<strong>1<\/strong> barrière/);
+  });
+
+  it('n’affiche la barre d’enregistrement que s’il y a quelque chose à enregistrer', () => {
+    expect(FILLED).not.toContain('Enregistrer le parcours');
+    expect(EMPTY).toContain('Enregistrer le parcours');
   });
 
   it('retient le type enregistré de chaque point', () => {

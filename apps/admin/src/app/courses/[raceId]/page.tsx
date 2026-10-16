@@ -17,6 +17,7 @@ import { RaceStatusPanel, RaceVisibilityForm, UpdateRaceForm } from '@/app/cours
 import { GpxImportStatus, STAGE_LABEL } from '@/app/courses/[raceId]/gpx-import-status';
 import { ImportGpxForm } from '@/app/courses/[raceId]/import-gpx-form';
 import { WaypointsForm } from '@/app/courses/[raceId]/waypoints-form';
+import { localParts } from '@/lib/zoned';
 import { editionDates, raceMeasures, raceStart } from '@/app/evenements/[eventId]/event-overview';
 import { StatusHistory } from '@/app/status-history';
 import { AdminIcon } from '@/components/admin-icon';
@@ -377,13 +378,19 @@ export default async function RacePage({
 
       <section className="ad-org-panel" aria-labelledby="waypoints-title">
         <h2 id="waypoints-title" className="ad-org-panel-title">
-          Référentiel de parcours
+          Points de passage et ravitaillements
         </h2>
         <p className="ad-org-panel-lede">
-          Les points de passage découpent le parcours. Sans eux, le prétraitement reste en attente
-          et aucun Plan ne peut être calculé. Les segments en sont déduits.
+          Du départ à l’arrivée, au kilomètre du règlement. Ils découpent le parcours en segments :
+          sans eux, aucun Plan ne peut être calculé.
         </p>
-        <WaypointsForm raceId={race.id} waypoints={waypoints} timezone={race.timezone} />
+        <WaypointsForm
+          raceId={race.id}
+          waypoints={waypoints}
+          timezone={race.timezone}
+          start={localParts(race.startDatetime, race.timezone)}
+          officialDistanceKm={race.distanceKm}
+        />
       </section>
 
       <section className="ad-org-panel ad-org-panel-quiet" aria-labelledby="sheet-title">
