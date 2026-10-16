@@ -409,7 +409,12 @@ Spécification : `docs/features/EVENT_SITE.md`.
   ancien slug reste à son événement. Les sous-domaines réservés à PLUKA ne deviennent pas
   des slugs (`private.is_reserved_subdomain`).
 - `private.event_site_contact_attempts` — trace sans contenu des envois du formulaire de
-  contact, pour la limite de débit.
+  contact, pour la limite de débit ; l'empreinte d'IP est salée par la base
+  (`private.event_site_contact_salts`, un sel par jour).
+- `private.event_site_contact_messages` — message en attente d'envoi par le worker
+  (`submit_event_site_contact`, 0052), effacé une fois envoyé ou abandonné.
+- Un fichier de `race-sources` est lisible par tous seulement s'il est celui d'un document
+  diffusé d'un site en ligne (policy de 0052) : c'est ce qui permet d'en signer l'adresse.
 
 Le droit d'organisation « site » passe par `private.organization_has_capability` ; en
 bêta, toute organisation active l'a.

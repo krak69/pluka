@@ -60,6 +60,15 @@ export interface EventSiteRaceRecord {
   readonly status: Enum<'race_status'>;
 }
 
+export interface EventSiteDocumentRecord {
+  readonly id: string;
+  readonly title: string;
+  readonly sourceType: Enum<'source_type'>;
+  readonly hasFile: boolean;
+  readonly url: string | null;
+  readonly publicDownloadAt: string | null;
+}
+
 export interface SaveEventSiteInput {
   readonly eventId: string;
   readonly accentColor: string | null;
@@ -84,6 +93,10 @@ export interface EventSiteEditingRepository {
   /** `invalid_state` : le site est déjà dans cet état. */
   setStatus(eventId: string, status: 'published' | 'draft'): Promise<void>;
   setImage(eventId: string, kind: 'logo' | 'cover', path: string | null): Promise<void>;
+  /** Les documents de l'édition, hors archivés et hors traces GPX. */
+  listDocuments(editionId: string): Promise<readonly EventSiteDocumentRecord[]>;
+  /** `invalid_state` : le document est déjà dans cet état (0049). */
+  setDocumentPublic(sourceId: string, isPublic: boolean): Promise<void>;
 }
 
 interface RpcCapableClient {
@@ -122,6 +135,15 @@ const EDITION_COLUMNS = [
   'end_date',
   'status',
   'registration_url',
+] as const;
+const DOCUMENT_COLUMNS = [
+  'id',
+  'title',
+  'source_type',
+  'storage_path',
+  'url',
+  'public_download_at',
+  'status',
 ] as const;
 const RACE_COLUMNS = [
   'id',
@@ -250,6 +272,34 @@ export const eventSiteEditingRepository = defineRepository<EventSiteEditingRepos
         p_event_id: eventId,
         p_kind: kind,
         p_path: path,
+      });
+    },
+
+    async listDocuments(editionId) {
+      const rows = unwrap(
+        await context.client
+          .from('sources')
+          .select(selectColumns('sources', DOCUMENT_COLUMNS))
+          .eq('edition_id', editionId)
+          .neq('status', 'archived')
+          .neq('source_type', 'gpx')
+          .order('title', { ascending: true }),
+        'sources.listForSite',
+      );
+      return rows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        sourceType: row.source_type,
+        hasFile: row.storage_path !== null,
+        url: row.url,
+        publicDownloadAt: row.public_download_at,
+      }));
+    },
+
+    async setDocumentPublic(sourceId, isPublic) {
+      await call(context.client, 'set_source_public_download', {
+        p_source_id: sourceId,
+        p_public: isPublic,
       });
     },
   }),

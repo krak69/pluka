@@ -6069,16 +6069,6 @@ export type Database = {
         Args: { p_product_id: string }
         Returns: undefined
       }
-      claim_event_site_contact: {
-        Args: {
-          p_event_id: string
-          p_ip_hash: string
-          p_max_per_event: number
-          p_max_per_ip: number
-          p_window: string
-        }
-        Returns: Json
-      }
       decide_fact_candidate: {
         Args: {
           p_action: string
@@ -6112,10 +6102,6 @@ export type Database = {
         Returns: string
       }
       event_site_public: { Args: { p_slug: string }; Returns: Json }
-      finish_event_site_contact: {
-        Args: { p_attempt_id: number; p_status: string }
-        Returns: undefined
-      }
       get_course_preprocessing_input: {
         Args: { p_race_id: string }
         Returns: Json
@@ -6313,10 +6299,6 @@ export type Database = {
           version_number: number
         }[]
       }
-      purge_event_site_contact_attempts: {
-        Args: { p_older_than: string }
-        Returns: number
-      }
       restore_race_fact: {
         Args: { p_fact_id: string; p_note?: string }
         Returns: undefined
@@ -6432,6 +6414,17 @@ export type Database = {
         Args: { p_invitation_id: string }
         Returns: undefined
       }
+      submit_event_site_contact: {
+        Args: {
+          p_body: string
+          p_client_ip: string
+          p_race_slug: string
+          p_sender_email: string
+          p_sender_name: string
+          p_slug: string
+        }
+        Returns: string
+      }
       worker_analyze_change_impact: {
         Args: { p_change_event_id: string }
         Returns: number
@@ -6455,6 +6448,19 @@ export type Database = {
       worker_block_course_preprocessing: {
         Args: { p_course_geometry_id: string; p_issue: string }
         Returns: undefined
+      }
+      worker_claim_event_site_contact: {
+        Args: { p_message_id: string }
+        Returns: {
+          attempt: number
+          body: string
+          event_name: string
+          race_name: string
+          recipient_email: string
+          sendable: boolean
+          sender_email: string
+          sender_name: string
+        }[]
       }
       worker_claim_ingestion_job: {
         Args: { p_idempotency_key: string }
@@ -6517,6 +6523,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      worker_complete_event_site_contact: {
+        Args: { p_message_id: string }
+        Returns: undefined
+      }
       worker_complete_extraction_run: {
         Args: {
           p_input_tokens: number
@@ -6562,6 +6572,10 @@ export type Database = {
       worker_fail_event_discovery: {
         Args: { p_discovery_id: string; p_error_code: string }
         Returns: undefined
+      }
+      worker_fail_event_site_contact: {
+        Args: { p_abandon: boolean; p_error: string; p_message_id: string }
+        Returns: number
       }
       worker_fail_extraction_run: {
         Args: { p_error: string; p_error_code: string; p_run_id: string }

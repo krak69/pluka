@@ -211,12 +211,17 @@ export {
   type OrganizationTeamRepository,
   type OwnMembershipRecord,
 } from './repositories/organization-team.js';
-export { eventSiteRepository, type EventSiteRepository } from './repositories/event-site.js';
+export {
+  eventSiteRepository,
+  type EventSiteRepository,
+  type SubmitEventSiteContactInput,
+} from './repositories/event-site.js';
 export {
   EVENT_SITE_ASSETS_BUCKET,
   eventSiteAssetStore,
   eventSiteEditingRepository,
   type EventSiteAssetStore,
+  type EventSiteDocumentRecord,
   type EventSiteEditingRepository,
   type EventSiteEditionRecord,
   type EventSiteEventRecord,

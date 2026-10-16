@@ -7,13 +7,13 @@
 -- 3. Les documents ne se diffusent que sur autorisation d'owner ou d'admin.
 -- 4. Les anciens slugs redirigent et restent à leur événement ; les
 --    sous-domaines réservés ne deviennent pas des slugs.
--- 5. Le contact : une trace sans contenu, une limite de débit, le serveur seul.
+-- Le contact (0052) a son propre fichier : 37.
 
 begin;
 
 create extension if not exists pgtap;
 
-select plan(42);
+select plan(40);
 
 \ir _personas.psql
 
@@ -232,30 +232,6 @@ reset role;
 select throws_ok(
   $$ update public.events set slug = 'trail-de-test' where id = 'bbbbbbbb-0000-4000-8000-000000000011' $$,
   '23505', 'SLUG_HELD_BY_ANOTHER_EVENT', 'SITE-40 — un ancien slug ne passe pas à un autre événement');
-
--- ============================================================
--- 8. Contact : le serveur seul, une limite, aucune donnée
--- ============================================================
-
-select pg_temp.act_as_anon();
-select throws_ok(
-  $$ select public.claim_event_site_contact('aaaaaaaa-0000-4000-8000-000000000011', repeat('a', 32),
-       interval '10 minutes', 2, 3) $$,
-  '42501', null, 'SITE-41 — un visiteur n''écrit pas la trace lui-même');
-reset role;
-
-set local role service_role;
-select is(
-  array[
-    public.claim_event_site_contact('aaaaaaaa-0000-4000-8000-000000000011', repeat('a', 32), interval '10 minutes', 2, 3) is not null,
-    public.claim_event_site_contact('aaaaaaaa-0000-4000-8000-000000000011', repeat('a', 32), interval '10 minutes', 2, 3) is not null,
-    public.claim_event_site_contact('aaaaaaaa-0000-4000-8000-000000000011', repeat('a', 32), interval '10 minutes', 2, 3) is not null,
-    public.claim_event_site_contact('aaaaaaaa-0000-4000-8000-000000000011', repeat('b', 32), interval '10 minutes', 2, 3) is not null,
-    public.claim_event_site_contact('aaaaaaaa-0000-4000-8000-000000000011', repeat('c', 32), interval '10 minutes', 2, 3) is not null
-  ],
-  array[true, true, false, true, false],
-  'SITE-42 — deux envois par empreinte, trois par événement, puis plus rien');
-reset role;
 
 select * from finish();
 rollback;
