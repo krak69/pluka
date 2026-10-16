@@ -209,26 +209,66 @@ describe('les outils du tableau', () => {
   });
 });
 
-describe('fiche épreuve : lecture, et renvoi vers l’événement', () => {
-  const race = (pendingFromSources: number | null, items: readonly RaceEquipmentItem[] = [item()]) =>
+describe('fiche épreuve : le matériel en lecture, avec les pictos de l’événement', () => {
+  const race = (
+    pendingFromSources: number | null,
+    items: readonly RaceEquipmentItem[] | null = [item()],
+  ) =>
     renderToStaticMarkup(
       <EquipmentPanel
+        raceName="80K"
         items={items}
         pendingFromSources={pendingFromSources}
-        manageHref="/evenements/event-1#materiel"
+        manageHref="/evenements/event-1/materiel"
       />,
     );
 
-  it('montre le matériel groupé et mène à la gestion de l’édition', () => {
-    const html = race(null);
-    expect(html).toContain('Frontale');
-    expect(html).toContain('Obligatoire');
-    expect(html).toContain('href="/evenements/event-1#materiel"');
-    expect(html).not.toContain('<form');
+  it('groupe par exigence, avec le picto, la source et le niveau de confiance', () => {
+    const html = race(null, [
+      item(),
+      item({
+        factId: 'f2',
+        label: 'Gants',
+        requirement: 'conditional',
+        condition: 'si température < 5 °C',
+        detail: null,
+      }),
+      item({ factId: 'f3', label: 'Bâtons', requirement: 'recommended', detail: null }),
+    ]);
+
+    expect(html).toContain('Ce que lisent les coureurs de 80K');
+    expect(html).toContain('data-glyph="mandatory"');
+    expect(html).toContain('data-glyph="conditional"');
+    expect(html).toContain('data-glyph="recommended"');
+    expect(html).toContain('si température &lt; 5 °C');
+    expect(html).toContain('Règlement 2026, p. 3');
+    expect(html).toContain('Validée PLUKA');
+    expect(html).toMatch(/Obligatoire<\/dt><dd>1<\/dd>/);
   });
 
-  it('signale le matériel lu dans les sources', () => {
+  it('ne se modifie pas ici : il renvoie à l’onglet Matériel de l’événement', () => {
+    const html = race(null);
+    expect(html).not.toContain('<form');
+    expect(html).not.toContain('<input');
+    expect(html).toContain('Modifier dans l’événement');
+    expect(html).toContain('href="/evenements/event-1/materiel"');
+  });
+
+  it('un matériel sans exigence est « à préciser », jamais rangé ailleurs', () => {
+    const html = race(null, [item({ requirement: null })]);
+    expect(html).toContain('À préciser');
+    expect(html).toContain('data-glyph="unknown"');
+  });
+
+  it('les retirés ne s’affichent pas ; une liste vide invite à renseigner', () => {
+    const html = race(null, [item({ retired: true })]);
+    expect(html).toContain('Aucun matériel pour cette épreuve');
+    expect(html).not.toContain('Frontale');
+  });
+
+  it('signale le matériel lu dans les sources, et dit une lecture impossible', () => {
     expect(race(2)).toContain('2 propositions de matériel');
     expect(race(0)).not.toContain('proposition');
+    expect(race(null, null)).toContain('n’a pas pu être lu');
   });
 });

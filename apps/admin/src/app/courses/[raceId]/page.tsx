@@ -367,6 +367,7 @@ export default async function RacePage({
       </div>
 
       <EquipmentPanel
+        raceName={race.name}
         items={equipment}
         pendingFromSources={
           candidates === null

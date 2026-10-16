@@ -3992,3 +3992,154 @@ a.ad-card:hover {
     border-radius: 0;
   }
 }
+
+/* ── Fiche épreuve : le matériel, en lecture ─────────────────────────────
+ * Les pictos et les couleurs du tableau de l'événement, groupés comme le
+ * coureur les lit. Une ligne par élément : picto, nom, condition en
+ * étiquette, précision ; la source et le niveau de confiance à droite.
+ */
+.ad-race-gear-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.ad-race-gear-head > div {
+  display: grid;
+  flex: 1 1 24rem;
+  gap: var(--space-1);
+}
+
+.ad-race-gear-manage {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.ad-race-gear-counts {
+  padding-top: var(--space-1);
+}
+
+.ad-race-gear-empty {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ad-race-gear-empty p {
+  margin: 0;
+}
+
+.ad-race-gear-groups {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.ad-race-gear-group-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pk-text);
+}
+
+.ad-race-gear-group-glyph {
+  display: inline-grid;
+  place-items: center;
+}
+
+.ad-race-gear-group-lede {
+  flex-basis: 100%;
+  padding-left: 30px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--pk-text-muted);
+}
+
+.ad-race-gear-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.ad-race-gear-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 52px;
+  padding: var(--space-2) var(--space-2);
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.ad-race-gear-glyph {
+  display: inline-grid;
+  place-items: center;
+}
+
+.ad-race-gear-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--space-2);
+  align-items: baseline;
+  min-width: 0;
+}
+
+.ad-race-gear-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pk-text);
+}
+
+/* La condition, le mot qui change tout pour un conditionnel. */
+.ad-race-gear-condition {
+  padding: 1px var(--space-2);
+  border: 1px solid var(--pk-glacier);
+  border-radius: var(--radius-sm);
+  background: var(--pk-glacier-bg, var(--pk-surface));
+  font-size: 12px;
+  color: var(--pk-text);
+}
+
+.ad-race-gear-detail {
+  flex-basis: 100%;
+  font-size: 13px;
+  color: var(--pk-text-muted);
+}
+
+.ad-race-gear-meta {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-align: right;
+  color: var(--pk-text-muted);
+}
+
+.ad-race-gear-group[data-requirement='unknown'] .ad-race-gear-item {
+  background: var(--pk-warning-bg, transparent);
+}
+
+@media (width < 640px) {
+  .ad-race-gear-item {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .ad-race-gear-meta {
+    grid-column: 2;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .ad-race-gear-manage {
+    width: 100%;
+    justify-content: center;
+  }
+}
