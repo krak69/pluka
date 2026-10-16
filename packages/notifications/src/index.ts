@@ -47,6 +47,14 @@ export {
 } from './templates/staff-invitation.js';
 
 export {
+  renderEventSiteContact,
+  type EventSiteContactNotice,
+} from './templates/event-site-contact.js';
+
+export {
+  EVENT_SITE_CONTACT_TEMPLATE_VERSION,
+  sendEventSiteContact,
+  type EventSiteContactDelivery,
   INVITATION_TEMPLATE_VERSION,
   STAFF_INVITATION_TEMPLATE_VERSION,
   NOTIFICATION_ERROR_CODES,

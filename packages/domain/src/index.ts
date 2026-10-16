@@ -628,9 +628,13 @@ export {
   type SiteHeadingFont,
 } from './site/appearance.js';
 export {
+  SITE_DOCUMENT_LINK_SECONDS,
   findPublicEventSite,
   findPublicEventSiteQuerySchema,
   registrationUrlOf,
+  signEventSiteDocument,
+  submitEventSiteContact,
+  submitEventSiteContactCommandSchema,
   type EventSiteContext,
   type PublicEventSite,
   type PublicEventSiteLookup,
@@ -653,6 +657,7 @@ export {
   removeEventSiteImage,
   saveEventSite,
   saveEventSiteCommandSchema,
+  setEventSiteDocumentPublic,
   setEventSiteStatus,
   uploadEventSiteImage,
   type EventSiteBlocker,

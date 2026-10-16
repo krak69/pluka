@@ -1,7 +1,7 @@
-import type { EventSiteRepository } from '@pluka/db';
+import { DbError, type EventSiteRepository } from '@pluka/db';
 import { z } from 'zod';
 
-import { notFoundError, parseCommand } from '../errors.js';
+import { notFoundError, parseCommand, validationError } from '../errors.js';
 import { SITE_HEADING_FONTS } from './appearance.js';
 
 /**
@@ -149,4 +149,82 @@ export function registrationUrlOf(
   edition: PublicEventSite['edition'],
 ): string | null {
   return race.registrationUrl ?? edition?.registrationUrl ?? null;
+}
+
+const optionalText = (schema: z.ZodString) =>
+  z.preprocess((value) => (typeof value === 'string' && value.trim() === '' ? null : value), schema.nullable());
+
+export const submitEventSiteContactCommandSchema = z.object({
+  slug: findPublicEventSiteQuerySchema.shape.slug,
+  /** L'adresse IP de la requête, lue par l'app ; jamais stockée telle quelle (0052). */
+  clientIp: z.string().max(64).nullable(),
+  senderName: z.string().trim().min(1, 'indiquez votre nom').max(120, '120 caractères au plus'),
+  senderEmail: z.string().trim().max(254).email('adresse e-mail invalide'),
+  raceSlug: optionalText(z.string().trim().max(200)),
+  body: z.string().trim().min(1, 'écrivez votre message').max(5000, '5 000 caractères au plus'),
+});
+
+/**
+ * Le formulaire de contact d'un site (EVENT_SITE §6). Le message est mis en
+ * file ; le worker l'envoie et l'efface. `limited` : trop de messages depuis
+ * cette adresse ou vers cet événement, pour l'heure.
+ */
+export async function submitEventSiteContact(
+  context: EventSiteContext,
+  input: unknown,
+): Promise<'sent' | 'limited'> {
+  const useCase = 'submitEventSiteContact';
+  const command = parseCommand(submitEventSiteContactCommandSchema, input, useCase);
+
+  try {
+    return await context.repositories.eventSites.submitContact(command);
+  } catch (error) {
+    if (error instanceof DbError && error.code === 'not_found') throw notFoundError(useCase, 'site');
+    if (error instanceof DbError && error.code === 'constraint_violation') {
+      throw validationError(useCase, 'message invalide');
+    }
+    throw error;
+  }
+}
+
+/** La durée de validité d'un lien de téléchargement : le temps d'un clic. */
+export const SITE_DOCUMENT_LINK_SECONDS = 60;
+
+export const signEventSiteDocumentQuerySchema = z.object({
+  slug: findPublicEventSiteQuerySchema.shape.slug,
+  sourceId: z.string().uuid(),
+});
+
+/**
+ * Une adresse de téléchargement pour un document diffusé (EVENT_SITE §3.4).
+ *
+ * Le document doit figurer dans la charge du site à cette adresse : un
+ * document d'un autre événement, même diffusé, n'est pas téléchargeable ici.
+ */
+export async function signEventSiteDocument(
+  context: EventSiteContext,
+  input: unknown,
+): Promise<string> {
+  const useCase = 'signEventSiteDocument';
+  const query = parseCommand(signEventSiteDocumentQuerySchema, input, useCase);
+
+  const found = await findPublicEventSite(context, { slug: query.slug });
+  if (found.kind !== 'site') throw notFoundError(useCase, 'document');
+
+  const listed = found.site.documents.find((document) => document.id === query.sourceId);
+  if (listed === undefined || !listed.hasFile) throw notFoundError(useCase, 'document');
+
+  const path = await context.repositories.eventSites.findDocumentPath(query.sourceId);
+  if (path === null) throw notFoundError(useCase, 'document');
+
+  try {
+    return await context.repositories.eventSites.signDocument(path, SITE_DOCUMENT_LINK_SECONDS);
+  } catch (error) {
+    // Le stockage refuse de signer un fichier que cette session ne peut pas
+    // lire : pour le visiteur, le document n'existe pas.
+    if (error instanceof DbError && error.code === 'not_found') {
+      throw notFoundError(useCase, 'document');
+    }
+    throw error;
+  }
 }

@@ -14,6 +14,7 @@ import {
   getEventSiteEditor,
   removeEventSiteImage,
   saveEventSite,
+  setEventSiteDocumentPublic,
   setEventSiteStatus,
   uploadEventSiteImage,
   type EventSiteImageContext,
@@ -33,6 +34,8 @@ const EVENT = 'aaaaaaaa-0000-4000-8000-000000000011';
 const EDITION = 'aaaaaaaa-0000-4000-8000-000000000012';
 const RACE = 'aaaaaaaa-0000-4000-8000-000000000013';
 const FOREIGN_RACE = 'bbbbbbbb-0000-4000-8000-000000000013';
+const DOCUMENT = 'aaaaaaaa-0000-4000-8000-000000000091';
+const FOREIGN_DOCUMENT = 'bbbbbbbb-0000-4000-8000-000000000091';
 
 type Role = 'owner' | 'admin' | 'editor' | 'viewer';
 
@@ -49,6 +52,7 @@ interface World {
   removed: string[];
   processed: number;
   rejectImage: boolean;
+  documentToggles: { sourceId: string; isPublic: boolean }[];
 }
 
 let world: World;
@@ -100,6 +104,21 @@ function repository(): EventSiteEditingRepository {
         );
       }
       world.images.push({ kind, path });
+      return Promise.resolve();
+    },
+    listDocuments: () =>
+      Promise.resolve([
+        {
+          id: DOCUMENT,
+          title: 'Règlement 2026',
+          sourceType: 'pdf',
+          hasFile: true,
+          url: null,
+          publicDownloadAt: null,
+        },
+      ]),
+    setDocumentPublic: (sourceId, isPublic) => {
+      world.documentToggles.push({ sourceId, isPublic });
       return Promise.resolve();
     },
   };
@@ -193,6 +212,7 @@ beforeEach(() => {
     removed: [],
     processed: 0,
     rejectImage: false,
+    documentToggles: [],
   };
 });
 
@@ -376,5 +396,32 @@ describe('l’édition du site', () => {
       currentSiteEdition([at('b', '2026-06-20'), at('c', '2027-06-19', 'cancelled')], '2026-10-16')?.id,
     ).toBe('b');
     expect(currentSiteEdition([], '2026-10-16')).toBeNull();
+  });
+});
+
+describe('diffuser un document', () => {
+  const TOGGLE = { organizationId: ORG, eventId: EVENT, sourceId: DOCUMENT, public: true };
+
+  it('éditeur : refusé ; admin : diffuse', async () => {
+    await expect(setEventSiteDocumentPublic(context(), TOGGLE)).rejects.toMatchObject({
+      code: 'forbidden',
+    });
+
+    world.role = 'admin';
+    await setEventSiteDocumentPublic(context(), TOGGLE);
+    expect(world.documentToggles).toEqual([{ sourceId: DOCUMENT, isPublic: true }]);
+  });
+
+  it('un document d’un autre événement n’existe pas ici', async () => {
+    world.role = 'owner';
+    await expect(
+      setEventSiteDocumentPublic(context(), { ...TOGGLE, sourceId: FOREIGN_DOCUMENT }),
+    ).rejects.toMatchObject({ code: 'not_found' });
+    expect(world.documentToggles).toEqual([]);
+  });
+
+  it('l’éditeur liste les documents de l’édition', async () => {
+    const editor = await getEventSiteEditor(context(), { organizationId: ORG, today: '2026-10-16' });
+    expect(editor.documents.map((document) => document.title)).toEqual(['Règlement 2026']);
   });
 });

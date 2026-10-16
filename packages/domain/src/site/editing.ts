@@ -1,6 +1,7 @@
 import {
   DbError,
   type EventSiteAssetStore,
+  type EventSiteDocumentRecord,
   type EventSiteEditingRepository,
   type EventSiteEditionRecord,
   type EventSiteEventRecord,
@@ -89,6 +90,8 @@ export interface EventSiteEditor {
   /** L'édition dont le site porte l'inscription : la prochaine à venir, sinon la dernière. */
   readonly edition: EventSiteEditionRecord | null;
   readonly races: readonly EventSiteRaceRecord[];
+  /** Les documents de l'édition, et ceux que l'organisation diffuse (EVENT_SITE §3.4). */
+  readonly documents: readonly EventSiteDocumentRecord[];
   readonly blockers: readonly EventSiteBlocker[];
 }
 
@@ -191,6 +194,7 @@ export async function getEventSiteEditor(
       sections: [],
       edition: null,
       races: [],
+      documents: [],
       blockers: [],
     };
   }
@@ -201,7 +205,10 @@ export async function getEventSiteEditor(
     repository.listEditions(event.id),
   ]);
   const edition = currentSiteEdition(editions, query.today);
-  const races = edition === null ? [] : await repository.listRaces(edition.id);
+  const [races, documents] =
+    edition === null
+      ? [[], []]
+      : await Promise.all([repository.listRaces(edition.id), repository.listDocuments(edition.id)]);
 
   const blockers: EventSiteBlocker[] = [];
   if (event.status !== 'published') blockers.push('event_not_published');
@@ -210,7 +217,18 @@ export async function getEventSiteEditor(
     blockers.push('no_public_race');
   }
 
-  return { organizationName, permissions, events, event, site, sections, edition, races, blockers };
+  return {
+    organizationName,
+    permissions,
+    events,
+    event,
+    site,
+    sections,
+    edition,
+    races,
+    documents,
+    blockers,
+  };
 }
 
 const httpsUrl = z
@@ -431,3 +449,42 @@ export async function removeEventSiteImage(
   await context.assets.remove([old]).catch(() => undefined);
 }
 
+
+export const setEventSiteDocumentPublicCommandSchema = z.object({
+  organizationId: uuid,
+  eventId: uuid,
+  sourceId: uuid,
+  public: z.boolean(),
+});
+
+/**
+ * Diffuser un document sur le site, ou le retirer : owner ou admin, comme la
+ * mise en ligne (EVENT_SITE §3.4, AGENTS §66). Le document doit appartenir à
+ * l'édition du site.
+ */
+export async function setEventSiteDocumentPublic(
+  context: EventSiteEditingContext,
+  input: unknown,
+): Promise<void> {
+  const useCase = 'setEventSiteDocumentPublic';
+  const command = parseCommand(setEventSiteDocumentPublicCommandSchema, input, useCase);
+
+  const permissions = await permissionsOf(context, command.organizationId, useCase);
+  if (!permissions.canPublish) throw forbiddenError(useCase);
+  await eventOf(context, command.organizationId, command.eventId, useCase);
+
+  const repository = context.repositories.eventSiteEditing;
+  const editions = await repository.listEditions(command.eventId);
+  const documents = (
+    await Promise.all(editions.map((edition) => repository.listDocuments(edition.id)))
+  ).flat();
+  if (!documents.some((document) => document.id === command.sourceId)) {
+    throw notFoundError(useCase, 'document');
+  }
+
+  try {
+    await repository.setDocumentPublic(command.sourceId, command.public);
+  } catch (error) {
+    throw translate(error, useCase);
+  }
+}

@@ -1,11 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+import { DbError } from '@pluka/db';
 import { describe, expect, it } from 'vitest';
 
 import {
   DomainError,
   RESERVED_SUBDOMAINS,
+  signEventSiteDocument,
+  submitEventSiteContact,
   accentContrastIssue,
   accentInk,
   contrastRatio,
@@ -142,7 +145,11 @@ function payload(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function contextReturning(value: unknown, seen: string[] = []): EventSiteContext {
+function contextReturning(
+  value: unknown,
+  seen: string[] = [],
+  extra: Partial<EventSiteContext['repositories']['eventSites']> = {},
+): EventSiteContext {
   return {
     repositories: {
       eventSites: {
@@ -150,6 +157,10 @@ function contextReturning(value: unknown, seen: string[] = []): EventSiteContext
           seen.push(slug);
           return Promise.resolve(value);
         },
+        submitContact: () => Promise.resolve('sent'),
+        findDocumentPath: () => Promise.resolve(`${EVENT_ID}/reglement.pdf`),
+        signDocument: (path: string) => Promise.resolve(`https://stockage.example/${path}?jeton`),
+        ...extra,
       },
     },
   };
@@ -212,5 +223,106 @@ describe('le lien d’inscription', () => {
       registrationUrlOf({ registrationUrl: null }, { ...edition, registrationUrl: null }),
     ).toBeNull();
     expect(registrationUrlOf({ registrationUrl: null }, null)).toBeNull();
+  });
+});
+
+describe('le formulaire de contact', () => {
+  const MESSAGE = {
+    slug: 'trail-de-test',
+    clientIp: '203.0.113.7',
+    senderName: ' Alex ',
+    senderEmail: 'alex@test.pluka',
+    raceSlug: '',
+    body: 'Bonjour',
+  };
+
+  it('met le message en file, nettoyé', async () => {
+    const received: unknown[] = [];
+    const context = contextReturning(payload(), [], {
+      submitContact: (input) => {
+        received.push(input);
+        return Promise.resolve('sent');
+      },
+    });
+
+    await expect(submitEventSiteContact(context, MESSAGE)).resolves.toBe('sent');
+    expect(received).toEqual([{ ...MESSAGE, senderName: 'Alex', raceSlug: null }]);
+  });
+
+  it('dit quand la limite est atteinte', async () => {
+    const context = contextReturning(payload(), [], {
+      submitContact: () => Promise.resolve('limited'),
+    });
+    await expect(submitEventSiteContact(context, MESSAGE)).resolves.toBe('limited');
+  });
+
+  it('refuse un message vide ou une adresse qui n’en est pas une, avant la base', async () => {
+    const received: unknown[] = [];
+    const context = contextReturning(payload(), [], {
+      submitContact: (input) => {
+        received.push(input);
+        return Promise.resolve('sent');
+      },
+    });
+
+    await expect(submitEventSiteContact(context, { ...MESSAGE, body: '  ' })).rejects.toMatchObject({
+      code: 'validation',
+      details: { body: 'écrivez votre message' },
+    });
+    await expect(
+      submitEventSiteContact(context, { ...MESSAGE, senderEmail: 'alex' }),
+    ).rejects.toMatchObject({ code: 'validation' });
+    expect(received).toEqual([]);
+  });
+});
+
+describe('le téléchargement d’un document', () => {
+  const DOCUMENT_ID = 'aaaaaaaa-0000-4000-8000-000000000091';
+  const listed = (hasFile: boolean) =>
+    payload({
+      documents: [
+        {
+          id: DOCUMENT_ID,
+          title: 'Règlement',
+          sourceType: 'pdf',
+          declaredPublishedAt: null,
+          url: null,
+          hasFile,
+        },
+      ],
+    });
+
+  it('signe l’adresse d’un document diffusé de ce site', async () => {
+    await expect(
+      signEventSiteDocument(contextReturning(listed(true)), {
+        slug: 'trail-de-test',
+        sourceId: DOCUMENT_ID,
+      }),
+    ).resolves.toBe(`https://stockage.example/${EVENT_ID}/reglement.pdf?jeton`);
+  });
+
+  it('un refus du stockage se lit comme un document introuvable', async () => {
+    const context = contextReturning(listed(true), [], {
+      signDocument: () =>
+        Promise.reject(new DbError({ code: 'not_found', operation: 'sign', message: 'refusé' })),
+    });
+    await expect(
+      signEventSiteDocument(context, { slug: 'trail-de-test', sourceId: DOCUMENT_ID }),
+    ).rejects.toMatchObject({ code: 'not_found' });
+  });
+
+  it('ne signe pas un document absent du site, même diffusé ailleurs', async () => {
+    await expect(
+      signEventSiteDocument(contextReturning(payload()), {
+        slug: 'trail-de-test',
+        sourceId: DOCUMENT_ID,
+      }),
+    ).rejects.toMatchObject({ code: 'not_found' });
+    await expect(
+      signEventSiteDocument(contextReturning(listed(false)), {
+        slug: 'trail-de-test',
+        sourceId: DOCUMENT_ID,
+      }),
+    ).rejects.toMatchObject({ code: 'not_found' });
   });
 });

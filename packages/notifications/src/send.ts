@@ -6,6 +6,10 @@ import {
   type OrganizationInvitationNotice,
 } from './templates/organization-invitation.js';
 import { renderStaffInvitation, type StaffInvitationNotice } from './templates/staff-invitation.js';
+import {
+  renderEventSiteContact,
+  type EventSiteContactNotice,
+} from './templates/event-site-contact.js';
 
 /**
  * Orchestration d'envoi — `01_ARCHITECTURE.md` §4.5, §35.
@@ -26,6 +30,8 @@ export const NOTIFICATION_TEMPLATE_VERSION = 'change-impact-1.0.0';
 export const INVITATION_TEMPLATE_VERSION = 'organization-invitation-1.0.0';
 
 export const STAFF_INVITATION_TEMPLATE_VERSION = 'staff-invitation-1.0.0';
+
+export const EVENT_SITE_CONTACT_TEMPLATE_VERSION = 'event-site-contact-1.0.0';
 
 /**
  * Échecs d'envoi, dans un vocabulaire stable.
@@ -240,5 +246,62 @@ export async function sendStaffInvitation(
     providerMessageId: result.providerMessageId,
     acceptedAt: result.acceptedAt,
     templateVersion: STAFF_INVITATION_TEMPLATE_VERSION,
+  };
+}
+
+export interface EventSiteContactDelivery {
+  readonly idempotencyKey: string;
+  readonly notice: EventSiteContactNotice;
+}
+
+/**
+ * Le message d'un coureur à l'organisation, depuis le site (EVENT_SITE §6).
+ *
+ * Une adresse d'expéditeur inexploitable ne bloque pas l'envoi : l'organisation
+ * reçoit le message, sans `Reply-To`. Un destinataire inexploitable, si.
+ */
+export async function sendEventSiteContact(
+  provider: EmailProvider,
+  delivery: EventSiteContactDelivery,
+): Promise<NotificationSent> {
+  const { notice } = delivery;
+
+  if (!isPlausibleAddress(notice.recipientEmail)) {
+    throw new NotificationError('RECIPIENT_INVALID', 'adresse destinataire inexploitable');
+  }
+
+  const rendered = renderEventSiteContact(notice);
+  const message: EmailMessage = {
+    to: [{ address: notice.recipientEmail }],
+    subject: rendered.subject,
+    textBody: rendered.textBody,
+    idempotencyKey: delivery.idempotencyKey,
+    ...(isPlausibleAddress(notice.senderEmail)
+      ? {
+          replyTo: {
+            address: notice.senderEmail,
+            // Un nom saisi par un visiteur entre dans un en-tête : jamais de saut de ligne.
+            name: notice.senderName.replace(/[\r\n\t"<>]+/gu, ' ').trim() || 'Coureur',
+          },
+        }
+      : {}),
+  };
+
+  let result: EmailSendResult;
+  try {
+    result = await provider.send(message);
+  } catch (error) {
+    throw new NotificationError(
+      'PROVIDER_UNAVAILABLE',
+      'envoi refusé par le fournisseur',
+      error instanceof Error ? error.name : 'inconnu',
+    );
+  }
+
+  return {
+    provider: provider.name,
+    providerMessageId: result.providerMessageId,
+    acceptedAt: result.acceptedAt,
+    templateVersion: EVENT_SITE_CONTACT_TEMPLATE_VERSION,
   };
 }
