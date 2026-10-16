@@ -644,3 +644,23 @@ export {
   siteSlugFromHost,
   siteUrl,
 } from './site/subdomain.js';
+export {
+  EVENT_SITE_IMAGE_MAX_BYTES,
+  EventSiteImageRejected,
+  currentSiteEdition,
+  getEventSiteEditor,
+  getEventSiteEditorQuerySchema,
+  removeEventSiteImage,
+  saveEventSite,
+  saveEventSiteCommandSchema,
+  setEventSiteStatus,
+  uploadEventSiteImage,
+  type EventSiteBlocker,
+  type EventSiteEditingContext,
+  type EventSiteEditor,
+  type EventSiteImageContext,
+  type EventSiteImageKind,
+  type EventSiteImageProcessor,
+  type EventSitePermissions,
+  type SaveEventSiteCommand,
+} from './site/editing.js';
