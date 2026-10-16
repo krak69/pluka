@@ -69,6 +69,13 @@ const nextConfig: NextConfig = {
   // En local, un site se sert sur `{slug}.localhost` : le serveur de dev doit
   // accepter ces hôtes pour ses ressources de rechargement.
   allowedDevOrigins: ['*.localhost'],
+  experimental: {
+    serverActions: {
+      // Le logo et la couverture d'un site se déposent jusqu'à 8 Mo, réencodés
+      // ensuite (EVENT_SITE §4) ; la marge couvre l'enveloppe multipart.
+      bodySizeLimit: '9mb',
+    },
+  },
 
   async headers() {
     return [

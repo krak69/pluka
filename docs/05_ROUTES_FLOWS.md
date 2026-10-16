@@ -366,6 +366,7 @@ Aucun de ces éléments n'a d'URL.
 /org/[organizationId]/parametres                  → redirige vers /evenement
 /org/[organizationId]/parametres/evenement
 /org/[organizationId]/parametres/partenaires
+/org/[organizationId]/parametres/site                Site de l'événement : identité, inscription, infos pratiques, mise en ligne (EVENT_SITE)
 /org/[organizationId]/parametres/equipe           Équipe : membres, rôles, invitations (0033)
 ```
 
@@ -387,7 +388,7 @@ L'équipe est un sous-onglet de Paramètres : le prototype pose « Équipe » da
 
 **Le choix de l'édition à l'intérieur de l'organisation n'est pas tranché — voir §12.1.**
 
-**État livré.** Seules `/org` et `/org/[organizationId]/parametres/equipe` ont un écran. Tant que l'accueil et l'onglet Événement n'existent pas, `/org/[organizationId]` et `/org/[organizationId]/parametres` redirigent vers l'équipe ; ces redirections tomberont quand leurs écrans arriveront. L'espace n'est ouvert qu'aux membres : un non-membre reçoit un 404, qui ne confirme pas l'existence de l'organisation. La gestion de l'équipe reste réservée au propriétaire (03_PRIVACY_RLS §15) ; les autres rôles voient l'écran et la raison du refus.
+**État livré.** Seules `/org`, `/org/[organizationId]/parametres/equipe` et `/org/[organizationId]/parametres/site` ont un écran ; Paramètres n'affiche que ces deux onglets. Tant que l'accueil et l'onglet Événement n'existent pas, `/org/[organizationId]` et `/org/[organizationId]/parametres` redirigent vers l'équipe ; ces redirections tomberont quand leurs écrans arriveront. L'espace n'est ouvert qu'aux membres : un non-membre reçoit un 404, qui ne confirme pas l'existence de l'organisation. La gestion de l'équipe reste réservée au propriétaire (03_PRIVACY_RLS §15) ; les autres rôles voient l'écran et la raison du refus.
 
 ## 6.2 Ce qui reste un état
 

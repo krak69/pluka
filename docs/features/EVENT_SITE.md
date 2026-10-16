@@ -1,6 +1,6 @@
 # PLUKA — Site de l'événement
 
-**Statut :** adoptée le 2026-10-16 — modèle (0049) et pages publiques en lecture en place ; éditeur, contact et téléchargement des fichiers à venir
+**Statut :** adoptée le 2026-10-16 — modèle (0049–0051), pages publiques et éditeur (`/org/[id]/parametres/site`) en place ; contact et téléchargement des fichiers à venir
 **Décisions produit :** 2026-10-16
 **Portée :** organisateurs (`apps/app`, espace `/org`) et visiteurs anonymes
 
@@ -273,9 +273,13 @@ Rien d'autre : pas de bandeau, pas d'encart publicitaire.
 
 ---
 
-# 11. Modèle de données — écrit en 0049 (`02_DATA_MODEL.md` §6.9)
+# 11. Modèle de données — écrit en 0049 à 0051 (`02_DATA_MODEL.md` §6.9)
 
 Seuils de la limite de débit du contact : passés par le serveur, depuis sa configuration.
+
+0050 enregistre les liens d'inscription avec le reste du site, en une transaction. 0051
+ouvre le bucket des images aux éditeurs de l'événement, dans son dossier : l'app dépose
+sous la session de l'éditeur, après avoir réencodé l'image, sans clé de service.
 
 - `event_sites` — un par événement : statut (brouillon, publié, suspendu), accent, police,
   couverture, publié le / par ;
