@@ -149,6 +149,30 @@ C'est la plus courte forme que les contraintes d'unicité rendent non ambiguë, 
 
 Les jetons ne relèvent d'aucune des deux catégories : `[token]` est un secret opaque, ni slug ni identifiant d'entité.
 
+## 1.10 Le site d'un événement vit sur son sous-domaine, servi par `apps/app`
+
+Spécification : `docs/features/EVENT_SITE.md`.
+
+`{eventSlug}.pluka.run` — `{eventSlug}.localhost` en local — est reconnu par le proxy de
+`apps/app` et réécrit vers les routes internes `/site/[siteSlug]` :
+
+| Adresse du site | Route interne | Écran |
+| --- | --- | --- |
+| `/` | `/site/[siteSlug]` | Accueil : épreuves, infos pratiques, documents, partenaires |
+| `/epreuves/[raceSlug]` | `/site/[siteSlug]/epreuves/[raceSlug]` | Fiche épreuve habillée |
+
+Règles :
+
+1. La racine des sites est l'hôte de l'app sans son `app.` ; les sous-domaines réservés à
+   PLUKA ne sont jamais des sites.
+2. `/site/...` atteint depuis l'hôte de l'app répond 404.
+3. Un site n'ouvre pas de session : le proxy n'y rafraîchit aucun cookie.
+4. Les en-têtes se décident sur l'hôte : un site est indexable, sous une politique de
+   contenu stricte ; l'app reste `noindex`.
+5. Rien en ligne à l'adresse : 404. Un ancien slug : redirection permanente, même chemin.
+6. La fiche épreuve du site est la fiche publique de §1.8, rendue par le même composant ;
+   « Préparer ma course » mène à celle de l'app, où naît la participation (§1.7).
+
 ---
 
 # 2. Les trois applications

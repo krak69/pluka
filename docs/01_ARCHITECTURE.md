@@ -280,6 +280,8 @@ Application authentifiée principale :
 
 Le B2B reste dans la même application et le même domaine métier. Il ne possède pas son propre backend.
 
+Elle sert aussi les sites d'événement (`docs/features/EVENT_SITE.md`) : son proxy reconnaît `{eventSlug}.pluka.run` et le réécrit vers ses routes `/site`. Un site est une vue publique des mêmes données, pas une application de plus (`05_ROUTES_FLOWS.md` §1.10).
+
 ## 4.3 `apps/admin`
 
 Administration interne PLUKA :

@@ -1,6 +1,6 @@
 # PLUKA — Site de l'événement
 
-**Statut :** adoptée le 2026-10-16 — modèle de données en place (0049), écrans à venir
+**Statut :** adoptée le 2026-10-16 — modèle (0049) et pages publiques en lecture en place ; éditeur, contact et téléchargement des fichiers à venir
 **Décisions produit :** 2026-10-16
 **Portée :** organisateurs (`apps/app`, espace `/org`) et visiteurs anonymes
 
