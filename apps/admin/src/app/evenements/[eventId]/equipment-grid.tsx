@@ -30,6 +30,7 @@ import {
   type Line,
   type Requirement,
 } from '@/app/evenements/[eventId]/equipment-grid-draft';
+import { RequirementGlyph } from '@/app/evenements/[eventId]/equipment-glyph';
 import { decideEquipmentProposalAction, saveEditionEquipmentAction } from '@/app/fact-actions';
 
 export type { GridRace, GridRow } from '@/app/evenements/[eventId]/equipment-grid-draft';
@@ -46,45 +47,6 @@ export type { GridRace, GridRow } from '@/app/evenements/[eventId]/equipment-gri
  * « Enregistrer » l'applique en une transaction. Une hésitation ne crée ni
  * trois versions, ni trois alertes aux coureurs.
  */
-
-/** Les pictos montent en remplissage avec l'exigence : point, cercle, demi-carré, carré coché. */
-export function RequirementGlyph({ value }: { readonly value: Cell }) {
-  switch (value) {
-    case 'mandatory':
-      return (
-        <svg className="ad-grid-glyph" viewBox="0 0 24 24" aria-hidden="true" data-glyph="mandatory">
-          <rect x="3" y="3" width="18" height="18" rx="2" className="ad-grid-glyph-fill" />
-          <path d="M7.5 12.5l3 3 6-7" className="ad-grid-glyph-mark" />
-        </svg>
-      );
-    case 'conditional':
-      return (
-        <svg className="ad-grid-glyph" viewBox="0 0 24 24" aria-hidden="true" data-glyph="conditional">
-          <rect x="3.75" y="3.75" width="16.5" height="16.5" rx="2" className="ad-grid-glyph-frame" />
-          <path d="M3.75 12h16.5v6.25a2 2 0 0 1-2 2H5.75a2 2 0 0 1-2-2z" className="ad-grid-glyph-half" />
-        </svg>
-      );
-    case 'unknown':
-      return (
-        <svg className="ad-grid-glyph" viewBox="0 0 24 24" aria-hidden="true" data-glyph="unknown">
-          <rect x="3.75" y="3.75" width="16.5" height="16.5" rx="2" className="ad-grid-glyph-dashed" />
-          <path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.4M12 16.6v.1" className="ad-grid-glyph-question" />
-        </svg>
-      );
-    case 'recommended':
-      return (
-        <svg className="ad-grid-glyph" viewBox="0 0 24 24" aria-hidden="true" data-glyph="recommended">
-          <circle cx="12" cy="12" r="7.5" className="ad-grid-glyph-ring" />
-        </svg>
-      );
-    default:
-      return (
-        <svg className="ad-grid-glyph" viewBox="0 0 24 24" aria-hidden="true" data-glyph="none">
-          <circle cx="12" cy="12" r="2" className="ad-grid-glyph-dot" />
-        </svg>
-      );
-  }
-}
 
 function CellMenu({
   current,
@@ -255,12 +217,14 @@ const INITIAL: ActionState = {};
  */
 function ProposalRow({
   eventId,
+  editionId,
   races,
   proposal,
   current,
   locked,
 }: {
   readonly eventId: string;
+  readonly editionId: string;
   readonly races: readonly GridRace[];
   readonly proposal: GridProposal;
   /** La ligne publiée de même clé, si elle existe. */
@@ -340,6 +304,7 @@ function ProposalRow({
       <td className="ad-grid-all">
         <form action={action} className="ad-grid-proposal-actions">
           <input type="hidden" name="eventId" value={eventId} />
+          <input type="hidden" name="editionId" value={editionId} />
           <input type="hidden" name="trustLevel" value="pluka_validated" />
           {candidateIds.map((candidateId) => (
             <input key={candidateId} type="hidden" name="candidateIds" value={candidateId} />
@@ -767,6 +732,7 @@ export function EquipmentGrid({
                 <ProposalRow
                   key={proposal.factKey}
                   eventId={eventId}
+                  editionId={editionId}
                   races={races}
                   proposal={proposal}
                   current={originals.get(proposal.factKey)}

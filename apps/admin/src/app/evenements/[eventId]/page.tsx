@@ -53,7 +53,7 @@ import { consoleNotice, type ConsoleNoticeParams } from '@/lib/console-notice';
 import { dateTime } from '@/lib/format';
 import { requireSession } from '@/lib/session';
 
-import { EditionEquipmentPanel } from './edition-equipment';
+import { EventTabs } from './event-tabs';
 import { EventOrganizationForm } from './event-organization-form';
 import {
   activityOf,
@@ -284,11 +284,6 @@ export default async function EventPage({
     ),
   });
 
-  const equipmentRaces = currentRaces.map(({ race }) => ({
-    id: race.id,
-    name: race.name,
-    detail: raceMeasures(race).split(' · ')[0] ?? null,
-  }));
   const equipmentRows = currentRaces.every(({ equipment }) => equipment === null)
     ? null
     : editionEquipmentRows(
@@ -302,35 +297,10 @@ export default async function EventPage({
     currentRaces.map(({ race, candidates }) => ({ raceId: race.id, candidates })),
   );
 
-  // L'édition précédente : son matériel se reprend d'un geste dans le brouillon.
-  const previousEdition = editionsWithRaces[1];
-  const previousEquipment =
-    previousEdition === undefined || previousEdition.races.length === 0
-      ? null
-      : {
-          year: previousEdition.edition.year,
-          races: previousEdition.races.map((race) => ({
-            id: race.id,
-            name: race.name,
-            detail: raceMeasures(race).split(' · ')[0] ?? null,
-          })),
-          rows: editionEquipmentRows(
-            await Promise.all(
-              previousEdition.races.map(async (race) => ({
-                raceId: race.id,
-                raceName: race.name,
-                items: await listRaceFactsForEditing(factContext, { raceId: race.id })
-                  .then((facts) =>
-                    facts.filter((fact) => fact.category === 'equipment').map(equipmentOf),
-                  )
-                  .catch(() => null),
-              })),
-            ),
-          ),
-        };
-
   const siteUrl = inventory?.finalUrl ?? inventory?.siteUrl ?? null;
   const documentsHref = `/evenements/${event.id}/documents`;
+  const equipmentHref = `/evenements/${event.id}/materiel`;
+  const mandatory = equipmentRows?.filter((row) => row.strongest === 'mandatory').length ?? 0;
 
   return (
     <main className="ad-page ad-org ad-event">
@@ -361,6 +331,13 @@ export default async function EventPage({
           </ul>
         )}
       </header>
+
+      <EventTabs
+        eventId={event.id}
+        current="overview"
+        equipmentPending={proposals.length}
+        documentsDue={documents === null ? null : failedDocuments}
+      />
 
       <TerrainBand
         tone="dark"
@@ -447,6 +424,29 @@ export default async function EventPage({
             due: pendingReview !== null && pendingReview > 0,
           },
           {
+            key: 'tile-equipment',
+            label: 'Matériel',
+            value:
+              equipmentRows === null ? '—' : plural(equipmentRows.length, 'élément', 'éléments'),
+            meta:
+              proposals.length > 0 ? (
+                <Link href={equipmentHref} className="pk-link">
+                  {plural(proposals.length, 'proposition à relire', 'propositions à relire')}
+                </Link>
+              ) : equipmentRows === null ? (
+                'Non lu'
+              ) : equipmentRows.length === 0 ? (
+                <Link href={equipmentHref} className="pk-link">
+                  À renseigner
+                </Link>
+              ) : (
+                <Link href={equipmentHref} className="pk-link">
+                  {mandatory} obligatoire{mandatory > 1 ? 's' : ''}
+                </Link>
+              ),
+            due: proposals.length > 0 || (equipmentRows !== null && equipmentRows.length === 0),
+          },
+          {
             key: 'tile-races',
             label: 'Épreuves',
             value:
@@ -490,17 +490,6 @@ export default async function EventPage({
         />
       </div>
 
-      {current === undefined ? null : (
-        <EditionEquipmentPanel
-          eventId={event.id}
-          editionId={current.edition.id}
-          editionYear={current.edition.year}
-          races={equipmentRaces}
-          rows={currentRaces.length === 0 ? [] : equipmentRows}
-          proposals={proposals}
-          previous={previousEquipment}
-        />
-      )}
 
       <h2 className="ad-event-section">Éditions et épreuves</h2>
 

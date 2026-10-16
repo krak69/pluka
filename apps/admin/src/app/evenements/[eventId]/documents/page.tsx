@@ -21,6 +21,8 @@ import {
 } from '@/lib/admin';
 import { requireSession } from '@/lib/session';
 
+import { EventTabs } from '../event-tabs';
+
 import { DocumentsForm, type FoundDocument } from './documents-form';
 
 /**
@@ -112,6 +114,7 @@ export default async function EventDocumentsPage({
     redirectOnDomainError,
   );
 
+  const latestId = [...editions].sort((left, right) => right.year - left.year)[0]?.id ?? null;
   const edition =
     editions.find((candidate) => candidate.id === editionParam) ??
     [...editions].sort((left, right) => right.year - left.year)[0];
@@ -180,6 +183,16 @@ export default async function EventDocumentsPage({
         <AdminPageHeader
           title="Documents de course"
           lede={`Édition ${edition.year}. Choisis les pages et documents à analyser : PLUKA en extrait les informations de course — barrières, matériel, ravitaillements, assistance — que tu valides avant toute publication.`}
+        />
+      )}
+
+      {/* Pendant la création, le parcours guidé reste seul à l'écran. */}
+      {creation === '1' ? null : (
+        <EventTabs
+          eventId={eventId}
+          current="documents"
+          editionId={edition.id === latestId ? null : edition.id}
+          documentsDue={state.documents.filter((document) => document.state === 'failed').length}
         />
       )}
 

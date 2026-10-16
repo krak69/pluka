@@ -157,6 +157,20 @@ function equipmentFailure(error: unknown): ActionState {
 }
 
 
+/** L'onglet Matériel, sur l'édition du geste : une valeur connue, jamais une adresse postée. */
+function materielLanding(eventId: string, form: FormData, notice: string): string {
+  const editionId = text(form, 'editionId');
+  const edition = editionId !== undefined && UUID.test(editionId) ? `edition=${editionId}&` : '';
+  return `/evenements/${eventId}/materiel?${edition}fait=${notice}`;
+}
+
+function revalidateEquipment(eventId: string): void {
+  revalidatePath(`/evenements/${eventId}/materiel`);
+  // La vue d'ensemble résume le matériel, la fiche épreuve le lit.
+  revalidatePath(`/evenements/${eventId}`);
+  revalidatePath('/courses/[raceId]', 'page');
+}
+
 /**
  * Le tableau du matériel d'une édition — migration 0048. Le brouillon arrive
  * en JSON : une ligne par pièce modifiée, une exigence par épreuve. La base
@@ -190,9 +204,8 @@ export async function saveEditionEquipmentAction(
     return equipmentFailure(error);
   }
 
-  revalidatePath(`/evenements/${eventId}`);
-  revalidatePath('/courses/[raceId]', 'page');
-  redirect(`/evenements/${eventId}?fait=materiel-enregistre#materiel`);
+  revalidateEquipment(eventId);
+  redirect(materielLanding(eventId, form, 'materiel-enregistre'));
 }
 
 /**
@@ -224,8 +237,7 @@ export async function decideEquipmentProposalAction(
     return equipmentFailure(error);
   }
 
-  revalidatePath(`/evenements/${eventId}`);
-  revalidatePath('/courses/[raceId]', 'page');
+  revalidateEquipment(eventId);
 
   const [failure] = outcome.failures;
   if (failure !== undefined) {
@@ -237,7 +249,5 @@ export async function decideEquipmentProposalAction(
     };
   }
 
-  redirect(
-    `/evenements/${eventId}?fait=${accept ? 'materiel-accepte' : 'materiel-ecarte'}#materiel`,
-  );
+  redirect(materielLanding(eventId, form, accept ? 'materiel-accepte' : 'materiel-ecarte'));
 }

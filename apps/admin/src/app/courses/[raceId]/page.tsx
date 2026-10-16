@@ -372,7 +372,7 @@ export default async function RacePage({
             ? null
             : candidates.filter((candidate) => candidate.category === 'equipment').length
         }
-        manageHref={`${eventHref}#materiel`}
+        manageHref={`${eventHref}/materiel?edition=${edition.id}`}
       />
 
       <section className="ad-org-panel" aria-labelledby="waypoints-title">
