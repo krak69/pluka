@@ -211,6 +211,7 @@ export {
   type OrganizationTeamRepository,
   type OwnMembershipRecord,
 } from './repositories/organization-team.js';
+export { eventSiteRepository, type EventSiteRepository } from './repositories/event-site.js';
 export {
   createRaceInformationRepositories,
   publishedFactRepository,
