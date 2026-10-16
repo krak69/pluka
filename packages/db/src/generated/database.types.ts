@@ -809,6 +809,7 @@ export type Database = {
           end_date: string | null
           event_id: string
           id: string
+          registration_url: string | null
           slug: string
           start_date: string
           status: Database["public"]["Enums"]["edition_status"]
@@ -820,6 +821,7 @@ export type Database = {
           end_date?: string | null
           event_id: string
           id?: string
+          registration_url?: string | null
           slug: string
           start_date: string
           status?: Database["public"]["Enums"]["edition_status"]
@@ -831,6 +833,7 @@ export type Database = {
           end_date?: string | null
           event_id?: string
           id?: string
+          registration_url?: string | null
           slug?: string
           start_date?: string
           status?: Database["public"]["Enums"]["edition_status"]
@@ -1234,6 +1237,111 @@ export type Database = {
             columns: ["edition_id"]
             isOneToOne: false
             referencedRelation: "editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_site_sections: {
+        Row: {
+          body: string
+          created_at: string
+          event_id: string
+          id: string
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          event_id: string
+          id?: string
+          sort_order: number
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          sort_order?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_site_sections_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_sites"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      event_sites: {
+        Row: {
+          accent_color: string | null
+          contact_email: string | null
+          cover_path: string | null
+          created_at: string
+          event_id: string
+          heading_font: string | null
+          logo_path: string | null
+          published_at: string | null
+          published_by_user_id: string | null
+          status: Database["public"]["Enums"]["event_site_status"]
+          suspended_at: string | null
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          contact_email?: string | null
+          cover_path?: string | null
+          created_at?: string
+          event_id: string
+          heading_font?: string | null
+          logo_path?: string | null
+          published_at?: string | null
+          published_by_user_id?: string | null
+          status?: Database["public"]["Enums"]["event_site_status"]
+          suspended_at?: string | null
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          contact_email?: string | null
+          cover_path?: string | null
+          created_at?: string
+          event_id?: string
+          heading_font?: string | null
+          logo_path?: string | null
+          published_at?: string | null
+          published_by_user_id?: string | null
+          status?: Database["public"]["Enums"]["event_site_status"]
+          suspended_at?: string | null
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_sites_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_sites_published_by_user_id_fkey"
+            columns: ["published_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_sites_updated_by_user_id_fkey"
+            columns: ["updated_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -4864,6 +4972,7 @@ export type Database = {
           id: string
           name: string
           public_visibility: Database["public"]["Enums"]["race_visibility"]
+          registration_url: string | null
           slug: string
           start_datetime: string
           start_location_name: string | null
@@ -4885,6 +4994,7 @@ export type Database = {
           id?: string
           name: string
           public_visibility?: Database["public"]["Enums"]["race_visibility"]
+          registration_url?: string | null
           slug: string
           start_datetime: string
           start_location_name?: string | null
@@ -4906,6 +5016,7 @@ export type Database = {
           id?: string
           name?: string
           public_visibility?: Database["public"]["Enums"]["race_visibility"]
+          registration_url?: string | null
           slug?: string
           start_datetime?: string
           start_location_name?: string | null
@@ -5027,6 +5138,8 @@ export type Database = {
           id: string
           imported_at: string
           organization_id: string | null
+          public_download_at: string | null
+          public_download_by_user_id: string | null
           source_type: Database["public"]["Enums"]["source_type"]
           status: Database["public"]["Enums"]["source_status"]
           storage_path: string | null
@@ -5043,6 +5156,8 @@ export type Database = {
           id?: string
           imported_at?: string
           organization_id?: string | null
+          public_download_at?: string | null
+          public_download_by_user_id?: string | null
           source_type: Database["public"]["Enums"]["source_type"]
           status?: Database["public"]["Enums"]["source_status"]
           storage_path?: string | null
@@ -5059,6 +5174,8 @@ export type Database = {
           id?: string
           imported_at?: string
           organization_id?: string | null
+          public_download_at?: string | null
+          public_download_by_user_id?: string | null
           source_type?: Database["public"]["Enums"]["source_type"]
           status?: Database["public"]["Enums"]["source_status"]
           storage_path?: string | null
@@ -5093,6 +5210,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sources_public_download_by_user_id_fkey"
+            columns: ["public_download_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -5945,6 +6069,16 @@ export type Database = {
         Args: { p_product_id: string }
         Returns: undefined
       }
+      claim_event_site_contact: {
+        Args: {
+          p_event_id: string
+          p_ip_hash: string
+          p_max_per_event: number
+          p_max_per_ip: number
+          p_window: string
+        }
+        Returns: Json
+      }
       decide_fact_candidate: {
         Args: {
           p_action: string
@@ -5972,6 +6106,15 @@ export type Database = {
           p_url?: string
         }
         Returns: string
+      }
+      event_site_document_path: {
+        Args: { p_source_id: string }
+        Returns: string
+      }
+      event_site_public: { Args: { p_slug: string }; Returns: Json }
+      finish_event_site_contact: {
+        Args: { p_attempt_id: number; p_status: string }
+        Returns: undefined
       }
       get_course_preprocessing_input: {
         Args: { p_race_id: string }
@@ -6170,6 +6313,10 @@ export type Database = {
           version_number: number
         }[]
       }
+      purge_event_site_contact_attempts: {
+        Args: { p_older_than: string }
+        Returns: number
+      }
       restore_race_fact: {
         Args: { p_fact_id: string; p_note?: string }
         Returns: undefined
@@ -6210,9 +6357,34 @@ export type Database = {
         }
         Returns: number
       }
+      save_event_site: {
+        Args: {
+          p_accent_color: string
+          p_contact_email: string
+          p_event_id: string
+          p_heading_font: string
+          p_sections: Json
+        }
+        Returns: undefined
+      }
+      set_event_site_image: {
+        Args: { p_event_id: string; p_kind: string; p_path: string }
+        Returns: undefined
+      }
+      set_event_site_status: {
+        Args: {
+          p_event_id: string
+          p_status: Database["public"]["Enums"]["event_site_status"]
+        }
+        Returns: undefined
+      }
       set_race_waypoints: {
         Args: { p_race_id: string; p_waypoints: Json }
         Returns: Json
+      }
+      set_source_public_download: {
+        Args: { p_public: boolean; p_source_id: string }
+        Returns: undefined
       }
       staff_change_role: {
         Args: {
@@ -6705,6 +6877,7 @@ export type Database = {
         | "pluka_suggestion"
         | "conditions"
       equipment_status: "planned" | "packed" | "missing" | "not_needed"
+      event_site_status: "draft" | "published" | "suspended"
       fact_category:
         | "general"
         | "start"
@@ -7095,6 +7268,7 @@ export const Constants = {
         "conditions",
       ],
       equipment_status: ["planned", "packed", "missing", "not_needed"],
+      event_site_status: ["draft", "published", "suspended"],
       fact_category: [
         "general",
         "start",

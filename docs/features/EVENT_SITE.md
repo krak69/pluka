@@ -1,6 +1,6 @@
 # PLUKA — Site de l'événement
 
-**Statut :** proposition — en cours de cadrage, non implémentée
+**Statut :** adoptée le 2026-10-16 — modèle de données en place (0049), écrans à venir
 **Décisions produit :** 2026-10-16
 **Portée :** organisateurs (`apps/app`, espace `/org`) et visiteurs anonymes
 
@@ -273,9 +273,9 @@ Rien d'autre : pas de bandeau, pas d'encart publicitaire.
 
 ---
 
-# 11. Modèle de données — esquisse, à valider
+# 11. Modèle de données — écrit en 0049 (`02_DATA_MODEL.md` §6.9)
 
-À écrire en migration seulement après validation de ce document.
+Seuils de la limite de débit du contact : passés par le serveur, depuis sa configuration.
 
 - `event_sites` — un par événement : statut (brouillon, publié, suspendu), accent, police,
   couverture, publié le / par ;
