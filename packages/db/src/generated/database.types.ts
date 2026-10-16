@@ -6361,8 +6361,11 @@ export type Database = {
         Args: {
           p_accent_color: string
           p_contact_email: string
+          p_edition_id?: string
+          p_edition_registration_url?: string
           p_event_id: string
           p_heading_font: string
+          p_race_registration_urls?: Json
           p_sections: Json
         }
         Returns: undefined

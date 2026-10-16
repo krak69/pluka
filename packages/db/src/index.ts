@@ -213,6 +213,19 @@ export {
 } from './repositories/organization-team.js';
 export { eventSiteRepository, type EventSiteRepository } from './repositories/event-site.js';
 export {
+  EVENT_SITE_ASSETS_BUCKET,
+  eventSiteAssetStore,
+  eventSiteEditingRepository,
+  type EventSiteAssetStore,
+  type EventSiteEditingRepository,
+  type EventSiteEditionRecord,
+  type EventSiteEventRecord,
+  type EventSiteRaceRecord,
+  type EventSiteRecord,
+  type EventSiteSectionRecord,
+  type SaveEventSiteInput,
+} from './repositories/event-site-editing.js';
+export {
   createRaceInformationRepositories,
   publishedFactRepository,
   type PublishedFactRepository,

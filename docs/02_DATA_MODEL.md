@@ -396,13 +396,14 @@ Spécification : `docs/features/EVENT_SITE.md`.
 
 - `event_sites` — un par événement : statut (`draft`, `published`, `suspended`), couleur
   d'accent, police de titres (liste fermée), chemins du logo et de la couverture dans le
-  bucket public `event-site-assets`, adresse de contact. Aucune écriture directe : les RPC
+  bucket public `event-site-assets` (dépôt par les éditeurs de l'événement, dans son
+  dossier — 0051), adresse de contact. Aucune écriture directe : les RPC
   `save_event_site`, `set_event_site_image`, `set_event_site_status` vérifient le rôle du
   geste. Lu en public par `event_site_public(slug)`, qui n'en sort jamais l'adresse de
   contact.
 - `event_site_sections` — blocs de texte des infos pratiques, rattachés à l'événement.
 - `editions.registration_url`, `races.registration_url` — inscription externe ; celle de
-  l'épreuve prime.
+  l'épreuve prime. Enregistrées avec le reste du site par `save_event_site` (0050).
 - `sources.public_download_at` — diffusion publique d'un document, posée par owner ou admin.
 - `private.event_slug_aliases` — anciens slugs : l'ancien sous-domaine redirige, et un
   ancien slug reste à son événement. Les sous-domaines réservés à PLUKA ne deviennent pas
