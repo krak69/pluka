@@ -1,4 +1,8 @@
 import { handleCourseWaypointsMessage, isCourseWaypointsMessage } from './jobs/course-waypoints.js';
+import {
+  handleEventSiteContactMessage,
+  isEventSiteContactMessage,
+} from './jobs/event-site-contact-send.js';
 import { GPX_QUEUE, handleGpxMessage } from './jobs/gpx-process.js';
 import { IMPACT_QUEUE, handleImpactMessage, isImpactMessage } from './jobs/change-impact.js';
 import {
@@ -125,6 +129,7 @@ const CONSUMERS: readonly {
       if (isNotificationMessage(message)) return handleNotificationMessage(ports, message);
       if (isInvitationMessage(message)) return handleInvitationMessage(ports, message);
       if (isStaffInvitationMessage(message)) return handleStaffInvitationMessage(ports, message);
+      if (isEventSiteContactMessage(message)) return handleEventSiteContactMessage(ports, message);
 
       return Promise.resolve({ kind: 'abandoned' as const });
     },

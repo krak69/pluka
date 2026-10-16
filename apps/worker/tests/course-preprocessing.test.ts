@@ -152,6 +152,13 @@ function createHarness(): Harness {
       complete: async (): Promise<void> => undefined,
       fail: async () => 1,
     },
+    siteContacts: {
+      claim: async () => {
+        throw new Error('non employé dans ces tests');
+      },
+      complete: async (): Promise<void> => undefined,
+      fail: async () => 1,
+    },
     discoveries: {
       begin: async () => null,
       complete: async (): Promise<void> => undefined,

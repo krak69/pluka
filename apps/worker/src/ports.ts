@@ -362,6 +362,31 @@ export interface StaffInvitationStore {
 }
 
 /**
+ * Message du formulaire de contact d'un site — migration 0052.
+ *
+ * `claim` rend le message, ou `sendable = false` s'il n'existe plus : un
+ * message pgmq rejoué après envoi s'arrête là. `complete` et un `fail`
+ * abandonné en effacent le contenu.
+ */
+export interface EventSiteContactClaim {
+  readonly sendable: boolean;
+  readonly recipientEmail: string | null;
+  readonly eventName: string | null;
+  readonly raceName: string | null;
+  readonly senderName: string | null;
+  readonly senderEmail: string | null;
+  readonly body: string | null;
+  readonly attempt: number;
+}
+
+export interface EventSiteContactStore {
+  claim(messageId: string): Promise<EventSiteContactClaim>;
+  complete(messageId: string): Promise<void>;
+  /** Rend le nombre d'envois tentés. */
+  fail(messageId: string, error: string, abandon: boolean): Promise<number>;
+}
+
+/**
  * Inventaire d'un site officiel — migrations 0040, 0042, SOURCES_EXTRACTION §11.1.
  *
  * `begin` rend l'URL à lire, ou `null` si l'inventaire n'est plus à faire :
@@ -394,6 +419,7 @@ export interface WorkerPorts {
   readonly notifications: NotificationStore;
   readonly invitations: InvitationStore;
   readonly staffInvitations: StaffInvitationStore;
+  readonly siteContacts: EventSiteContactStore;
   readonly discoveries: DiscoveryStore;
   /**
    * Fournisseur email, ou son absence.
