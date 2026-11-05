@@ -103,6 +103,10 @@ export interface EventSiteRaceRecord {
   readonly name: string;
   readonly slug: string;
   readonly startDatetime: string;
+  readonly timezone: string;
+  readonly distanceKm: number;
+  readonly elevationGainM: number | null;
+  readonly startLocationName: string | null;
   readonly registrationUrl: string | null;
   readonly publicVisibility: Enum<'race_visibility'>;
   readonly status: Enum<'race_status'>;
@@ -153,6 +157,13 @@ export interface EventSiteEditingRepository {
   listEditions(eventId: string): Promise<readonly EventSiteEditionRecord[]>;
   listRaces(editionId: string): Promise<readonly EventSiteRaceRecord[]>;
   save(input: SaveEventSiteInput): Promise<void>;
+  /** `conflict` : l'événement a déjà une édition cette année-là (0059). */
+  duplicateEdition(
+    sourceEditionId: string,
+    year: number,
+    startDate: string,
+    endDate: string | null,
+  ): Promise<void>;
   /** `invalid_state` : le site est déjà dans cet état. */
   setStatus(eventId: string, status: 'published' | 'draft'): Promise<void>;
   setImage(eventId: string, kind: 'logo' | 'cover', path: string | null): Promise<void>;
@@ -218,6 +229,10 @@ const RACE_COLUMNS = [
   'name',
   'slug',
   'start_datetime',
+  'timezone',
+  'distance_km',
+  'elevation_gain_m',
+  'start_location_name',
   'registration_url',
   'public_visibility',
   'status',
@@ -381,6 +396,10 @@ export const eventSiteEditingRepository = defineRepository<EventSiteEditingRepos
         name: row.name,
         slug: row.slug,
         startDatetime: row.start_datetime,
+        timezone: row.timezone,
+        distanceKm: Number(row.distance_km),
+        elevationGainM: row.elevation_gain_m,
+        startLocationName: row.start_location_name,
         registrationUrl: row.registration_url,
         publicVisibility: row.public_visibility,
         status: row.status,
@@ -412,6 +431,15 @@ export const eventSiteEditingRepository = defineRepository<EventSiteEditingRepos
                 videoId: input.content.video?.id ?? null,
               },
         p_program: input.program,
+      });
+    },
+
+    async duplicateEdition(sourceEditionId, year, startDate, endDate) {
+      await call(context.client, 'duplicate_edition', {
+        p_source_edition_id: sourceEditionId,
+        p_year: year,
+        p_start_date: startDate,
+        p_end_date: endDate,
       });
     },
 

@@ -6225,6 +6225,15 @@ export type Database = {
         }
         Returns: string
       }
+      duplicate_edition: {
+        Args: {
+          p_end_date?: string
+          p_source_edition_id: string
+          p_start_date: string
+          p_year: number
+        }
+        Returns: string
+      }
       enqueue_race_gpx: {
         Args: {
           p_content_hash: string
