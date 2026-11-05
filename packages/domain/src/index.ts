@@ -641,6 +641,17 @@ export {
   type PublicSiteRace,
 } from './site/public-site.js';
 export {
+  MAX_ATTENTION_ITEMS,
+  eventSiteChecklist,
+  organizerAttention,
+  type AttentionItem,
+  type AttentionKind,
+  type AttentionTarget,
+  type EventSiteChecklistItem,
+  type SiteEditorTab,
+  type TeamInvitationsSummary,
+} from './site/attention.js';
+export {
   parseSiteVideoUrl,
   siteVideoPlayerUrl,
   siteVideoUrl,
