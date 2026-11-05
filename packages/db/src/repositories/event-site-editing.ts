@@ -61,6 +61,21 @@ export interface EventSiteFigureRecord {
   readonly label: string;
 }
 
+export interface EventSiteProgramItemRecord {
+  readonly startsAt: string;
+  readonly timezone: string;
+  readonly title: string;
+  readonly location: string | null;
+}
+
+/** Une ligne telle que l'organisation la saisit : un jour et une heure civils. */
+export interface EventSiteProgramItemInput {
+  readonly day: string;
+  readonly time: string;
+  readonly title: string;
+  readonly location: string | null;
+}
+
 export interface EventSiteEditionRecord {
   readonly id: string;
   readonly year: number;
@@ -103,6 +118,8 @@ export interface SaveEventSiteInput {
     readonly figures: readonly EventSiteFigureRecord[];
     readonly links: EventSiteLinks;
   } | null;
+  /** Nul : le programme n'est pas touché (0055). Exige `registration`, qui porte l'édition. */
+  readonly program: readonly EventSiteProgramItemInput[] | null;
   /** Nul : les liens d'inscription ne sont pas touchés (0050). */
   readonly registration: {
     readonly editionId: string;
@@ -116,6 +133,7 @@ export interface EventSiteEditingRepository {
   findSite(eventId: string): Promise<EventSiteRecord | null>;
   listSections(eventId: string): Promise<readonly EventSiteSectionRecord[]>;
   listFigures(eventId: string): Promise<readonly EventSiteFigureRecord[]>;
+  listProgram(editionId: string): Promise<readonly EventSiteProgramItemRecord[]>;
   listEditions(eventId: string): Promise<readonly EventSiteEditionRecord[]>;
   listRaces(editionId: string): Promise<readonly EventSiteRaceRecord[]>;
   save(input: SaveEventSiteInput): Promise<void>;
@@ -166,6 +184,7 @@ const SITE_COLUMNS = [
 ] as const;
 const SECTION_COLUMNS = ['title', 'body', 'moment', 'topic_key', 'sort_order'] as const;
 const FIGURE_COLUMNS = ['value', 'label', 'sort_order'] as const;
+const PROGRAM_COLUMNS = ['starts_at', 'timezone', 'title', 'location'] as const;
 const EDITION_COLUMNS = [
   'id',
   'year',
@@ -262,6 +281,24 @@ export const eventSiteEditingRepository = defineRepository<EventSiteEditingRepos
       return rows.map((row) => ({ value: row.value, label: row.label }));
     },
 
+    async listProgram(editionId) {
+      const rows = unwrap(
+        await context.client
+          .from('event_site_program_items')
+          .select(selectColumns('event_site_program_items', PROGRAM_COLUMNS))
+          .eq('edition_id', editionId)
+          .order('starts_at', { ascending: true })
+          .order('title', { ascending: true }),
+        'event_site_program_items.list',
+      );
+      return rows.map((row) => ({
+        startsAt: row.starts_at,
+        timezone: row.timezone,
+        title: row.title,
+        location: row.location,
+      }));
+    },
+
     async listEditions(eventId) {
       const rows = unwrap(
         await context.client
@@ -316,6 +353,7 @@ export const eventSiteEditingRepository = defineRepository<EventSiteEditingRepos
             ? null
             : input.registration.races.map((race) => ({ raceId: race.raceId, url: race.url })),
         p_content: input.content,
+        p_program: input.program,
       });
     },
 

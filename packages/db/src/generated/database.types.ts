@@ -1276,6 +1276,44 @@ export type Database = {
           },
         ]
       }
+      event_site_program_items: {
+        Row: {
+          created_at: string
+          edition_id: string
+          id: string
+          location: string | null
+          starts_at: string
+          timezone: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          edition_id: string
+          id?: string
+          location?: string | null
+          starts_at: string
+          timezone: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          edition_id?: string
+          id?: string
+          location?: string | null
+          starts_at?: string
+          timezone?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_site_program_items_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_site_sections: {
         Row: {
           body: string
@@ -6427,6 +6465,7 @@ export type Database = {
           p_edition_registration_url?: string
           p_event_id: string
           p_heading_font: string
+          p_program?: Json
           p_race_registration_urls?: Json
           p_sections: Json
         }

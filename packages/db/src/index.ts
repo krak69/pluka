@@ -228,6 +228,8 @@ export {
   type EventSiteRaceRecord,
   type EventSiteRecord,
   type EventSiteFigureRecord,
+  type EventSiteProgramItemInput,
+  type EventSiteProgramItemRecord,
   type EventSiteLinks,
   type EventSiteSectionRecord,
   type SaveEventSiteInput,
