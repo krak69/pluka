@@ -5,6 +5,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { HEADING_STYLE, siteFontVariables } from '@/app/site/fonts';
 import { safeHttpUrl } from '@/app/site/format';
 import { loadEventSite, siteAssetUrl, siteTheme } from '@/lib/event-site';
+import { loadPracticalGuide } from '@/lib/event-site-practical';
 
 import '@/app/site/site.css';
 
@@ -45,11 +46,18 @@ export default async function SiteLayout({
   readonly children: ReactNode;
   readonly params: Promise<Params>;
 }) {
-  const site = await loadEventSite((await params).siteSlug);
+  const { siteSlug } = await params;
+  const site = await loadEventSite(siteSlug);
+  const guide = await loadPracticalGuide(siteSlug);
   const theme = siteTheme(site);
   const heading = HEADING_STYLE[theme.headingFont];
   const logo = siteAssetUrl(site.appearance.logoPath);
   const registration = safeHttpUrl(site.edition?.registrationUrl ?? null);
+  const socials = [
+    { href: safeHttpUrl(site.links.facebook), label: 'Facebook' },
+    { href: safeHttpUrl(site.links.instagram), label: 'Instagram' },
+    { href: safeHttpUrl(site.links.strava), label: 'Strava' },
+  ].flatMap(({ href, label }) => (href === null ? [] : [{ href, label }]));
 
   const style = {
     '--site-accent': theme.accent,
@@ -77,7 +85,7 @@ export default async function SiteLayout({
           </Link>
           <nav aria-label="Rubriques" className="es-nav">
             <Link href="/#epreuves">Épreuves</Link>
-            <Link href="/#infos">Infos pratiques</Link>
+            {guide.length === 0 ? null : <Link href="/infos-pratiques">Infos pratiques</Link>}
             {site.documents.length === 0 ? null : <Link href="/#documents">Documents</Link>}
             {site.partners.length === 0 ? null : <Link href="/#partenaires">Partenaires</Link>}
             {site.hasContact ? <Link href="/#contact">Contact</Link> : null}
@@ -97,6 +105,17 @@ export default async function SiteLayout({
       <footer className="es-footer">
         <div className="es-wrap es-footer-inner">
           <span className="es-footer-name">{site.event.name}</span>
+          {socials.length === 0 ? null : (
+            <ul className="es-socials" aria-label="Réseaux sociaux">
+              {socials.map((social) => (
+                <li key={social.label}>
+                  <a href={social.href} rel="noopener" target="_blank">
+                    {social.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
           <a href="https://pluka.run" className="es-powered">
             Propulsé par <strong>PLUKA</strong>
           </a>

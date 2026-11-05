@@ -1186,6 +1186,33 @@ select.pk-input {
   gap: var(--space-3);
 }
 
+.st-moment {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.st-filled {
+  font-weight: 400;
+  color: var(--pk-text-muted);
+}
+
+.st-figures {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.st-figure {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--space-3);
+}
+
+.st-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: var(--space-4);
+}
+
 .st-sections {
   display: grid;
   gap: var(--space-4);

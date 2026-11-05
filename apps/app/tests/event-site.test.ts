@@ -7,6 +7,7 @@ import {
   raceTimeLabel,
   safeHttpUrl,
 } from '@/app/site/format';
+import { practicalGuide, type PracticalRaceFacts } from '@/app/site/practical';
 
 /**
  * Le site d'un événement, côté pages — EVENT_SITE §3, §7.2.
@@ -45,5 +46,66 @@ describe('les dates', () => {
     expect(raceDayLabel('2026-06-20T04:00:00Z', 'Europe/Paris')).toBe('sam. 20 juin');
     // 23:30 UTC le vendredi est déjà samedi à Paris.
     expect(raceStartLabel('2026-06-19T23:30:00Z', 'Europe/Paris')).toBe('sam. 20 juin, 01:30');
+  });
+});
+
+describe('infos pratiques du site', () => {
+  const fact = (category: PracticalRaceFacts['facts'][number]['category'], valueText: string) =>
+    ({ category, valueText, valueNumber: null, unit: null }) as PracticalRaceFacts['facts'][number];
+
+  it('réunit dans la rubrique le fait publié et le texte de l’organisation', () => {
+    const guide = practicalGuide(
+      [
+        { raceName: '10 km', facts: [fact('bib', 'La veille, 16 h')] },
+        { raceName: '30 km', facts: [fact('bib', 'La veille, 16 h')] },
+      ],
+      [{ title: 'Retrait des dossards', body: 'À la salle.', moment: 'before', topicKey: 'bib_pickup' }],
+    );
+
+    expect(guide).toEqual([
+      {
+        moment: 'before',
+        title: 'Avant',
+        rubrics: [
+          {
+            key: 'bib_pickup',
+            title: 'Retrait des dossards',
+            items: [{ value: 'La veille, 16 h', races: [] }],
+            body: 'À la salle.',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('nomme les épreuves quand une information ne les concerne pas toutes', () => {
+    const guide = practicalGuide(
+      [
+        { raceName: '10 km', facts: [fact('transport', 'Navette à 7 h')] },
+        { raceName: '30 km', facts: [] },
+      ],
+      [],
+    );
+
+    expect(guide[0]?.title).toBe('Pendant');
+    expect(guide[0]?.rubrics[0]?.items).toEqual([{ value: 'Navette à 7 h', races: ['10 km'] }]);
+  });
+
+  it('range par moment, et laisse les départs aux épreuves', () => {
+    const guide = practicalGuide(
+      [{ raceName: '10 km', facts: [fact('start', '09:00'), fact('contact', '06 00')] }],
+      [
+        { title: 'Douches', body: 'Au gymnase.', moment: 'after', topicKey: 'showers' },
+        { title: 'Garderie', body: 'Pour les enfants.', moment: 'during', topicKey: null },
+      ],
+    );
+
+    expect(guide.map((moment) => moment.title)).toEqual(['Avant', 'Pendant', 'Après']);
+    expect(guide[0]?.rubrics.map((rubric) => rubric.title)).toEqual(['Contact']);
+    expect(guide[1]?.rubrics.map((rubric) => rubric.title)).toEqual(['Garderie']);
+  });
+
+  it('n’affiche ni rubrique vide ni moment vide', () => {
+    expect(practicalGuide([{ raceName: '10 km', facts: [fact('bib', '  ')] }], [])).toEqual([]);
   });
 });

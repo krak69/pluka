@@ -1,6 +1,9 @@
 import {
   DEFAULT_SITE_ACCENT,
   SITE_HEADING_FONTS,
+  SITE_MOMENTS,
+  SITE_MOMENT_LABELS,
+  SITE_PRACTICAL_TOPICS,
   getEventSiteEditor,
   siteUrl,
   type EventSiteBlocker,
@@ -281,6 +284,15 @@ export default async function SitePage({
             fonts={fonts}
             contactEmail={site?.contactEmail ?? null}
             sections={editor.sections}
+            moments={SITE_MOMENTS.map((moment) => ({
+              value: moment,
+              label: SITE_MOMENT_LABELS[moment],
+            }))}
+            topics={SITE_PRACTICAL_TOPICS}
+            presentation={site?.presentation ?? null}
+            venue={site?.venue ?? null}
+            figures={editor.figures}
+            links={site?.links ?? null}
             edition={
               editor.edition === null
                 ? null

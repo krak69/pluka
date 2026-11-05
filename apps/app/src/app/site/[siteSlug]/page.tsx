@@ -1,11 +1,10 @@
-import type { PublishedRaceFactRecord } from '@pluka/db';
-import { listRaceInformation, registrationUrlOf, type PublicEventSite } from '@pluka/domain';
+import { registrationUrlOf } from '@pluka/domain';
 import { TrustBadge } from '@pluka/ui';
 import Link from 'next/link';
 
 import { SiteContactForm } from '@/components/site-contact-form';
 import { loadEventSite, siteAssetUrl } from '@/lib/event-site';
-import { anonymousRaceContext } from '@/lib/race-information';
+import { loadPracticalGuide } from '@/lib/event-site-practical';
 import { editionDateRange, raceDayLabel, raceTimeLabel, safeHttpUrl } from '@/app/site/format';
 
 /**
@@ -22,90 +21,16 @@ import { editionDateRange, raceDayLabel, raceTimeLabel, safeHttpUrl } from '@/ap
 
 type Params = { readonly siteSlug: string };
 
-/** L'officiel des infos pratiques : ces catégories de faits, lues dans le règlement (§3.3). */
-const PRACTICAL_CATEGORIES: readonly PublishedRaceFactRecord['category'][] = [
-  'bib',
-  'transport',
-  'start',
-  'contact',
-];
-
-const PRACTICAL_LABELS: Readonly<Partial<Record<PublishedRaceFactRecord['category'], string>>> = {
-  bib: 'Dossards',
-  transport: 'Transport',
-  start: 'Départ',
-  contact: 'Contact',
-};
-
-interface PracticalFact {
-  readonly key: string;
-  readonly title: string;
-  readonly value: string;
-  readonly races: readonly string[];
-  readonly trustLevel: PublishedRaceFactRecord['trustLevel'];
-  readonly source: string | null;
-}
-
-function factValue(fact: PublishedRaceFactRecord): string | null {
-  if (fact.valueText !== null && fact.valueText.trim() !== '') return fact.valueText;
-  if (fact.valueNumber !== null) return `${String(fact.valueNumber)}${fact.unit === null ? '' : ` ${fact.unit}`}`;
-  return null;
-}
-
-function sourceLabel(fact: PublishedRaceFactRecord): string | null {
-  if (fact.source?.title == null) return null;
-  return fact.source.pageStart === null
-    ? fact.source.title
-    : `${fact.source.title}, p. ${String(fact.source.pageStart)}`;
-}
-
-/**
- * Les faits pratiques des épreuves, regroupés : un retrait des dossards
- * commun à toutes les épreuves ne s'affiche qu'une fois, avec les épreuves
- * qu'il concerne quand il ne les concerne pas toutes.
- */
-async function practicalFacts(site: PublicEventSite): Promise<readonly PracticalFact[]> {
-  const context = anonymousRaceContext();
-  const informations = await Promise.all(
-    site.races.map(async (race) => ({
-      race,
-      information: await listRaceInformation(context, { raceId: race.id }),
-    })),
-  );
-
-  const grouped = new Map<string, PracticalFact>();
-  for (const { race, information } of informations) {
-    for (const fact of information.facts) {
-      if (!PRACTICAL_CATEGORIES.includes(fact.category)) continue;
-      const value = factValue(fact);
-      if (value === null) continue;
-
-      const key = `${fact.factKey}\u0000${value}`;
-      const existing = grouped.get(key);
-      grouped.set(
-        key,
-        existing === undefined
-          ? {
-              key,
-              title: PRACTICAL_LABELS[fact.category] ?? fact.category,
-              value,
-              races: [race.name],
-              trustLevel: fact.trustLevel,
-              source: sourceLabel(fact),
-            }
-          : { ...existing, races: [...existing.races, race.name] },
-      );
-    }
-  }
-
-  const order = (fact: PracticalFact) =>
-    PRACTICAL_CATEGORIES.findIndex((category) => PRACTICAL_LABELS[category] === fact.title);
-  return [...grouped.values()].sort((left, right) => order(left) - order(right));
-}
-
 export default async function SiteHome({ params }: { readonly params: Promise<Params> }) {
-  const site = await loadEventSite((await params).siteSlug);
-  const facts = await practicalFacts(site);
+  const { siteSlug } = await params;
+  const site = await loadEventSite(siteSlug);
+  const guide = await loadPracticalGuide(siteSlug);
+  const links = [
+    { href: safeHttpUrl(site.links.results), label: 'Résultats' },
+    { href: safeHttpUrl(site.links.live), label: 'Suivi en direct' },
+    { href: safeHttpUrl(site.links.volunteers), label: 'Devenir bénévole' },
+    { href: safeHttpUrl(site.links.newsletter), label: 'Newsletter' },
+  ].flatMap(({ href, label }) => (href === null ? [] : [{ href, label }]));
   const cover = siteAssetUrl(site.appearance.coverPath);
   const registration = safeHttpUrl(site.edition?.registrationUrl ?? null);
   const latestNotice = site.notices[0];
@@ -138,7 +63,9 @@ export default async function SiteHome({ params }: { readonly params: Promise<Pa
             {site.edition === null ? null : (
               <span>{editionDateRange(site.edition.startDate, site.edition.endDate)}</span>
             )}
-            {site.event.city === null ? null : <span>{site.event.city}</span>}
+            {(site.venue ?? site.event.city) === null ? null : (
+              <span>{site.venue ?? site.event.city}</span>
+            )}
           </p>
           {site.event.description === null ? null : (
             <p className="es-hero-lede">{site.event.description}</p>
@@ -167,6 +94,26 @@ export default async function SiteHome({ params }: { readonly params: Promise<Pa
             <p>
               <strong>{latestNotice.title}</strong> {latestNotice.body}
             </p>
+          </div>
+        </section>
+      )}
+
+      {site.presentation === null && site.figures.length === 0 ? null : (
+        <section id="presentation" className="es-section es-section-white">
+          <div className="es-wrap es-presentation">
+            {site.presentation === null ? null : (
+              <p className="es-presentation-text">{site.presentation}</p>
+            )}
+            {site.figures.length === 0 ? null : (
+              <dl className="es-figures">
+                {site.figures.map((figure, index) => (
+                  <div key={index}>
+                    <dd>{figure.value}</dd>
+                    <dt>{figure.label}</dt>
+                  </div>
+                ))}
+              </dl>
+            )}
           </div>
         </section>
       )}
@@ -236,45 +183,45 @@ export default async function SiteHome({ params }: { readonly params: Promise<Pa
         </div>
       </section>
 
-      {facts.length === 0 && site.sections.length === 0 ? null : (
+      {guide.length === 0 ? null : (
         <section id="infos" className="es-section es-section-white">
           <div className="es-wrap">
             <h2 className="es-h2">Infos pratiques</h2>
-            <div className="es-infos">
-              {facts.length === 0 ? null : (
-                <div>
-                  <p className="es-eyebrow">Lu dans le règlement</p>
-                  <ul className="es-info-list">
-                    {facts.map((fact) => (
-                      <li key={fact.key} className="es-info">
-                        <strong>{fact.title}</strong>
-                        <span className="es-info-value">{fact.value}</span>
-                        <span className="es-info-meta">
-                          {fact.races.length === raceCount ? null : (
-                            <span>{fact.races.join(', ')}</span>
-                          )}
-                          {fact.source === null ? null : <span>{fact.source}</span>}
-                          <TrustBadge level={fact.trustLevel} />
-                        </span>
+            <div className="es-moments">
+              {guide.map((moment) => (
+                <div key={moment.moment} className="es-moment">
+                  <h3>{moment.title}</h3>
+                  <ul>
+                    {moment.rubrics.map((rubric) => (
+                      <li key={rubric.key}>
+                        <Link href={`/infos-pratiques#${rubric.key}`}>{rubric.title}</Link>
                       </li>
                     ))}
                   </ul>
                 </div>
-              )}
-              {site.sections.length === 0 ? null : (
-                <div>
-                  <p className="es-eyebrow">Écrit par l’organisation</p>
-                  <ul className="es-info-list">
-                    {site.sections.map((section, index) => (
-                      <li key={index} className="es-info">
-                        <strong>{section.title}</strong>
-                        <span className="es-info-value es-info-text">{section.body}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              ))}
             </div>
+            <Link href="/infos-pratiques" className="es-ghost-dark">
+              Toutes les infos pratiques
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {links.length === 0 ? null : (
+        <section aria-label="Liens utiles" className="es-section es-section-sand es-links-band">
+          <div className="es-wrap">
+            <ul className="es-links">
+              {links.map((link) => (
+                <li key={link.label}>
+                  <a href={link.href} rel="noopener" target="_blank">
+                    {link.label}
+                    <span aria-hidden="true"> ↗</span>
+                    <span className="es-visually-hidden"> (nouvel onglet)</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
       )}

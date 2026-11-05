@@ -436,46 +436,199 @@
 }
 
 /* Infos pratiques */
-.es-infos {
+.es-rubrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
-  gap: var(--space-12);
-}
-
-.es-info-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: var(--space-8);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.es-info {
+.es-rubric {
   display: grid;
+  align-content: start;
   gap: var(--space-2);
-  padding: var(--space-4) 0;
-  border-top: 1px solid var(--pk-hairline);
+  padding-top: var(--space-4);
+  border-top: 2px solid var(--site-accent);
 }
 
-.es-info strong {
-  font-size: 16px;
+/* Une rubrique seule tient toute la ligne, à une largeur de lecture. */
+.es-rubric:only-child p {
+  max-width: 70ch;
 }
 
-.es-info-value {
+.es-rubric h3 {
+  margin: 0;
+  font-family: var(--site-heading), var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+  text-transform: var(--site-heading-case);
+}
+
+.es-rubric p {
+  margin: 0;
   font-size: 15px;
-  line-height: 1.55;
+  line-height: 1.6;
 }
 
-.es-info-text {
+.es-rubric-text {
   white-space: pre-line;
 }
 
-.es-info-meta {
+.es-rubric-races {
+  display: block;
+  font-size: 13px;
+  color: var(--pk-text-muted);
+}
+
+.es-rubric {
+  scroll-margin-top: var(--space-8);
+}
+
+.es-rubric-items {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* Le sommaire de l'accueil, et la page des infos pratiques */
+.es-moments {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: var(--space-8);
+  margin-bottom: var(--space-8);
+}
+
+.es-moment h3 {
+  margin: 0 0 var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--site-accent);
+  font-family: var(--site-heading), var(--font-heading);
+  font-size: 22px;
+  text-transform: var(--site-heading-case);
+}
+
+.es-moment ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-moment a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--pk-ink);
+  font-size: 15px;
+}
+
+.es-ghost-dark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-5);
+  border: 1px solid var(--pk-ink);
+  border-radius: var(--radius-sm);
+  color: var(--pk-ink);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.es-page-head {
+  padding: 64px 0 var(--space-8);
+}
+
+.es-page-title {
+  margin: 0;
+  font-family: var(--site-heading), var(--font-heading);
+  font-size: 48px;
+  line-height: 1;
+  text-transform: var(--site-heading-case);
+}
+
+.es-moment-section {
+  padding: var(--space-8) 0;
+}
+
+.es-moment-title {
+  margin: 0 0 var(--space-6);
+  font-family: var(--site-heading), var(--font-heading);
+  font-size: 32px;
+  text-transform: var(--site-heading-case);
+}
+
+/* Présentation et chiffres clés */
+.es-presentation {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.es-presentation-text {
+  max-width: 70ch;
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.65;
+  white-space: pre-line;
+}
+
+.es-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: var(--space-6);
+  margin: 0;
+}
+
+.es-figures dd {
+  margin: 0;
+  font-family: var(--site-heading), var(--font-heading);
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.es-figures dt {
+  font-size: 14px;
+  color: var(--pk-text-muted);
+}
+
+/* Liens utiles */
+.es-links-band {
+  padding: var(--space-8) 0;
+}
+
+.es-links {
   display: flex;
   flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-links a {
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-2) var(--space-3);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--pk-text-muted);
+  min-height: 44px;
+  color: var(--pk-ink);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.es-socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-socials a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--pk-sand);
 }
 
 /* Documents */

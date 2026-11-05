@@ -89,6 +89,11 @@ export async function saveSiteAction(
 ): Promise<SiteActionState> {
   const titles = texts(form, 'sectionTitle');
   const bodies = texts(form, 'sectionBody');
+  const moments = texts(form, 'sectionMoment');
+  const topicKeys = texts(form, 'topicKey');
+  const topicBodies = texts(form, 'topicBody');
+  const figureValues = texts(form, 'figureValue');
+  const figureLabels = texts(form, 'figureLabel');
   const raceIds = texts(form, 'raceId');
   const raceUrls = texts(form, 'raceRegistrationUrl');
   const editionId = text(form, 'editionId');
@@ -100,10 +105,36 @@ export async function saveSiteAction(
       accentColor: text(form, 'accentColor'),
       headingFont: text(form, 'headingFont'),
       contactEmail: text(form, 'contactEmail'),
-      sections: titles
-        .map((title, index) => ({ title, body: bodies[index] ?? '' }))
-        // Un bloc laissé entièrement vide est un bloc qu'on n'a pas écrit.
-        .filter((section) => section.title.trim() !== '' || section.body.trim() !== ''),
+      // Une rubrique laissée vide est une rubrique qu'on n'a pas écrite.
+      sections: [
+        ...topicKeys
+          .map((topicKey, index) => ({ topicKey, body: topicBodies[index] ?? '' }))
+          .filter((section) => section.body.trim() !== ''),
+        ...titles
+          .map((title, index) => ({
+            title,
+            body: bodies[index] ?? '',
+            moment: moments[index] ?? '',
+            topicKey: null,
+          }))
+          .filter((section) => section.title.trim() !== '' || section.body.trim() !== ''),
+      ],
+      content: {
+        presentation: text(form, 'presentation'),
+        venue: text(form, 'venue'),
+        figures: figureValues
+          .map((value, index) => ({ value, label: figureLabels[index] ?? '' }))
+          .filter((figure) => figure.value.trim() !== '' || figure.label.trim() !== ''),
+        links: {
+          results: text(form, 'linkResults'),
+          live: text(form, 'linkLive'),
+          volunteers: text(form, 'linkVolunteers'),
+          newsletter: text(form, 'linkNewsletter'),
+          facebook: text(form, 'linkFacebook'),
+          instagram: text(form, 'linkInstagram'),
+          strava: text(form, 'linkStrava'),
+        },
+      },
       registration:
         editionId === ''
           ? null

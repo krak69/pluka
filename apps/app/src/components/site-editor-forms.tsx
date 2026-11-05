@@ -42,9 +42,32 @@ interface Section {
   readonly key: number;
   readonly title: string;
   readonly body: string;
+  readonly moment: string;
 }
 
-const MAX_SECTIONS = 20;
+interface Topic {
+  readonly key: string;
+  readonly moment: string;
+  readonly title: string;
+  readonly hint: string;
+  readonly factCategory: string | null;
+}
+
+/** La limite de la base, moins les rubriques proposées. */
+const MAX_ADDED_SECTIONS = 9;
+const FIGURE_SLOTS = [0, 1, 2, 3] as const;
+
+const LINK_FIELDS = [
+  { name: 'linkResults', key: 'results', label: 'Résultats' },
+  { name: 'linkLive', key: 'live', label: 'Suivi en direct' },
+  { name: 'linkVolunteers', key: 'volunteers', label: 'Devenir bénévole' },
+  { name: 'linkNewsletter', key: 'newsletter', label: 'Newsletter' },
+  { name: 'linkFacebook', key: 'facebook', label: 'Facebook' },
+  { name: 'linkInstagram', key: 'instagram', label: 'Instagram' },
+  { name: 'linkStrava', key: 'strava', label: 'Strava' },
+] as const;
+
+type SiteLinks = Readonly<Record<(typeof LINK_FIELDS)[number]['key'], string | null>>;
 
 export function SiteEditorForm({
   organizationId,
@@ -58,6 +81,12 @@ export function SiteEditorForm({
   fonts,
   contactEmail,
   sections: initialSections,
+  moments,
+  topics,
+  presentation,
+  venue,
+  figures,
+  links,
   edition,
   races,
 }: {
@@ -71,7 +100,18 @@ export function SiteEditorForm({
   readonly headingFont: string | null;
   readonly fonts: readonly SiteFontOption[];
   readonly contactEmail: string | null;
-  readonly sections: readonly { readonly title: string; readonly body: string }[];
+  readonly sections: readonly {
+    readonly title: string;
+    readonly body: string;
+    readonly moment: string;
+    readonly topicKey: string | null;
+  }[];
+  readonly moments: readonly { readonly value: string; readonly label: string }[];
+  readonly topics: readonly Topic[];
+  readonly presentation: string | null;
+  readonly venue: string | null;
+  readonly figures: readonly { readonly value: string; readonly label: string }[];
+  readonly links: SiteLinks | null;
   readonly edition: { readonly id: string; readonly year: number; readonly registrationUrl: string | null } | null;
   readonly races: readonly { readonly id: string; readonly name: string; readonly registrationUrl: string | null }[];
 }) {
@@ -79,11 +119,28 @@ export function SiteEditorForm({
   const id = useId();
   const [accent, setAccent] = useState(accentColor ?? '');
   const [font, setFont] = useState(headingFont ?? '');
+  const [topicBodies, setTopicBodies] = useState<Readonly<Record<string, string>>>(() =>
+    Object.fromEntries(
+      initialSections.flatMap((section) =>
+        section.topicKey === null ? [] : [[section.topicKey, section.body]],
+      ),
+    ),
+  );
   const [sections, setSections] = useState<readonly Section[]>(() =>
-    initialSections.map((section, index) => ({ key: index, ...section })),
+    initialSections
+      .filter((section) => section.topicKey === null)
+      .map((section, index) => ({
+        key: index,
+        title: section.title,
+        body: section.body,
+        moment: section.moment,
+      })),
   );
   const [nextKey, setNextKey] = useState(initialSections.length);
   const errors = state.fieldErrors ?? {};
+  // L'erreur d'une rubrique porte sa place parmi celles envoyées : les rubriques
+  // proposées et remplies, puis les rubriques ajoutées.
+  const filledTopics = topics.filter((topic) => (topicBodies[topic.key] ?? '').trim() !== '');
 
   const previewFont = fonts.find((option) => option.value === font) ?? fonts[0];
   const shownAccent = /^#[0-9a-fA-F]{6}$/u.test(accent) ? accent : defaultAccent;
@@ -185,6 +242,61 @@ export function SiteEditorForm({
       </fieldset>
 
       <fieldset className="st-fieldset" disabled={!canEdit || pending}>
+        <legend className="pk-h2">Présentation</legend>
+        <div className="pk-field">
+          <label className="pk-field-label" htmlFor={`${id}-presentation`}>
+            L’événement en quelques lignes
+          </label>
+          <textarea
+            id={`${id}-presentation`}
+            name="presentation"
+            className="pk-input st-textarea"
+            rows={6}
+            maxLength={4000}
+            defaultValue={presentation ?? ''}
+            aria-describedby={`${id}-presentation-hint`}
+          />
+          <p id={`${id}-presentation-hint`} className="pk-field-hint">
+            L’histoire de la course, son esprit, ce qui la rend unique.
+          </p>
+        </div>
+        <Input
+          id={`${id}-venue`}
+          name="venue"
+          label="Lieu du rendez-vous"
+          maxLength={120}
+          placeholder="Salle des fêtes, Lucenay"
+          defaultValue={venue ?? ''}
+          error={errors['content.venue']}
+        />
+        <div className="st-figures">
+          <p className="pk-field-label">Chiffres clés, quatre au plus</p>
+          {FIGURE_SLOTS.map((index) => (
+            <div key={index} className="st-figure">
+              <Input
+                id={`${id}-figure-${String(index)}-value`}
+                name="figureValue"
+                label={`Chiffre ${String(index + 1)}`}
+                maxLength={20}
+                placeholder="600"
+                defaultValue={figures[index]?.value ?? ''}
+                error={errors[`content.figures.${String(index)}.value`]}
+              />
+              <Input
+                id={`${id}-figure-${String(index)}-label`}
+                name="figureLabel"
+                label="Libellé"
+                maxLength={60}
+                placeholder="coureurs en 2026"
+                defaultValue={figures[index]?.label ?? ''}
+                error={errors[`content.figures.${String(index)}.label`]}
+              />
+            </div>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset className="st-fieldset" disabled={!canEdit || pending}>
         <legend className="pk-h2">Inscription</legend>
         {edition === null ? (
           <p className="pk-body">
@@ -233,9 +345,55 @@ export function SiteEditorForm({
       <fieldset className="st-fieldset" disabled={!canEdit || pending}>
         <legend className="pk-h2">Infos pratiques</legend>
         <p className="pk-body">
-          Dossards, transport et horaires de départ viennent déjà du règlement, avec leur source.
-          Écrivez ici le reste : hébergement, stationnement, accueil des accompagnateurs.
+          Remplissez ce qui vous concerne : une rubrique vide n’apparaît pas sur le site.
         </p>
+        {moments.map((moment) => (
+          <div key={moment.value} className="st-moment">
+            <h3 className="pk-label">{moment.label}</h3>
+            {topics
+              .filter((topic) => topic.moment === moment.value)
+              .map((topic) => {
+                const body = topicBodies[topic.key] ?? '';
+                const fieldId = `${id}-topic-${topic.key}`;
+                const error =
+                  errors[`sections.${String(filledTopics.indexOf(topic))}.body`];
+                return (
+                  <details key={topic.key} className="st-details" open={body.trim() !== ''}>
+                    <summary>
+                      {topic.title}
+                      {body.trim() === '' ? null : <span className="st-filled"> · rempli</span>}
+                    </summary>
+                    <input type="hidden" name="topicKey" value={topic.key} />
+                    <div className="pk-field">
+                      <label className="pk-field-label" htmlFor={fieldId}>
+                        {topic.title}
+                      </label>
+                      <textarea
+                        id={fieldId}
+                        name="topicBody"
+                        className="pk-input st-textarea"
+                        rows={3}
+                        maxLength={4000}
+                        value={body}
+                        onChange={(event) =>
+                          setTopicBodies((current) => ({ ...current, [topic.key]: event.target.value }))
+                        }
+                        aria-describedby={`${fieldId}-hint`}
+                      />
+                      <p id={`${fieldId}-hint`} className="pk-field-hint">
+                        {topic.hint}
+                        {topic.factCategory === null
+                          ? null
+                          : ' Ce qui est publié pour vos épreuves s’y affiche déjà : écrivez seulement le complément.'}
+                      </p>
+                      {error === undefined ? null : <p className="pk-field-error">{error}</p>}
+                    </div>
+                  </details>
+                );
+              })}
+          </div>
+        ))}
+        <h3 className="pk-label">Vos rubriques</h3>
         <ol className="st-sections">
           {sections.map((section, index) => (
             <li key={section.key} className="st-section">
@@ -247,7 +405,7 @@ export function SiteEditorForm({
                     className="pk-btn pk-button-ghost"
                     onClick={() => move(index, -1)}
                     disabled={index === 0}
-                    aria-label={`Monter le bloc ${String(index + 1)}`}
+                    aria-label={`Monter la rubrique ${String(index + 1)}`}
                   >
                     ↑
                   </button>
@@ -256,7 +414,7 @@ export function SiteEditorForm({
                     className="pk-btn pk-button-ghost"
                     onClick={() => move(index, 1)}
                     disabled={index === sections.length - 1}
-                    aria-label={`Descendre le bloc ${String(index + 1)}`}
+                    aria-label={`Descendre la rubrique ${String(index + 1)}`}
                   >
                     ↓
                   </button>
@@ -276,8 +434,26 @@ export function SiteEditorForm({
                 maxLength={80}
                 value={section.title}
                 onChange={(event) => update(section.key, { title: event.target.value })}
-                error={errors[`sections.${String(index)}.title`]}
+                error={errors[`sections.${String(filledTopics.length + index)}.title`]}
               />
+              <div className="pk-field">
+                <label className="pk-field-label" htmlFor={`${id}-section-${String(section.key)}-moment`}>
+                  Moment
+                </label>
+                <select
+                  id={`${id}-section-${String(section.key)}-moment`}
+                  name="sectionMoment"
+                  className="pk-input"
+                  value={section.moment}
+                  onChange={(event) => update(section.key, { moment: event.target.value })}
+                >
+                  {moments.map((moment) => (
+                    <option key={moment.value} value={moment.value}>
+                      {moment.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="pk-field">
                 <label className="pk-field-label" htmlFor={`${id}-section-${String(section.key)}-body`}>
                   Texte
@@ -291,29 +467,56 @@ export function SiteEditorForm({
                   value={section.body}
                   onChange={(event) => update(section.key, { body: event.target.value })}
                 />
-                {errors[`sections.${String(index)}.body`] === undefined ? null : (
-                  <p className="pk-field-error">{errors[`sections.${String(index)}.body`]}</p>
+                {errors[`sections.${String(filledTopics.length + index)}.body`] === undefined ? null : (
+                  <p className="pk-field-error">
+                    {errors[`sections.${String(filledTopics.length + index)}.body`]}
+                  </p>
                 )}
               </div>
             </li>
           ))}
         </ol>
-        {sections.length >= MAX_SECTIONS ? (
-          <p className="pk-field-hint">20 blocs au plus.</p>
+        {sections.length >= MAX_ADDED_SECTIONS ? (
+          <p className="pk-field-hint">9 rubriques ajoutées au plus.</p>
         ) : (
           <div>
             <button
               type="button"
               className="pk-btn pk-button-secondary"
               onClick={() => {
-                setSections((current) => [...current, { key: nextKey, title: '', body: '' }]);
+                setSections((current) => [
+                  ...current,
+                  { key: nextKey, title: '', body: '', moment: 'before' },
+                ]);
                 setNextKey((key) => key + 1);
               }}
             >
-              Ajouter un bloc
+              Ajouter une rubrique
             </button>
           </div>
         )}
+      </fieldset>
+
+      <fieldset className="st-fieldset" disabled={!canEdit || pending}>
+        <legend className="pk-h2">Liens utiles</legend>
+        <p className="pk-body">
+          PLUKA ne remplace ni le chronométrage, ni le suivi en direct, ni votre newsletter : ces
+          liens y mènent. Sans lien, rien n’apparaît.
+        </p>
+        <div className="st-links">
+          {LINK_FIELDS.map((field) => (
+            <Input
+              key={field.name}
+              id={`${id}-${field.name}`}
+              name={field.name}
+              type="url"
+              label={field.label}
+              placeholder="https://"
+              defaultValue={links?.[field.key] ?? ''}
+              error={errors[`content.links.${field.key}`]}
+            />
+          ))}
+        </div>
       </fieldset>
 
       <fieldset className="st-fieldset" disabled={!canEdit || pending}>
