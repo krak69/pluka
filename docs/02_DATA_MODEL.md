@@ -405,6 +405,8 @@ Spécification : `docs/features/EVENT_SITE.md`.
 - `editions.registration_url`, `races.registration_url` — inscription externe ; celle de
   l'épreuve prime. Enregistrées avec le reste du site par `save_event_site` (0050).
 - `sources.public_download_at` — diffusion publique d'un document, posée par owner ou admin.
+  L'éditeur lit la liste par `event_site_documents(edition)` (0053), réservée aux membres :
+  elle dit qu'un fichier existe, jamais où il se trouve.
 - `private.event_slug_aliases` — anciens slugs : l'ancien sous-domaine redirige, et un
   ancien slug reste à son événement. Les sous-domaines réservés à PLUKA ne deviennent pas
   des slugs (`private.is_reserved_subdomain`).

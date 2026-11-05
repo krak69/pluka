@@ -136,15 +136,6 @@ const EDITION_COLUMNS = [
   'status',
   'registration_url',
 ] as const;
-const DOCUMENT_COLUMNS = [
-  'id',
-  'title',
-  'source_type',
-  'storage_path',
-  'url',
-  'public_download_at',
-  'status',
-] as const;
 const RACE_COLUMNS = [
   'id',
   'name',
@@ -276,21 +267,17 @@ export const eventSiteEditingRepository = defineRepository<EventSiteEditingRepos
     },
 
     async listDocuments(editionId) {
+      // Par la fonction de 0053 : `storage_path` et `public_download_at` restent
+      // hors du `select` de `authenticated`.
       const rows = unwrap(
-        await context.client
-          .from('sources')
-          .select(selectColumns('sources', DOCUMENT_COLUMNS))
-          .eq('edition_id', editionId)
-          .neq('status', 'archived')
-          .neq('source_type', 'gpx')
-          .order('title', { ascending: true }),
-        'sources.listForSite',
+        await context.client.rpc('event_site_documents', { p_edition_id: editionId }),
+        'event_site_documents',
       );
       return rows.map((row) => ({
         id: row.id,
         title: row.title,
         sourceType: row.source_type,
-        hasFile: row.storage_path !== null,
+        hasFile: row.has_file,
         url: row.url,
         publicDownloadAt: row.public_download_at,
       }));

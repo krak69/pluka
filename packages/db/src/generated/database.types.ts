@@ -6101,6 +6101,17 @@ export type Database = {
         Args: { p_source_id: string }
         Returns: string
       }
+      event_site_documents: {
+        Args: { p_edition_id: string }
+        Returns: {
+          has_file: boolean
+          id: string
+          public_download_at: string
+          source_type: Database["public"]["Enums"]["source_type"]
+          title: string
+          url: string
+        }[]
+      }
       event_site_public: { Args: { p_slug: string }; Returns: Json }
       get_course_preprocessing_input: {
         Args: { p_race_id: string }
