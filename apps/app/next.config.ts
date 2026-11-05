@@ -52,6 +52,8 @@ const SITE_CSP = [
   `img-src 'self' data: https: ${SUPABASE_ORIGIN}`,
   "font-src 'self'",
   `connect-src 'self'${IS_DEV ? ' ws: wss:' : ''}`,
+  // Les deux seuls lecteurs de vidéo, chargés au clic (§3.10).
+  'frame-src https://www.youtube-nocookie.com https://player.vimeo.com',
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

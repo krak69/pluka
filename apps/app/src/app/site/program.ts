@@ -10,6 +10,12 @@ import { civilDayKey, fullDayLabel, raceTimeLabel } from '@/app/site/format';
  * l'organisation, il n'y a pas de programme.
  */
 
+/**
+ * Masqué depuis le 2026-11-05 : ni l'éditeur ni le site ne le montrent, et les
+ * lignes déjà enregistrées sont conservées. Le passer à `true` le fait revenir.
+ */
+export const SITE_PROGRAM_VISIBLE: boolean = false;
+
 export interface ProgramEntry {
   readonly key: string;
   readonly time: string;

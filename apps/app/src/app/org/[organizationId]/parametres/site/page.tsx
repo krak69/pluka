@@ -6,15 +6,19 @@ import {
   SITE_PRACTICAL_TOPICS,
   getEventSiteEditor,
   siteUrl,
+  siteVideoUrl,
   type EventSiteBlocker,
 } from '@pluka/domain';
 import { MicroLabel } from '@pluka/ui';
 import Link from 'next/link';
 
 import { HEADING_STYLE, siteFontVariables } from '@/app/site/fonts';
+import { SITE_PROGRAM_VISIBLE } from '@/app/site/program';
 import {
   SiteDocumentForm,
   SiteEditorForm,
+  SiteGalleryPhotoForm,
+  SiteGalleryRemoveForm,
   SiteImageForm,
   SiteStatusForm,
 } from '@/components/site-editor-forms';
@@ -42,6 +46,8 @@ const NOTICES: Readonly<Record<string, string>> = {
   logo: 'Logo mis à jour.',
   couverture: 'Image de couverture mise à jour.',
   'image-retiree': 'Image retirée.',
+  photo: 'Photo ajoutée à la galerie.',
+  'photo-retiree': 'Photo retirée de la galerie.',
   'document-diffuse': 'Document diffusé : il se télécharge depuis le site.',
   'document-retire': 'Document retiré du site.',
 };
@@ -233,6 +239,46 @@ export default async function SitePage({
             </div>
           </section>
 
+          <section aria-labelledby="site-gallery" className="st-images">
+            <h2 id="site-gallery" className="pk-h2">
+              Galerie
+            </h2>
+            <p className="pk-body">
+              Douze photos au plus, ajoutées une par une. Elles s’affichent dans l’ordre de dépôt, et
+              leur position GPS est retirée.
+            </p>
+            {editor.gallery.length === 0 ? null : (
+              <ul className="st-gallery">
+                {editor.gallery.map((photo, index) => (
+                  <li key={photo.id} className="st-gallery-item">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={siteAssetUrl(photo.path) ?? ''}
+                      alt={photo.alt ?? `Photo ${String(index + 1)}`}
+                      loading="lazy"
+                    />
+                    {permissions.canEdit ? (
+                      <SiteGalleryRemoveForm
+                        organizationId={organizationId}
+                        eventId={event.id}
+                        eventSlug={event.slug}
+                        photoId={photo.id}
+                        label={photo.alt ?? `la photo ${String(index + 1)}`}
+                      />
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {!permissions.canEdit || editor.gallery.length >= 12 ? null : (
+              <SiteGalleryPhotoForm
+                organizationId={organizationId}
+                eventId={event.id}
+                eventSlug={event.slug}
+              />
+            )}
+          </section>
+
           <section aria-labelledby="site-documents" className="st-documents">
             <h2 id="site-documents" className="pk-h2">
               Documents
@@ -294,6 +340,8 @@ export default async function SitePage({
             figures={editor.figures}
             links={site?.links ?? null}
             program={editor.program}
+            showProgram={SITE_PROGRAM_VISIBLE}
+            video={site?.video == null ? null : siteVideoUrl(site.video)}
             edition={
               editor.edition === null
                 ? null

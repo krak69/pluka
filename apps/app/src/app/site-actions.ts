@@ -2,6 +2,8 @@
 
 import {
   DomainError,
+  addEventSiteGalleryPhoto,
+  removeEventSiteGalleryPhoto,
   removeEventSiteImage,
   saveEventSite,
   setEventSiteDocumentPublic,
@@ -11,6 +13,7 @@ import {
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
+import { SITE_PROGRAM_VISIBLE } from '@/app/site/program';
 import { sessionEventSiteContext } from '@/lib/event-site-editing';
 import { requireSession } from '@/lib/session';
 
@@ -42,6 +45,8 @@ const FORBIDDEN: Readonly<Record<string, string>> = {
   saveEventSite: 'Votre rôle permet de voir le site, pas de le modifier.',
   uploadEventSiteImage: 'Votre rôle permet de voir le site, pas de le modifier.',
   removeEventSiteImage: 'Votre rôle permet de voir le site, pas de le modifier.',
+  addEventSiteGalleryPhoto: 'Votre rôle permet de voir le site, pas de le modifier.',
+  removeEventSiteGalleryPhoto: 'Votre rôle permet de voir le site, pas de le modifier.',
   setEventSiteStatus: 'Seuls un propriétaire ou un administrateur mettent le site en ligne.',
   setEventSiteDocumentPublic: 'Seuls un propriétaire ou un administrateur diffusent un document.',
 };
@@ -126,6 +131,7 @@ export async function saveSiteAction(
       content: {
         presentation: text(form, 'presentation'),
         venue: text(form, 'venue'),
+        video: text(form, 'video'),
         figures: figureValues
           .map((value, index) => ({ value, label: figureLabels[index] ?? '' }))
           .filter((figure) => figure.value.trim() !== '' || figure.label.trim() !== ''),
@@ -139,8 +145,9 @@ export async function saveSiteAction(
           strava: text(form, 'linkStrava'),
         },
       },
+      // Nul : masqué, le formulaire n'envoie aucune ligne, et le programme ne doit pas être vidé.
       program:
-        editionId === ''
+        editionId === '' || !SITE_PROGRAM_VISIBLE
           ? null
           : programTitles
               .map((title, index) => ({
@@ -245,4 +252,45 @@ export async function removeSiteImageAction(
   }
 
   done(form, 'image-retiree');
+}
+
+export async function addSitePhotoAction(
+  _previous: SiteActionState,
+  form: FormData,
+): Promise<SiteActionState> {
+  const file = form.get('file');
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: 'Choisissez une image.', fieldErrors: { file: 'Choisissez une image.' } };
+  }
+
+  try {
+    await addEventSiteGalleryPhoto(await context(form), {
+      organizationId: text(form, 'organizationId'),
+      eventId: text(form, 'eventId'),
+      alt: text(form, 'alt'),
+      contentType: file.type,
+      bytes: new Uint8Array(await file.arrayBuffer()),
+    });
+  } catch (error) {
+    return failure(error);
+  }
+
+  done(form, 'photo');
+}
+
+export async function removeSitePhotoAction(
+  _previous: SiteActionState,
+  form: FormData,
+): Promise<SiteActionState> {
+  try {
+    await removeEventSiteGalleryPhoto(await context(form), {
+      organizationId: text(form, 'organizationId'),
+      eventId: text(form, 'eventId'),
+      photoId: text(form, 'photoId'),
+    });
+  } catch (error) {
+    return failure(error);
+  }
+
+  done(form, 'photo-retiree');
 }

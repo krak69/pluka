@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { siteProgram } from '@/app/site/program';
+import { SITE_PROGRAM_VISIBLE, siteProgram } from '@/app/site/program';
 import { loadEventSite } from '@/lib/event-site';
 
 /**
@@ -16,6 +16,8 @@ export default async function SiteProgramPage({
 }: {
   readonly params: Promise<{ readonly siteSlug: string }>;
 }) {
+  if (!SITE_PROGRAM_VISIBLE) notFound();
+
   const site = await loadEventSite((await params).siteSlug);
   const days = siteProgram(site.program, site.races);
   if (days.length === 0) notFound();

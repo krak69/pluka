@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode } from 'react';
 
 import { HEADING_STYLE, siteFontVariables } from '@/app/site/fonts';
 import { safeHttpUrl } from '@/app/site/format';
+import { SITE_PROGRAM_VISIBLE } from '@/app/site/program';
 import { loadEventSite, siteAssetUrl, siteTheme } from '@/lib/event-site';
 import { loadPracticalGuide } from '@/lib/event-site-practical';
 
@@ -85,8 +86,13 @@ export default async function SiteLayout({
           </Link>
           <nav aria-label="Rubriques" className="es-nav">
             <Link href="/#epreuves">Épreuves</Link>
-            {site.program.length === 0 ? null : <Link href="/programme">Programme</Link>}
+            {!SITE_PROGRAM_VISIBLE || site.program.length === 0 ? null : (
+              <Link href="/programme">Programme</Link>
+            )}
             {guide.length === 0 ? null : <Link href="/infos-pratiques">Infos pratiques</Link>}
+            {site.gallery.length === 0 && site.video === null ? null : (
+              <Link href="/galerie">Galerie</Link>
+            )}
             {site.documents.length === 0 ? null : <Link href="/#documents">Documents</Link>}
             {site.partners.length === 0 ? null : <Link href="/#partenaires">Partenaires</Link>}
             {site.hasContact ? <Link href="/#contact">Contact</Link> : null}

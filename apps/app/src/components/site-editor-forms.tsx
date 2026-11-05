@@ -4,7 +4,9 @@ import { Input } from '@pluka/ui';
 import { useActionState, useId, useState } from 'react';
 
 import {
+  addSitePhotoAction,
   removeSiteImageAction,
+  removeSitePhotoAction,
   saveSiteAction,
   setDocumentPublicAction,
   setSiteStatusAction,
@@ -98,6 +100,8 @@ export function SiteEditorForm({
   figures,
   links,
   program,
+  showProgram,
+  video,
   edition,
   races,
 }: {
@@ -129,6 +133,8 @@ export function SiteEditorForm({
     readonly title: string;
     readonly location: string | null;
   }[];
+  readonly showProgram: boolean;
+  readonly video: string | null;
   readonly edition: {
     readonly id: string;
     readonly year: number;
@@ -300,6 +306,16 @@ export function SiteEditorForm({
           placeholder="Salle des fêtes, Lucenay"
           defaultValue={venue ?? ''}
           error={errors['content.venue']}
+        />
+        <Input
+          id={`${id}-video`}
+          name="video"
+          type="url"
+          label="Vidéo YouTube ou Vimeo"
+          placeholder="https://www.youtube.com/watch?v=…"
+          hint="Elle s’affiche dans la galerie du site, et se charge quand le visiteur clique."
+          defaultValue={video ?? ''}
+          error={errors['content.video']}
         />
         <div className="st-figures">
           <p className="pk-field-label">Chiffres clés, quatre au plus</p>
@@ -529,7 +545,7 @@ export function SiteEditorForm({
         )}
       </fieldset>
 
-      {edition === null ? null : (
+      {edition === null || !showProgram ? null : (
         <fieldset className="st-fieldset" disabled={!canEdit || pending}>
           <legend className="pk-h2">{`Programme ${String(edition.year)}`}</legend>
           <p className="pk-body">
@@ -822,5 +838,91 @@ export function SiteImageForm({
         </form>
       ) : null}
     </div>
+  );
+}
+
+export function SiteGalleryPhotoForm({
+  organizationId,
+  eventId,
+  eventSlug,
+}: {
+  readonly organizationId: string;
+  readonly eventId: string;
+  readonly eventSlug: string;
+}) {
+  const [state, action, pending] = useActionState(addSitePhotoAction, INITIAL);
+  const id = useId();
+
+  return (
+    <form action={action} className="st-image-form">
+      <input type="hidden" name="organizationId" value={organizationId} />
+      <input type="hidden" name="eventId" value={eventId} />
+      <input type="hidden" name="eventSlug" value={eventSlug} />
+      <div className="pk-field">
+        <label className="pk-field-label" htmlFor={`${id}-file`}>
+          Ajouter une photo
+        </label>
+        <input
+          id={`${id}-file`}
+          name="file"
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="pk-input"
+          disabled={pending}
+          aria-describedby={`${id}-hint`}
+          required
+        />
+        <p id={`${id}-hint`} className="pk-field-hint">
+          PNG, JPEG ou WebP, 8 Mo au plus.
+        </p>
+      </div>
+      <Input
+        id={`${id}-alt`}
+        name="alt"
+        label="Description (facultatif)"
+        hint="Lue par les personnes qui ne voient pas l’image."
+        maxLength={200}
+      />
+      <div className="or-inline-form">
+        <button type="submit" className="pk-btn pk-button-secondary" disabled={pending}>
+          {pending ? 'Envoi…' : 'Ajouter'}
+        </button>
+      </div>
+      <FormError state={state} />
+    </form>
+  );
+}
+
+export function SiteGalleryRemoveForm({
+  organizationId,
+  eventId,
+  eventSlug,
+  photoId,
+  label,
+}: {
+  readonly organizationId: string;
+  readonly eventId: string;
+  readonly eventSlug: string;
+  readonly photoId: string;
+  readonly label: string;
+}) {
+  const [state, action, pending] = useActionState(removeSitePhotoAction, INITIAL);
+
+  return (
+    <form action={action}>
+      <input type="hidden" name="organizationId" value={organizationId} />
+      <input type="hidden" name="eventId" value={eventId} />
+      <input type="hidden" name="eventSlug" value={eventSlug} />
+      <input type="hidden" name="photoId" value={photoId} />
+      <button
+        type="submit"
+        className="pk-btn pk-button-ghost"
+        disabled={pending}
+        aria-label={`Retirer ${label}`}
+      >
+        Retirer
+      </button>
+      <FormError state={state} />
+    </form>
   );
 }

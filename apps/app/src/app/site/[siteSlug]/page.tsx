@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { SiteContactForm } from '@/components/site-contact-form';
 import { loadEventSite, siteAssetUrl } from '@/lib/event-site';
 import { loadPracticalGuide } from '@/lib/event-site-practical';
+import { SITE_PROGRAM_VISIBLE } from '@/app/site/program';
 import { editionDateRange, raceDayLabel, raceTimeLabel, safeHttpUrl } from '@/app/site/format';
 
 /**
@@ -180,7 +181,7 @@ export default async function SiteHome({ params }: { readonly params: Promise<Pa
               })}
             </ul>
           )}
-          {site.program.length === 0 ? null : (
+          {!SITE_PROGRAM_VISIBLE || site.program.length === 0 ? null : (
             <Link href="/programme" className="es-ghost-dark es-program-link">
               Voir le programme
             </Link>
@@ -208,6 +209,31 @@ export default async function SiteHome({ params }: { readonly params: Promise<Pa
             </div>
             <Link href="/infos-pratiques" className="es-ghost-dark">
               Toutes les infos pratiques
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {site.gallery.length === 0 && site.video === null ? null : (
+        <section id="galerie" className="es-section">
+          <div className="es-wrap">
+            <h2 className="es-h2">En images</h2>
+            {site.gallery.length === 0 ? null : (
+              <ul className="es-gallery es-gallery-teaser">
+                {site.gallery.slice(0, 3).map((photo, index) => (
+                  <li key={photo.path}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={siteAssetUrl(photo.path) ?? ''}
+                      alt={photo.alt ?? `${site.event.name}, photo ${String(index + 1)}`}
+                      loading="lazy"
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Link href="/galerie" className="es-ghost-dark">
+              Voir la galerie
             </Link>
           </div>
         </section>

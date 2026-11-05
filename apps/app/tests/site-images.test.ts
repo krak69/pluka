@@ -21,6 +21,17 @@ async function photo(width: number, height: number): Promise<Uint8Array> {
   return new Uint8Array(buffer);
 }
 
+describe('une photo de galerie', () => {
+  it('garde ses proportions, bornée, sans les métadonnées de l’original', async () => {
+    const result = await sharpSiteImages.process('gallery', await photo(3600, 2400));
+    const meta = await sharp(result.bytes).metadata();
+
+    expect(meta.format).toBe('webp');
+    expect([meta.width, meta.height]).toEqual([1800, 1200]);
+    expect(meta.exif).toBeUndefined();
+  });
+});
+
 describe('la couverture', () => {
   it('est recadrée en bandeau, en WebP, sans les métadonnées de l’original', async () => {
     const input = await photo(4000, 3000);
