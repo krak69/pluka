@@ -79,6 +79,20 @@ export async function reviseFactAction(
 ): Promise<CourseActionState> {
   const rawNumber = text(form, 'valueNumber').trim();
 
+  // Publier fait passer l'information au niveau « Officielle » : une valeur
+  // inchangée ne doit pas le faire en silence. Ce n'est pas une correction.
+  if (
+    text(form, 'valueText').trim() === text(form, 'originalText').trim() &&
+    rawNumber === text(form, 'originalNumber').trim() &&
+    text(form, 'unit').trim() === text(form, 'originalUnit').trim()
+  ) {
+    const message = 'La valeur est identique à celle publiée.';
+    return {
+      error: message,
+      fieldErrors: { valueText: message, valueNumber: message },
+    };
+  }
+
   try {
     await reviseRaceFact(factEditingContext(await requireSession(pagePath(form))), {
       factId: text(form, 'factId'),

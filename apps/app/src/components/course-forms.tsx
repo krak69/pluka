@@ -63,6 +63,13 @@ export function ReviseFactForm({
     <form action={action} className="cr-revise">
       <ScopeFields {...scope} />
       <input type="hidden" name="factId" value={factId} />
+      <input type="hidden" name="originalText" value={valueText ?? ''} />
+      <input
+        type="hidden"
+        name="originalNumber"
+        value={valueNumber === null ? '' : String(valueNumber).replace('.', ',')}
+      />
+      <input type="hidden" name="originalUnit" value={unit ?? ''} />
       {valueNumber === null ? (
         <>
           <div className="pk-field">
