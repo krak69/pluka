@@ -142,13 +142,17 @@ La liste du rendez-vous, **par édition** : jour, heure, lieu, intitulé. Les d�
 pas. Les temps sont des instants réels dans le fuseau des épreuves de l'édition (AGENTS §34).
 Quarante lignes au plus.
 
+**Masqué depuis le 2026-11-05, à la demande du produit** : ni l'éditeur ni le site ne le
+montrent, et ce qui est enregistré est conservé. `SITE_PROGRAM_VISIBLE` le fait revenir.
+
 La page `/programme` existe dès que l'organisation a écrit une ligne : seuls, les départs
 n'ajoutent rien aux cartes d'épreuves. L'accueil n'en montre qu'un lien.
 
 ## 3.10 Galerie et vidéo
 
 Douze photos au plus, réencodées comme le logo et la couverture (§7.3), chacune avec un texte
-de remplacement facultatif ; et une vidéo YouTube ou Vimeo. Page `/galerie`.
+de remplacement facultatif ; et une vidéo YouTube ou Vimeo. Les photos se déposent une par
+une, et s'affichent dans l'ordre de dépôt. Page `/galerie` ; l'accueil en montre trois.
 
 La vidéo se charge **au clic** : aucun tiers ne reçoit la visite tant que le visiteur n'a pas
 demandé la lecture, et le lecteur YouTube est celui de `youtube-nocookie.com`. Seule une
@@ -347,14 +351,15 @@ sous la session de l'éditeur, après avoir réencodé l'image, sans clé de ser
 
 ---
 
-Contenu complet (0054 pour les rubriques, la présentation et les liens ; 0055 pour le programme ; galerie ensuite) :
+Contenu complet (0054 pour les rubriques, la présentation et les liens ; 0055 pour le programme ; 0056 pour la galerie et la vidéo) :
 
-- `event_sites` gagne la présentation, le lieu, la vidéo et les sept liens de §3.11 ;
+- `event_sites` gagne la présentation, le lieu et les sept liens de §3.11 ;
 - `event_site_sections` gagne le moment et la clé de rubrique, nulle pour une rubrique
   ajoutée par l'organisation ;
 - `event_site_figures` — les chiffres clés ;
 - `event_site_program_items` — le programme, rattaché à l'édition ;
-- `event_site_gallery` — les photos, dans `event-site-assets`.
+- `event_site_gallery` — les photos, dans `event-site-assets` ;
+- `event_sites` gagne le fournisseur et l'identifiant de la vidéo.
 
 ---
 
