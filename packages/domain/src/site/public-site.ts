@@ -48,6 +48,8 @@ const publicSiteSchema = z.object({
     strava: nullableText,
   }),
   figures: z.array(z.object({ value: z.string(), label: z.string() })),
+  gallery: z.array(z.object({ path: z.string(), alt: nullableText })),
+  video: z.object({ provider: z.enum(['youtube', 'vimeo']), id: z.string() }).nullable(),
   program: z.array(
     z.object({
       startsAt: z.string(),

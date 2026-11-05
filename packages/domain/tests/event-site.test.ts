@@ -126,6 +126,8 @@ function payload(overrides: Record<string, unknown> = {}) {
       strava: null,
     },
     figures: [],
+    gallery: [],
+    video: null,
     program: [],
     hasContact: true,
     sections: [{ title: 'Hébergement', body: 'Gîte du col.', moment: 'before', topicKey: null }],

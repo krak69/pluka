@@ -641,6 +641,12 @@ export {
   type PublicSiteRace,
 } from './site/public-site.js';
 export {
+  parseSiteVideoUrl,
+  siteVideoPlayerUrl,
+  siteVideoUrl,
+  type SiteVideo,
+} from './site/video.js';
+export {
   SITE_MOMENTS,
   SITE_MOMENT_LABELS,
   SITE_PRACTICAL_TOPICS,
@@ -676,4 +682,6 @@ export {
   type EventSiteImageProcessor,
   type EventSitePermissions,
   type SaveEventSiteCommand,
+  addEventSiteGalleryPhoto,
+  removeEventSiteGalleryPhoto,
 } from './site/editing.js';

@@ -6,6 +6,7 @@ import {
   type EventSiteEditionRecord,
   type EventSiteEventRecord,
   type EventSiteFigureRecord,
+  type EventSiteGalleryPhotoRecord,
   type EventSiteProgramItemInput,
   type EventSiteRaceRecord,
   type EventSiteRecord,
@@ -25,6 +26,7 @@ import {
 import { SITE_HEADING_FONTS, accentContrastIssue } from './appearance.js';
 import { SITE_MOMENTS, SITE_PRACTICAL_TOPIC_KEYS, sitePracticalTopic } from './practical-topics.js';
 import { isSiteSubdomain } from './subdomain.js';
+import { parseSiteVideoUrl } from './video.js';
 
 /**
  * L'éditeur du site d'un événement — EVENT_SITE §4, §5, §8 ; migrations 0049, 0050.
@@ -44,7 +46,7 @@ export interface EventSiteImageProcessor {
    * `EventSiteImageRejected` si le fichier n'est pas une image lisible.
    */
   process(
-    kind: EventSiteImageKind,
+    kind: EventSiteImageKind | 'gallery',
     bytes: Uint8Array,
   ): Promise<{ readonly bytes: Uint8Array; readonly contentType: string; readonly extension: string }>;
 }
@@ -91,6 +93,7 @@ export interface EventSiteEditor {
   readonly site: EventSiteRecord | null;
   readonly sections: readonly EventSiteSectionRecord[];
   readonly figures: readonly EventSiteFigureRecord[];
+  readonly gallery: readonly EventSiteGalleryPhotoRecord[];
   /** Le programme de l'édition, en jours et heures civils. */
   readonly program: readonly EventSiteProgramItemInput[];
   /** L'édition dont le site porte l'inscription : la prochaine à venir, sinon la dernière. */
@@ -218,6 +221,7 @@ export async function getEventSiteEditor(
       site: null,
       sections: [],
       figures: [],
+      gallery: [],
       program: [],
       edition: null,
       races: [],
@@ -226,10 +230,11 @@ export async function getEventSiteEditor(
     };
   }
 
-  const [site, sections, figures, editions] = await Promise.all([
+  const [site, sections, figures, gallery, editions] = await Promise.all([
     repository.findSite(event.id),
     repository.listSections(event.id),
     repository.listFigures(event.id),
+    repository.listGallery(event.id),
     repository.listEditions(event.id),
   ]);
   const edition = currentSiteEdition(editions, query.today);
@@ -257,6 +262,7 @@ export async function getEventSiteEditor(
     site,
     sections,
     figures,
+    gallery,
     program: program.map((item) => ({
       ...civilMoment(item.startsAt, item.timezone),
       title: item.title,
@@ -321,6 +327,21 @@ export const saveEventSiteCommandSchema = z.object({
     .object({
       presentation: optional(z.string().trim().max(4000)),
       venue: optional(z.string().trim().max(120)),
+      video: z
+        .preprocess(
+          (value) => (typeof value === 'string' ? value.trim() : (value ?? '')),
+          z.string().max(2048),
+        )
+        .optional()
+        .transform((value, context) => {
+          if (value === undefined || value === '') return null;
+          const video = parseSiteVideoUrl(value);
+          if (video === null) {
+            context.addIssue({ code: 'custom', message: 'adresse YouTube ou Vimeo attendue' });
+            return z.NEVER;
+          }
+          return video;
+        }),
       figures: z
         .array(
           z.object({
@@ -547,6 +568,87 @@ export async function removeEventSiteImage(
   await context.assets.remove([old]).catch(() => undefined);
 }
 
+
+/** Le nombre de photos d'une galerie (EVENT_SITE §3.10). La base revérifie. */
+export const EVENT_SITE_GALLERY_MAX_PHOTOS = 12;
+
+export const addEventSiteGalleryPhotoCommandSchema = z.object({
+  organizationId: uuid,
+  eventId: uuid,
+  alt: optional(z.string().trim().max(200)),
+  contentType: uploadEventSiteImageCommandSchema.shape.contentType,
+  bytes: uploadEventSiteImageCommandSchema.shape.bytes,
+});
+
+/** Ajouter une photo : même réencodage et même dépôt que le logo, sous un nom neuf. */
+export async function addEventSiteGalleryPhoto(
+  context: EventSiteImageContext,
+  input: unknown,
+): Promise<void> {
+  const useCase = 'addEventSiteGalleryPhoto';
+  const command = parseCommand(addEventSiteGalleryPhotoCommandSchema, input, useCase);
+
+  const permissions = await permissionsOf(context, command.organizationId, useCase);
+  if (!permissions.canEdit) throw forbiddenError(useCase);
+  const event = await eventOf(context, command.organizationId, command.eventId, useCase);
+
+  const repository = context.repositories.eventSiteEditing;
+  const photos = await repository.listGallery(event.id);
+  if (photos.length >= EVENT_SITE_GALLERY_MAX_PHOTOS) {
+    throw validationError(useCase, 'douze photos au plus');
+  }
+
+  let image;
+  try {
+    image = await context.images.process('gallery', command.bytes);
+  } catch (error) {
+    if (error instanceof EventSiteImageRejected) {
+      throw validationError(useCase, error.message, { file: error.message });
+    }
+    throw error;
+  }
+
+  const path = `${event.id}/gallery-${globalThis.crypto.randomUUID()}.${image.extension}`;
+
+  await context.assets.upload(path, image.bytes, image.contentType);
+  try {
+    await repository.addGalleryPhoto(event.id, path, command.alt);
+  } catch (error) {
+    await context.assets.remove([path]).catch(() => undefined);
+    throw translate(error, useCase);
+  }
+}
+
+export const removeEventSiteGalleryPhotoCommandSchema = z.object({
+  organizationId: uuid,
+  eventId: uuid,
+  photoId: uuid,
+});
+
+export async function removeEventSiteGalleryPhoto(
+  context: EventSiteImageContext,
+  input: unknown,
+): Promise<void> {
+  const useCase = 'removeEventSiteGalleryPhoto';
+  const command = parseCommand(removeEventSiteGalleryPhotoCommandSchema, input, useCase);
+
+  const permissions = await permissionsOf(context, command.organizationId, useCase);
+  if (!permissions.canEdit) throw forbiddenError(useCase);
+  const event = await eventOf(context, command.organizationId, command.eventId, useCase);
+
+  const repository = context.repositories.eventSiteEditing;
+  const photo = (await repository.listGallery(event.id)).find(
+    (candidate) => candidate.id === command.photoId,
+  );
+  if (photo === undefined) throw notFoundError(useCase, 'photo');
+
+  try {
+    await repository.removeGalleryPhoto(photo.id);
+  } catch (error) {
+    throw translate(error, useCase);
+  }
+  await context.assets.remove([photo.path]).catch(() => undefined);
+}
 
 export const setEventSiteDocumentPublicCommandSchema = z.object({
   organizationId: uuid,

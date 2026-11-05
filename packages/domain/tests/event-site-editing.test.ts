@@ -13,7 +13,11 @@ import {
   currentSiteEdition,
   getEventSiteEditor,
   removeEventSiteImage,
+  addEventSiteGalleryPhoto,
+  parseSiteVideoUrl,
+  removeEventSiteGalleryPhoto,
   saveEventSite,
+  siteVideoPlayerUrl,
   setEventSiteDocumentPublic,
   setEventSiteStatus,
   uploadEventSiteImage,
@@ -35,6 +39,7 @@ const EDITION = 'aaaaaaaa-0000-4000-8000-000000000012';
 const RACE = 'aaaaaaaa-0000-4000-8000-000000000013';
 const FOREIGN_RACE = 'bbbbbbbb-0000-4000-8000-000000000013';
 const DOCUMENT = 'aaaaaaaa-0000-4000-8000-000000000091';
+const PHOTO = 'aaaaaaaa-0000-4000-8000-0000000000a1';
 const FOREIGN_DOCUMENT = 'bbbbbbbb-0000-4000-8000-000000000091';
 
 type Role = 'owner' | 'admin' | 'editor' | 'viewer';
@@ -53,6 +58,7 @@ interface World {
   processed: number;
   rejectImage: boolean;
   documentToggles: { sourceId: string; isPublic: boolean }[];
+  gallery: { id: string; path: string; alt: string | null }[];
 }
 
 let world: World;
@@ -88,6 +94,15 @@ function repository(): EventSiteEditingRepository {
     findSite: () => Promise.resolve(world.site),
     listSections: () => Promise.resolve([]),
     listFigures: () => Promise.resolve([]),
+    listGallery: () => Promise.resolve(world.gallery),
+    addGalleryPhoto: (_eventId, path, alt) => {
+      world.gallery.push({ id: PHOTO, path, alt });
+      return Promise.resolve();
+    },
+    removeGalleryPhoto: (photoId) => {
+      world.gallery = world.gallery.filter((photo) => photo.id !== photoId);
+      return Promise.resolve();
+    },
     listProgram: () =>
       Promise.resolve([
         {
@@ -193,6 +208,7 @@ function site(overrides: Partial<EventSiteRecord> = {}): EventSiteRecord {
       instagram: null,
       strava: null,
     },
+    video: null,
     ...overrides,
   };
 }
@@ -234,6 +250,7 @@ beforeEach(() => {
     processed: 0,
     rejectImage: false,
     documentToggles: [],
+    gallery: [],
   };
 });
 
@@ -352,6 +369,130 @@ describe('enregistrer le contenu', () => {
         },
       }),
     ).rejects.toMatchObject({ code: 'validation' });
+  });
+});
+
+describe('la galerie', () => {
+  const PHOTO_INPUT = {
+    organizationId: ORG,
+    eventId: EVENT,
+    alt: ' Le départ ',
+    contentType: 'image/png',
+    bytes: new Uint8Array([137, 80, 78, 71]),
+  };
+
+  it('éditeur : dépose la photo réencodée sous le dossier de l’événement', async () => {
+    await addEventSiteGalleryPhoto(context(), PHOTO_INPUT);
+
+    expect(world.processed).toBe(1);
+    expect(world.gallery).toEqual([
+      { id: PHOTO, path: expect.stringMatching(new RegExp(`^${EVENT}/gallery-`)), alt: 'Le départ' },
+    ]);
+  });
+
+  it('viewer : refusé avant tout traitement', async () => {
+    world.role = 'viewer';
+
+    await expect(addEventSiteGalleryPhoto(context(), PHOTO_INPUT)).rejects.toMatchObject({
+      code: 'forbidden',
+    });
+    expect(world.processed).toBe(0);
+  });
+
+  it('refuse une treizième photo, avant tout traitement', async () => {
+    world.gallery = Array.from({ length: 12 }, (_, index) => ({
+      id: `aaaaaaaa-0000-4000-8000-0000000001${String(index).padStart(2, '0')}`,
+      path: `${EVENT}/gallery-${String(index)}.webp`,
+      alt: null,
+    }));
+
+    await expect(addEventSiteGalleryPhoto(context(), PHOTO_INPUT)).rejects.toMatchObject({
+      code: 'validation',
+    });
+    expect(world.processed).toBe(0);
+  });
+
+  it('retire la photo et son fichier ; une photo inconnue n’existe pas', async () => {
+    world.gallery = [{ id: PHOTO, path: `${EVENT}/gallery-1.webp`, alt: null }];
+
+    await expect(
+      removeEventSiteGalleryPhoto(context(), {
+        organizationId: ORG,
+        eventId: EVENT,
+        photoId: FOREIGN_DOCUMENT,
+      }),
+    ).rejects.toMatchObject({ code: 'not_found' });
+
+    await removeEventSiteGalleryPhoto(context(), { organizationId: ORG, eventId: EVENT, photoId: PHOTO });
+
+    expect(world.gallery).toEqual([]);
+    expect(world.removed).toEqual([`${EVENT}/gallery-1.webp`]);
+  });
+});
+
+describe('la vidéo', () => {
+  const base = {
+    presentation: '',
+    venue: '',
+    figures: [],
+    links: {
+      results: '',
+      live: '',
+      volunteers: '',
+      newsletter: '',
+      facebook: '',
+      instagram: '',
+      strava: '',
+    },
+  };
+
+  it('garde un fournisseur et un identifiant', async () => {
+    await saveEventSite(context(), {
+      ...SAVE,
+      content: { ...base, video: 'https://youtu.be/dQw4w9WgXcQ?si=abc' },
+    });
+
+    expect(world.saved[0]?.content?.video).toEqual({ provider: 'youtube', id: 'dQw4w9WgXcQ' });
+  });
+
+  it('un champ vide retire la vidéo ; une autre adresse est refusée', async () => {
+    await saveEventSite(context(), { ...SAVE, content: { ...base, video: ' ' } });
+    expect(world.saved[0]?.content?.video).toBeNull();
+
+    await expect(
+      saveEventSite(context(), {
+        ...SAVE,
+        content: { ...base, video: 'https://evil.example/watch?v=dQw4w9WgXcQ' },
+      }),
+    ).rejects.toMatchObject({ code: 'validation' });
+  });
+
+  it.each([
+    ['https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 'dQw4w9WgXcQ'],
+    ['https://m.youtube.com/watch?v=dQw4w9WgXcQ&t=10', 'youtube', 'dQw4w9WgXcQ'],
+    ['https://www.youtube.com/shorts/dQw4w9WgXcQ', 'youtube', 'dQw4w9WgXcQ'],
+    ['https://www.youtube.com/embed/dQw4w9WgXcQ', 'youtube', 'dQw4w9WgXcQ'],
+    ['https://vimeo.com/76979871', 'vimeo', '76979871'],
+    ['https://player.vimeo.com/video/76979871', 'vimeo', '76979871'],
+  ])('reconnaît %s', (url, provider, id) => {
+    expect(parseSiteVideoUrl(url)).toEqual({ provider, id });
+  });
+
+  it.each([
+    ['http://www.youtube.com/watch?v=dQw4w9WgXcQ'],
+    ['https://www.youtube.com/watch'],
+    ['https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ'],
+    ['https://vimeo.com/channels/staffpicks'],
+    ['pas une adresse'],
+  ])('refuse %s', (url) => {
+    expect(parseSiteVideoUrl(url)).toBeNull();
+  });
+
+  it('construit le lecteur sans cookie de suivi', () => {
+    expect(siteVideoPlayerUrl({ provider: 'youtube', id: 'dQw4w9WgXcQ' })).toContain(
+      'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
+    );
+    expect(siteVideoPlayerUrl({ provider: 'vimeo', id: '76979871' })).toContain('dnt=1');
   });
 });
 
