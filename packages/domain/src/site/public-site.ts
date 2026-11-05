@@ -48,6 +48,14 @@ const publicSiteSchema = z.object({
     strava: nullableText,
   }),
   figures: z.array(z.object({ value: z.string(), label: z.string() })),
+  program: z.array(
+    z.object({
+      startsAt: z.string(),
+      timezone: z.string(),
+      title: z.string(),
+      location: nullableText,
+    }),
+  ),
   hasContact: z.boolean(),
   sections: z.array(
     z.object({

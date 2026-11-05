@@ -88,6 +88,15 @@ function repository(): EventSiteEditingRepository {
     findSite: () => Promise.resolve(world.site),
     listSections: () => Promise.resolve([]),
     listFigures: () => Promise.resolve([]),
+    listProgram: () =>
+      Promise.resolve([
+        {
+          startsAt: '2026-06-19T22:30:00Z',
+          timezone: 'Europe/Paris',
+          title: 'Briefing',
+          location: null,
+        },
+      ]),
     listEditions: () => Promise.resolve([edition]),
     listRaces: () => Promise.resolve([race]),
     save: (input) => {
@@ -346,6 +355,47 @@ describe('enregistrer le contenu', () => {
   });
 });
 
+describe('le programme', () => {
+  const line = { day: '2026-06-19', time: '18:30', title: ' Briefing ', location: '' };
+
+  it('nettoie les lignes', async () => {
+    await saveEventSite(context(), { ...SAVE, program: [line] });
+
+    expect(world.saved[0]?.program).toEqual([
+      { day: '2026-06-19', time: '18:30', title: 'Briefing', location: null },
+    ]);
+  });
+
+  it('redit chaque ligne en jour et heure civils, même passé minuit', async () => {
+    const editor = await getEventSiteEditor(context(), { organizationId: ORG, today: '2026-06-01' });
+
+    expect(editor.program).toEqual([
+      { day: '2026-06-20', time: '00:30', title: 'Briefing', location: null },
+    ]);
+  });
+
+  it('exige une heure, un intitulé et un jour qui existe', async () => {
+    await expect(
+      saveEventSite(context(), { ...SAVE, program: [{ ...line, time: '' }] }),
+    ).rejects.toMatchObject({ code: 'validation', details: { 'program.0.time': 'heure requise' } });
+    await expect(
+      saveEventSite(context(), { ...SAVE, program: [{ ...line, title: ' ' }] }),
+    ).rejects.toMatchObject({ code: 'validation' });
+    await expect(
+      saveEventSite(context(), { ...SAVE, program: [{ ...line, day: '2026-02-31' }] }),
+    ).rejects.toMatchObject({ code: 'validation' });
+  });
+
+  it('refuse une 41e ligne, et un programme sans édition', async () => {
+    await expect(
+      saveEventSite(context(), { ...SAVE, program: Array.from({ length: 41 }, () => line) }),
+    ).rejects.toMatchObject({ code: 'validation' });
+    await expect(
+      saveEventSite(context(), { ...SAVE, registration: null, program: [line] }),
+    ).rejects.toMatchObject({ code: 'validation' });
+  });
+});
+
 describe('enregistrer', () => {
   it('éditeur : enregistre l’identité, les blocs et l’inscription, nettoyés', async () => {
     await saveEventSite(context(), SAVE);
@@ -358,6 +408,7 @@ describe('enregistrer', () => {
         contactEmail: 'courses@trail.test',
         sections: [{ title: 'Hébergement', body: 'Gîte du col.', moment: 'before', topicKey: null }],
         content: null,
+        program: null,
         registration: {
           editionId: EDITION,
           editionUrl: 'https://inscriptions.example/2026',

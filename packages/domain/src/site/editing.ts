@@ -6,6 +6,7 @@ import {
   type EventSiteEditionRecord,
   type EventSiteEventRecord,
   type EventSiteFigureRecord,
+  type EventSiteProgramItemInput,
   type EventSiteRaceRecord,
   type EventSiteRecord,
   type EventSiteSectionRecord,
@@ -90,6 +91,8 @@ export interface EventSiteEditor {
   readonly site: EventSiteRecord | null;
   readonly sections: readonly EventSiteSectionRecord[];
   readonly figures: readonly EventSiteFigureRecord[];
+  /** Le programme de l'édition, en jours et heures civils. */
+  readonly program: readonly EventSiteProgramItemInput[];
   /** L'édition dont le site porte l'inscription : la prochaine à venir, sinon la dernière. */
   readonly edition: EventSiteEditionRecord | null;
   readonly races: readonly EventSiteRaceRecord[];
@@ -100,6 +103,25 @@ export interface EventSiteEditor {
 
 const uuid = z.string().uuid();
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/u);
+
+/** Un instant, redit en jour et heure civils dans son fuseau : ce que l'organisation a saisi. */
+export function civilMoment(instant: string, timeZone: string): { day: string; time: string } {
+  const date = new Date(instant);
+  return {
+    day: new Intl.DateTimeFormat('en-CA', { timeZone }).format(date),
+    time: new Intl.DateTimeFormat('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      timeZone,
+    }).format(date),
+  };
+}
+
+function isCalendarDay(day: string): boolean {
+  const date = new Date(`${day}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(day);
+}
 
 export const getEventSiteEditorQuerySchema = z.object({
   organizationId: uuid,
@@ -196,6 +218,7 @@ export async function getEventSiteEditor(
       site: null,
       sections: [],
       figures: [],
+      program: [],
       edition: null,
       races: [],
       documents: [],
@@ -210,10 +233,14 @@ export async function getEventSiteEditor(
     repository.listEditions(event.id),
   ]);
   const edition = currentSiteEdition(editions, query.today);
-  const [races, documents] =
+  const [races, documents, program] =
     edition === null
-      ? [[], []]
-      : await Promise.all([repository.listRaces(edition.id), repository.listDocuments(edition.id)]);
+      ? [[], [], []]
+      : await Promise.all([
+          repository.listRaces(edition.id),
+          repository.listDocuments(edition.id),
+          repository.listProgram(edition.id),
+        ]);
 
   const blockers: EventSiteBlocker[] = [];
   if (event.status !== 'published') blockers.push('event_not_published');
@@ -230,6 +257,11 @@ export async function getEventSiteEditor(
     site,
     sections,
     figures,
+    program: program.map((item) => ({
+      ...civilMoment(item.startsAt, item.timezone),
+      title: item.title,
+      location: item.location,
+    })),
     edition,
     races,
     documents,
@@ -309,6 +341,18 @@ export const saveEventSiteCommandSchema = z.object({
     })
     .nullable()
     .default(null),
+  program: z
+    .array(
+      z.object({
+        day: isoDate.refine(isCalendarDay, 'date invalide'),
+        time: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/u, 'heure requise'),
+        title: z.string().trim().min(1, 'intitulé requis').max(120),
+        location: optional(z.string().trim().max(120)),
+      }),
+    )
+    .max(40, '40 lignes au plus')
+    .nullable()
+    .default(null),
   registration: z
     .object({
       editionId: uuid,
@@ -341,6 +385,10 @@ export async function saveEventSite(context: EventSiteEditingContext, input: unk
     }
   }
 
+  if (command.program !== null && command.registration === null) {
+    throw validationError(useCase, 'le programme se rattache à une édition');
+  }
+
   if (command.registration !== null) {
     const repository = context.repositories.eventSiteEditing;
     const editions = await repository.listEditions(command.eventId);
@@ -362,6 +410,7 @@ export async function saveEventSite(context: EventSiteEditingContext, input: unk
       contactEmail: command.contactEmail,
       sections: command.sections,
       content: command.content,
+      program: command.program,
       registration: command.registration,
     });
   } catch (error) {
