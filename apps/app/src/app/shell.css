@@ -1193,6 +1193,13 @@ select.pk-input {
   font-weight: 600;
 }
 
+.st-tab-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--pk-text-muted);
+}
+
 .st-tab-error {
   display: inline-grid;
   width: 18px;

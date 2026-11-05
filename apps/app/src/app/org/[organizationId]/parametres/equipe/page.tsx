@@ -1,5 +1,5 @@
 import { DomainError, getMyOrganization, listOrganizationTeam } from '@pluka/domain';
-import { TerrainBand } from '@pluka/ui';
+import { StatusBadge, TerrainBand } from '@pluka/ui';
 
 import {
   InviteTeamMemberForm,
@@ -7,6 +7,7 @@ import {
   RevokeTeamInvitationForm,
   TeamMemberRoleForm,
 } from '@/components/team-forms';
+import { TeamWorkspace } from '@/components/team-workspace';
 import { requireSession } from '@/lib/session';
 import { sessionTeamContext } from '@/lib/team';
 import { teamRoleLabel } from '@/lib/team-roles';
@@ -49,6 +50,7 @@ export default async function TeamPage({
 }) {
   const { organizationId } = await params;
   const fait = (await searchParams).fait;
+  const focus = fait === 'invitation-envoyee' ? ('invitations' as const) : undefined;
   const notice = typeof fait === 'string' ? NOTICES[fait] : undefined;
 
   const session = await requireSession(`/org/${organizationId}/parametres/equipe`);
@@ -61,29 +63,35 @@ export default async function TeamPage({
     throw error;
   });
 
+  if (team === null) {
+    return (
+      <div className="st-editor">
+        <TerrainBand
+          tone="dark"
+          topo
+          eyebrow="Équipe"
+          title={membership.organizationName}
+          body="Qui peut travailler sur vos événements, et avec quel rôle."
+          footer={
+            <StatusBadge tone="neutral">{`Votre rôle : ${teamRoleLabel(membership.role)}`}</StatusBadge>
+          }
+        />
+        <p className="pk-body st-readonly">
+          Seul un propriétaire de {membership.organizationName} gère son équipe.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <TerrainBand
-        tone="light"
-        topo
-        eyebrow={membership.organizationName}
-        title="Équipe"
-        body="Qui peut travailler sur vos événements, et avec quel rôle."
-      />
-
-      {notice === undefined ? null : (
-        <p className="pk-body st-notice" role="status">
-          {notice}
-        </p>
-      )}
-
-      {team === null ? (
-        <p className="pk-body">
-          Seul un propriétaire de {membership.organizationName} gère son équipe. Votre rôle :{' '}
-          {teamRoleLabel(membership.role)}.
-        </p>
-      ) : (
-        <>
+    <TeamWorkspace
+      organizationName={membership.organizationName}
+      roleLabel={teamRoleLabel(membership.role)}
+      notice={notice}
+      focus={focus}
+      memberCount={team.members.length}
+      invitationCount={team.invitations.length}
+      members={
           <section aria-labelledby="members-title" className="or-card">
             <h2 id="members-title" className="pk-h2">
               Membres
@@ -126,12 +134,15 @@ export default async function TeamPage({
               })}
             </ul>
           </section>
-
-          {team.invitations.length === 0 ? null : (
-            <section aria-labelledby="invitations-title" className="or-card">
-              <h2 id="invitations-title" className="pk-h2">
-                Invitations en attente
-              </h2>
+      }
+      invitations={
+        <section aria-labelledby="invitations-title" className="or-card">
+          <h2 id="invitations-title" className="pk-h2">
+            Invitations en attente
+          </h2>
+          {team.invitations.length === 0 ? (
+            <p className="pk-field-hint">Aucune invitation en attente.</p>
+          ) : (
               <ul className="or-list">
                 {team.invitations.map((invitation) => (
                   <li key={invitation.invitationId} className="or-row">
@@ -155,9 +166,10 @@ export default async function TeamPage({
                   </li>
                 ))}
               </ul>
-            </section>
           )}
-
+        </section>
+      }
+      invite={
           <section aria-labelledby="invite-title" className="or-card">
             <h2 id="invite-title" className="pk-h2">
               Inviter quelqu’un
@@ -168,8 +180,7 @@ export default async function TeamPage({
             </p>
             <InviteTeamMemberForm organizationId={organizationId} />
           </section>
-        </>
-      )}
-    </>
+      }
+    />
   );
 }

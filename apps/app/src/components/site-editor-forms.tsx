@@ -13,6 +13,7 @@ import {
   uploadSiteImageAction,
   type SiteActionState,
 } from '@/app/site-actions';
+import { WorkspaceTabs } from '@/components/workspace-tabs';
 
 /**
  * L'éditeur du site d'un événement — EVENT_SITE §4, §5.
@@ -246,25 +247,12 @@ export function SiteEditorForm({
   return (
     <div className="st-workspace">
       <div className="st-rail">
-        <nav aria-label="Rubriques du site" className="st-tabs">
-          {TABS.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className="st-tab"
-              aria-current={tab === item.key ? 'true' : undefined}
-              onClick={() => setTab(item.key)}
-            >
-              {item.label}
-              {tabsInError.has(item.key) ? (
-                <span className="st-tab-error">
-                  <span aria-hidden="true">!</span>
-                  <span className="or-visually-hidden"> à corriger</span>
-                </span>
-              ) : null}
-            </button>
-          ))}
-        </nav>
+        <WorkspaceTabs
+          label="Rubriques du site"
+          current={tab}
+          onSelect={setTab}
+          tabs={TABS.map((item) => ({ ...item, alert: tabsInError.has(item.key) }))}
+        />
 
         {doneCount === checklist.length ? null : (
           <div className="st-checklist">
