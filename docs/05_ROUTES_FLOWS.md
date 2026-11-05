@@ -387,9 +387,9 @@ La correspondance avec `ORG_GROUPS` (§1.4) est directe :
 
 L'équipe est un sous-onglet de Paramètres : le prototype pose « Équipe » dans l'écran Paramètres (`orgSettings`). Elle devient une route parce qu'on veut pouvoir y renvoyer un propriétaire (§1.2).
 
-**Le choix de l'édition à l'intérieur de l'organisation n'est pas tranché — voir §12.1.**
+**Le choix de l'édition à l'intérieur de l'organisation est tranché — voir §12.1.**
 
-**État livré.** Seules `/org`, `/org/[organizationId]` (Accueil), `/org/[organizationId]/parametres/equipe` et `/org/[organizationId]/parametres/site` ont un écran. Les onglets de l'organisation sont Accueil, Site et Équipe, tant que Ma course, Analyse et Participants n'existent pas. L'accueil ne parle que de ce que PLUKA connaît déjà : l'état du site, l'édition, les invitations ; Paramètres n'affiche que ces deux onglets. Tant que l'accueil et l'onglet Événement n'existent pas, `/org/[organizationId]` et `/org/[organizationId]/parametres` redirigent vers l'équipe ; ces redirections tomberont quand leurs écrans arriveront. L'espace n'est ouvert qu'aux membres : un non-membre reçoit un 404, qui ne confirme pas l'existence de l'organisation. La gestion de l'équipe reste réservée au propriétaire (03_PRIVACY_RLS §15) ; les autres rôles voient l'écran et la raison du refus.
+**État livré.** Seules `/org`, `/org/[organizationId]` (Accueil), `/org/[organizationId]/course/informations`, `/org/[organizationId]/parametres/equipe` et `/org/[organizationId]/parametres/site` ont un écran. Les onglets de l'organisation sont Accueil, Ma course, Site et Équipe, tant qu'Analyse et Participants n'existent pas. L'accueil ne parle que de ce que PLUKA connaît déjà : l'état du site, l'édition, les invitations ; Paramètres n'affiche que ces deux onglets. Tant que l'accueil et l'onglet Événement n'existent pas, `/org/[organizationId]` et `/org/[organizationId]/parametres` redirigent vers l'équipe ; ces redirections tomberont quand leurs écrans arriveront. L'espace n'est ouvert qu'aux membres : un non-membre reçoit un 404, qui ne confirme pas l'existence de l'organisation. La gestion de l'équipe reste réservée au propriétaire (03_PRIVACY_RLS §15) ; les autres rôles voient l'écran et la raison du refus.
 
 ## 6.2 Ce qui reste un état
 
@@ -675,7 +675,7 @@ Trois cas de la première version ont été tranchés depuis, et sont devenus le
 
 **Tranché le 2026-10-06 : `[organizationId]`** (§6.1). L'appartenance, les rôles et l'équipe sont ceux de l'organisation, et une organisation sans édition doit avoir un espace.
 
-Reste ouvert : **comment une page de l'espace choisit l'édition** sur laquelle elle travaille — Ma course, Analyse et Participants portent sur une édition (« Wildstrubel by UTMB · Édition 2026 »), et `event_partners` sur un événement. Un segment (`/org/[organizationId]/editions/[editionId]/…`), un paramètre de requête ou un sélecteur mémorisé sont défendables. La règle §1.2 demande que ce choix soit dans l'URL dès qu'un écran se partage.
+**Tranché le 2026-11-05 : l'édition courante, avec un sélecteur.** Ma course prend la prochaine édition à venir, sinon la dernière, comme le site de l'événement. Un sélecteur d'année n'apparaît que s'il y a plusieurs éditions, et le choix tient dans l'adresse (`?edition=2027`, avec `?evenement=` et `?epreuve=`) pour se partager par lien. Une nouvelle édition se crée en dupliquant la précédente : mêmes épreuves, nouvelles dates, en brouillon, et les informations officielles sont à revalider.
 
 ## 12.2 Drill-downs de l'Analyse
 
