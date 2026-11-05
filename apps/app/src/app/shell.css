@@ -1082,6 +1082,22 @@ select.pk-input {
   margin: 0;
 }
 
+.cr-races {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cr-races .pk-h2 {
+  margin: 0;
+}
+
+.cr-races .or-row-meta {
+  margin: 0;
+}
+
 .cr-add {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));

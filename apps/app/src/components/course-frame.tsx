@@ -14,6 +14,7 @@ import { courseHref } from '@/lib/organizer-course';
 const SCREENS = [
   { screen: 'informations', label: 'Informations' },
   { screen: 'sources', label: 'Sources' },
+  { screen: 'epreuves', label: 'Épreuves' },
 ] as const;
 
 export function CourseFrame({

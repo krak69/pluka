@@ -1,9 +1,11 @@
 import {
+  createCourseRepositories,
   createEventDiscoveryRepositories,
   createFactEditingRepositories,
   createFactRepositories,
 } from '@pluka/db';
 import type {
+  CourseContext,
   EventDiscoveryContext,
   FactEditingContext,
   FactReviewContext,
@@ -26,6 +28,13 @@ export function factEditingContext(session: Session): FactEditingContext {
 export function factReviewContext(session: Session): FactReviewContext {
   return {
     repositories: createFactRepositories({ client: createDataClient(session.accessToken) }),
+    actor: { userId: session.userId },
+  };
+}
+
+export function courseContext(session: Session): CourseContext {
+  return {
+    repositories: createCourseRepositories({ client: createDataClient(session.accessToken) }),
     actor: { userId: session.userId },
   };
 }

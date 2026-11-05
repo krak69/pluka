@@ -4,16 +4,23 @@ import {
   DomainError,
   addEditionDocuments,
   addEditionFile,
+  changeEditionStatus,
+  civilToInstant,
   decideFactCandidate,
+  duplicateEdition,
+  publishRace,
   publishFactCandidate,
   restoreRaceFact,
   retireRaceFact,
   reviseRaceFact,
+  updateRace,
 } from '@pluka/domain';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
+import { sessionEventSiteContext } from '@/lib/event-site-editing';
 import {
+  courseContext,
   courseDocumentsContext,
   factEditingContext,
   factReviewContext,
@@ -249,4 +256,95 @@ export async function addDocumentLinkAction(
   }
 
   done(form, created === 0 ? 'deja-ajoute' : 'document', 'sources');
+}
+
+export async function updateRaceAction(
+  _previous: CourseActionState,
+  form: FormData,
+): Promise<CourseActionState> {
+  const distance = Number(text(form, 'distanceKm').replace(',', '.'));
+  const gain = text(form, 'elevationGainM').trim();
+  const location = text(form, 'startLocationName').trim();
+  const day = text(form, 'day');
+  const time = text(form, 'time');
+
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(day) || !/^\d{2}:\d{2}$/u.test(time)) {
+    return { error: 'Indiquez le jour et l’heure du départ.' };
+  }
+  if (!Number.isFinite(distance) || distance <= 0) {
+    return { error: 'La distance doit être un nombre positif.' };
+  }
+  if (gain !== '' && !/^\d+$/u.test(gain)) {
+    return { error: 'Le dénivelé doit être un nombre entier de mètres.' };
+  }
+
+  try {
+    await updateRace(courseContext(await requireSession(pagePath(form, 'epreuves'))), {
+      raceId: text(form, 'raceId'),
+      name: text(form, 'name'),
+      distanceKm: distance,
+      elevationGainM: gain === '' ? null : Number(gain),
+      startDatetime: civilToInstant(day, time, text(form, 'timezone')),
+      startLocationName: location === '' ? null : location,
+    });
+  } catch (error) {
+    return failure(error);
+  }
+
+  done(form, 'epreuve-modifiee', 'epreuves');
+}
+
+export async function publishRaceAction(
+  _previous: CourseActionState,
+  form: FormData,
+): Promise<CourseActionState> {
+  try {
+    await publishRace(courseContext(await requireSession(pagePath(form, 'epreuves'))), {
+      raceId: text(form, 'raceId'),
+    });
+  } catch (error) {
+    return failure(error);
+  }
+
+  done(form, 'epreuve-publiee', 'epreuves');
+}
+
+export async function publishEditionAction(
+  _previous: CourseActionState,
+  form: FormData,
+): Promise<CourseActionState> {
+  try {
+    await changeEditionStatus(courseContext(await requireSession(pagePath(form, 'epreuves'))), {
+      editionId: text(form, 'editionId'),
+      status: 'published',
+    });
+  } catch (error) {
+    return failure(error);
+  }
+
+  done(form, 'edition-publiee', 'epreuves');
+}
+
+export async function duplicateEditionAction(
+  _previous: CourseActionState,
+  form: FormData,
+): Promise<CourseActionState> {
+  const year = text(form, 'year').trim();
+
+  try {
+    await duplicateEdition(sessionEventSiteContext(await requireSession(pagePath(form, 'epreuves'))), {
+      organizationId: text(form, 'organizationId'),
+      eventId: text(form, 'eventId'),
+      sourceEditionId: text(form, 'sourceEditionId'),
+      year,
+      startDate: text(form, 'startDate'),
+      endDate: text(form, 'endDate'),
+    });
+  } catch (error) {
+    return failure(error);
+  }
+
+  // On arrive sur la nouvelle édition : c'est elle qui est à relire.
+  form.set('selection', `evenement=${text(form, 'eventSlug')}&edition=${year}`);
+  done(form, 'edition-creee', 'epreuves');
 }

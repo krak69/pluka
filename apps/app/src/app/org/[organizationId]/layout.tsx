@@ -51,7 +51,11 @@ export default async function OrganizationLayout({
         label="Organisation"
         tabs={[
           { href: `/org/${organizationId}`, label: 'Accueil' },
-          { href: `/org/${organizationId}/course/informations`, label: 'Ma course' },
+          {
+            href: `/org/${organizationId}/course/informations`,
+            label: 'Ma course',
+            match: `/org/${organizationId}/course`,
+          },
           { href: `/org/${organizationId}/parametres/site`, label: 'Site' },
           { href: `/org/${organizationId}/parametres/equipe`, label: 'Équipe' },
         ]}

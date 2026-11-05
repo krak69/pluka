@@ -12,13 +12,25 @@ import { usePathname } from 'next/navigation';
  */
 export interface SubTabsProps {
   readonly label: string;
-  readonly tabs: readonly { readonly href: string; readonly label: string }[];
+  readonly tabs: readonly {
+    readonly href: string;
+    readonly label: string;
+    /** Un onglet qui porte des sous-écrans reste actif sur tout ce préfixe. */
+    readonly match?: string;
+  }[];
 }
 
 export function SubTabs({ label, tabs }: SubTabsProps) {
   const pathname = usePathname();
 
   return (
-    <NavTabs label={label} tabs={tabs.map((tab) => ({ ...tab, current: pathname === tab.href }))} />
+    <NavTabs
+      label={label}
+      tabs={tabs.map((tab) => ({
+        href: tab.href,
+        label: tab.label,
+        current: tab.match === undefined ? pathname === tab.href : pathname.startsWith(tab.match),
+      }))}
+    />
   );
 }

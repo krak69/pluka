@@ -6,11 +6,15 @@ import { useActionState, useId } from 'react';
 import {
   addDocumentFileAction,
   addDocumentLinkAction,
+  duplicateEditionAction,
   publishCandidateAction,
+  publishEditionAction,
+  publishRaceAction,
   rejectCandidateAction,
   restoreFactAction,
   retireFactAction,
   reviseFactAction,
+  updateRaceAction,
   type CourseActionState,
 } from '@/app/course-actions';
 
@@ -309,6 +313,177 @@ export function AddDocumentLinkForm({ scope }: { readonly scope: DocumentScope }
       <div className="or-inline-form">
         <button type="submit" className="pk-btn pk-button-secondary" disabled={pending}>
           {pending ? 'Ajout…' : 'Ajouter la page'}
+        </button>
+      </div>
+      <ActionError state={state} />
+    </form>
+  );
+}
+
+export function PublishEditionForm({
+  scope,
+  editionId,
+}: {
+  readonly scope: Scope;
+  readonly editionId: string;
+}) {
+  const [state, action, pending] = useActionState(publishEditionAction, INITIAL);
+
+  return (
+    <form action={action} className="or-inline-form">
+      <ScopeFields {...scope} />
+      <input type="hidden" name="editionId" value={editionId} />
+      <button type="submit" className="pk-btn pk-button-primary" disabled={pending}>
+        {pending ? 'Publication…' : 'Publier l’édition'}
+      </button>
+      <ActionError state={state} />
+    </form>
+  );
+}
+
+export function PublishRaceForm({
+  scope,
+  raceId,
+  label,
+}: {
+  readonly scope: Scope;
+  readonly raceId: string;
+  readonly label: string;
+}) {
+  const [state, action, pending] = useActionState(publishRaceAction, INITIAL);
+
+  return (
+    <form action={action} className="or-inline-form">
+      <ScopeFields {...scope} />
+      <input type="hidden" name="raceId" value={raceId} />
+      <button
+        type="submit"
+        className="pk-btn pk-button-secondary"
+        disabled={pending}
+        aria-label={`Publier : ${label}`}
+      >
+        {pending ? 'Publication…' : 'Publier'}
+      </button>
+      <ActionError state={state} />
+    </form>
+  );
+}
+
+export function UpdateRaceForm({
+  scope,
+  race,
+}: {
+  readonly scope: Scope;
+  readonly race: {
+    readonly id: string;
+    readonly name: string;
+    readonly day: string;
+    readonly time: string;
+    readonly timezone: string;
+    readonly distanceKm: number;
+    readonly elevationGainM: number | null;
+    readonly startLocationName: string | null;
+  };
+}) {
+  const [state, action, pending] = useActionState(updateRaceAction, INITIAL);
+  const id = useId();
+
+  return (
+    <form action={action} className="cr-revise" noValidate>
+      <ScopeFields {...scope} />
+      <input type="hidden" name="raceId" value={race.id} />
+      <input type="hidden" name="timezone" value={race.timezone} />
+      <Input id={`${id}-name`} name="name" label="Nom" defaultValue={race.name} maxLength={200} />
+      <div className="st-program-row">
+        <Input id={`${id}-day`} name="day" type="date" label="Jour du départ" defaultValue={race.day} />
+        <Input id={`${id}-time`} name="time" type="time" label="Heure du départ" defaultValue={race.time} />
+        <Input
+          id={`${id}-distance`}
+          name="distanceKm"
+          label="Distance (km)"
+          inputMode="decimal"
+          defaultValue={String(race.distanceKm).replace('.', ',')}
+        />
+        <Input
+          id={`${id}-gain`}
+          name="elevationGainM"
+          label="Dénivelé positif (m)"
+          inputMode="numeric"
+          defaultValue={race.elevationGainM === null ? '' : String(race.elevationGainM)}
+        />
+      </div>
+      <Input
+        id={`${id}-location`}
+        name="startLocationName"
+        label="Lieu de départ"
+        maxLength={200}
+        defaultValue={race.startLocationName ?? ''}
+      />
+      <div className="or-inline-form">
+        <button type="submit" className="pk-btn pk-button-secondary" disabled={pending}>
+          {pending ? 'Enregistrement…' : 'Enregistrer'}
+        </button>
+      </div>
+      <ActionError state={state} />
+    </form>
+  );
+}
+
+export function DuplicateEditionForm({
+  scope,
+  eventId,
+  eventSlug,
+  next,
+}: {
+  readonly scope: Scope;
+  readonly eventId: string;
+  readonly eventSlug: string;
+  readonly next: {
+    readonly sourceEditionId: string;
+    readonly year: number;
+    readonly startDate: string;
+    readonly endDate: string;
+  };
+}) {
+  const [state, action, pending] = useActionState(duplicateEditionAction, INITIAL);
+  const id = useId();
+  const errors = state.fieldErrors ?? {};
+
+  return (
+    <form action={action} className="cr-revise" noValidate>
+      <ScopeFields {...scope} />
+      <input type="hidden" name="eventId" value={eventId} />
+      <input type="hidden" name="eventSlug" value={eventSlug} />
+      <input type="hidden" name="sourceEditionId" value={next.sourceEditionId} />
+      <div className="st-program-row">
+        <Input
+          id={`${id}-year`}
+          name="year"
+          label="Année"
+          inputMode="numeric"
+          defaultValue={String(next.year)}
+          error={errors['year']}
+        />
+        <Input
+          id={`${id}-start`}
+          name="startDate"
+          type="date"
+          label="Premier jour"
+          defaultValue={next.startDate}
+          error={errors['startDate']}
+        />
+        <Input
+          id={`${id}-end`}
+          name="endDate"
+          type="date"
+          label="Dernier jour (facultatif)"
+          defaultValue={next.endDate}
+          error={errors['endDate']}
+        />
+      </div>
+      <div className="or-inline-form">
+        <button type="submit" className="pk-btn pk-button-primary" disabled={pending}>
+          {pending ? 'Création…' : 'Créer l’édition en brouillon'}
         </button>
       </div>
       <ActionError state={state} />
