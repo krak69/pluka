@@ -3,14 +3,20 @@
 import {
   DomainError,
   addEditionDocuments,
+  addRaceEquipment,
   addEditionFile,
   changeEditionStatus,
+  changeRaceStatus,
   civilToInstant,
   decideFactCandidate,
   duplicateEdition,
+  getRaceOverview,
+  importRaceGpx,
   publishRace,
   publishFactCandidate,
   restoreRaceFact,
+  reviseRaceEquipment,
+  setRaceWaypoints,
   retireRaceFact,
   reviseRaceFact,
   updateRace,
@@ -24,6 +30,7 @@ import {
   courseDocumentsContext,
   factEditingContext,
   factReviewContext,
+  gpxImportContext,
 } from '@/lib/organizer-course';
 import { requireSession } from '@/lib/session';
 
@@ -62,6 +69,15 @@ function done(form: FormData, notice: string, screen = 'informations'): never {
   const path = pagePath(form, screen);
   revalidatePath(`/org/${text(form, 'organizationId')}/course/${screen}`);
   redirect(`${path}${path.includes('?') ? '&' : '?'}fait=${notice}`);
+}
+
+/** L'écran du geste : une valeur connue, jamais une adresse postée. */
+function screenOf(form: FormData): string {
+  return text(form, 'screen') === 'epreuves' ? 'epreuves' : 'informations';
+}
+
+function texts(form: FormData, field: string): string[] {
+  return form.getAll(field).map((value) => (typeof value === 'string' ? value : ''));
 }
 
 function failure(error: unknown): CourseActionState {
@@ -135,7 +151,7 @@ export async function retireFactAction(
     return failure(error);
   }
 
-  done(form, 'retiree');
+  done(form, 'retiree', screenOf(form));
 }
 
 export async function restoreFactAction(
@@ -151,7 +167,7 @@ export async function restoreFactAction(
     return failure(error);
   }
 
-  done(form, 'restauree');
+  done(form, 'restauree', screenOf(form));
 }
 
 export async function publishCandidateAction(
@@ -347,4 +363,142 @@ export async function duplicateEditionAction(
   // On arrive sur la nouvelle édition : c'est elle qui est à relire.
   form.set('selection', `evenement=${text(form, 'eventSlug')}&edition=${year}`);
   done(form, 'edition-creee', 'epreuves');
+}
+
+/** Un fichier passe par l'action : même limite que les documents. */
+const MAX_GPX_BYTES = 25 * 1024 * 1024;
+
+export async function importGpxAction(
+  _previous: CourseActionState,
+  form: FormData,
+): Promise<CourseActionState> {
+  const file = form.get('gpx');
+  if (!(file instanceof File) || file.size === 0) return { error: 'Choisissez un fichier GPX.' };
+  if (file.size > MAX_GPX_BYTES) return { error: 'Ce fichier dépasse 25 Mo.' };
+
+  try {
+    const content = await file.text();
+    const digest = await globalThis.crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(content),
+    );
+    await importRaceGpx(gpxImportContext(await requireSession(pagePath(form, 'epreuves'))), {
+      raceId: text(form, 'raceId'),
+      fileName: file.name,
+      content,
+      contentHash: [...new Uint8Array(digest)]
+        .map((byte) => byte.toString(16).padStart(2, '0'))
+        .join(''),
+    });
+  } catch (error) {
+    const result = failure(error);
+    return result.fieldErrors === undefined
+      ? result
+      : { error: 'Ce fichier n’est pas un GPX lisible.' };
+  }
+
+  done(form, 'trace-ajoutee', 'epreuves');
+}
+
+export async function saveWaypointsAction(
+  _previous: CourseActionState,
+  form: FormData,
+): Promise<CourseActionState> {
+  const ids = texts(form, 'waypointId');
+  const types = texts(form, 'waypointType');
+  const distances = texts(form, 'distanceKm');
+  const cutoffs = texts(form, 'cutoffAt');
+  const raceId = text(form, 'raceId');
+
+  try {
+    const context = courseContext(await requireSession(pagePath(form, 'epreuves')));
+    // Le fuseau qui fait foi est celui de l'épreuve en base, pas une valeur postée.
+    const { race } = await getRaceOverview(context, { raceId });
+
+    await setRaceWaypoints(context, {
+      raceId,
+      waypoints: texts(form, 'name').map((name, index) => {
+        const [day, time] = (cutoffs[index] ?? '').split('T');
+        const distance = Number((distances[index] ?? '').replace(',', '.'));
+        return {
+          ...(ids[index] === undefined || ids[index] === '' ? {} : { id: ids[index] }),
+          name,
+          waypointType: types[index],
+          distanceKm: (distances[index] ?? '').trim() === '' ? undefined : distance,
+          cutoffAt:
+            day === undefined || day === '' || time === undefined
+              ? null
+              : civilToInstant(day, time, race.timezone),
+        };
+      }),
+    });
+  } catch (error) {
+    const result = failure(error);
+    const whole = result.fieldErrors?.['waypoints'];
+    return whole === undefined ? result : { ...result, error: whole };
+  }
+
+  done(form, 'points-enregistres', 'epreuves');
+}
+
+function equipmentFields(form: FormData) {
+  return {
+    label: text(form, 'label'),
+    requirement: text(form, 'requirement'),
+    condition: text(form, 'condition'),
+    detail: text(form, 'detail'),
+    trustLevel: 'official',
+    note: null,
+  };
+}
+
+export async function addEquipmentAction(
+  _previous: CourseActionState,
+  form: FormData,
+): Promise<CourseActionState> {
+  try {
+    await addRaceEquipment(factEditingContext(await requireSession(pagePath(form, 'epreuves'))), {
+      raceIds: [text(form, 'raceId')],
+      ...equipmentFields(form),
+    });
+  } catch (error) {
+    return failure(error);
+  }
+
+  done(form, 'materiel-ajoute', 'epreuves');
+}
+
+export async function reviseEquipmentAction(
+  _previous: CourseActionState,
+  form: FormData,
+): Promise<CourseActionState> {
+  try {
+    await reviseRaceEquipment(factEditingContext(await requireSession(pagePath(form, 'epreuves'))), {
+      factId: text(form, 'factId'),
+      ...equipmentFields(form),
+    });
+  } catch (error) {
+    return failure(error);
+  }
+
+  done(form, 'materiel-corrige', 'epreuves');
+}
+
+/** Annuler demande le rang `admin` : `changeRaceStatus` le sait seul (§4.1). */
+export async function cancelRaceAction(
+  _previous: CourseActionState,
+  form: FormData,
+): Promise<CourseActionState> {
+  try {
+    await changeRaceStatus(courseContext(await requireSession(pagePath(form, 'epreuves'))), {
+      raceId: text(form, 'raceId'),
+      status: 'cancelled',
+    });
+  } catch (error) {
+    return error instanceof DomainError && error.code === 'forbidden'
+      ? { error: 'Seuls un propriétaire ou un administrateur annulent une épreuve.' }
+      : failure(error);
+  }
+
+  done(form, 'epreuve-annulee', 'epreuves');
 }

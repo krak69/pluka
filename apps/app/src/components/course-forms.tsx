@@ -127,10 +127,12 @@ export function RetireFactForm({
   scope,
   factId,
   label,
+  screen = 'informations',
 }: {
   readonly scope: Scope;
   readonly factId: string;
   readonly label: string;
+  readonly screen?: 'informations' | 'epreuves';
 }) {
   const [state, action, pending] = useActionState(retireFactAction, INITIAL);
 
@@ -138,6 +140,7 @@ export function RetireFactForm({
     <form action={action} className="or-inline-form">
       <ScopeFields {...scope} />
       <input type="hidden" name="factId" value={factId} />
+      <input type="hidden" name="screen" value={screen} />
       <button
         type="submit"
         className="pk-btn pk-button-secondary"
@@ -155,10 +158,12 @@ export function RestoreFactForm({
   scope,
   factId,
   label,
+  screen = 'informations',
 }: {
   readonly scope: Scope;
   readonly factId: string;
   readonly label: string;
+  readonly screen?: 'informations' | 'epreuves';
 }) {
   const [state, action, pending] = useActionState(restoreFactAction, INITIAL);
 
@@ -166,6 +171,7 @@ export function RestoreFactForm({
     <form action={action} className="or-inline-form">
       <ScopeFields {...scope} />
       <input type="hidden" name="factId" value={factId} />
+      <input type="hidden" name="screen" value={screen} />
       <button
         type="submit"
         className="pk-btn pk-button-secondary"

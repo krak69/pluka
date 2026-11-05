@@ -3,12 +3,14 @@ import {
   createEventDiscoveryRepositories,
   createFactEditingRepositories,
   createFactRepositories,
+  createGpxRepositories,
 } from '@pluka/db';
 import type {
   CourseContext,
   EventDiscoveryContext,
   FactEditingContext,
   FactReviewContext,
+  GpxImportContext,
 } from '@pluka/domain';
 
 import type { Session } from '@/lib/session';
@@ -35,6 +37,13 @@ export function factReviewContext(session: Session): FactReviewContext {
 export function courseContext(session: Session): CourseContext {
   return {
     repositories: createCourseRepositories({ client: createDataClient(session.accessToken) }),
+    actor: { userId: session.userId },
+  };
+}
+
+export function gpxImportContext(session: Session): GpxImportContext {
+  return {
+    repositories: createGpxRepositories({ client: createDataClient(session.accessToken) }),
     actor: { userId: session.userId },
   };
 }

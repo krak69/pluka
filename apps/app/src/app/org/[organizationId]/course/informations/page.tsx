@@ -100,7 +100,7 @@ function Fact({
 }) {
   const value = factValue(fact);
   const source = sourceLabel(fact.source);
-  // Le matériel porte une exigence structurée : il a son propre geste de correction.
+  // Le matériel porte une exigence structurée : il se corrige depuis Épreuves.
   const editable = canEdit && fact.category !== 'equipment';
 
   return (
