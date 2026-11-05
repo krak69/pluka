@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { notFoundError, parseCommand, validationError } from '../errors.js';
 import { SITE_HEADING_FONTS } from './appearance.js';
+import { SITE_MOMENTS } from './practical-topics.js';
 
 /**
  * Le site public d'un événement, tel qu'un visiteur le lit — EVENT_SITE §3, §7.
@@ -35,8 +36,27 @@ const publicSiteSchema = z.object({
     logoPath: nullableText,
     coverPath: nullableText,
   }),
+  presentation: nullableText,
+  venue: nullableText,
+  links: z.object({
+    results: nullableText,
+    live: nullableText,
+    volunteers: nullableText,
+    newsletter: nullableText,
+    facebook: nullableText,
+    instagram: nullableText,
+    strava: nullableText,
+  }),
+  figures: z.array(z.object({ value: z.string(), label: z.string() })),
   hasContact: z.boolean(),
-  sections: z.array(z.object({ title: z.string(), body: z.string() })),
+  sections: z.array(
+    z.object({
+      title: z.string(),
+      body: z.string(),
+      moment: z.enum(SITE_MOMENTS),
+      topicKey: nullableText,
+    }),
+  ),
   edition: z
     .object({
       id: z.string().uuid(),

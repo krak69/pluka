@@ -87,6 +87,7 @@ function repository(): EventSiteEditingRepository {
       ),
     findSite: () => Promise.resolve(world.site),
     listSections: () => Promise.resolve([]),
+    listFigures: () => Promise.resolve([]),
     listEditions: () => Promise.resolve([edition]),
     listRaces: () => Promise.resolve([race]),
     save: (input) => {
@@ -172,6 +173,17 @@ function site(overrides: Partial<EventSiteRecord> = {}): EventSiteRecord {
     coverPath: null,
     contactEmail: null,
     publishedAt: null,
+    presentation: null,
+    venue: null,
+    links: {
+      results: null,
+      live: null,
+      volunteers: null,
+      newsletter: null,
+      facebook: null,
+      instagram: null,
+      strava: null,
+    },
     ...overrides,
   };
 }
@@ -242,6 +254,98 @@ describe('lire l’éditeur', () => {
   });
 });
 
+describe('enregistrer le contenu', () => {
+  const links = {
+    results: 'https://chrono.example/2026',
+    live: '',
+    volunteers: '',
+    newsletter: '',
+    facebook: '',
+    instagram: '',
+    strava: '',
+  };
+
+  it('une rubrique proposée prend son titre et son moment dans la liste', async () => {
+    await saveEventSite(context(), {
+      ...SAVE,
+      sections: [{ title: 'Envoyé par le client', body: 'À 18 h.', moment: 'before', topicKey: 'showers' }],
+    });
+
+    expect(world.saved[0]?.sections).toEqual([
+      { title: 'Douches', body: 'À 18 h.', moment: 'after', topicKey: 'showers' },
+    ]);
+  });
+
+  it('une rubrique ajoutée garde le moment choisi, et exige un titre', async () => {
+    await saveEventSite(context(), {
+      ...SAVE,
+      sections: [{ title: 'Garderie', body: 'Pour les enfants.', moment: 'during', topicKey: null }],
+    });
+    expect(world.saved[0]?.sections[0]?.moment).toBe('during');
+
+    await expect(
+      saveEventSite(context(), {
+        ...SAVE,
+        sections: [{ title: ' ', body: 'Sans titre.', moment: 'during', topicKey: null }],
+      }),
+    ).rejects.toMatchObject({ code: 'validation', details: { 'sections.0.title': 'titre requis' } });
+  });
+
+  it('refuse une rubrique inconnue, ou écrite deux fois', async () => {
+    await expect(
+      saveEventSite(context(), { ...SAVE, sections: [{ body: 'x', topicKey: 'inconnue' }] }),
+    ).rejects.toMatchObject({ code: 'validation' });
+    await expect(
+      saveEventSite(context(), {
+        ...SAVE,
+        sections: [
+          { body: 'a', topicKey: 'food' },
+          { body: 'b', topicKey: 'food' },
+        ],
+      }),
+    ).rejects.toMatchObject({ code: 'validation' });
+  });
+
+  it('nettoie la présentation et les liens ; un champ vidé retire le lien', async () => {
+    await saveEventSite(context(), {
+      ...SAVE,
+      content: {
+        presentation: '  Une course de village.  ',
+        venue: '',
+        figures: [{ value: ' 300 ', label: 'coureurs' }],
+        links,
+      },
+    });
+
+    expect(world.saved[0]?.content).toMatchObject({
+      presentation: 'Une course de village.',
+      venue: null,
+      figures: [{ value: '300', label: 'coureurs' }],
+      links: { results: 'https://chrono.example/2026', live: null },
+    });
+  });
+
+  it('refuse un lien qui n’est pas https et un cinquième chiffre', async () => {
+    const base = { presentation: '', venue: '', figures: [], links };
+
+    await expect(
+      saveEventSite(context(), {
+        ...SAVE,
+        content: { ...base, links: { ...links, facebook: 'http://facebook.example/x' } },
+      }),
+    ).rejects.toMatchObject({ code: 'validation' });
+    await expect(
+      saveEventSite(context(), {
+        ...SAVE,
+        content: {
+          ...base,
+          figures: Array.from({ length: 5 }, () => ({ value: '1', label: 'x' })),
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'validation' });
+  });
+});
+
 describe('enregistrer', () => {
   it('éditeur : enregistre l’identité, les blocs et l’inscription, nettoyés', async () => {
     await saveEventSite(context(), SAVE);
@@ -252,7 +356,8 @@ describe('enregistrer', () => {
         accentColor: '#b8322a',
         headingFont: 'oswald',
         contactEmail: 'courses@trail.test',
-        sections: [{ title: 'Hébergement', body: 'Gîte du col.' }],
+        sections: [{ title: 'Hébergement', body: 'Gîte du col.', moment: 'before', topicKey: null }],
+        content: null,
         registration: {
           editionId: EDITION,
           editionUrl: 'https://inscriptions.example/2026',

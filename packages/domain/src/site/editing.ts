@@ -5,6 +5,7 @@ import {
   type EventSiteEditingRepository,
   type EventSiteEditionRecord,
   type EventSiteEventRecord,
+  type EventSiteFigureRecord,
   type EventSiteRaceRecord,
   type EventSiteRecord,
   type EventSiteSectionRecord,
@@ -21,6 +22,7 @@ import {
   validationError,
 } from '../errors.js';
 import { SITE_HEADING_FONTS, accentContrastIssue } from './appearance.js';
+import { SITE_MOMENTS, SITE_PRACTICAL_TOPIC_KEYS, sitePracticalTopic } from './practical-topics.js';
 import { isSiteSubdomain } from './subdomain.js';
 
 /**
@@ -87,6 +89,7 @@ export interface EventSiteEditor {
   /** Nul : le site n'a jamais été enregistré. */
   readonly site: EventSiteRecord | null;
   readonly sections: readonly EventSiteSectionRecord[];
+  readonly figures: readonly EventSiteFigureRecord[];
   /** L'édition dont le site porte l'inscription : la prochaine à venir, sinon la dernière. */
   readonly edition: EventSiteEditionRecord | null;
   readonly races: readonly EventSiteRaceRecord[];
@@ -192,6 +195,7 @@ export async function getEventSiteEditor(
       event: null,
       site: null,
       sections: [],
+      figures: [],
       edition: null,
       races: [],
       documents: [],
@@ -199,9 +203,10 @@ export async function getEventSiteEditor(
     };
   }
 
-  const [site, sections, editions] = await Promise.all([
+  const [site, sections, figures, editions] = await Promise.all([
     repository.findSite(event.id),
     repository.listSections(event.id),
+    repository.listFigures(event.id),
     repository.listEditions(event.id),
   ]);
   const edition = currentSiteEdition(editions, query.today);
@@ -224,6 +229,7 @@ export async function getEventSiteEditor(
     event,
     site,
     sections,
+    figures,
     edition,
     races,
     documents,
@@ -255,12 +261,54 @@ export const saveEventSiteCommandSchema = z.object({
   contactEmail: optional(z.string().trim().max(254).email('adresse e-mail invalide')),
   sections: z
     .array(
-      z.object({
-        title: z.string().trim().min(1, 'titre requis').max(80),
-        body: z.string().trim().min(1, 'texte requis').max(4000),
-      }),
+      z
+        .object({
+          // Ignoré pour une rubrique proposée : son titre et son moment viennent de la liste.
+          title: z.string().trim().max(80).default(''),
+          body: z.string().trim().min(1, 'texte requis').max(4000),
+          moment: z.enum(SITE_MOMENTS).default('before'),
+          topicKey: z.enum(SITE_PRACTICAL_TOPIC_KEYS).nullable().default(null),
+        })
+        .superRefine((section, context) => {
+          if (section.topicKey === null && section.title === '') {
+            context.addIssue({ code: 'custom', path: ['title'], message: 'titre requis' });
+          }
+        })
+        .transform((section) => {
+          if (section.topicKey === null) return section;
+          const topic = sitePracticalTopic(section.topicKey);
+          return { ...section, title: topic.title, moment: topic.moment };
+        }),
     )
-    .max(20, '20 blocs au plus'),
+    .max(20, '20 rubriques au plus')
+    .refine((sections) => {
+      const keys = sections.flatMap((section) => section.topicKey ?? []);
+      return new Set(keys).size === keys.length;
+    }, 'une rubrique ne s’écrit qu’une fois'),
+  content: z
+    .object({
+      presentation: optional(z.string().trim().max(4000)),
+      venue: optional(z.string().trim().max(120)),
+      figures: z
+        .array(
+          z.object({
+            value: z.string().trim().min(1, 'valeur requise').max(20),
+            label: z.string().trim().min(1, 'libellé requis').max(60),
+          }),
+        )
+        .max(4, 'quatre chiffres au plus'),
+      links: z.object({
+        results: optional(httpsUrl),
+        live: optional(httpsUrl),
+        volunteers: optional(httpsUrl),
+        newsletter: optional(httpsUrl),
+        facebook: optional(httpsUrl),
+        instagram: optional(httpsUrl),
+        strava: optional(httpsUrl),
+      }),
+    })
+    .nullable()
+    .default(null),
   registration: z
     .object({
       editionId: uuid,
@@ -313,6 +361,7 @@ export async function saveEventSite(context: EventSiteEditingContext, input: unk
       headingFont: command.headingFont,
       contactEmail: command.contactEmail,
       sections: command.sections,
+      content: command.content,
       registration: command.registration,
     });
   } catch (error) {
