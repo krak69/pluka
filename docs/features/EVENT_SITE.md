@@ -139,8 +139,11 @@ dates. Un chiffre clé est une affirmation de l'organisation : PLUKA n'en calcul
 
 La liste du rendez-vous, **par édition** : jour, heure, lieu, intitulé. Les départs des
 épreuves s'y ajoutent d'eux-mêmes, depuis les épreuves publiques : ils ne se ressaisissent
-pas. Les temps sont des instants réels dans le fuseau de l'épreuve (AGENTS §34). Page
-`/programme` ; l'accueil n'en montre qu'un lien.
+pas. Les temps sont des instants réels dans le fuseau des épreuves de l'édition (AGENTS §34).
+Quarante lignes au plus.
+
+La page `/programme` existe dès que l'organisation a écrit une ligne : seuls, les départs
+n'ajoutent rien aux cartes d'épreuves. L'accueil n'en montre qu'un lien.
 
 ## 3.10 Galerie et vidéo
 
@@ -344,7 +347,7 @@ sous la session de l'éditeur, après avoir réencodé l'image, sans clé de ser
 
 ---
 
-Contenu complet (0054 pour les rubriques, la présentation et les liens ; programme et galerie ensuite) :
+Contenu complet (0054 pour les rubriques, la présentation et les liens ; 0055 pour le programme ; galerie ensuite) :
 
 - `event_sites` gagne la présentation, le lieu, la vidéo et les sept liens de §3.11 ;
 - `event_site_sections` gagne le moment et la clé de rubrique, nulle pour une rubrique

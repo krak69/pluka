@@ -405,6 +405,8 @@ Spécification : `docs/features/EVENT_SITE.md`.
   (avant, pendant, après) et, pour une rubrique de la liste proposée, sa clé (0054).
 - `event_site_figures` — chiffres clés, quatre au plus, écrits par l'organisation (0054).
   `event_sites` porte aussi la présentation, le lieu et sept liens utiles en `https`.
+- `event_site_program_items` — programme d'une édition : instant, fuseau, intitulé, lieu
+  (0055). Les départs n'y sont pas : ils viennent des épreuves publiques, à la lecture.
 - `editions.registration_url`, `races.registration_url` — inscription externe ; celle de
   l'épreuve prime. Enregistrées avec le reste du site par `save_event_site` (0050).
 - `sources.public_download_at` — diffusion publique d'un document, posée par owner ou admin.
