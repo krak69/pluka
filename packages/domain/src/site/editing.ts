@@ -275,6 +275,60 @@ export async function getEventSiteEditor(
   };
 }
 
+export interface OrganizerCourse {
+  readonly organizationName: string;
+  readonly permissions: EventSitePermissions;
+  readonly events: readonly EventSiteEventRecord[];
+  readonly event: EventSiteEventRecord | null;
+  /** Les éditions à choisir, la plus récente d'abord : ni annulées ni archivées. */
+  readonly editions: readonly EventSiteEditionRecord[];
+  readonly edition: EventSiteEditionRecord | null;
+  readonly races: readonly EventSiteRaceRecord[];
+}
+
+export const getOrganizerCourseQuerySchema = getEventSiteEditorQuerySchema.extend({
+  year: z.number().int().min(1900).max(3000).optional(),
+});
+
+/**
+ * Le périmètre de Ma course — 05_ROUTES_FLOWS §12.1. L'édition courante, sauf si
+ * une année est demandée : le choix tient dans l'adresse et se partage. Une
+ * année inconnue retombe sur l'édition courante plutôt que sur une erreur.
+ */
+export async function getOrganizerCourse(
+  context: EventSiteEditingContext,
+  input: unknown,
+): Promise<OrganizerCourse> {
+  const useCase = 'getOrganizerCourse';
+  const query = parseCommand(getOrganizerCourseQuerySchema, input, useCase);
+  const { organizationName, ...permissions } = await permissionsOf(
+    context,
+    query.organizationId,
+    useCase,
+  );
+  const repository = context.repositories.eventSiteEditing;
+
+  const events = await repository.listOrganizationEvents(query.organizationId);
+  const event =
+    (query.eventSlug === undefined
+      ? undefined
+      : events.find((candidate) => candidate.slug === query.eventSlug)) ?? events[0] ?? null;
+
+  if (event === null) {
+    return { organizationName, permissions, events, event, editions: [], edition: null, races: [] };
+  }
+
+  const editions = (await repository.listEditions(event.id))
+    .filter((edition) => edition.status !== 'cancelled' && edition.status !== 'archived')
+    .sort((left, right) => right.year - left.year);
+  const edition =
+    editions.find((candidate) => candidate.year === query.year) ??
+    currentSiteEdition(editions, query.today);
+  const races = edition === null ? [] : await repository.listRaces(edition.id);
+
+  return { organizationName, permissions, events, event, editions, edition, races };
+}
+
 const httpsUrl = z
   .string()
   .trim()

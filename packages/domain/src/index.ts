@@ -678,6 +678,8 @@ export {
   EventSiteImageRejected,
   currentSiteEdition,
   getEventSiteEditor,
+  getOrganizerCourse,
+  type OrganizerCourse,
   getEventSiteEditorQuerySchema,
   removeEventSiteImage,
   saveEventSite,

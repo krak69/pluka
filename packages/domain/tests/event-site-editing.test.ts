@@ -12,6 +12,7 @@ import {
   EventSiteImageRejected,
   currentSiteEdition,
   getEventSiteEditor,
+  getOrganizerCourse,
   removeEventSiteImage,
   addEventSiteGalleryPhoto,
   parseSiteVideoUrl,
@@ -493,6 +494,35 @@ describe('la vidéo', () => {
       'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
     );
     expect(siteVideoPlayerUrl({ provider: 'vimeo', id: '76979871' })).toContain('dnt=1');
+  });
+});
+
+describe('le périmètre de Ma course', () => {
+  it('prend l’édition courante, et dit les droits du rôle', async () => {
+    world.role = 'viewer';
+    const course = await getOrganizerCourse(context(), { organizationId: ORG, today: '2026-06-01' });
+
+    expect(course.edition?.id).toBe(EDITION);
+    expect(course.races.map((candidate) => candidate.id)).toEqual([RACE]);
+    expect(course.permissions.canEdit).toBe(false);
+  });
+
+  it('retombe sur l’édition courante pour une année inconnue', async () => {
+    const course = await getOrganizerCourse(context(), {
+      organizationId: ORG,
+      today: '2026-06-01',
+      year: 1999,
+    });
+
+    expect(course.edition?.id).toBe(EDITION);
+  });
+
+  it('ne confirme pas l’organisation à un non-membre', async () => {
+    world.role = null;
+
+    await expect(
+      getOrganizerCourse(context(), { organizationId: ORG, today: '2026-06-01' }),
+    ).rejects.toMatchObject({ code: 'not_found' });
   });
 });
 
