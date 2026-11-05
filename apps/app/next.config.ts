@@ -73,9 +73,9 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ['*.localhost'],
   experimental: {
     serverActions: {
-      // Le logo et la couverture d'un site se déposent jusqu'à 8 Mo, réencodés
-      // ensuite (EVENT_SITE §4) ; la marge couvre l'enveloppe multipart.
-      bodySizeLimit: '9mb',
+      // Un PDF d'organisateur se dépose jusqu'à 25 Mo (Ma course · Sources), une
+      // image de site jusqu'à 8 Mo ; la marge couvre l'enveloppe multipart.
+      bodySizeLimit: '26mb',
     },
   },
 

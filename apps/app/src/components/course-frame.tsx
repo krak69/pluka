@@ -1,5 +1,5 @@
 import type { OrganizerCourse } from '@pluka/domain';
-import { TerrainBand } from '@pluka/ui';
+import { NavTabs, TerrainBand } from '@pluka/ui';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -11,6 +11,11 @@ import { courseHref } from '@/lib/organizer-course';
  * L'édition courante par défaut ; les sélecteurs n'apparaissent que s'il y a un
  * choix à faire (05_ROUTES_FLOWS §12.1).
  */
+const SCREENS = [
+  { screen: 'informations', label: 'Informations' },
+  { screen: 'sources', label: 'Sources' },
+] as const;
+
 export function CourseFrame({
   organizationId,
   screen,
@@ -75,6 +80,18 @@ export function CourseFrame({
           ))}
         </nav>
       ) : null}
+
+      <NavTabs
+        label="Ma course"
+        tabs={SCREENS.map((item) => ({
+          href: courseHref(organizationId, item.screen, {
+            event: event?.slug,
+            year: edition?.year,
+          }),
+          label: item.label,
+          current: item.screen === screen,
+        }))}
+      />
 
       {children}
     </div>

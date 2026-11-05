@@ -1,5 +1,13 @@
-import { createFactEditingRepositories, createFactRepositories } from '@pluka/db';
-import type { FactEditingContext, FactReviewContext } from '@pluka/domain';
+import {
+  createEventDiscoveryRepositories,
+  createFactEditingRepositories,
+  createFactRepositories,
+} from '@pluka/db';
+import type {
+  EventDiscoveryContext,
+  FactEditingContext,
+  FactReviewContext,
+} from '@pluka/domain';
 
 import type { Session } from '@/lib/session';
 import { createDataClient } from '@/lib/supabase/data';
@@ -18,6 +26,15 @@ export function factEditingContext(session: Session): FactEditingContext {
 export function factReviewContext(session: Session): FactReviewContext {
   return {
     repositories: createFactRepositories({ client: createDataClient(session.accessToken) }),
+    actor: { userId: session.userId },
+  };
+}
+
+export function courseDocumentsContext(session: Session): EventDiscoveryContext {
+  return {
+    repositories: createEventDiscoveryRepositories({
+      client: createDataClient(session.accessToken),
+    }),
     actor: { userId: session.userId },
   };
 }

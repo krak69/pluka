@@ -1082,6 +1082,12 @@ select.pk-input {
   margin: 0;
 }
 
+.cr-add {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: var(--space-5);
+}
+
 /* Une section de page : un fond clair, un filet, rien de plus (§42). */
 .or-card {
   display: grid;

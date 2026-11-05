@@ -2,6 +2,8 @@
 
 import {
   DomainError,
+  addEditionDocuments,
+  addEditionFile,
   decideFactCandidate,
   publishFactCandidate,
   restoreRaceFact,
@@ -11,7 +13,11 @@ import {
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-import { factEditingContext, factReviewContext } from '@/lib/organizer-course';
+import {
+  courseDocumentsContext,
+  factEditingContext,
+  factReviewContext,
+} from '@/lib/organizer-course';
 import { requireSession } from '@/lib/session';
 
 /**
@@ -35,19 +41,19 @@ function text(form: FormData, field: string): string {
   return typeof value === 'string' ? value : '';
 }
 
-function pagePath(form: FormData): string {
+function pagePath(form: FormData, screen = 'informations'): string {
   const organizationId = text(form, 'organizationId');
   if (!UUID.test(organizationId)) return '/org';
 
-  const base = `/org/${organizationId}/course/informations`;
+  const base = `/org/${organizationId}/course/${screen}`;
   // La sélection de l'écran revient telle quelle : des slugs et une année, pas une adresse.
   const search = text(form, 'selection');
   return SEARCH.test(search) && search !== '' ? `${base}?${search}` : base;
 }
 
-function done(form: FormData, notice: string): never {
-  const path = pagePath(form);
-  revalidatePath(`/org/${text(form, 'organizationId')}/course/informations`);
+function done(form: FormData, notice: string, screen = 'informations'): never {
+  const path = pagePath(form, screen);
+  revalidatePath(`/org/${text(form, 'organizationId')}/course/${screen}`);
   redirect(`${path}${path.includes('?') ? '&' : '?'}fait=${notice}`);
 }
 
@@ -173,4 +179,74 @@ export async function rejectCandidateAction(
   }
 
   done(form, 'ecartee');
+}
+
+/** Un fichier passe par l'action : au-delà, il faudrait un dépôt direct depuis le navigateur. */
+const MAX_DOCUMENT_BYTES = 25 * 1024 * 1024;
+
+export async function addDocumentFileAction(
+  _previous: CourseActionState,
+  form: FormData,
+): Promise<CourseActionState> {
+  const file = form.get('file');
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: 'Choisissez un fichier PDF.' };
+  }
+  if (file.size > MAX_DOCUMENT_BYTES) {
+    return { error: 'Ce fichier dépasse 25 Mo.' };
+  }
+
+  try {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+    await addEditionFile(courseDocumentsContext(await requireSession(pagePath(form, 'sources'))), {
+      editionId: text(form, 'editionId'),
+      fileName: file.name,
+      bytes,
+      contentHash: [...new Uint8Array(digest)]
+        .map((byte) => byte.toString(16).padStart(2, '0'))
+        .join(''),
+      raceId: text(form, 'raceId') === '' ? null : text(form, 'raceId'),
+    });
+  } catch (error) {
+    const result = failure(error);
+    return result.fieldErrors?.['file'] === undefined
+      ? result
+      : { error: result.fieldErrors['file'] };
+  }
+
+  done(form, 'document', 'sources');
+}
+
+export async function addDocumentLinkAction(
+  _previous: CourseActionState,
+  form: FormData,
+): Promise<CourseActionState> {
+  const url = text(form, 'url').trim();
+  if (url === '') return { error: 'Collez l’adresse de la page.' };
+
+  let created;
+  try {
+    ({ created } = await addEditionDocuments(
+      courseDocumentsContext(await requireSession(pagePath(form, 'sources'))),
+      {
+        editionId: text(form, 'editionId'),
+        documents: [
+          {
+            url,
+            title: url,
+            kind: /\.pdf(?:[?#].*)?$/iu.test(url) ? 'pdf' : 'page',
+            raceId: text(form, 'raceId') === '' ? null : text(form, 'raceId'),
+          },
+        ],
+      },
+    ));
+  } catch (error) {
+    const result = failure(error);
+    return result.fieldErrors === undefined
+      ? result
+      : { error: 'Cette adresse n’est pas valide. Elle doit commencer par https://.' };
+  }
+
+  done(form, created === 0 ? 'deja-ajoute' : 'document', 'sources');
 }

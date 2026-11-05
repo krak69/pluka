@@ -4,6 +4,8 @@ import { Input } from '@pluka/ui';
 import { useActionState, useId } from 'react';
 
 import {
+  addDocumentFileAction,
+  addDocumentLinkAction,
   publishCandidateAction,
   rejectCandidateAction,
   restoreFactAction,
@@ -217,5 +219,99 @@ export function CandidateForms({
       <ActionError state={publishState} />
       <ActionError state={rejectState} />
     </div>
+  );
+}
+
+export interface DocumentScope extends Scope {
+  readonly editionId: string;
+  readonly races: readonly { readonly id: string; readonly name: string }[];
+}
+
+function DocumentFields({ scope }: { readonly scope: DocumentScope }) {
+  const id = useId();
+
+  return (
+    <>
+      <ScopeFields organizationId={scope.organizationId} selection={scope.selection} />
+      <input type="hidden" name="editionId" value={scope.editionId} />
+      {scope.races.length < 2 ? (
+        <input type="hidden" name="raceId" value="" />
+      ) : (
+        <div className="pk-field">
+          <label className="pk-field-label" htmlFor={`${id}-race`}>
+            Concerne
+          </label>
+          <select id={`${id}-race`} name="raceId" className="pk-input" defaultValue="">
+            <option value="">Toutes les épreuves</option>
+            {scope.races.map((race) => (
+              <option key={race.id} value={race.id}>
+                {race.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+    </>
+  );
+}
+
+export function AddDocumentFileForm({ scope }: { readonly scope: DocumentScope }) {
+  const [state, action, pending] = useActionState(addDocumentFileAction, INITIAL);
+  const id = useId();
+
+  return (
+    <form action={action} className="cr-revise">
+      <DocumentFields scope={scope} />
+      <div className="pk-field">
+        <label className="pk-field-label" htmlFor={`${id}-file`}>
+          Fichier PDF
+        </label>
+        <input
+          id={`${id}-file`}
+          name="file"
+          type="file"
+          accept="application/pdf,.pdf"
+          className="pk-input"
+          disabled={pending}
+          aria-describedby={`${id}-hint`}
+          required
+        />
+        <p id={`${id}-hint`} className="pk-field-hint">
+          Règlement, guide coureur… 25 Mo au plus.
+        </p>
+      </div>
+      <div className="or-inline-form">
+        <button type="submit" className="pk-btn pk-button-secondary" disabled={pending}>
+          {pending ? 'Envoi…' : 'Déposer le PDF'}
+        </button>
+      </div>
+      <ActionError state={state} />
+    </form>
+  );
+}
+
+export function AddDocumentLinkForm({ scope }: { readonly scope: DocumentScope }) {
+  const [state, action, pending] = useActionState(addDocumentLinkAction, INITIAL);
+  const id = useId();
+
+  return (
+    <form action={action} className="cr-revise" noValidate>
+      <DocumentFields scope={scope} />
+      <Input
+        id={`${id}-url`}
+        name="url"
+        type="url"
+        label="Page de votre site"
+        placeholder="https://"
+        hint="PLUKA lit cette page, et seulement elle."
+        disabled={pending}
+      />
+      <div className="or-inline-form">
+        <button type="submit" className="pk-btn pk-button-secondary" disabled={pending}>
+          {pending ? 'Ajout…' : 'Ajouter la page'}
+        </button>
+      </div>
+      <ActionError state={state} />
+    </form>
   );
 }
