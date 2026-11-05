@@ -121,6 +121,22 @@ export function civilMoment(instant: string, timeZone: string): { day: string; t
   };
 }
 
+/**
+ * Un jour et une heure civils dans un fuseau, redits en instant. Le décalage se
+ * lit à l'instant visé, puis se revérifie : c'est lui qui change à l'heure d'été.
+ */
+export function civilToInstant(day: string, time: string, timeZone: string): string {
+  const wall = Date.parse(`${day}T${time}:00Z`);
+  let instant = wall;
+
+  for (let pass = 0; pass < 2; pass += 1) {
+    const shown = civilMoment(new Date(instant).toISOString(), timeZone);
+    instant += wall - Date.parse(`${shown.day}T${shown.time}:00Z`);
+  }
+
+  return new Date(instant).toISOString();
+}
+
 function isCalendarDay(day: string): boolean {
   const date = new Date(`${day}T00:00:00Z`);
   return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(day);
@@ -327,6 +343,64 @@ export async function getOrganizerCourse(
   const races = edition === null ? [] : await repository.listRaces(edition.id);
 
   return { organizationName, permissions, events, event, editions, edition, races };
+}
+
+export const duplicateEditionCommandSchema = z
+  .object({
+    organizationId: uuid,
+    eventId: uuid,
+    sourceEditionId: uuid,
+    year: z.coerce.number().int().min(2000).max(2200),
+    startDate: isoDate.refine(isCalendarDay, 'date invalide'),
+    endDate: z
+      .preprocess((value) => (value === '' ? null : value), isoDate.nullable())
+      .refine((day) => day === null || isCalendarDay(day), 'date invalide'),
+  })
+  .refine((command) => command.endDate === null || command.endDate >= command.startDate, {
+    path: ['endDate'],
+    error: 'la fin doit suivre le début',
+  })
+  .refine((command) => command.startDate.startsWith(String(command.year)), {
+    path: ['startDate'],
+    error: 'la date doit tomber dans l’année de l’édition',
+  });
+
+/**
+ * Préparer l'édition suivante (0059) : épreuves et distances, en brouillon. Les
+ * informations publiées ne suivent pas : une édition revalide les siennes.
+ */
+export async function duplicateEdition(
+  context: EventSiteEditingContext,
+  input: unknown,
+): Promise<void> {
+  const useCase = 'duplicateEdition';
+  const command = parseCommand(duplicateEditionCommandSchema, input, useCase);
+
+  const permissions = await permissionsOf(context, command.organizationId, useCase);
+  if (!permissions.canEdit) throw forbiddenError(useCase);
+  await eventOf(context, command.organizationId, command.eventId, useCase);
+
+  const repository = context.repositories.eventSiteEditing;
+  const editions = await repository.listEditions(command.eventId);
+  if (!editions.some((edition) => edition.id === command.sourceEditionId)) {
+    throw notFoundError(useCase, 'édition');
+  }
+
+  try {
+    await repository.duplicateEdition(
+      command.sourceEditionId,
+      command.year,
+      command.startDate,
+      command.endDate,
+    );
+  } catch (error) {
+    if (error instanceof DbError && error.code === 'conflict') {
+      throw validationError(useCase, 'édition déjà créée', {
+        year: `L’édition ${String(command.year)} existe déjà.`,
+      });
+    }
+    throw translate(error, useCase);
+  }
 }
 
 const httpsUrl = z

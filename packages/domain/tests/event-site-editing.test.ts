@@ -10,7 +10,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   EventSiteImageRejected,
+  civilToInstant,
   currentSiteEdition,
+  duplicateEdition,
   getEventSiteEditor,
   getOrganizerCourse,
   removeEventSiteImage,
@@ -60,6 +62,8 @@ interface World {
   rejectImage: boolean;
   documentToggles: { sourceId: string; isPublic: boolean }[];
   gallery: { id: string; path: string; alt: string | null }[];
+  duplicates: unknown[];
+  duplicateTaken: boolean;
 }
 
 let world: World;
@@ -79,6 +83,10 @@ const race: EventSiteRaceRecord = {
   name: '80K',
   slug: '80k',
   startDatetime: '2026-06-20T04:00:00Z',
+  timezone: 'Europe/Paris',
+  distanceKm: 80,
+  elevationGainM: null,
+  startLocationName: null,
   registrationUrl: null,
   publicVisibility: 'public',
   status: 'published',
@@ -115,6 +123,15 @@ function repository(): EventSiteEditingRepository {
       ]),
     listEditions: () => Promise.resolve([edition]),
     listRaces: () => Promise.resolve([race]),
+    duplicateEdition: (sourceEditionId, year, startDate, endDate) => {
+      if (world.duplicateTaken) {
+        return Promise.reject(
+          new DbError({ code: 'conflict', operation: 'duplicate_edition', message: 'pris' }),
+        );
+      }
+      world.duplicates.push({ sourceEditionId, year, startDate, endDate });
+      return Promise.resolve();
+    },
     save: (input) => {
       world.saved.push(input);
       return Promise.resolve();
@@ -252,6 +269,8 @@ beforeEach(() => {
     rejectImage: false,
     documentToggles: [],
     gallery: [],
+    duplicates: [],
+    duplicateTaken: false,
   };
 });
 
@@ -523,6 +542,68 @@ describe('le périmètre de Ma course', () => {
     await expect(
       getOrganizerCourse(context(), { organizationId: ORG, today: '2026-06-01' }),
     ).rejects.toMatchObject({ code: 'not_found' });
+  });
+});
+
+describe('préparer l’édition suivante', () => {
+  const NEXT = {
+    organizationId: ORG,
+    eventId: EVENT,
+    sourceEditionId: EDITION,
+    year: '2027',
+    startDate: '2027-06-19',
+    endDate: '',
+  };
+
+  it('éditeur : part de l’édition choisie, avec ses nouvelles dates', async () => {
+    await duplicateEdition(context(), NEXT);
+
+    expect(world.duplicates).toEqual([
+      { sourceEditionId: EDITION, year: 2027, startDate: '2027-06-19', endDate: null },
+    ]);
+  });
+
+  it('viewer : refusé', async () => {
+    world.role = 'viewer';
+
+    await expect(duplicateEdition(context(), NEXT)).rejects.toMatchObject({ code: 'forbidden' });
+    expect(world.duplicates).toEqual([]);
+  });
+
+  it('refuse une date hors de l’année, une fin avant le début, une année prise', async () => {
+    await expect(
+      duplicateEdition(context(), { ...NEXT, startDate: '2028-06-19' }),
+    ).rejects.toMatchObject({ code: 'validation' });
+    await expect(
+      duplicateEdition(context(), { ...NEXT, endDate: '2027-06-18' }),
+    ).rejects.toMatchObject({ code: 'validation' });
+
+    world.duplicateTaken = true;
+    await expect(duplicateEdition(context(), NEXT)).rejects.toMatchObject({
+      code: 'validation',
+      details: { year: 'L’édition 2027 existe déjà.' },
+    });
+  });
+
+  it('ne part pas d’une édition d’un autre événement', async () => {
+    await expect(
+      duplicateEdition(context(), { ...NEXT, sourceEditionId: FOREIGN_RACE }),
+    ).rejects.toMatchObject({ code: 'not_found' });
+  });
+});
+
+describe('un jour et une heure redits en instant', () => {
+  it('suit l’heure d’été et l’heure d’hiver', () => {
+    expect(civilToInstant('2026-06-20', '06:00', 'Europe/Paris')).toBe('2026-06-20T04:00:00.000Z');
+    expect(civilToInstant('2026-12-20', '06:00', 'Europe/Paris')).toBe('2026-12-20T05:00:00.000Z');
+  });
+
+  it('reste juste juste après le changement d’heure', () => {
+    expect(civilToInstant('2026-03-29', '03:30', 'Europe/Paris')).toBe('2026-03-29T01:30:00.000Z');
+  });
+
+  it('traverse minuit sans changer de jour', () => {
+    expect(civilToInstant('2026-06-20', '00:30', 'Europe/Paris')).toBe('2026-06-19T22:30:00.000Z');
   });
 });
 
