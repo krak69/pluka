@@ -1276,6 +1276,41 @@ export type Database = {
           },
         ]
       }
+      event_site_gallery: {
+        Row: {
+          alt: string | null
+          created_at: string
+          event_id: string
+          id: string
+          path: string
+          sort_order: number
+        }
+        Insert: {
+          alt?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          path: string
+          sort_order: number
+        }
+        Update: {
+          alt?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          path?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_site_gallery_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_sites"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
       event_site_program_items: {
         Row: {
           created_at: string
@@ -1378,6 +1413,8 @@ export type Database = {
           updated_at: string
           updated_by_user_id: string | null
           venue: string | null
+          video_id: string | null
+          video_provider: string | null
           volunteers_url: string | null
         }
         Insert: {
@@ -1402,6 +1439,8 @@ export type Database = {
           updated_at?: string
           updated_by_user_id?: string | null
           venue?: string | null
+          video_id?: string | null
+          video_provider?: string | null
           volunteers_url?: string | null
         }
         Update: {
@@ -1426,6 +1465,8 @@ export type Database = {
           updated_at?: string
           updated_by_user_id?: string | null
           venue?: string | null
+          video_id?: string | null
+          video_provider?: string | null
           volunteers_url?: string | null
         }
         Relationships: [
@@ -5828,6 +5869,10 @@ export type Database = {
         Args: { p_token_hash: string }
         Returns: Database["public"]["Enums"]["staff_role"]
       }
+      add_event_site_gallery_photo: {
+        Args: { p_alt: string; p_event_id: string; p_path: string }
+        Returns: undefined
+      }
       add_race_equipment: {
         Args: {
           p_condition: string
@@ -6415,6 +6460,10 @@ export type Database = {
           superseded_version_id: string
           version_number: number
         }[]
+      }
+      remove_event_site_gallery_photo: {
+        Args: { p_photo_id: string }
+        Returns: undefined
       }
       restore_race_fact: {
         Args: { p_fact_id: string; p_note?: string }

@@ -36,6 +36,18 @@ export interface EventSiteRecord {
   readonly presentation: string | null;
   readonly venue: string | null;
   readonly links: EventSiteLinks;
+  readonly video: EventSiteVideo | null;
+}
+
+export interface EventSiteVideo {
+  readonly provider: 'youtube' | 'vimeo';
+  readonly id: string;
+}
+
+export interface EventSiteGalleryPhotoRecord {
+  readonly id: string;
+  readonly path: string;
+  readonly alt: string | null;
 }
 
 export interface EventSiteLinks {
@@ -117,6 +129,7 @@ export interface SaveEventSiteInput {
     readonly venue: string | null;
     readonly figures: readonly EventSiteFigureRecord[];
     readonly links: EventSiteLinks;
+    readonly video: EventSiteVideo | null;
   } | null;
   /** Nul : le programme n'est pas touché (0055). Exige `registration`, qui porte l'édition. */
   readonly program: readonly EventSiteProgramItemInput[] | null;
@@ -134,6 +147,9 @@ export interface EventSiteEditingRepository {
   listSections(eventId: string): Promise<readonly EventSiteSectionRecord[]>;
   listFigures(eventId: string): Promise<readonly EventSiteFigureRecord[]>;
   listProgram(editionId: string): Promise<readonly EventSiteProgramItemRecord[]>;
+  listGallery(eventId: string): Promise<readonly EventSiteGalleryPhotoRecord[]>;
+  addGalleryPhoto(eventId: string, path: string, alt: string | null): Promise<void>;
+  removeGalleryPhoto(photoId: string): Promise<void>;
   listEditions(eventId: string): Promise<readonly EventSiteEditionRecord[]>;
   listRaces(editionId: string): Promise<readonly EventSiteRaceRecord[]>;
   save(input: SaveEventSiteInput): Promise<void>;
@@ -181,9 +197,12 @@ const SITE_COLUMNS = [
   'facebook_url',
   'instagram_url',
   'strava_url',
+  'video_provider',
+  'video_id',
 ] as const;
 const SECTION_COLUMNS = ['title', 'body', 'moment', 'topic_key', 'sort_order'] as const;
 const FIGURE_COLUMNS = ['value', 'label', 'sort_order'] as const;
+const GALLERY_COLUMNS = ['id', 'path', 'alt', 'sort_order'] as const;
 const PROGRAM_COLUMNS = ['starts_at', 'timezone', 'title', 'location'] as const;
 const EDITION_COLUMNS = [
   'id',
@@ -249,6 +268,11 @@ export const eventSiteEditingRepository = defineRepository<EventSiteEditingRepos
           instagram: row.instagram_url,
           strava: row.strava_url,
         },
+        video:
+          (row.video_provider === 'youtube' || row.video_provider === 'vimeo') &&
+          row.video_id !== null
+            ? { provider: row.video_provider, id: row.video_id }
+            : null,
       };
     },
 
@@ -279,6 +303,30 @@ export const eventSiteEditingRepository = defineRepository<EventSiteEditingRepos
         'event_site_figures.list',
       );
       return rows.map((row) => ({ value: row.value, label: row.label }));
+    },
+
+    async listGallery(eventId) {
+      const rows = unwrap(
+        await context.client
+          .from('event_site_gallery')
+          .select(selectColumns('event_site_gallery', GALLERY_COLUMNS))
+          .eq('event_id', eventId)
+          .order('sort_order', { ascending: true }),
+        'event_site_gallery.list',
+      );
+      return rows.map((row) => ({ id: row.id, path: row.path, alt: row.alt }));
+    },
+
+    async addGalleryPhoto(eventId, path, alt) {
+      await call(context.client, 'add_event_site_gallery_photo', {
+        p_event_id: eventId,
+        p_path: path,
+        p_alt: alt,
+      });
+    },
+
+    async removeGalleryPhoto(photoId) {
+      await call(context.client, 'remove_event_site_gallery_photo', { p_photo_id: photoId });
     },
 
     async listProgram(editionId) {
@@ -352,7 +400,17 @@ export const eventSiteEditingRepository = defineRepository<EventSiteEditingRepos
           input.registration === null
             ? null
             : input.registration.races.map((race) => ({ raceId: race.raceId, url: race.url })),
-        p_content: input.content,
+        p_content:
+          input.content === null
+            ? null
+            : {
+                presentation: input.content.presentation,
+                venue: input.content.venue,
+                figures: input.content.figures,
+                links: input.content.links,
+                videoProvider: input.content.video?.provider ?? null,
+                videoId: input.content.video?.id ?? null,
+              },
         p_program: input.program,
       });
     },
