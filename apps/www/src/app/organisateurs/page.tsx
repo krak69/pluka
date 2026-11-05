@@ -88,6 +88,7 @@ export default function OrganisateursPage() {
         links={c.navLinks}
         homeHref="/"
         action={{ label: 'Demander une présentation', href: '#contact' }}
+        login={{ label: 'Espace organisateur', href: `${publicEnv().NEXT_PUBLIC_APP_URL}/org` }}
         cross={{
           href: '/',
           title: `Vous préparez une course ?`,

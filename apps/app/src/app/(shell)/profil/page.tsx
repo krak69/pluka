@@ -1,8 +1,11 @@
 import { getTrailProfile } from '@pluka/domain';
 import { Badge, Divider, SectionHeader } from '@pluka/ui';
+import Link from 'next/link';
 
 import { ProfileForms } from '@/app/(shell)/profil/profile-forms';
+import { organizerPathOf } from '@/lib/organizer-link';
 import { requireProfileContext } from '@/lib/profile';
+import { requireSession } from '@/lib/session';
 
 /**
  * Profil trailer — `05_ROUTES_FLOWS.md` §5.3, 00_PRODUCT_SPEC §8.
@@ -23,6 +26,8 @@ export const metadata = { title: 'Profil trailer' };
 
 export default async function ProfilePage() {
   const view = await getTrailProfile(await requireProfileContext('/profil'));
+  // Sur mobile, la barre du bas est pleine : c'est ici que le lien se trouve.
+  const organizerHref = await organizerPathOf(await requireSession('/profil'));
 
   return (
     <div className="ap-page">
@@ -53,6 +58,15 @@ export default async function ProfilePage() {
       <Divider spaced />
 
       <ProfileForms profile={view.profile} />
+
+      {organizerHref === null ? null : (
+        <>
+          <Divider spaced />
+          <Link href={organizerHref} className="pk-link">
+            Espace organisateur
+          </Link>
+        </>
+      )}
     </div>
   );
 }

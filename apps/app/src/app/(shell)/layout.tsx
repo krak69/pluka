@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { AppShell } from '@/components/app-shell';
+import { organizerPathOf } from '@/lib/organizer-link';
 import { listMyRaces } from '@/lib/participations';
 import { requireSession } from '@/lib/session';
 
@@ -20,7 +21,11 @@ import { requireSession } from '@/lib/session';
  */
 export default async function ShellLayout({ children }: { readonly children: ReactNode }) {
   const session = await requireSession('/');
-  const races = await listMyRaces(session);
+  const [races, organizerHref] = await Promise.all([listMyRaces(session), organizerPathOf(session)]);
 
-  return <AppShell races={races}>{children}</AppShell>;
+  return (
+    <AppShell races={races} organizerHref={organizerHref}>
+      {children}
+    </AppShell>
+  );
 }

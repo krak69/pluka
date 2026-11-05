@@ -57,7 +57,7 @@ export default async function SignInPage({
         padding: 'var(--space-12) var(--space-6)',
       }}
     >
-      <MicroLabel>Connexion</MicroLabel>
+      <MicroLabel>{returnTo.startsWith('/org') ? 'Espace organisateur' : 'Connexion'}</MicroLabel>
 
       <h1 className="pk-h1" style={{ margin: 'var(--space-2) 0 var(--space-6)' }}>
         Recevoir un lien de connexion

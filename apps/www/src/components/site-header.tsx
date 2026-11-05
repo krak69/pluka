@@ -37,7 +37,7 @@ type SiteHeaderProps = {
   readonly homeHref: string;
   /** Action principale de l'en-tête. */
   readonly action: { readonly label: string; readonly href: string };
-  /** Lien de connexion — absent de la page Organisateurs. */
+  /** Lien vers l'application : la connexion, ou l'espace organisateur, qui la demande. */
   readonly login?: { readonly label: string; readonly href: string };
   /** Renvoi vers l'autre audience, repris dans le menu replié. */
   readonly cross: {

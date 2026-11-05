@@ -34,6 +34,8 @@ import {
 
 export interface AppShellProps {
   readonly races: readonly OwnParticipationSummary[];
+  /** Nul pour qui n'est membre d'aucune organisation : le lien n'existe pas. */
+  readonly organizerHref: string | null;
   readonly children: ReactNode;
 }
 
@@ -56,7 +58,7 @@ function countdownLabel(startsAt: string): string | null {
   return days === 1 ? 'Demain' : `Dans ${String(days)} jours`;
 }
 
-export function AppShell({ races, children }: AppShellProps) {
+export function AppShell({ races, organizerHref, children }: AppShellProps) {
   const pathname = usePathname();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
@@ -155,6 +157,11 @@ export function AppShell({ races, children }: AppShellProps) {
           <Link href="/offre" className="ap-sidebar-link">
             Mon offre
           </Link>
+          {organizerHref === null ? null : (
+            <Link href={organizerHref} className="ap-sidebar-link">
+              Espace organisateur
+            </Link>
+          )}
         </div>
       </aside>
 

@@ -580,6 +580,8 @@ Conformément à §1.6, chacun de ces passages est un lien absolu.
 | ---------------------------------------- | ------------------------------------ | ------------------------- |
 | `www` — tous les appels à l'action       | `apps/app`                           | `NEXT_PUBLIC_APP_URL`     |
 | `/org/…` — « Administration PLUKA »      | `apps/admin`                         | `NEXT_PUBLIC_ADMIN_URL`   |
+| `/organisateurs` — « Espace organisateur » | `apps/app` `/org`, après connexion si besoin | `NEXT_PUBLIC_APP_URL` |
+| Espace coureur — « Espace organisateur » (membres seulement) | `apps/app` `/org`, ou l'organisation s'il n'y en a qu'une | interne, `<Link>` |
 | `/org/…` — « Espace coureur »            | `apps/app` `/`                       | interne, `<Link>`         |
 | `admin` — « Espace organisateur »        | `apps/app` `/org`                    | `NEXT_PUBLIC_APP_URL`     |
 | `admin` — « Espace coureur »             | `apps/app` `/`                       | `NEXT_PUBLIC_APP_URL`     |
