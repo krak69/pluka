@@ -535,7 +535,7 @@
   text-decoration: none;
 }
 
-.es-page-head {
+.es-wrap.es-page-head {
   padding-top: 64px;
   padding-bottom: var(--space-8);
 }
@@ -548,7 +548,7 @@
   text-transform: var(--site-heading-case);
 }
 
-.es-moment-section {
+.es-wrap.es-moment-section {
   padding-top: var(--space-8);
   padding-bottom: var(--space-8);
 }
@@ -565,7 +565,7 @@
   margin-top: var(--space-6);
 }
 
-.es-program-day {
+.es-wrap.es-program-day {
   padding-top: var(--space-8);
   padding-bottom: var(--space-8);
 }
