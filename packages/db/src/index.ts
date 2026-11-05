@@ -281,3 +281,10 @@ export {
   type SaveEditionEquipmentInput,
   type ReviseFactInput,
 } from './repositories/fact-editing.js';
+export {
+  participantImportRepository,
+  type EditionParticipantRecord,
+  type EditionParticipants,
+  type ParticipantImportRepository,
+  type ParticipantImportView,
+} from './repositories/participant-import.js';

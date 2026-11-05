@@ -1375,7 +1375,9 @@ Workflow CSV :
 
 > Upload → mapping → validation → erreurs / doublons → import
 
-`raw_data` conserve la ligne d'origine ; `mapped_data` contient la projection normalisée proposée.
+`raw_data` conserve la ligne d'origine ; `mapped_data` contient la projection normalisée proposée. Le temps de l'import seulement : `commit_participant_import` (0060) les vide, et le fichier n'est pas stocké (`storage_path` reste nul).
+
+Sexe, date de naissance et nationalité vont dans `private.participant_demographics`, indices et identifiants dans `private.participant_performance_signals`, un fournisseur par ligne. Aucune organisation ne les relit.
 
 ## 20.2 `participant_invitations`
 

@@ -2866,7 +2866,7 @@ export type Database = {
           mapping: Json
           organization_id: string
           status: Database["public"]["Enums"]["import_status"]
-          storage_path: string
+          storage_path: string | null
           updated_at: string
         }
         Insert: {
@@ -2877,7 +2877,7 @@ export type Database = {
           mapping?: Json
           organization_id: string
           status?: Database["public"]["Enums"]["import_status"]
-          storage_path: string
+          storage_path?: string | null
           updated_at?: string
         }
         Update: {
@@ -2888,7 +2888,7 @@ export type Database = {
           mapping?: Json
           organization_id?: string
           status?: Database["public"]["Enums"]["import_status"]
-          storage_path?: string
+          storage_path?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -6216,6 +6216,19 @@ export type Database = {
         Args: { p_product_id: string }
         Returns: undefined
       }
+      commit_participant_import: {
+        Args: { p_import_id: string }
+        Returns: Json
+      }
+      create_participant_import: {
+        Args: {
+          p_edition_id: string
+          p_file_name: string
+          p_headers: Json
+          p_rows: Json
+        }
+        Returns: string
+      }
       decide_fact_candidate: {
         Args: {
           p_action: string
@@ -6224,6 +6237,10 @@ export type Database = {
           p_note?: string
         }
         Returns: string
+      }
+      discard_participant_import: {
+        Args: { p_import_id: string }
+        Returns: undefined
       }
       duplicate_edition: {
         Args: {
@@ -6291,8 +6308,13 @@ export type Database = {
           value_text: string
         }[]
       }
+      get_participant_import: { Args: { p_import_id: string }; Returns: Json }
       get_race_gpx_import: { Args: { p_race_id: string }; Returns: Json }
       list_edition_documents: { Args: { p_edition_id: string }; Returns: Json }
+      list_edition_participants: {
+        Args: { p_edition_id: string; p_limit?: number }
+        Returns: Json
+      }
       list_fact_candidates_for_review: {
         Args: { p_limit?: number; p_race_id: string }
         Returns: {
@@ -6598,6 +6620,10 @@ export type Database = {
           p_slug: string
         }
         Returns: string
+      }
+      validate_participant_import: {
+        Args: { p_import_id: string; p_mapping: Json; p_rows: Json }
+        Returns: undefined
       }
       worker_analyze_change_impact: {
         Args: { p_change_event_id: string }
