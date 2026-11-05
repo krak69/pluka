@@ -1009,6 +1009,79 @@ select.pk-input {
   font-weight: 600;
 }
 
+/* Ma course : une information par ligne, ses gestes repliés. */
+.cr-facts {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cr-fact {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.cr-fact-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.cr-fact-value {
+  font-size: 15.5px;
+  overflow-wrap: anywhere;
+}
+
+.cr-fact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-5);
+}
+
+.cr-fact-actions .st-details {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.cr-fact-actions .st-details[open] {
+  flex-basis: 100%;
+}
+
+.cr-fact-actions summary {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--pk-text-secondary);
+}
+
+.cr-revise {
+  display: grid;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
+.cr-revise-number {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.cr-candidate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cr-candidate-actions .pk-field-error {
+  flex-basis: 100%;
+  margin: 0;
+}
+
 /* Une section de page : un fond clair, un filet, rien de plus (§42). */
 .or-card {
   display: grid;
@@ -1255,6 +1328,11 @@ select.pk-input {
   font: inherit;
   font-size: 14.5px;
   text-align: left;
+}
+
+a.st-tab {
+  box-sizing: border-box;
+  text-decoration: none;
 }
 
 .st-tab:hover {

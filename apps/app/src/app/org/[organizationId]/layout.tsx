@@ -14,8 +14,8 @@ import { sessionTeamContext } from '@/lib/team';
  * l'organisation existe (03_PRIVACY_RLS §120). Un identifiant qui n'est pas un
  * UUID est traité de même.
  *
- * Les onglets ne nomment que ce qui a un écran : Ma course, Analyse et
- * Participants arriveront avec les leurs. Un menu de liens morts serait pire
+ * Les onglets ne nomment que ce qui a un écran : Analyse et Participants
+ * arriveront avec les leurs. Un menu de liens morts serait pire
  * qu'un menu court.
  */
 export default async function OrganizationLayout({
@@ -51,6 +51,7 @@ export default async function OrganizationLayout({
         label="Organisation"
         tabs={[
           { href: `/org/${organizationId}`, label: 'Accueil' },
+          { href: `/org/${organizationId}/course/informations`, label: 'Ma course' },
           { href: `/org/${organizationId}/parametres/site`, label: 'Site' },
           { href: `/org/${organizationId}/parametres/equipe`, label: 'Équipe' },
         ]}
