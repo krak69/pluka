@@ -4,6 +4,7 @@ import {
   createFactEditingRepositories,
   createFactRepositories,
   createGpxRepositories,
+  participantImportRepository,
 } from '@pluka/db';
 import type {
   CourseContext,
@@ -11,6 +12,7 @@ import type {
   FactEditingContext,
   FactReviewContext,
   GpxImportContext,
+  ParticipantImportContext,
 } from '@pluka/domain';
 
 import type { Session } from '@/lib/session';
@@ -48,6 +50,16 @@ export function gpxImportContext(session: Session): GpxImportContext {
   };
 }
 
+export function participantImportContext(session: Session): ParticipantImportContext {
+  return {
+    repositories: {
+      participantImports: participantImportRepository({
+        client: createDataClient(session.accessToken),
+      }),
+    },
+  };
+}
+
 export function courseDocumentsContext(session: Session): EventDiscoveryContext {
   return {
     repositories: createEventDiscoveryRepositories({
@@ -63,11 +75,12 @@ export interface CourseSelection {
   readonly race?: string | undefined;
 }
 
-/** L'adresse d'un écran de Ma course : l'édition choisie se partage par lien (05_ROUTES §12.1). */
+/** L'adresse d'un écran : l'édition choisie se partage par lien (05_ROUTES §12.1). */
 export function courseHref(
   organizationId: string,
   screen: string,
   selection: CourseSelection,
+  section: 'course' | 'participants' = 'course',
 ): string {
   const query = new URLSearchParams();
   if (selection.event !== undefined) query.set('evenement', selection.event);
@@ -75,7 +88,9 @@ export function courseHref(
   if (selection.race !== undefined) query.set('epreuve', selection.race);
 
   const search = query.toString();
-  return `/org/${organizationId}/course/${screen}${search === '' ? '' : `?${search}`}`;
+  const path =
+    section === 'course' ? `/org/${organizationId}/course/${screen}` : `/org/${organizationId}/participants`;
+  return `${path}${search === '' ? '' : `?${search}`}`;
 }
 
 const CATEGORY_LABELS: Readonly<Record<string, string>> = {

@@ -23,6 +23,8 @@ export function CourseFrame({
   course,
   body,
   footer,
+  eyebrow = 'Ma course',
+  section = 'course',
   children,
 }: {
   readonly organizationId: string;
@@ -30,6 +32,9 @@ export function CourseFrame({
   readonly course: OrganizerCourse;
   readonly body: string;
   readonly footer: ReactNode;
+  readonly eyebrow?: string;
+  /** Participants partage ce cadre, sans les sous-écrans de Ma course. */
+  readonly section?: 'course' | 'participants';
   readonly children: ReactNode;
 }) {
   const { event, edition, events, editions } = course;
@@ -41,7 +46,7 @@ export function CourseFrame({
           {events.map((candidate) => (
             <Link
               key={candidate.id}
-              href={courseHref(organizationId, screen, { event: candidate.slug })}
+              href={courseHref(organizationId, screen, { event: candidate.slug }, section)}
               aria-current={candidate.id === event?.id ? 'page' : undefined}
               className="st-event"
             >
@@ -56,8 +61,8 @@ export function CourseFrame({
         topo
         eyebrow={
           edition === null
-            ? 'Ma course'
-            : `Ma course · ${editionDateRange(edition.startDate, edition.endDate)}`
+            ? eyebrow
+            : `${eyebrow} · ${editionDateRange(edition.startDate, edition.endDate)}`
         }
         title={event?.name ?? 'Ma course'}
         body={body}
@@ -69,10 +74,12 @@ export function CourseFrame({
           {editions.map((candidate) => (
             <Link
               key={candidate.id}
-              href={courseHref(organizationId, screen, {
-                event: event?.slug,
-                year: candidate.year,
-              })}
+              href={courseHref(
+                organizationId,
+                screen,
+                { event: event?.slug, year: candidate.year },
+                section,
+              )}
               aria-current={candidate.id === edition?.id ? 'page' : undefined}
               className="st-event"
             >
@@ -82,6 +89,7 @@ export function CourseFrame({
         </nav>
       ) : null}
 
+      {section === 'participants' ? null : (
       <NavTabs
         label="Ma course"
         tabs={SCREENS.map((item) => ({
@@ -93,6 +101,7 @@ export function CourseFrame({
           current: item.screen === screen,
         }))}
       />
+      )}
 
       {children}
     </div>
