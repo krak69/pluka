@@ -293,12 +293,14 @@ export default async function SitePage({
             venue={site?.venue ?? null}
             figures={editor.figures}
             links={site?.links ?? null}
+            program={editor.program}
             edition={
               editor.edition === null
                 ? null
                 : {
                     id: editor.edition.id,
                     year: editor.edition.year,
+                    startDate: editor.edition.startDate,
                     registrationUrl: editor.edition.registrationUrl,
                   }
             }

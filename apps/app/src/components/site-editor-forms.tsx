@@ -53,6 +53,16 @@ interface Topic {
   readonly factCategory: string | null;
 }
 
+interface ProgramRow {
+  readonly key: number;
+  readonly day: string;
+  readonly time: string;
+  readonly title: string;
+  readonly location: string;
+}
+
+const MAX_PROGRAM_ROWS = 40;
+
 /** La limite de la base, moins les rubriques proposées. */
 const MAX_ADDED_SECTIONS = 9;
 const FIGURE_SLOTS = [0, 1, 2, 3] as const;
@@ -87,6 +97,7 @@ export function SiteEditorForm({
   venue,
   figures,
   links,
+  program,
   edition,
   races,
 }: {
@@ -112,7 +123,18 @@ export function SiteEditorForm({
   readonly venue: string | null;
   readonly figures: readonly { readonly value: string; readonly label: string }[];
   readonly links: SiteLinks | null;
-  readonly edition: { readonly id: string; readonly year: number; readonly registrationUrl: string | null } | null;
+  readonly program: readonly {
+    readonly day: string;
+    readonly time: string;
+    readonly title: string;
+    readonly location: string | null;
+  }[];
+  readonly edition: {
+    readonly id: string;
+    readonly year: number;
+    readonly startDate: string;
+    readonly registrationUrl: string | null;
+  } | null;
   readonly races: readonly { readonly id: string; readonly name: string; readonly registrationUrl: string | null }[];
 }) {
   const [state, action, pending] = useActionState(saveSiteAction, INITIAL);
@@ -136,11 +158,21 @@ export function SiteEditorForm({
         moment: section.moment,
       })),
   );
-  const [nextKey, setNextKey] = useState(initialSections.length);
+  const [programRows, setProgramRows] = useState<readonly ProgramRow[]>(() =>
+    program.map((item, index) => ({ key: index, ...item, location: item.location ?? '' })),
+  );
+  const [nextKey, setNextKey] = useState(initialSections.length + program.length);
   const errors = state.fieldErrors ?? {};
   // L'erreur d'une rubrique porte sa place parmi celles envoyées : les rubriques
   // proposées et remplies, puis les rubriques ajoutées.
   const filledTopics = topics.filter((topic) => (topicBodies[topic.key] ?? '').trim() !== '');
+
+  // Même calcul pour le programme : une ligne vide n'est pas envoyée.
+  const sentProgramRows = programRows.filter(
+    (row) => `${row.time}${row.title}${row.location}`.trim() !== '',
+  );
+  const updateProgramRow = (key: number, patch: Partial<Omit<ProgramRow, 'key'>>) =>
+    setProgramRows((current) => current.map((row) => (row.key === key ? { ...row, ...patch } : row)));
 
   const previewFont = fonts.find((option) => option.value === font) ?? fonts[0];
   const shownAccent = /^#[0-9a-fA-F]{6}$/u.test(accent) ? accent : defaultAccent;
@@ -496,6 +528,102 @@ export function SiteEditorForm({
           </div>
         )}
       </fieldset>
+
+      {edition === null ? null : (
+        <fieldset className="st-fieldset" disabled={!canEdit || pending}>
+          <legend className="pk-h2">{`Programme ${String(edition.year)}`}</legend>
+          <p className="pk-body">
+            Retrait des dossards, briefing, remise des prix… Les départs de vos épreuves s’y ajoutent
+            d’eux-mêmes : inutile de les écrire.
+          </p>
+          <ol className="st-sections">
+            {programRows.map((row) => {
+              const sent = sentProgramRows.indexOf(row);
+              const fieldId = `${id}-program-${String(row.key)}`;
+              const errorOf = (field: string) => errors[`program.${String(sent)}.${field}`];
+              return (
+                <li key={row.key} className="st-section">
+                  <div className="st-program-row">
+                    <Input
+                      id={`${fieldId}-day`}
+                      name="programDay"
+                      type="date"
+                      label="Jour"
+                      value={row.day}
+                      onChange={(event) => updateProgramRow(row.key, { day: event.target.value })}
+                      error={errorOf('day')}
+                    />
+                    <Input
+                      id={`${fieldId}-time`}
+                      name="programTime"
+                      type="time"
+                      label="Heure"
+                      value={row.time}
+                      onChange={(event) => updateProgramRow(row.key, { time: event.target.value })}
+                      error={errorOf('time')}
+                    />
+                    <Input
+                      id={`${fieldId}-title`}
+                      name="programTitle"
+                      label="Intitulé"
+                      maxLength={120}
+                      value={row.title}
+                      onChange={(event) => updateProgramRow(row.key, { title: event.target.value })}
+                      error={errorOf('title')}
+                    />
+                    <Input
+                      id={`${fieldId}-location`}
+                      name="programLocation"
+                      label="Lieu (facultatif)"
+                      maxLength={120}
+                      value={row.location}
+                      onChange={(event) => updateProgramRow(row.key, { location: event.target.value })}
+                      error={errorOf('location')}
+                    />
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      className="pk-btn pk-button-ghost"
+                      onClick={() =>
+                        setProgramRows((current) => current.filter((item) => item.key !== row.key))
+                      }
+                      aria-label={`Retirer la ligne ${row.title === '' ? 'sans intitulé' : row.title}`}
+                    >
+                      Retirer
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+          {programRows.length >= MAX_PROGRAM_ROWS ? (
+            <p className="pk-field-hint">40 lignes au plus.</p>
+          ) : (
+            <div>
+              <button
+                type="button"
+                className="pk-btn pk-button-secondary"
+                onClick={() => {
+                  setProgramRows((current) => [
+                    ...current,
+                    {
+                      key: nextKey,
+                      day: current.at(-1)?.day ?? edition.startDate,
+                      time: '',
+                      title: '',
+                      location: '',
+                    },
+                  ]);
+                  setNextKey((key) => key + 1);
+                }}
+              >
+                Ajouter une ligne
+              </button>
+            </div>
+          )}
+        </fieldset>
+      )}
 
       <fieldset className="st-fieldset" disabled={!canEdit || pending}>
         <legend className="pk-h2">Liens utiles</legend>

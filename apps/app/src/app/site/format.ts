@@ -57,6 +57,21 @@ export function raceTimeLabel(instant: string, timeZone: string): string {
   );
 }
 
+/** Le jour civil d'un instant dans un fuseau, pour regrouper : « 2026-06-20 ». */
+export function civilDayKey(instant: string, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date(instant));
+}
+
+/** « samedi 20 juin » dans le fuseau donné. */
+export function fullDayLabel(instant: string, timeZone: string): string {
+  return new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone,
+  }).format(new Date(instant));
+}
+
 /**
  * Une adresse saisie ailleurs, rendue en lien seulement si elle est `http` ou
  * `https`. Un site partage le site navigateur de l'app (EVENT_SITE §7.2) : un

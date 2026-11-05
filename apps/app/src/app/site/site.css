@@ -560,6 +560,62 @@
   text-transform: var(--site-heading-case);
 }
 
+/* Le programme */
+.es-program-link {
+  margin-top: var(--space-6);
+}
+
+.es-program-day {
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-8);
+}
+
+.es-program-day h2 {
+  margin: 0 0 var(--space-4);
+  font-family: var(--site-heading), var(--font-heading);
+  font-size: 28px;
+  text-transform: var(--site-heading-case);
+}
+
+.es-program-day h2::first-letter {
+  text-transform: uppercase;
+}
+
+.es-program-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 2px solid var(--site-accent);
+}
+
+.es-program-entry {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.es-program-time {
+  font-family: var(--font-mono);
+  font-size: 15px;
+}
+
+.es-program-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.es-program-title a {
+  color: var(--pk-ink);
+}
+
+.es-program-location {
+  display: block;
+  font-size: 14px;
+  color: var(--pk-text-muted);
+}
+
 /* Présentation et chiffres clés */
 .es-presentation {
   display: grid;

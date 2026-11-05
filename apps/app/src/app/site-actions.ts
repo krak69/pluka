@@ -94,6 +94,10 @@ export async function saveSiteAction(
   const topicBodies = texts(form, 'topicBody');
   const figureValues = texts(form, 'figureValue');
   const figureLabels = texts(form, 'figureLabel');
+  const programDays = texts(form, 'programDay');
+  const programTimes = texts(form, 'programTime');
+  const programTitles = texts(form, 'programTitle');
+  const programLocations = texts(form, 'programLocation');
   const raceIds = texts(form, 'raceId');
   const raceUrls = texts(form, 'raceRegistrationUrl');
   const editionId = text(form, 'editionId');
@@ -135,6 +139,18 @@ export async function saveSiteAction(
           strava: text(form, 'linkStrava'),
         },
       },
+      program:
+        editionId === ''
+          ? null
+          : programTitles
+              .map((title, index) => ({
+                day: programDays[index] ?? '',
+                time: programTimes[index] ?? '',
+                title,
+                location: programLocations[index] ?? '',
+              }))
+              // Une ligne sans heure, sans intitulé ni lieu n'a pas été écrite.
+              .filter((item) => `${item.time}${item.title}${item.location}`.trim() !== ''),
       registration:
         editionId === ''
           ? null

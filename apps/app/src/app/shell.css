@@ -1207,6 +1207,12 @@ select.pk-input {
   gap: var(--space-3);
 }
 
+.st-program-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: var(--space-3);
+}
+
 .st-links {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));

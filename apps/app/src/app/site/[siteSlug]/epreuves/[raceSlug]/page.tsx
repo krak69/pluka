@@ -101,11 +101,11 @@ export default async function SiteRacePage({ params }: { readonly params: Promis
         <section className="es-band es-band-white" aria-label="Inscription">
           <div className="es-wrap es-band-inner">
             <div>
-              <strong className="es-band-title">Prêt pour le {record.name} ?</strong>
+              <strong className="es-band-title">Prêt à prendre le départ ?</strong>
               <span className="es-band-text">Les inscriptions se font sur la plateforme de l’organisation.</span>
             </div>
             <a href={registration} className="es-cta" rel="noopener" target="_blank">
-              S’inscrire au {record.name}
+              S’inscrire
               <span aria-hidden="true"> ↗</span>
               <span className="es-visually-hidden"> (nouvel onglet)</span>
             </a>

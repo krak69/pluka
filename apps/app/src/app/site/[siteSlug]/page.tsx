@@ -170,7 +170,7 @@ export default async function SiteHome({ params }: { readonly params: Promise<Pa
                       </Link>
                       {raceRegistration === null ? null : (
                         <a href={raceRegistration} className="es-link" rel="noopener" target="_blank">
-                          S’inscrire au {race.name}
+                          S’inscrire
                           <span aria-hidden="true"> ↗</span>
                         </a>
                       )}
@@ -179,6 +179,11 @@ export default async function SiteHome({ params }: { readonly params: Promise<Pa
                 );
               })}
             </ul>
+          )}
+          {site.program.length === 0 ? null : (
+            <Link href="/programme" className="es-ghost-dark es-program-link">
+              Voir le programme
+            </Link>
           )}
         </div>
       </section>

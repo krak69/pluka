@@ -85,6 +85,7 @@ export default async function SiteLayout({
           </Link>
           <nav aria-label="Rubriques" className="es-nav">
             <Link href="/#epreuves">Épreuves</Link>
+            {site.program.length === 0 ? null : <Link href="/programme">Programme</Link>}
             {guide.length === 0 ? null : <Link href="/infos-pratiques">Infos pratiques</Link>}
             {site.documents.length === 0 ? null : <Link href="/#documents">Documents</Link>}
             {site.partners.length === 0 ? null : <Link href="/#partenaires">Partenaires</Link>}
