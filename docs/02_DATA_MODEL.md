@@ -401,7 +401,10 @@ Spécification : `docs/features/EVENT_SITE.md`.
   `save_event_site`, `set_event_site_image`, `set_event_site_status` vérifient le rôle du
   geste. Lu en public par `event_site_public(slug)`, qui n'en sort jamais l'adresse de
   contact.
-- `event_site_sections` — blocs de texte des infos pratiques, rattachés à l'événement.
+- `event_site_sections` — rubriques des infos pratiques, rattachées à l'événement : un moment
+  (avant, pendant, après) et, pour une rubrique de la liste proposée, sa clé (0054).
+- `event_site_figures` — chiffres clés, quatre au plus, écrits par l'organisation (0054).
+  `event_sites` porte aussi la présentation, le lieu et sept liens utiles en `https`.
 - `editions.registration_url`, `races.registration_url` — inscription externe ; celle de
   l'épreuve prime. Enregistrées avec le reste du site par `save_event_site` (0050).
 - `sources.public_download_at` — diffusion publique d'un document, posée par owner ou admin.

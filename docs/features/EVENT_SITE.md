@@ -48,13 +48,13 @@ Ce que le site **n'est pas** :
 | Adresse | Un sous-domaine de `pluka.run` **par événement** : `{eventSlug}.pluka.run`. |
 | Identité | Logo, image de couverture, une couleur d'accent, une police de titres choisie dans une liste fermée. |
 | Fiches épreuves | Les fiches publiques existantes (`05_ROUTES_FLOWS.md` §1.8), habillées. Une seule fiche par épreuve. |
-| Pages V0 | Accueil, épreuves, infos pratiques, documents et règlement, communiqués, partenaires, contact. |
+| Pages | Un accueil qui résume, et des pages dédiées : infos pratiques, programme, galerie. Épreuves, documents, communiqués, partenaires et contact comme en V0. Une page sans contenu disparaît du menu (décidé le 2026-11-05). |
 | Inscription | Un lien par édition, surchargeable par épreuve. |
 | Contact | Un formulaire. Le message part par le worker, par mail à l'organisation ; son contenu est effacé une fois envoyé, seule reste une trace sans contenu. |
 | Anti-spam | Champ pot de miel et limite de débit. Pas de captcha en V0. |
 | Commerce | Paiement en ligne à terme. **Bêta ouverte à toutes les organisations d'abord.** Tarif non fixé. |
 | Édition affichée | La prochaine à venir ; à défaut, la dernière. Pas d'archive en V0. |
-| Infos pratiques | L'officiel vient des faits publiés ; le reste est du texte de l'organisation, étiqueté comme tel. |
+| Infos pratiques | Des rubriques guidées, rangées en Avant / Pendant / Après. Faits publiés et texte de l'organisation y sont réunis, sans source affichée (§3.3, décidé le 2026-11-05). |
 | Rôles | Owner, admin et editor éditent ; owner et admin publient et retirent. |
 | Adresse de contact | Propre à l'événement, distincte de celle de l'organisation. |
 | Polices | 6 à 8 polices de titres sous licence libre, servies par PLUKA (§4.1). |
@@ -85,13 +85,26 @@ navigation du site et le lien d'inscription de l'épreuve.
 
 ## 3.3 Infos pratiques
 
-Deux natures d'information, qui ne se mélangent pas :
+Le visiteur lit par moment, puis par sujet, et ne voit pas d'où vient l'information.
+L'organisateur part d'une liste prête : il remplit ce qui le concerne, et une rubrique vide
+n'apparaît pas sur le site.
 
-- **l'officiel vient des faits publiés** — retrait des dossards (`bib`), transport
-  (`transport`), départ (`start`), contact (`contact`) — avec leur source et leur niveau de
-  confiance. Il n'est pas ressaisi en texte : un horaire n'existe qu'une fois ;
-- **le reste est du texte de l'organisation** — hébergement, stationnement, mot d'accueil —
-  en blocs titrés, sans HTML (§7), étiqueté « écrit par l'organisation ».
+| Moment | Rubriques proposées | Faits PLUKA repris |
+| --- | --- | --- |
+| Avant | Retrait des dossards, Accès et parking, Hébergement, Restauration, Contact | `bib`, `contact` |
+| Pendant | Navettes et transport, Accompagnants, Consignes et sacs | `transport` |
+| Après | Douches, Repas d'après-course, Remise des prix | — |
+
+- l'organisateur peut **ajouter ses propres rubriques**, à un moment de son choix ;
+- une rubrique réunit les faits publiés de son sujet, puis le texte de l'organisation (sans
+  HTML, §7) ;
+- **un fait n'est pas ressaisi en texte** : un horaire n'existe qu'une fois ;
+- **les départs (`start`) n'y figurent pas** : ils sont sur chaque épreuve et au programme ;
+- **ni source, ni niveau de confiance dans ces rubriques**, ni mention « écrit par
+  l'organisation ». Ils restent sur les pages d'épreuve, où chaque fait garde sa
+  traçabilité.
+
+L'accueil en montre le sommaire ; le détail est sur `/infos-pratiques`.
 
 Un bloc de texte ne remplace pas un fait : s'il contredit un fait publié, le fait reste
 affiché tel quel.
@@ -116,6 +129,36 @@ Les `event_partners` actifs de l'édition, dans leur ordre.
 
 Le formulaire de §6.
 
+## 3.8 Présentation et lieu
+
+Un texte de présentation de l'événement, le lieu du rendez-vous, et jusqu'à quatre chiffres
+clés écrits par l'organisation (une valeur et son libellé). Ils sont sur l'accueil, avec les
+dates. Un chiffre clé est une affirmation de l'organisation : PLUKA n'en calcule aucun.
+
+## 3.9 Programme
+
+La liste du rendez-vous, **par édition** : jour, heure, lieu, intitulé. Les départs des
+épreuves s'y ajoutent d'eux-mêmes, depuis les épreuves publiques : ils ne se ressaisissent
+pas. Les temps sont des instants réels dans le fuseau de l'épreuve (AGENTS §34). Page
+`/programme` ; l'accueil n'en montre qu'un lien.
+
+## 3.10 Galerie et vidéo
+
+Douze photos au plus, réencodées comme le logo et la couverture (§7.3), chacune avec un texte
+de remplacement facultatif ; et une vidéo YouTube ou Vimeo. Page `/galerie`.
+
+La vidéo se charge **au clic** : aucun tiers ne reçoit la visite tant que le visiteur n'a pas
+demandé la lecture, et le lecteur YouTube est celui de `youtube-nocookie.com`. Seule une
+adresse YouTube ou Vimeo reconnue est acceptée ; PLUKA en extrait l'identifiant et ne garde
+jamais de code d'intégration.
+
+## 3.11 Liens utiles
+
+Résultats, suivi live, bénévoles, newsletter, Facebook, Instagram, Strava : sept adresses
+`https` facultatives, rattachées à l'événement. Ce sont de simples liens : PLUKA ne remplace
+ni le chronométrage, ni le live, ni un outil d'e-mailing, et ne collecte aucune adresse de
+visiteur.
+
 ---
 
 # 4. Ce que l'organisation personnalise
@@ -126,7 +169,9 @@ Le formulaire de §6.
 | Couverture | PNG, JPEG ou WebP, taille et poids bornés, recadrage côté serveur. |
 | Couleur d'accent | Une couleur. Refusée si son contraste avec le fond ou le texte posé dessus est sous WCAG AA. |
 | Police de titres | Une police d'une liste fermée, servie par PLUKA. Le texte courant reste en Hanken Grotesk. |
-| Textes | Présentation, infos pratiques. |
+| Textes | Présentation, lieu, chiffres clés, infos pratiques, programme. |
+| Médias | Galerie de douze photos au plus, une vidéo YouTube ou Vimeo. |
+| Liens | Résultats, suivi live, bénévoles, newsletter, réseaux sociaux (§3.11). |
 
 Ce qui ne change pas, quelle que soit l'identité choisie (`06_DESIGN_SYSTEM.md` §96) :
 
@@ -299,6 +344,17 @@ sous la session de l'éditeur, après avoir réencodé l'image, sans clé de ser
 
 ---
 
+Contenu complet (0054 pour les rubriques, la présentation et les liens ; programme et galerie ensuite) :
+
+- `event_sites` gagne la présentation, le lieu, la vidéo et les sept liens de §3.11 ;
+- `event_site_sections` gagne le moment et la clé de rubrique, nulle pour une rubrique
+  ajoutée par l'organisation ;
+- `event_site_figures` — les chiffres clés ;
+- `event_site_program_items` — le programme, rattaché à l'édition ;
+- `event_site_gallery` — les photos, dans `event-site-assets`.
+
+---
+
 # 12. Questions ouvertes
 
 1. **Fin de bêta :** que devient le site d'une organisation qui ne paie pas ? À trancher
@@ -333,7 +389,12 @@ sous la session de l'éditeur, après avoir réencodé l'image, sans clé de ser
 - un message de contact n'est pas stocké, sa trace l'est ;
 - la limite de débit du contact s'applique ;
 - un sous-domaine réservé ne peut pas devenir un slug d'événement ;
-- un ancien slug redirige en permanence et ne peut pas être repris par un autre événement.
+- un ancien slug redirige en permanence et ne peut pas être repris par un autre événement ;
+- une rubrique sans fait ni texte n'apparaît pas, et une page sans contenu sort du menu ;
+- un départ d'épreuve non publique n'apparaît pas au programme ;
+- aucun tiers n'est appelé par la page galerie avant le clic sur la vidéo ;
+- une adresse de vidéo qui n'est ni YouTube ni Vimeo est refusée ;
+- une treizième photo est refusée.
 
 ---
 
