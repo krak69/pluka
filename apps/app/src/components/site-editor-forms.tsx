@@ -1,7 +1,7 @@
 'use client';
 
 import { Input } from '@pluka/ui';
-import { useActionState, useId, useState } from 'react';
+import { useActionState, useId, useState, type ReactNode } from 'react';
 
 import {
   addSitePhotoAction,
@@ -17,8 +17,11 @@ import {
 /**
  * L'éditeur du site d'un événement — EVENT_SITE §4, §5.
  *
- * Client pour deux raisons : `useActionState` rend le refus à côté du geste,
- * et les blocs de texte s'ajoutent et se réordonnent sans aller-retour.
+ * Client pour trois raisons : `useActionState` rend le refus à côté du geste,
+ * les blocs de texte s'ajoutent et se réordonnent sans aller-retour, et les
+ * onglets montrent une partie du formulaire sans en démonter le reste : tout
+ * reste dans le même formulaire, et un champ modifié survit à un changement
+ * d'onglet.
  * Aucune règle ici : contraste, formats, rôles sont tranchés côté serveur.
  */
 
@@ -31,6 +34,28 @@ function FormError({ state }: { readonly state: SiteActionState }) {
       {state.error}
     </p>
   );
+}
+
+const TABS = [
+  { key: 'identite', label: 'Identité' },
+  { key: 'presentation', label: 'Présentation' },
+  { key: 'infos', label: 'Infos pratiques' },
+  { key: 'galerie', label: 'Galerie et vidéo' },
+  { key: 'documents', label: 'Documents' },
+  { key: 'liens', label: 'Inscription et liens' },
+  { key: 'contact', label: 'Contact' },
+] as const;
+
+type SiteTab = (typeof TABS)[number]['key'];
+
+/** L'onglet qui porte un champ refusé : l'erreur ne reste pas cachée. */
+function tabOfField(field: string): SiteTab {
+  if (field === 'accentColor' || field === 'headingFont') return 'identite';
+  if (field === 'contactEmail') return 'contact';
+  if (field.startsWith('sections')) return 'infos';
+  if (field.startsWith('registration') || field.startsWith('content.links')) return 'liens';
+  if (field === 'content.video') return 'galerie';
+  return 'presentation';
 }
 
 export interface SiteFontOption {
@@ -104,6 +129,10 @@ export function SiteEditorForm({
   video,
   edition,
   races,
+  checklist,
+  imagesPanel,
+  galleryPanel,
+  documentsPanel,
 }: {
   readonly organizationId: string;
   readonly eventId: string;
@@ -142,9 +171,25 @@ export function SiteEditorForm({
     readonly registrationUrl: string | null;
   } | null;
   readonly races: readonly { readonly id: string; readonly name: string; readonly registrationUrl: string | null }[];
+  readonly checklist: readonly {
+    readonly tab: SiteTab;
+    readonly label: string;
+    readonly done: boolean;
+  }[];
+  /* Ces trois panneaux portent leurs propres formulaires : ils restent hors du formulaire du site. */
+  readonly imagesPanel: ReactNode;
+  readonly galleryPanel: ReactNode;
+  readonly documentsPanel: ReactNode;
 }) {
   const [state, action, pending] = useActionState(saveSiteAction, INITIAL);
   const id = useId();
+  const [tab, setTab] = useState<SiteTab>('identite');
+  const [seenState, setSeenState] = useState(state);
+  if (state !== seenState) {
+    setSeenState(state);
+    const firstField = Object.keys(state.fieldErrors ?? {})[0];
+    if (firstField !== undefined) setTab(tabOfField(firstField));
+  }
   const [accent, setAccent] = useState(accentColor ?? '');
   const [font, setFont] = useState(headingFont ?? '');
   const [topicBodies, setTopicBodies] = useState<Readonly<Record<string, string>>>(() =>
@@ -195,14 +240,65 @@ export function SiteEditorForm({
       return next;
     });
 
+  const tabsInError = new Set(Object.keys(errors).map(tabOfField));
+  const doneCount = checklist.filter((item) => item.done).length;
+
   return (
-    <form action={action} className="st-form">
+    <div className="st-workspace">
+      <div className="st-rail">
+        <nav aria-label="Rubriques du site" className="st-tabs">
+          {TABS.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className="st-tab"
+              aria-current={tab === item.key ? 'true' : undefined}
+              onClick={() => setTab(item.key)}
+            >
+              {item.label}
+              {tabsInError.has(item.key) ? (
+                <span className="st-tab-error">
+                  <span aria-hidden="true">!</span>
+                  <span className="or-visually-hidden"> à corriger</span>
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </nav>
+
+        {doneCount === checklist.length ? null : (
+          <div className="st-checklist">
+            <p className="pk-label">
+              À compléter · {String(doneCount)} sur {String(checklist.length)}
+            </p>
+            <ul>
+              {checklist.map((item) => (
+                <li key={item.label} data-done={item.done}>
+                  <button type="button" onClick={() => setTab(item.tab)}>
+                    <span aria-hidden="true">{item.done ? '✓' : '○'}</span> {item.label}
+                    <span className="or-visually-hidden">{item.done ? ' : fait' : ' : à faire'}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      <div className="st-panels">
+        <div hidden={tab !== 'identite'}>{imagesPanel}</div>
+        <div hidden={tab !== 'galerie'}>{galleryPanel}</div>
+        <div hidden={tab !== 'documents'}>{documentsPanel}</div>
+
+    {/* `noValidate` : un champ refusé par le navigateur dans un onglet caché bloquerait
+        l'envoi sans rien dire. Le serveur valide, et l'erreur rouvre son onglet. */}
+    <form action={action} className="st-form" hidden={tab === 'documents'} noValidate>
       <input type="hidden" name="organizationId" value={organizationId} />
       <input type="hidden" name="eventId" value={eventId} />
       <input type="hidden" name="eventSlug" value={eventSlug} />
 
-      <fieldset className="st-fieldset" disabled={!canEdit || pending}>
-        <legend className="pk-h2">Identité</legend>
+      <fieldset className="st-fieldset" disabled={!canEdit || pending} hidden={tab !== 'identite'}>
+        <legend className="pk-h2">Couleur et police</legend>
 
         <div className="st-identity">
           <div className="pk-field">
@@ -279,7 +375,7 @@ export function SiteEditorForm({
         </div>
       </fieldset>
 
-      <fieldset className="st-fieldset" disabled={!canEdit || pending}>
+      <fieldset className="st-fieldset" disabled={!canEdit || pending} hidden={tab !== 'presentation'}>
         <legend className="pk-h2">Présentation</legend>
         <div className="pk-field">
           <label className="pk-field-label" htmlFor={`${id}-presentation`}>
@@ -306,16 +402,6 @@ export function SiteEditorForm({
           placeholder="Salle des fêtes, Lucenay"
           defaultValue={venue ?? ''}
           error={errors['content.venue']}
-        />
-        <Input
-          id={`${id}-video`}
-          name="video"
-          type="url"
-          label="Vidéo YouTube ou Vimeo"
-          placeholder="https://www.youtube.com/watch?v=…"
-          hint="Elle s’affiche dans la galerie du site, et se charge quand le visiteur clique."
-          defaultValue={video ?? ''}
-          error={errors['content.video']}
         />
         <div className="st-figures">
           <p className="pk-field-label">Chiffres clés, quatre au plus</p>
@@ -344,7 +430,21 @@ export function SiteEditorForm({
         </div>
       </fieldset>
 
-      <fieldset className="st-fieldset" disabled={!canEdit || pending}>
+      <fieldset className="st-fieldset" disabled={!canEdit || pending} hidden={tab !== 'galerie'}>
+        <legend className="pk-h2">Vidéo</legend>
+        <Input
+          id={`${id}-video`}
+          name="video"
+          type="url"
+          label="Vidéo YouTube ou Vimeo"
+          placeholder="https://www.youtube.com/watch?v=…"
+          hint="Elle s’affiche dans la galerie du site, et se charge quand le visiteur clique."
+          defaultValue={video ?? ''}
+          error={errors['content.video']}
+        />
+      </fieldset>
+
+      <fieldset className="st-fieldset" disabled={!canEdit || pending} hidden={tab !== 'liens'}>
         <legend className="pk-h2">Inscription</legend>
         {edition === null ? (
           <p className="pk-body">
@@ -390,7 +490,7 @@ export function SiteEditorForm({
         )}
       </fieldset>
 
-      <fieldset className="st-fieldset" disabled={!canEdit || pending}>
+      <fieldset className="st-fieldset" disabled={!canEdit || pending} hidden={tab !== 'infos'}>
         <legend className="pk-h2">Infos pratiques</legend>
         <p className="pk-body">
           Remplissez ce qui vous concerne : une rubrique vide n’apparaît pas sur le site.
@@ -546,7 +646,7 @@ export function SiteEditorForm({
       </fieldset>
 
       {edition === null || !showProgram ? null : (
-        <fieldset className="st-fieldset" disabled={!canEdit || pending}>
+        <fieldset className="st-fieldset" disabled={!canEdit || pending} hidden={tab !== 'presentation'}>
           <legend className="pk-h2">{`Programme ${String(edition.year)}`}</legend>
           <p className="pk-body">
             Retrait des dossards, briefing, remise des prix… Les départs de vos épreuves s’y ajoutent
@@ -641,7 +741,7 @@ export function SiteEditorForm({
         </fieldset>
       )}
 
-      <fieldset className="st-fieldset" disabled={!canEdit || pending}>
+      <fieldset className="st-fieldset" disabled={!canEdit || pending} hidden={tab !== 'liens'}>
         <legend className="pk-h2">Liens utiles</legend>
         <p className="pk-body">
           PLUKA ne remplace ni le chronométrage, ni le suivi en direct, ni votre newsletter : ces
@@ -663,7 +763,7 @@ export function SiteEditorForm({
         </div>
       </fieldset>
 
-      <fieldset className="st-fieldset" disabled={!canEdit || pending}>
+      <fieldset className="st-fieldset" disabled={!canEdit || pending} hidden={tab !== 'contact'}>
         <legend className="pk-h2">Contact</legend>
         <Input
           id={`${id}-contact`}
@@ -685,6 +785,8 @@ export function SiteEditorForm({
         </div>
       ) : null}
     </form>
+      </div>
+    </div>
   );
 }
 
@@ -713,10 +815,10 @@ export function SiteStatusForm({
       <input type="hidden" name="status" value={status} />
       <button
         type="submit"
-        className={`pk-btn ${primary ? 'pk-button-primary' : 'pk-button-secondary'}`}
+        className={`pk-btn ${primary ? 'pk-button-primary' : 'pk-button-ghost-dark'}`}
         disabled={pending}
       >
-        {label}
+        {pending ? 'Un instant…' : label}
       </button>
       <FormError state={state} />
     </form>
@@ -810,19 +912,14 @@ export function SiteImageForm({
             className="pk-input"
             disabled={!canEdit || pending}
             aria-describedby={`${id}-hint`}
+            // Choisir le fichier suffit : il n'y a pas d'autre décision à prendre ici.
+            onChange={(event) => event.currentTarget.form?.requestSubmit()}
             required
           />
           <p id={`${id}-hint`} className="pk-field-hint">
-            {hint}
+            {pending ? 'Envoi en cours…' : hint}
           </p>
         </div>
-        {canEdit ? (
-          <div className="or-inline-form">
-            <button type="submit" className="pk-btn pk-button-secondary" disabled={pending}>
-              {pending ? 'Envoi…' : 'Envoyer'}
-            </button>
-          </div>
-        ) : null}
         <FormError state={state} />
       </form>
       {canEdit && currentUrl !== null ? (

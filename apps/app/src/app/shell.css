@@ -848,9 +848,9 @@ select.pk-input {
 /* ══ Espace organisateur — 05_ROUTES_FLOWS §6.1 ══════════════════════════
  *
  * `or-` pour « organisateur ». Desktop d'abord, responsive (AGENTS §45) : une
- * bande d'en-tête, puis une colonne de lecture. Pas de barre latérale tant
- * que les onglets de l'espace n'existent pas — un menu de liens morts serait
- * pire qu'aucun menu.
+ * bande d'en-tête, une scène topographique en tête d'écran, puis l'espace de
+ * travail. Pas de barre latérale d'espace tant que ses onglets n'existent pas
+ * — un menu de liens morts serait pire qu'aucun menu.
  */
 
 .or-band {
@@ -867,13 +867,127 @@ select.pk-input {
   color: inherit;
 }
 
+.or-band {
+  justify-content: space-between;
+}
+
 .or-band-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.or-crumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13.5px;
+  color: var(--pk-text-muted);
+}
+
+.or-crumb a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: inherit;
+}
+
+.or-crumb [aria-current='page'] {
+  color: var(--pk-text);
+  font-weight: 600;
+}
+
+/* Un écran de travail : plus dense que les 52 px d'un appel à l'action de page. */
+.or-main .pk-btn {
+  min-height: 44px;
+  padding: 8px 16px;
+  font-size: 14.5px;
+}
+
+.or-main .pk-tab {
+  padding-block: 0;
+}
+
+.or-main input[type='file'].pk-input {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 13.5px;
+}
+
+.or-main input[type='file']::file-selector-button {
+  min-height: 44px;
+  margin-right: var(--space-3);
+  padding: 0 var(--space-4);
+  border: 1.5px solid var(--pk-forest);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--pk-forest);
+  cursor: pointer;
   font-family: var(--font-heading);
   font-weight: 600;
 }
 
+/* Une section de page : un fond clair, un filet, rien de plus (§42). */
+.or-card {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+}
+
+.or-card > .pk-h2 {
+  margin: 0;
+}
+
+.or-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.or-card-link {
+  display: grid;
+  gap: var(--space-1);
+  height: 100%;
+  padding: var(--space-5);
+  border: 1px solid var(--pk-hairline);
+  border-top: 3px solid var(--pk-forest);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  color: var(--pk-text);
+  text-decoration: none;
+}
+
+.or-card-link:hover {
+  border-color: var(--pk-forest);
+}
+
+.or-card-name {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.or-card-go {
+  margin-top: var(--space-3);
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .or-main {
-  max-width: 56rem;
+  max-width: 72rem;
   margin: 0 auto;
   padding: var(--space-8) var(--space-6) var(--space-16);
   display: flex;
@@ -1019,15 +1133,156 @@ select.pk-input {
 }
 
 .st-address {
+  margin: 0;
   font-family: var(--font-mono);
   font-size: 13px;
-  color: var(--pk-text-secondary);
   overflow-wrap: anywhere;
+}
+
+.st-address a {
+  color: inherit;
+}
+
+/* L'espace de travail : les rubriques à gauche, une seule à la fois à droite. */
+.st-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+}
+
+.st-rail {
+  display: grid;
+  align-content: start;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.st-tabs {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+}
+
+.st-tab {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--pk-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14.5px;
+  text-align: left;
+}
+
+.st-tab:hover {
+  background: var(--pk-sand);
+}
+
+.st-tab[aria-current='true'] {
+  border-left-color: var(--pk-forest);
+  background: var(--pk-surface);
+  color: var(--pk-text);
+  font-weight: 600;
+}
+
+.st-tab-error {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--pk-dawn);
+  color: var(--pk-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.st-checklist {
+  display: none;
+}
+
+.st-checklist .pk-label {
+  margin: 0 0 var(--space-2);
+}
+
+.st-checklist ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.st-checklist button {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  width: 100%;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pk-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+}
+
+.st-checklist [data-done='true'] button {
+  color: var(--pk-text-muted);
+}
+
+.st-panels {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.st-panels > [hidden],
+.st-fieldset[hidden] {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .st-workspace {
+    grid-template-columns: 13.5rem minmax(0, 1fr);
+    gap: var(--space-8);
+    align-items: start;
+  }
+
+  .st-rail {
+    position: sticky;
+    top: var(--space-4);
+  }
+
+  .st-tabs {
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .st-tab {
+    width: 100%;
+  }
+
+  .st-checklist {
+    display: block;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--pk-hairline);
+  }
 }
 
 .st-blockers {
   margin: 0;
-  padding-left: var(--space-5);
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-8);
+  border-left: 3px solid var(--pk-dawn);
+  background: var(--pk-surface);
   color: var(--pk-text);
 }
 
@@ -1052,6 +1307,10 @@ select.pk-input {
   display: grid;
   gap: var(--space-3);
   align-content: start;
+  padding: var(--space-4);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
 }
 
 .st-image-preview {
@@ -1103,9 +1362,10 @@ select.pk-input {
   gap: var(--space-4);
   min-width: 0;
   margin: 0;
-  padding: var(--space-5) 0 0;
-  border: 0;
-  border-top: 1px solid var(--pk-hairline);
+  padding: var(--space-5);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
 }
 
 .st-fieldset legend {
@@ -1188,7 +1448,18 @@ select.pk-input {
 
 .st-moment {
   display: grid;
-  gap: var(--space-2);
+}
+
+.st-moment .pk-label {
+  margin: var(--space-2) 0;
+}
+
+.st-moment .st-details {
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.st-moment .st-details[open] {
+  padding-bottom: var(--space-3);
 }
 
 .st-filled {
@@ -1255,7 +1526,7 @@ select.pk-input {
   padding: var(--space-4);
   border: 1px solid var(--pk-hairline);
   border-radius: var(--radius-sm);
-  background: var(--pk-surface);
+  background: var(--pk-limestone);
 }
 
 .st-section-head {

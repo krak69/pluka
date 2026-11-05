@@ -9,7 +9,7 @@ import {
   siteVideoUrl,
   type EventSiteBlocker,
 } from '@pluka/domain';
-import { MicroLabel } from '@pluka/ui';
+import { StatusBadge, TerrainBand, type StatusTone } from '@pluka/ui';
 import Link from 'next/link';
 
 import { HEADING_STYLE, siteFontVariables } from '@/app/site/fonts';
@@ -38,6 +38,12 @@ import { teamRoleLabel } from '@/lib/team-roles';
 export const metadata = { title: 'Site' };
 
 type SearchParams = Record<string, string | string[] | undefined>;
+
+const STATUS: Readonly<Record<string, { label: string; tone: StatusTone }>> = {
+  draft: { label: 'Brouillon', tone: 'neutral' },
+  published: { label: 'En ligne', tone: 'success' },
+  suspended: { label: 'Suspendu par PLUKA', tone: 'error' },
+};
 
 const NOTICES: Readonly<Record<string, string>> = {
   enregistre: 'Site enregistré.',
@@ -103,23 +109,13 @@ export default async function SitePage({
     uppercase: HEADING_STYLE[value].uppercase,
   }));
 
+  const address = event === null ? '' : siteUrl(event.slug, publicEnv().NEXT_PUBLIC_APP_URL);
+  const status = STATUS[site?.status ?? 'draft'] ?? { label: 'Brouillon', tone: 'neutral' as const };
+  const isLive = site?.status === 'published' && editor.blockers.length === 0;
+  const canToggle = permissions.canPublish && site !== null && site.status !== 'suspended';
+
   return (
     <>
-      <div>
-        <MicroLabel>Paramètres</MicroLabel>
-        <h1 className="pk-h1">Site de l’événement</h1>
-        <p className="pk-body">
-          Un site public pour votre événement, construit sur les informations que vous tenez dans
-          PLUKA : épreuves, horaires, barrières, matériel, documents. Rien n’y est saisi deux fois.
-        </p>
-      </div>
-
-      {notice === undefined ? null : (
-        <p className="pk-body st-notice" role="status">
-          {notice}
-        </p>
-      )}
-
       {editor.events.length > 1 ? (
         <nav aria-label="Événements" className="st-events">
           {editor.events.map((candidate) => (
@@ -136,52 +132,34 @@ export default async function SitePage({
       ) : null}
 
       {event === null ? (
-        <p className="pk-body">
-          {editor.organizationName} n’a pas encore d’événement. Le site se règle une fois
-          l’événement créé.
-        </p>
+        <TerrainBand
+          tone="light"
+          topo
+          eyebrow="Site de l’événement"
+          title="Pas encore d’événement"
+          body={`${editor.organizationName} n’a pas encore d’événement. Le site se règle une fois l’événement créé.`}
+        />
       ) : (
         <div className={`st-editor ${siteFontVariables}`}>
-          {permissions.canEdit ? null : (
-            <p className="pk-body st-readonly">
-              Votre rôle — {teamRoleLabel(permissions.role)} — permet de voir le site, pas de le
-              modifier.
-            </p>
-          )}
-
-          <section aria-labelledby="site-status" className="st-status">
-            <div className="st-status-head">
-              <h2 id="site-status" className="pk-h2">
-                {site?.status === 'published'
-                  ? 'En ligne'
-                  : site?.status === 'suspended'
-                    ? 'Suspendu par PLUKA'
-                    : 'Brouillon'}
-              </h2>
-              <span className="st-address">{siteUrl(event.slug, publicEnv().NEXT_PUBLIC_APP_URL)}</span>
-            </div>
-
-            {editor.blockers.length === 0 ? null : (
-              <ul className="st-blockers">
-                {editor.blockers.map((blocker) => (
-                  <li key={blocker}>{BLOCKERS[blocker]}</li>
-                ))}
-              </ul>
-            )}
-
-            <div className="st-status-actions">
-              {site?.status === 'published' && editor.blockers.length === 0 ? (
-                <a
-                  href={siteUrl(event.slug, publicEnv().NEXT_PUBLIC_APP_URL)}
-                  className="pk-btn pk-button-secondary"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  Voir le site ↗
-                </a>
-              ) : null}
-              {!permissions.canPublish || site === null || site.status === 'suspended' ? null : site.status ===
-                'published' ? (
+          <TerrainBand
+            tone="dark"
+            topo
+            eyebrow="Site de l’événement"
+            title={event.name}
+            body={
+              <p className="st-address">
+                {isLive ? (
+                  <a href={address} target="_blank" rel="noopener">
+                    {address}
+                  </a>
+                ) : (
+                  address
+                )}
+              </p>
+            }
+            footer={<StatusBadge tone={status.tone}>{status.label}</StatusBadge>}
+            secondaryAction={
+              isLive && canToggle ? (
                 <SiteStatusForm
                   organizationId={organizationId}
                   eventId={event.id}
@@ -190,7 +168,14 @@ export default async function SitePage({
                   label="Retirer le site"
                   primary={false}
                 />
-              ) : (
+              ) : undefined
+            }
+            primaryAction={
+              isLive ? (
+                <a href={address} className="pk-btn pk-button-primary" target="_blank" rel="noopener">
+                  Voir le site ↗
+                </a>
+              ) : canToggle && site.status === 'draft' ? (
                 <SiteStatusForm
                   organizationId={organizationId}
                   eventId={event.id}
@@ -199,126 +184,50 @@ export default async function SitePage({
                   label="Mettre en ligne"
                   primary
                 />
-              )}
-            </div>
-            {site === null && permissions.canPublish ? (
-              <p className="pk-field-hint">Enregistrez le site une première fois pour le mettre en ligne.</p>
-            ) : null}
-            {permissions.canEdit && !permissions.canPublish ? (
-              <p className="pk-field-hint">
-                Un propriétaire ou un administrateur de l’organisation met le site en ligne.
-              </p>
-            ) : null}
-          </section>
+              ) : canToggle ? (
+                <SiteStatusForm
+                  organizationId={organizationId}
+                  eventId={event.id}
+                  eventSlug={event.slug}
+                  status="draft"
+                  label="Retirer le site"
+                  primary={false}
+                />
+              ) : undefined
+            }
+          />
 
-          <section aria-labelledby="site-images" className="st-images">
-            <h2 id="site-images" className="pk-h2">
-              Logo et couverture
-            </h2>
-            <div className="st-images-grid">
-              <SiteImageForm
-                organizationId={organizationId}
-                eventId={event.id}
-                eventSlug={event.slug}
-                kind="logo"
-                label="Logo"
-                hint="PNG, JPEG ou WebP, 8 Mo au plus. Un fond transparent se lit mieux sur l’en-tête clair."
-                currentUrl={siteAssetUrl(site?.logoPath ?? null)}
-                canEdit={permissions.canEdit}
-              />
-              <SiteImageForm
-                organizationId={organizationId}
-                eventId={event.id}
-                eventSlug={event.slug}
-                kind="cover"
-                label="Image de couverture"
-                hint="Une photo en largeur, 8 Mo au plus. Elle est recadrée en bandeau ; sa position GPS est retirée."
-                currentUrl={siteAssetUrl(site?.coverPath ?? null)}
-                canEdit={permissions.canEdit}
-              />
-            </div>
-          </section>
-
-          <section aria-labelledby="site-gallery" className="st-images">
-            <h2 id="site-gallery" className="pk-h2">
-              Galerie
-            </h2>
-            <p className="pk-body">
-              Douze photos au plus, ajoutées une par une. Elles s’affichent dans l’ordre de dépôt, et
-              leur position GPS est retirée.
+          {notice === undefined ? null : (
+            <p className="pk-body st-notice" role="status">
+              {notice}
             </p>
-            {editor.gallery.length === 0 ? null : (
-              <ul className="st-gallery">
-                {editor.gallery.map((photo, index) => (
-                  <li key={photo.id} className="st-gallery-item">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={siteAssetUrl(photo.path) ?? ''}
-                      alt={photo.alt ?? `Photo ${String(index + 1)}`}
-                      loading="lazy"
-                    />
-                    {permissions.canEdit ? (
-                      <SiteGalleryRemoveForm
-                        organizationId={organizationId}
-                        eventId={event.id}
-                        eventSlug={event.slug}
-                        photoId={photo.id}
-                        label={photo.alt ?? `la photo ${String(index + 1)}`}
-                      />
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            )}
-            {!permissions.canEdit || editor.gallery.length >= 12 ? null : (
-              <SiteGalleryPhotoForm
-                organizationId={organizationId}
-                eventId={event.id}
-                eventSlug={event.slug}
-              />
-            )}
-          </section>
+          )}
 
-          <section aria-labelledby="site-documents" className="st-documents">
-            <h2 id="site-documents" className="pk-h2">
-              Documents
-            </h2>
-            <p className="pk-body">
-              Un document de l’édition n’apparaît sur le site que si vous le diffusez. Diffuser un
-              fichier le rend téléchargeable par tous.
+          {editor.blockers.length === 0 ? null : (
+            <ul className="st-blockers">
+              {editor.blockers.map((blocker) => (
+                <li key={blocker}>{BLOCKERS[blocker]}</li>
+              ))}
+            </ul>
+          )}
+
+          {permissions.canEdit ? null : (
+            <p className="pk-body st-readonly">
+              Votre rôle — {teamRoleLabel(permissions.role)} — permet de voir le site, pas de le
+              modifier.
             </p>
-            {editor.documents.length === 0 ? (
-              <p className="pk-field-hint">Aucun document dans cette édition.</p>
-            ) : (
-              <ul className="or-list">
-                {editor.documents.map((document) => (
-                  <li key={document.id} className="or-row">
-                    <div className="or-row-main">
-                      <span className="pk-body">{document.title}</span>
-                      <span className="or-row-meta">
-                        {document.hasFile ? 'Fichier' : document.url === null ? 'Saisie' : 'Lien'}
-                        {' · '}
-                        {document.publicDownloadAt === null ? 'Non diffusé' : 'Diffusé sur le site'}
-                      </span>
-                    </div>
-                    {permissions.canPublish && (document.hasFile || document.url !== null) ? (
-                      <SiteDocumentForm
-                        organizationId={organizationId}
-                        eventId={event.id}
-                        eventSlug={event.slug}
-                        sourceId={document.id}
-                        title={document.title}
-                        isPublic={document.publicDownloadAt !== null}
-                      />
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          )}
+          {site === null && permissions.canPublish ? (
+            <p className="pk-field-hint">Enregistrez le site une première fois pour le mettre en ligne.</p>
+          ) : null}
+          {permissions.canEdit && !permissions.canPublish ? (
+            <p className="pk-field-hint">
+              Un propriétaire ou un administrateur de l’organisation met le site en ligne.
+            </p>
+          ) : null}
 
           <SiteEditorForm
-            key={`${event.id}-${site?.accentColor ?? ''}-${String(editor.sections.length)}`}
+            key={event.id}
             organizationId={organizationId}
             eventId={event.id}
             eventSlug={event.slug}
@@ -357,6 +266,123 @@ export default async function SitePage({
               name: race.name,
               registrationUrl: race.registrationUrl,
             }))}
+            checklist={[
+              { tab: 'identite', label: 'Logo', done: site?.logoPath != null },
+              { tab: 'identite', label: 'Couverture', done: site?.coverPath != null },
+              { tab: 'presentation', label: 'Présentation', done: site?.presentation != null },
+              { tab: 'infos', label: 'Infos pratiques', done: editor.sections.length > 0 },
+              { tab: 'galerie', label: 'Photos', done: editor.gallery.length > 0 },
+              {
+                tab: 'liens',
+                label: 'Lien d’inscription',
+                done: editor.edition?.registrationUrl != null,
+              },
+              { tab: 'contact', label: 'Adresse de contact', done: site?.contactEmail != null },
+            ]}
+            imagesPanel={
+              <div className="st-images-grid">
+                <SiteImageForm
+                  organizationId={organizationId}
+                  eventId={event.id}
+                  eventSlug={event.slug}
+                  kind="logo"
+                  label="Logo"
+                  hint="PNG, JPEG ou WebP, 8 Mo au plus. Un fond transparent se lit mieux sur l’en-tête clair."
+                  currentUrl={siteAssetUrl(site?.logoPath ?? null)}
+                  canEdit={permissions.canEdit}
+                />
+                <SiteImageForm
+                  organizationId={organizationId}
+                  eventId={event.id}
+                  eventSlug={event.slug}
+                  kind="cover"
+                  label="Image de couverture"
+                  hint="Une photo en largeur, 8 Mo au plus. Elle est recadrée en bandeau ; sa position GPS est retirée."
+                  currentUrl={siteAssetUrl(site?.coverPath ?? null)}
+                  canEdit={permissions.canEdit}
+                />
+              </div>
+            }
+            galleryPanel={
+              <section aria-labelledby="site-gallery" className="or-card">
+                <h2 id="site-gallery" className="pk-h2">
+                  Galerie
+                </h2>
+                <p className="pk-body">
+                  Douze photos au plus, ajoutées une par une. Elles s’affichent dans l’ordre de dépôt,
+                  et leur position GPS est retirée.
+                </p>
+                {editor.gallery.length === 0 ? null : (
+                  <ul className="st-gallery">
+                    {editor.gallery.map((photo, index) => (
+                      <li key={photo.id} className="st-gallery-item">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={siteAssetUrl(photo.path) ?? ''}
+                          alt={photo.alt ?? `Photo ${String(index + 1)}`}
+                          loading="lazy"
+                        />
+                        {permissions.canEdit ? (
+                          <SiteGalleryRemoveForm
+                            organizationId={organizationId}
+                            eventId={event.id}
+                            eventSlug={event.slug}
+                            photoId={photo.id}
+                            label={photo.alt ?? `la photo ${String(index + 1)}`}
+                          />
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {!permissions.canEdit || editor.gallery.length >= 12 ? null : (
+                  <SiteGalleryPhotoForm
+                    organizationId={organizationId}
+                    eventId={event.id}
+                    eventSlug={event.slug}
+                  />
+                )}
+              </section>
+            }
+            documentsPanel={
+              <section aria-labelledby="site-documents" className="or-card">
+                <h2 id="site-documents" className="pk-h2">
+                  Documents
+                </h2>
+                <p className="pk-body">
+                  Un document de l’édition n’apparaît sur le site que si vous le diffusez. Diffuser un
+                  fichier le rend téléchargeable par tous.
+                </p>
+                {editor.documents.length === 0 ? (
+                  <p className="pk-field-hint">Aucun document dans cette édition.</p>
+                ) : (
+                  <ul className="or-list">
+                    {editor.documents.map((document) => (
+                      <li key={document.id} className="or-row">
+                        <div className="or-row-main">
+                          <span className="pk-body">{document.title}</span>
+                          <span className="or-row-meta">
+                            {document.hasFile ? 'Fichier' : document.url === null ? 'Saisie' : 'Lien'}
+                            {' · '}
+                            {document.publicDownloadAt === null ? 'Non diffusé' : 'Diffusé sur le site'}
+                          </span>
+                        </div>
+                        {permissions.canPublish && (document.hasFile || document.url !== null) ? (
+                          <SiteDocumentForm
+                            organizationId={organizationId}
+                            eventId={event.id}
+                            eventSlug={event.slug}
+                            sourceId={document.id}
+                            title={document.title}
+                            isPublic={document.publicDownloadAt !== null}
+                          />
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            }
           />
         </div>
       )}

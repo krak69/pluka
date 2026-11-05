@@ -1,5 +1,5 @@
 import { listMyOrganizations } from '@pluka/domain';
-import { MicroLabel } from '@pluka/ui';
+import { TerrainBand } from '@pluka/ui';
 import Link from 'next/link';
 
 import { requireSession } from '@/lib/session';
@@ -20,10 +20,13 @@ export default async function MyOrganizationsPage() {
 
   return (
     <main className="or-main">
-      <div>
-        <MicroLabel>Espace organisateur</MicroLabel>
-        <h1 className="pk-h1">Mes organisations</h1>
-      </div>
+      <TerrainBand
+        tone="dark"
+        topo
+        eyebrow="Espace organisateur"
+        title="Mes organisations"
+        body="Choisissez l’organisation sur laquelle travailler."
+      />
 
       {organizations.length === 0 ? (
         <p className="pk-body">
@@ -31,19 +34,19 @@ export default async function MyOrganizationsPage() {
           vous invitant par email.
         </p>
       ) : (
-        <ul className="or-list" aria-label={`${organizations.length} organisation(s)`}>
+        <ul className="or-cards" aria-label={`${organizations.length} organisation(s)`}>
           {organizations.map((organization) => (
-            <li key={organization.organizationId} className="or-row">
-              <div className="or-row-main">
-                <span className="pk-body">{organization.organizationName}</span>
-                <span className="or-row-meta">{teamRoleLabel(organization.role)}</span>
-              </div>
+            <li key={organization.organizationId}>
               <Link
                 href={`/org/${organization.organizationId}`}
-                className="pk-btn pk-button-secondary"
+                className="or-card-link"
                 aria-label={`Ouvrir ${organization.organizationName}`}
               >
-                Ouvrir
+                <span className="or-card-name">{organization.organizationName}</span>
+                <span className="or-row-meta">{teamRoleLabel(organization.role)}</span>
+                <span className="or-card-go" aria-hidden="true">
+                  Ouvrir →
+                </span>
               </Link>
             </li>
           ))}

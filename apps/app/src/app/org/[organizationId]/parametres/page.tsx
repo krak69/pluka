@@ -10,5 +10,5 @@ export default async function SettingsPage({
   readonly params: Promise<{ readonly organizationId: string }>;
 }) {
   const { organizationId } = await params;
-  redirect(`/org/${organizationId}/parametres/equipe`);
+  redirect(`/org/${organizationId}/parametres/site`);
 }

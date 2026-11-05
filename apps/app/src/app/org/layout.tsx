@@ -1,3 +1,4 @@
+import { Logo } from '@pluka/ui';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -22,7 +23,8 @@ export default async function OrganizerLayout({ children }: { readonly children:
     <>
       <header className="or-band">
         <Link href="/org" className="or-band-title">
-          PLUKA Organisateur
+          <Logo variant="mark" tone="lichen" height={22} decorative />
+          Espace organisateur
         </Link>
         <Link href="/" className="pk-link pk-link-on-dark">
           Espace coureur

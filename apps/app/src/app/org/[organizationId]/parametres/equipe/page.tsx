@@ -1,5 +1,5 @@
 import { DomainError, getMyOrganization, listOrganizationTeam } from '@pluka/domain';
-import { MicroLabel } from '@pluka/ui';
+import { TerrainBand } from '@pluka/ui';
 
 import {
   InviteTeamMemberForm,
@@ -63,13 +63,16 @@ export default async function TeamPage({
 
   return (
     <>
-      <div>
-        <MicroLabel>Paramètres</MicroLabel>
-        <h1 className="pk-h1">Équipe</h1>
-      </div>
+      <TerrainBand
+        tone="light"
+        topo
+        eyebrow={membership.organizationName}
+        title="Équipe"
+        body="Qui peut travailler sur vos événements, et avec quel rôle."
+      />
 
       {notice === undefined ? null : (
-        <p className="pk-body" role="status">
+        <p className="pk-body st-notice" role="status">
           {notice}
         </p>
       )}
@@ -81,7 +84,7 @@ export default async function TeamPage({
         </p>
       ) : (
         <>
-          <section aria-labelledby="members-title">
+          <section aria-labelledby="members-title" className="or-card">
             <h2 id="members-title" className="pk-h2">
               Membres
             </h2>
@@ -100,7 +103,8 @@ export default async function TeamPage({
                         {isMe ? ' (vous)' : ''}
                       </span>
                       <span className="or-row-meta">
-                        {member.email} · membre depuis le {dayOf(member.joinedAt)}
+                        {name === member.email ? '' : `${member.email} · `}membre depuis le{' '}
+                        {dayOf(member.joinedAt)}
                       </span>
                     </div>
                     <TeamMemberRoleForm
@@ -124,7 +128,7 @@ export default async function TeamPage({
           </section>
 
           {team.invitations.length === 0 ? null : (
-            <section aria-labelledby="invitations-title">
+            <section aria-labelledby="invitations-title" className="or-card">
               <h2 id="invitations-title" className="pk-h2">
                 Invitations en attente
               </h2>
@@ -154,7 +158,7 @@ export default async function TeamPage({
             </section>
           )}
 
-          <section aria-labelledby="invite-title">
+          <section aria-labelledby="invite-title" className="or-card">
             <h2 id="invite-title" className="pk-h2">
               Inviter quelqu’un
             </h2>

@@ -1,4 +1,5 @@
 import { DomainError, getMyOrganization } from '@pluka/domain';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 
@@ -39,9 +40,11 @@ export default async function OrganizationLayout({
 
   return (
     <main className="or-main">
-      <div>
-        <p className="or-row-meta">{organization.organizationName}</p>
-      </div>
+      <nav aria-label="Fil d’Ariane" className="or-crumb">
+        <Link href="/org">Mes organisations</Link>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{organization.organizationName}</span>
+      </nav>
       {children}
     </main>
   );
