@@ -5869,6 +5869,21 @@ export type Database = {
         Args: { p_token_hash: string }
         Returns: Database["public"]["Enums"]["staff_role"]
       }
+      add_edition_documents: {
+        Args: { p_documents: Json; p_edition_id: string }
+        Returns: number
+      }
+      add_edition_file: {
+        Args: {
+          p_content_hash: string
+          p_edition_id: string
+          p_race_id?: string
+          p_size_bytes: number
+          p_storage_path: string
+          p_title: string
+        }
+        Returns: string
+      }
       add_event_site_gallery_photo: {
         Args: { p_alt: string; p_event_id: string; p_path: string }
         Returns: undefined
@@ -5885,21 +5900,6 @@ export type Database = {
           p_trust_level: Database["public"]["Enums"]["trust_level"]
         }
         Returns: number
-      }
-      admin_add_edition_documents: {
-        Args: { p_documents: Json; p_edition_id: string }
-        Returns: number
-      }
-      admin_add_edition_file: {
-        Args: {
-          p_content_hash: string
-          p_edition_id: string
-          p_race_id?: string
-          p_size_bytes: number
-          p_storage_path: string
-          p_title: string
-        }
-        Returns: string
       }
       admin_archive_nutrition_product: {
         Args: { p_product_id: string }
@@ -6057,10 +6057,6 @@ export type Database = {
           organization_name: string
           request_id: string
         }[]
-      }
-      admin_list_edition_documents: {
-        Args: { p_edition_id: string }
-        Returns: Json
       }
       admin_list_fact_candidates: {
         Args: { p_limit?: number }
@@ -6287,6 +6283,7 @@ export type Database = {
         }[]
       }
       get_race_gpx_import: { Args: { p_race_id: string }; Returns: Json }
+      list_edition_documents: { Args: { p_edition_id: string }; Returns: Json }
       list_fact_candidates_for_review: {
         Args: { p_limit?: number; p_race_id: string }
         Returns: {

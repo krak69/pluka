@@ -174,7 +174,7 @@ export const eventDiscoveryRepository = defineRepository<EventDiscoveryRepositor
   },
 
   async addDocuments(editionId, documents) {
-    const operation = 'admin_add_edition_documents';
+    const operation = 'add_edition_documents';
     const data = await invoke(context, operation, {
       p_edition_id: editionId,
       p_documents: documents,
@@ -194,7 +194,7 @@ export const eventDiscoveryRepository = defineRepository<EventDiscoveryRepositor
       });
     if (error !== null) throw storageError(error, 'edition_document.upload');
 
-    const operation = 'admin_add_edition_file';
+    const operation = 'add_edition_file';
     return uuidOf(
       await invoke(context, operation, {
         p_edition_id: input.editionId,
@@ -209,7 +209,7 @@ export const eventDiscoveryRepository = defineRepository<EventDiscoveryRepositor
   },
 
   async listDocuments(editionId) {
-    const operation = 'admin_list_edition_documents';
+    const operation = 'list_edition_documents';
     const row = objectOf(await invoke(context, operation, { p_edition_id: editionId }), operation);
 
     return {

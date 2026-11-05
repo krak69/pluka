@@ -153,24 +153,24 @@ insert into edition_ref select ed.id from public.editions ed where ed.event_id =
 
 select pg_temp.act_as('88888888-8888-4888-8888-888888888888');
 select is(
-  public.admin_add_edition_documents((select id from edition_ref), '[
+  public.add_edition_documents((select id from edition_ref), '[
     {"url":"https://www.trail-a.example/reglement.pdf","title":"Règlement","kind":"pdf"},
     {"url":"https://www.trail-a.example/","title":"Site officiel","kind":"page"}]'),
   2, 'DISC-16 — deux documents declares');
 select is(
-  public.admin_add_edition_documents((select id from edition_ref), '[
+  public.add_edition_documents((select id from edition_ref), '[
     {"url":"https://www.trail-a.example/reglement.pdf","title":"Règlement","kind":"pdf"}]'),
   0, 'DISC-17 — relancer ne redeclare pas la meme URL');
 select throws_ok(
-  $$ select public.admin_add_edition_documents((select id from edition_ref), jsonb_build_array(jsonb_build_object(
+  $$ select public.add_edition_documents((select id from edition_ref), jsonb_build_array(jsonb_build_object(
        'url','https://x.example/a.pdf','kind','pdf','raceId','33333333-3333-4333-8333-333333333333'))) $$,
   '22023', null, 'DISC-18 — une epreuve d''une autre edition est refusee');
 select throws_ok(
-  $$ select public.admin_add_edition_file((select id from edition_ref), 'Guide', 'races/x/gpx/y.pdf',
+  $$ select public.add_edition_file((select id from edition_ref), 'Guide', 'races/x/gpx/y.pdf',
        repeat('a', 64), 1000) $$,
   '22023', null, 'DISC-19 — un chemin de depot hors forme est refuse');
 select lives_ok(
-  $$ select public.admin_add_edition_file((select id from edition_ref), 'Guide coureur',
+  $$ select public.add_edition_file((select id from edition_ref), 'Guide coureur',
        'editions/' || (select id from edition_ref) || '/documents/' || repeat('b', 64) || '.pdf',
        repeat('b', 64), 2048) $$,
   'DISC-20 — un PDF depose devient une source avec son snapshot');
@@ -186,7 +186,7 @@ select is(
 select pg_temp.act_as('88888888-8888-4888-8888-888888888888');
 select results_eq(
   $$ select d ->> 'title', d ->> 'state'
-     from public.admin_list_edition_documents((select id from edition_ref)) r,
+     from public.list_edition_documents((select id from edition_ref)) r,
           jsonb_array_elements(r -> 'documents') d
      order by 1 $$,
   $$ values ('Guide coureur'::text, 'reading'::text), ('Règlement', 'queued'), ('Site officiel', 'queued') $$,
