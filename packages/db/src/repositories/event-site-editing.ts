@@ -33,11 +33,32 @@ export interface EventSiteRecord {
   readonly coverPath: string | null;
   readonly contactEmail: string | null;
   readonly publishedAt: string | null;
+  readonly presentation: string | null;
+  readonly venue: string | null;
+  readonly links: EventSiteLinks;
+}
+
+export interface EventSiteLinks {
+  readonly results: string | null;
+  readonly live: string | null;
+  readonly volunteers: string | null;
+  readonly newsletter: string | null;
+  readonly facebook: string | null;
+  readonly instagram: string | null;
+  readonly strava: string | null;
 }
 
 export interface EventSiteSectionRecord {
   readonly title: string;
   readonly body: string;
+  readonly moment: Enum<'event_site_moment'>;
+  /** Nul : une rubrique ajoutée par l'organisation. */
+  readonly topicKey: string | null;
+}
+
+export interface EventSiteFigureRecord {
+  readonly value: string;
+  readonly label: string;
 }
 
 export interface EventSiteEditionRecord {
@@ -75,6 +96,13 @@ export interface SaveEventSiteInput {
   readonly headingFont: string | null;
   readonly contactEmail: string | null;
   readonly sections: readonly EventSiteSectionRecord[];
+  /** Nul : la présentation, les chiffres et les liens ne sont pas touchés (0054). */
+  readonly content: {
+    readonly presentation: string | null;
+    readonly venue: string | null;
+    readonly figures: readonly EventSiteFigureRecord[];
+    readonly links: EventSiteLinks;
+  } | null;
   /** Nul : les liens d'inscription ne sont pas touchés (0050). */
   readonly registration: {
     readonly editionId: string;
@@ -87,6 +115,7 @@ export interface EventSiteEditingRepository {
   listOrganizationEvents(organizationId: string): Promise<readonly EventSiteEventRecord[]>;
   findSite(eventId: string): Promise<EventSiteRecord | null>;
   listSections(eventId: string): Promise<readonly EventSiteSectionRecord[]>;
+  listFigures(eventId: string): Promise<readonly EventSiteFigureRecord[]>;
   listEditions(eventId: string): Promise<readonly EventSiteEditionRecord[]>;
   listRaces(editionId: string): Promise<readonly EventSiteRaceRecord[]>;
   save(input: SaveEventSiteInput): Promise<void>;
@@ -125,8 +154,18 @@ const SITE_COLUMNS = [
   'cover_path',
   'contact_email',
   'published_at',
+  'presentation',
+  'venue',
+  'results_url',
+  'live_url',
+  'volunteers_url',
+  'newsletter_url',
+  'facebook_url',
+  'instagram_url',
+  'strava_url',
 ] as const;
-const SECTION_COLUMNS = ['title', 'body', 'sort_order'] as const;
+const SECTION_COLUMNS = ['title', 'body', 'moment', 'topic_key', 'sort_order'] as const;
+const FIGURE_COLUMNS = ['value', 'label', 'sort_order'] as const;
 const EDITION_COLUMNS = [
   'id',
   'year',
@@ -180,6 +219,17 @@ export const eventSiteEditingRepository = defineRepository<EventSiteEditingRepos
         coverPath: row.cover_path,
         contactEmail: row.contact_email,
         publishedAt: row.published_at,
+        presentation: row.presentation,
+        venue: row.venue,
+        links: {
+          results: row.results_url,
+          live: row.live_url,
+          volunteers: row.volunteers_url,
+          newsletter: row.newsletter_url,
+          facebook: row.facebook_url,
+          instagram: row.instagram_url,
+          strava: row.strava_url,
+        },
       };
     },
 
@@ -192,7 +242,24 @@ export const eventSiteEditingRepository = defineRepository<EventSiteEditingRepos
           .order('sort_order', { ascending: true }),
         'event_site_sections.list',
       );
-      return rows.map((row) => ({ title: row.title, body: row.body }));
+      return rows.map((row) => ({
+        title: row.title,
+        body: row.body,
+        moment: row.moment,
+        topicKey: row.topic_key,
+      }));
+    },
+
+    async listFigures(eventId) {
+      const rows = unwrap(
+        await context.client
+          .from('event_site_figures')
+          .select(selectColumns('event_site_figures', FIGURE_COLUMNS))
+          .eq('event_id', eventId)
+          .order('sort_order', { ascending: true }),
+        'event_site_figures.list',
+      );
+      return rows.map((row) => ({ value: row.value, label: row.label }));
     },
 
     async listEditions(eventId) {
@@ -241,13 +308,14 @@ export const eventSiteEditingRepository = defineRepository<EventSiteEditingRepos
         p_accent_color: input.accentColor,
         p_heading_font: input.headingFont,
         p_contact_email: input.contactEmail,
-        p_sections: input.sections.map((section) => ({ title: section.title, body: section.body })),
+        p_sections: input.sections,
         p_edition_id: input.registration?.editionId ?? null,
         p_edition_registration_url: input.registration?.editionUrl ?? null,
         p_race_registration_urls:
           input.registration === null
             ? null
             : input.registration.races.map((race) => ({ raceId: race.raceId, url: race.url })),
+        p_content: input.content,
       });
     },
 

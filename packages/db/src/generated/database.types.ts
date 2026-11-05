@@ -1241,30 +1241,71 @@ export type Database = {
           },
         ]
       }
+      event_site_figures: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          label: string
+          sort_order: number
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          label: string
+          sort_order: number
+          value: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          label?: string
+          sort_order?: number
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_site_figures_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_sites"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
       event_site_sections: {
         Row: {
           body: string
           created_at: string
           event_id: string
           id: string
+          moment: Database["public"]["Enums"]["event_site_moment"]
           sort_order: number
           title: string
+          topic_key: string | null
         }
         Insert: {
           body: string
           created_at?: string
           event_id: string
           id?: string
+          moment?: Database["public"]["Enums"]["event_site_moment"]
           sort_order: number
           title: string
+          topic_key?: string | null
         }
         Update: {
           body?: string
           created_at?: string
           event_id?: string
           id?: string
+          moment?: Database["public"]["Enums"]["event_site_moment"]
           sort_order?: number
           title?: string
+          topic_key?: string | null
         }
         Relationships: [
           {
@@ -1283,14 +1324,23 @@ export type Database = {
           cover_path: string | null
           created_at: string
           event_id: string
+          facebook_url: string | null
           heading_font: string | null
+          instagram_url: string | null
+          live_url: string | null
           logo_path: string | null
+          newsletter_url: string | null
+          presentation: string | null
           published_at: string | null
           published_by_user_id: string | null
+          results_url: string | null
           status: Database["public"]["Enums"]["event_site_status"]
+          strava_url: string | null
           suspended_at: string | null
           updated_at: string
           updated_by_user_id: string | null
+          venue: string | null
+          volunteers_url: string | null
         }
         Insert: {
           accent_color?: string | null
@@ -1298,14 +1348,23 @@ export type Database = {
           cover_path?: string | null
           created_at?: string
           event_id: string
+          facebook_url?: string | null
           heading_font?: string | null
+          instagram_url?: string | null
+          live_url?: string | null
           logo_path?: string | null
+          newsletter_url?: string | null
+          presentation?: string | null
           published_at?: string | null
           published_by_user_id?: string | null
+          results_url?: string | null
           status?: Database["public"]["Enums"]["event_site_status"]
+          strava_url?: string | null
           suspended_at?: string | null
           updated_at?: string
           updated_by_user_id?: string | null
+          venue?: string | null
+          volunteers_url?: string | null
         }
         Update: {
           accent_color?: string | null
@@ -1313,14 +1372,23 @@ export type Database = {
           cover_path?: string | null
           created_at?: string
           event_id?: string
+          facebook_url?: string | null
           heading_font?: string | null
+          instagram_url?: string | null
+          live_url?: string | null
           logo_path?: string | null
+          newsletter_url?: string | null
+          presentation?: string | null
           published_at?: string | null
           published_by_user_id?: string | null
+          results_url?: string | null
           status?: Database["public"]["Enums"]["event_site_status"]
+          strava_url?: string | null
           suspended_at?: string | null
           updated_at?: string
           updated_by_user_id?: string | null
+          venue?: string | null
+          volunteers_url?: string | null
         }
         Relationships: [
           {
@@ -6354,6 +6422,7 @@ export type Database = {
         Args: {
           p_accent_color: string
           p_contact_email: string
+          p_content?: Json
           p_edition_id?: string
           p_edition_registration_url?: string
           p_event_id: string
@@ -6905,6 +6974,7 @@ export type Database = {
         | "pluka_suggestion"
         | "conditions"
       equipment_status: "planned" | "packed" | "missing" | "not_needed"
+      event_site_moment: "before" | "during" | "after"
       event_site_status: "draft" | "published" | "suspended"
       fact_category:
         | "general"
@@ -7296,6 +7366,7 @@ export const Constants = {
         "conditions",
       ],
       equipment_status: ["planned", "packed", "missing", "not_needed"],
+      event_site_moment: ["before", "during", "after"],
       event_site_status: ["draft", "published", "suspended"],
       fact_category: [
         "general",

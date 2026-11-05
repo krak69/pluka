@@ -227,6 +227,8 @@ export {
   type EventSiteEventRecord,
   type EventSiteRaceRecord,
   type EventSiteRecord,
+  type EventSiteFigureRecord,
+  type EventSiteLinks,
   type EventSiteSectionRecord,
   type SaveEventSiteInput,
 } from './repositories/event-site-editing.js';
