@@ -4,6 +4,7 @@ import {
   SITE_MOMENTS,
   SITE_MOMENT_LABELS,
   SITE_PRACTICAL_TOPICS,
+  eventSiteChecklist,
   getEventSiteEditor,
   siteUrl,
   siteVideoUrl,
@@ -266,19 +267,8 @@ export default async function SitePage({
               name: race.name,
               registrationUrl: race.registrationUrl,
             }))}
-            checklist={[
-              { tab: 'identite', label: 'Logo', done: site?.logoPath != null },
-              { tab: 'identite', label: 'Couverture', done: site?.coverPath != null },
-              { tab: 'presentation', label: 'Présentation', done: site?.presentation != null },
-              { tab: 'infos', label: 'Infos pratiques', done: editor.sections.length > 0 },
-              { tab: 'galerie', label: 'Photos', done: editor.gallery.length > 0 },
-              {
-                tab: 'liens',
-                label: 'Lien d’inscription',
-                done: editor.edition?.registrationUrl != null,
-              },
-              { tab: 'contact', label: 'Adresse de contact', done: site?.contactEmail != null },
-            ]}
+            checklist={eventSiteChecklist(editor)}
+            initialTab={typeof query.onglet === 'string' ? query.onglet : undefined}
             imagesPanel={
               <div className="st-images-grid">
                 <SiteImageForm

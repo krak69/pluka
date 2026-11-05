@@ -131,6 +131,7 @@ export function SiteEditorForm({
   edition,
   races,
   checklist,
+  initialTab,
   imagesPanel,
   galleryPanel,
   documentsPanel,
@@ -177,6 +178,8 @@ export function SiteEditorForm({
     readonly label: string;
     readonly done: boolean;
   }[];
+  /** La rubrique demandée par l'adresse, depuis l'accueil. */
+  readonly initialTab: string | undefined;
   /* Ces trois panneaux portent leurs propres formulaires : ils restent hors du formulaire du site. */
   readonly imagesPanel: ReactNode;
   readonly galleryPanel: ReactNode;
@@ -184,7 +187,9 @@ export function SiteEditorForm({
 }) {
   const [state, action, pending] = useActionState(saveSiteAction, INITIAL);
   const id = useId();
-  const [tab, setTab] = useState<SiteTab>('identite');
+  const [tab, setTab] = useState<SiteTab>(
+    () => TABS.find((item) => item.key === initialTab)?.key ?? 'identite',
+  );
   const [seenState, setSeenState] = useState(state);
   if (state !== seenState) {
     setSeenState(state);

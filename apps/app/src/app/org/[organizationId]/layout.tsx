@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import { SubTabs } from '@/components/sub-tabs';
 import { requireSession } from '@/lib/session';
 import { sessionTeamContext } from '@/lib/team';
 
@@ -13,8 +14,9 @@ import { sessionTeamContext } from '@/lib/team';
  * l'organisation existe (03_PRIVACY_RLS §120). Un identifiant qui n'est pas un
  * UUID est traité de même.
  *
- * Pas de navigation d'onglets : Accueil, Ma course, Analyse et Participants
- * n'ont pas encore d'écran, et un menu de liens morts serait pire qu'aucun.
+ * Les onglets ne nomment que ce qui a un écran : Ma course, Analyse et
+ * Participants arriveront avec les leurs. Un menu de liens morts serait pire
+ * qu'un menu court.
  */
 export default async function OrganizationLayout({
   children,
@@ -45,6 +47,14 @@ export default async function OrganizationLayout({
         <span aria-hidden="true">/</span>
         <span aria-current="page">{organization.organizationName}</span>
       </nav>
+      <SubTabs
+        label="Organisation"
+        tabs={[
+          { href: `/org/${organizationId}`, label: 'Accueil' },
+          { href: `/org/${organizationId}/parametres/site`, label: 'Site' },
+          { href: `/org/${organizationId}/parametres/equipe`, label: 'Équipe' },
+        ]}
+      />
       {children}
     </main>
   );

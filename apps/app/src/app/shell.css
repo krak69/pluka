@@ -904,9 +904,11 @@ select.pk-input {
 
 /* Un écran de travail : plus dense que les 52 px d'un appel à l'action de page. */
 .or-main .pk-btn {
+  box-sizing: border-box;
   min-height: 44px;
   padding: 8px 16px;
   font-size: 14.5px;
+  text-decoration: none;
 }
 
 .or-main .pk-tab {
@@ -931,6 +933,79 @@ select.pk-input {
   color: var(--pk-forest);
   cursor: pointer;
   font-family: var(--font-heading);
+  font-weight: 600;
+}
+
+/* L'accueil : la conclusion dans la scène, puis « À retenir » (§125). */
+.or-summary {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.or-attention {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.or-attention h2 {
+  margin: 0;
+}
+
+.or-attention ol {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.or-topic {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3) var(--space-5);
+  padding: var(--space-5);
+  border-left: 4px solid var(--pk-hairline);
+  background: var(--pk-surface);
+}
+
+.or-topic[data-kind='todo'] {
+  border-left-color: var(--pk-dawn);
+}
+
+.or-topic[data-kind='check'] {
+  border-left-color: var(--pk-warning-signal);
+}
+
+.or-topic[data-kind='know'] {
+  border-left-color: var(--pk-forest);
+}
+
+.or-topic-index {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--pk-text-muted);
+}
+
+.or-topic-main {
+  display: grid;
+  flex: 1;
+  gap: var(--space-1);
+  min-width: 14rem;
+}
+
+.or-topic-main .pk-body {
+  margin: 0;
+}
+
+.or-topic-kind {
+  margin: 0;
+}
+
+.or-topic-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 19px;
   font-weight: 600;
 }
 
