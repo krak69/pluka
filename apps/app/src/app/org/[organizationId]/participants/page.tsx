@@ -114,8 +114,9 @@ export default async function ParticipantsPage({
             Vos colonnes
           </h2>
           <p className="pk-body">
-            {current.fileName ?? 'Votre fichier'} : {current.rows.length} lignes. PLUKA propose une
-            correspondance, à vous de la vérifier.
+            {current.fileName ?? 'Votre fichier'} : {current.rows.length}{' '}
+            {current.rows.length > 1 ? 'lignes' : 'ligne'}. PLUKA propose une correspondance, à vous
+            de la vérifier.
           </p>
           <ColumnsForm
             scope={scope}

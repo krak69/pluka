@@ -1158,6 +1158,11 @@ select.pk-input {
   min-width: 0;
 }
 
+.pa-column .pk-input {
+  box-sizing: border-box;
+  width: 100%;
+}
+
 .cr-add {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
