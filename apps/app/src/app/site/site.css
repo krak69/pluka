@@ -614,6 +614,12 @@
   font-size: 14px;
 }
 
+.es-video-idle .es-cta {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
 .es-video-idle p {
   margin: 0;
 }
