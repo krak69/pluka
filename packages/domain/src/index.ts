@@ -701,3 +701,21 @@ export {
   addEventSiteGalleryPhoto,
   removeEventSiteGalleryPhoto,
 } from './site/editing.js';
+export {
+  MAX_IMPORT_ROWS,
+  PARTICIPANT_FIELDS,
+  decodeFile,
+  judgeRows,
+  parseParticipantFile,
+  suggestColumns,
+  type ParticipantColumns,
+} from './participants/import-file.js';
+export {
+  commitParticipantImport,
+  createParticipantImport,
+  discardParticipantImport,
+  getParticipantImport,
+  listEditionParticipants,
+  validateParticipantImport,
+  type ParticipantImportContext,
+} from './participants/use-cases.js';
