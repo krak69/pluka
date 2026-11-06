@@ -1,6 +1,6 @@
 import type { EditableFactRecord, FactCandidateReviewRecord } from '@pluka/db';
 import { getOrganizerCourse, listCandidatesForReview, listRaceFactsForEditing } from '@pluka/domain';
-import { TrustBadge } from '@pluka/ui';
+import { NavTabs, TrustBadge } from '@pluka/ui';
 import Link from 'next/link';
 
 import {
@@ -23,9 +23,10 @@ import { requireSession } from '@/lib/session';
 /**
  * Ma course · Informations — 00_PRODUCT_SPEC §28.1.
  *
- * Ce que PLUKA sait officiellement de chaque épreuve. Les exceptions d'abord :
- * ce qui attend une décision, puis ce qui est publié. L'organisation ne
- * surveille pas de pipeline ; elle tranche ce qui le demande.
+ * Ce que PLUKA sait officiellement de chaque épreuve, en volets. Les exceptions
+ * d'abord : l'écran s'ouvre sur ce qui attend une décision, et sur ce qui est
+ * publié quand rien n'attend. L'organisation ne surveille pas de pipeline ; elle
+ * tranche ce qui le demande.
  */
 export const metadata = { title: 'Ma course' };
 
@@ -104,12 +105,12 @@ function Fact({
   const editable = canEdit && fact.category !== 'equipment';
 
   return (
-    <li className="cr-fact">
-      <div className="cr-fact-head">
+    <li className="cr-fact or-line">
+      <div className="or-line-main">
         <span className="cr-fact-value">{value}</span>
-        <TrustBadge level={fact.trustLevel} />
+        {source === null ? null : <span className="or-row-meta">{source}</span>}
       </div>
-      {source === null ? null : <span className="or-row-meta">{source}</span>}
+      <TrustBadge level={fact.trustLevel} />
       {!editable ? null : (
         <div className="cr-fact-actions">
           <details className="st-details">
@@ -122,7 +123,7 @@ function Fact({
               unit={fact.unit}
             />
           </details>
-          <details className="st-details">
+          <details className="st-details or-danger">
             <summary>Retirer</summary>
             <p className="pk-field-hint">
               Elle disparaît pour les coureurs, et se restaure à tout moment.
@@ -175,10 +176,22 @@ export default async function CourseInformationPage({
   const retired = facts.filter((fact) => fact.archivedAt !== null);
   const categories = [...new Set(published.map((fact) => fact.category))];
 
+  const panels = [
+    { panel: 'a-verifier', label: `À vérifier (${String(toDecide.length)})` },
+    { panel: 'publiees', label: `Publiées (${String(published.length)})` },
+    ...(retired.length === 0
+      ? []
+      : [{ panel: 'retirees', label: `Retirées (${String(retired.length)})` }]),
+  ];
+  const panel =
+    panels.find((item) => item.panel === query.volet)?.panel ??
+    (toDecide.length === 0 ? 'publiees' : 'a-verifier');
+
   const selection = new URLSearchParams({
     ...(event === null ? {} : { evenement: event.slug }),
     ...(edition === null ? {} : { edition: String(edition.year) }),
     ...(race === null ? {} : { epreuve: race.slug }),
+    volet: panel,
   }).toString();
   const scope = { organizationId, selection };
 
@@ -211,32 +224,58 @@ export default async function CourseInformationPage({
           <p className="pk-body">Aucune épreuve dans cette édition pour l’instant.</p>
         </section>
       ) : (
-        <div className="st-workspace">
-          <div className="st-rail">
-            <nav aria-label="Épreuves" className="st-tabs">
-              {races.map((candidate) => (
-                <Link
-                  key={candidate.id}
-                  href={courseHref(organizationId, 'informations', {
-                    event: event?.slug,
-                    year: edition?.year,
-                    race: candidate.slug,
-                  })}
-                  className="st-tab"
-                  aria-current={candidate.id === race.id ? 'true' : undefined}
-                >
-                  {candidate.name}
-                </Link>
-              ))}
-            </nav>
-          </div>
+        <>
+          <nav aria-label="Épreuves" className="st-events">
+            {races.map((candidate) => (
+              <Link
+                key={candidate.id}
+                href={courseHref(organizationId, 'informations', {
+                  event: event?.slug,
+                  year: edition?.year,
+                  race: candidate.slug,
+                })}
+                className="st-event"
+                aria-current={candidate.id === race.id ? 'page' : undefined}
+              >
+                {candidate.name}
+              </Link>
+            ))}
+          </nav>
 
           <div className="st-panels">
-            {toDecide.length === 0 ? null : (
-              <section aria-labelledby="to-decide" className="or-attention">
-                <h2 id="to-decide" className="pk-label">
-                  À décider
-                </h2>
+            <NavTabs
+              label={`Volets de ${race.name}`}
+              className="or-subnav"
+              tabs={panels.map((item) => ({
+                href: courseHref(organizationId, 'informations', {
+                  event: event?.slug,
+                  year: edition?.year,
+                  race: race.slug,
+                  panel: item.panel,
+                }),
+                label: item.label,
+                current: item.panel === panel,
+              }))}
+            />
+
+            {panel !== 'a-verifier' ? null : toDecide.length === 0 ? (
+              <section className="or-card">
+                <h2 className="pk-h2">Rien à vérifier pour {race.name}</h2>
+                <p className="pk-body">
+                  Ce que PLUKA relève dans vos documents arrive ici, et rien n’est publié sans vous.{' '}
+                  <Link
+                    href={courseHref(organizationId, 'sources', {
+                      event: event?.slug,
+                      year: edition?.year,
+                    })}
+                    className="pk-link"
+                  >
+                    Ajouter un document
+                  </Link>
+                </p>
+              </section>
+            ) : (
+              <section aria-label={`À vérifier pour ${race.name}`} className="or-attention">
                 <ol>
                   {toDecide.map((candidate) => (
                     <Candidate
@@ -250,7 +289,7 @@ export default async function CourseInformationPage({
               </section>
             )}
 
-            {published.length === 0 ? (
+            {panel !== 'publiees' ? null : published.length === 0 ? (
               <section className="or-card">
                 <h2 className="pk-h2">Rien de publié pour {race.name}</h2>
                 <p className="pk-body">
@@ -261,7 +300,22 @@ export default async function CourseInformationPage({
             ) : (
               categories.map((category) => (
                 <section key={category} className="or-card">
-                  <h2 className="pk-h2">{factCategoryLabel(category)}</h2>
+                  <div className="cr-fact-head">
+                    <h2 className="pk-h2">{factCategoryLabel(category)}</h2>
+                    {category === 'equipment' && permissions.canEdit ? (
+                      <Link
+                        href={courseHref(organizationId, 'epreuves', {
+                          event: event?.slug,
+                          year: edition?.year,
+                          race: race.slug,
+                          panel: 'materiel',
+                        })}
+                        className="pk-link"
+                      >
+                        Corriger dans Épreuves
+                      </Link>
+                    ) : null}
+                  </div>
                   <ul className="cr-facts">
                     {published
                       .filter((fact) => fact.category === category)
@@ -278,7 +332,7 @@ export default async function CourseInformationPage({
               ))
             )}
 
-            {retired.length === 0 ? null : (
+            {panel !== 'retirees' ? null : (
               <section className="or-card">
                 <h2 className="pk-h2">Retirées</h2>
                 <p className="pk-field-hint">
@@ -286,8 +340,8 @@ export default async function CourseInformationPage({
                 </p>
                 <ul className="cr-facts">
                   {retired.map((fact) => (
-                    <li key={fact.factId} className="cr-fact">
-                      <div className="cr-fact-head">
+                    <li key={fact.factId} className="cr-fact or-line">
+                      <div className="or-line-main">
                         <span className="cr-fact-value">{factValue(fact)}</span>
                         <span className="or-row-meta">{factCategoryLabel(fact.category)}</span>
                       </div>
@@ -304,7 +358,7 @@ export default async function CourseInformationPage({
               </section>
             )}
           </div>
-        </div>
+        </>
       )}
     </CourseFrame>
   );
