@@ -27,10 +27,36 @@ export interface ParticipantImportView {
     readonly status: string;
     readonly message: string;
   }[];
+  /** Ce que l'import fera des lignes valides, calculé comme l'import lui-même. */
+  readonly effects: {
+    readonly created: number;
+    readonly updated: number;
+    readonly unchanged: number;
+    readonly kept: number;
+    readonly withdrawn: number;
+  };
+  /** Vagues du fichier sans vague de ce nom sur l'épreuve : `shown` s'arrête à 20. */
+  readonly unknownWaves: {
+    readonly rows: number;
+    readonly groups: number;
+    readonly shown: readonly {
+      readonly raceName: string;
+      readonly wave: string;
+      readonly rows: number;
+    }[];
+  };
+}
+
+/** Une vague proposée à la correction : officielle, ou apportée par un fichier. */
+export interface ParticipantWaveOption {
+  readonly raceId: string;
+  readonly name: string;
+  readonly official: boolean;
 }
 
 export interface EditionParticipantRecord {
   readonly id: string;
+  readonly raceId: string;
   readonly firstName: string | null;
   readonly lastName: string | null;
   /** Nul pour qui n'a pas le rang d'inviter (03_PRIVACY_RLS §28). */
@@ -38,12 +64,38 @@ export interface EditionParticipantRecord {
   readonly bib: string | null;
   readonly raceName: string;
   readonly waveName: string | null;
+  /** Écrite dans le fichier, en attente d'une vague de ce nom sur l'épreuve. */
+  readonly declaredWaveName: string | null;
+  /** Le même dossard sur plusieurs lignes de cette épreuve. */
+  readonly bibConflict: boolean;
   readonly activated: boolean;
+}
+
+export interface WithdrawnParticipantRecord {
+  readonly id: string;
+  readonly firstName: string | null;
+  readonly lastName: string | null;
+  readonly bib: string | null;
+  readonly raceName: string;
+}
+
+export interface ParticipantImportResult {
+  readonly created: number;
+  readonly updated: number;
+  readonly skipped: number;
+  readonly kept: number;
+  readonly withdrawn: number;
 }
 
 export interface EditionParticipants {
   readonly total: number;
+  /** Sur toute l'édition, même au-delà de la limite de la liste. */
+  readonly toCheck: { readonly bibs: number };
+  /** Participants dont la vague attend d'être déclarée : une mention, pas une alerte. */
+  readonly pendingWaves: number;
+  readonly waveOptions: readonly ParticipantWaveOption[];
   readonly participants: readonly EditionParticipantRecord[];
+  readonly withdrawn: readonly WithdrawnParticipantRecord[];
 }
 
 export interface ParticipantImportRepository {
@@ -59,9 +111,11 @@ export interface ParticipantImportRepository {
     columns: Readonly<Record<string, string>>,
     rows: readonly unknown[],
   ): Promise<void>;
-  commit(importId: string): Promise<{ readonly created: number; readonly skipped: number }>;
+  commit(importId: string): Promise<ParticipantImportResult>;
   discard(importId: string): Promise<void>;
   listParticipants(editionId: string): Promise<EditionParticipants>;
+  correct(participantRaceId: string, bib: string, wave: string): Promise<void>;
+  setWithdrawn(participantRaceId: string, withdrawn: boolean): Promise<void>;
 }
 
 interface RpcCapableClient {
@@ -104,7 +158,7 @@ export const participantImportRepository = defineRepository<ParticipantImportRep
     async commit(importId) {
       return (await call(context.client, 'commit_participant_import', {
         p_import_id: importId,
-      })) as { created: number; skipped: number };
+      })) as ParticipantImportResult;
     },
 
     async discard(importId) {
@@ -115,6 +169,21 @@ export const participantImportRepository = defineRepository<ParticipantImportRep
       return (await call(context.client, 'list_edition_participants', {
         p_edition_id: editionId,
       })) as EditionParticipants;
+    },
+
+    async correct(participantRaceId, bib, wave) {
+      await call(context.client, 'correct_participant_registration', {
+        p_participant_race_id: participantRaceId,
+        p_bib: bib,
+        p_wave: wave,
+      });
+    },
+
+    async setWithdrawn(participantRaceId, withdrawn) {
+      await call(context.client, 'set_participant_withdrawn', {
+        p_participant_race_id: participantRaceId,
+        p_withdrawn: withdrawn,
+      });
     },
   }),
 );

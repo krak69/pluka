@@ -286,5 +286,7 @@ export {
   type EditionParticipantRecord,
   type EditionParticipants,
   type ParticipantImportRepository,
+  type ParticipantImportResult,
   type ParticipantImportView,
+  type ParticipantWaveOption,
 } from './repositories/participant-import.js';

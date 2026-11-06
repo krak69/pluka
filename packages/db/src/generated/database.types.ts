@@ -3009,7 +3009,9 @@ export type Database = {
       participant_races: {
         Row: {
           bib_number: string | null
+          bib_set_manually: boolean
           created_at: string
+          declared_wave_name: string | null
           external_registration_id: string | null
           first_name_snapshot: string | null
           id: string
@@ -3024,10 +3026,13 @@ export type Database = {
           status: Database["public"]["Enums"]["participant_race_status"]
           updated_at: string
           user_id: string | null
+          wave_set_manually: boolean
         }
         Insert: {
           bib_number?: string | null
+          bib_set_manually?: boolean
           created_at?: string
+          declared_wave_name?: string | null
           external_registration_id?: string | null
           first_name_snapshot?: string | null
           id?: string
@@ -3042,10 +3047,13 @@ export type Database = {
           status?: Database["public"]["Enums"]["participant_race_status"]
           updated_at?: string
           user_id?: string | null
+          wave_set_manually?: boolean
         }
         Update: {
           bib_number?: string | null
+          bib_set_manually?: boolean
           created_at?: string
+          declared_wave_name?: string | null
           external_registration_id?: string | null
           first_name_snapshot?: string | null
           id?: string
@@ -3060,6 +3068,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["participant_race_status"]
           updated_at?: string
           user_id?: string | null
+          wave_set_manually?: boolean
         }
         Relationships: [
           {
@@ -6220,6 +6229,10 @@ export type Database = {
         Args: { p_import_id: string }
         Returns: Json
       }
+      correct_participant_registration: {
+        Args: { p_bib: string; p_participant_race_id: string; p_wave: string }
+        Returns: undefined
+      }
       create_participant_import: {
         Args: {
           p_edition_id: string
@@ -6557,6 +6570,10 @@ export type Database = {
           p_event_id: string
           p_status: Database["public"]["Enums"]["event_site_status"]
         }
+        Returns: undefined
+      }
+      set_participant_withdrawn: {
+        Args: { p_participant_race_id: string; p_withdrawn: boolean }
         Returns: undefined
       }
       set_race_waypoints: {
