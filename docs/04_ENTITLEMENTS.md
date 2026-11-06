@@ -3,6 +3,7 @@
 **Fichier de référence :** `docs/04_ENTITLEMENTS.md`  
 **Statut :** Référence fonctionnelle et technique — V1  
 **Date de consolidation :** 2026-09-03  
+**Mise à jour :** 2026-11-06 — Race Pass early bird et canaux de vente organisateur (§3, §67–73.2, §119.1)  
 **Principe :** les droits sont calculés côté serveur, centralisés, explicables et indépendants de l’UI
 
 ---
@@ -111,9 +112,19 @@ Free
 Race Pass
 14,90 € / course
 
+Race Pass — tarif early bird
+9,90 € / course
+
 PLUKA+
 44,90 € / an
 ```
+
+Le tarif early bird est défini dans `00_PRODUCT_SPEC.md` §6.5 :
+
+- achat dans les 15 jours suivant la date d’inscription ;
+- et au moins 60 jours avant la date de la course.
+
+L’early bird est un **tarif**, pas un type d’entitlement. Il produit un entitlement `race_pass` identique à celui d’un achat au tarif standard (cf. §97).
 
 PLUKA+ est un abonnement annuel payé en une fois.
 
@@ -208,6 +219,8 @@ droit bêta temporaire
 | Demander à PLUKA — contexte premium | limité | ✓ | ✓ | ✓ |
 
 Cette matrice est la référence fonctionnelle V1.
+
+La colonne Race Pass s’applique à l’identique quel que soit le tarif payé (standard ou early bird) et quel que soit le canal de vente.
 
 ---
 
@@ -1502,6 +1515,7 @@ Enum recommandé :
 ```text
 purchase
 subscription
+partner_sale
 organization
 beta
 support
@@ -1510,6 +1524,12 @@ promotion
 ```
 
 Cela permet d’auditer l’origine.
+
+`partner_sale` désigne un Race Pass **payé par le coureur** mais **encaissé par une organisation** (canal B, option dans le formulaire d’inscription — `00_PRODUCT_SPEC.md` §6.5.5).
+
+Une vente via lien organisateur (canal A) reste une source `purchase` : l’attribution à l’organisation est portée par le purchase, pas par l’entitlement (§73.1).
+
+`partner_sale` ne doit jamais être confondu avec `organization`, qui correspond à Organizer Included (financé par l’organisation).
 
 ---
 
@@ -1532,6 +1552,7 @@ type Entitlement = {
   source:
     | 'purchase'
     | 'subscription'
+    | 'partner_sale'
     | 'organization'
     | 'beta'
     | 'support'
@@ -1578,6 +1599,12 @@ type = race_pass
 ```
 
 ```text
+type = race_pass AND source = partner_sale
+→ organization_id obligatoire
+→ external_reference obligatoire (référence de la ligne d’export)
+```
+
+```text
 type = organizer_included
 → participant_race obligatoire
 → organization_id recommandé / obligatoire
@@ -1599,7 +1626,7 @@ Ces invariants doivent être dans le schéma ou vérifiés fortement côté doma
 Exemples de contraintes logiques :
 
 ```text
-1 Race Pass actif par user + participant_race + source commercial
+1 Race Pass actif par user + participant_race, tous canaux et sources confondus
 ```
 
 ```text
@@ -1607,6 +1634,12 @@ Exemples de contraintes logiques :
 ```
 
 PLUKA+ peut avoir plusieurs périodes historiques, mais pas deux périodes actives incohérentes issues du même abonnement.
+
+Cas des canaux organisateur :
+
+- un achat dans l’app sur une participation déjà couverte par un Race Pass `partner_sale` est refusé (`DUPLICATE_PURCHASE`) ;
+- un import canal B sur une participation déjà couverte par un Race Pass `purchase` ne crée pas de second grant : la ligne est signalée comme conflit pour traitement (remboursement côté organisation) ;
+- le rejeu d’une même ligne d’export (même `external_reference`) ne crée jamais de second grant.
 
 ---
 
@@ -1622,6 +1655,8 @@ purchase
 ```
 
 Un entitlement de support / beta n’a pas forcément de purchase.
+
+Un Race Pass `partner_sale` n’a pas de purchase provider PLUKA : sa trace commerciale est la ligne d’import canal B, rattachée à la facturation de l’organisation au prix de cession.
 
 ---
 
@@ -1639,10 +1674,64 @@ Utiliser des IDs stables :
 
 ```text
 race_pass
+race_pass_early
 plus_annual
 ```
 
-Les prix restent dans un catalogue / config commerciale.
+`race_pass` et `race_pass_early` produisent le même entitlement final :
+
+```text
+type = race_pass
+```
+
+Les prix restent dans un catalogue / config commerciale, de même que :
+
+- la commission organisation du canal A (référence 20 % du montant encaissé) ;
+- le prix de cession du canal B (référence 7,50 € HT).
+
+Ces montants sont paramétrables par contrat organisation et ne sont jamais codés en dur dans le domaine.
+
+---
+
+# 72.1 Éligibilité early bird
+
+L’éligibilité est une **fonction pure côté serveur** :
+
+```ts
+isEarlyBirdEligible(
+  registration: {
+    registeredAt: Date
+    origin: 'verified' | 'declared'
+  },
+  raceStartsAt: Date,
+  now: Date
+): boolean
+```
+
+Règle :
+
+```text
+now < registeredAt + 15 jours
+AND
+raceStartsAt - now >= 60 jours
+```
+
+Date d’inscription de référence :
+
+- `verified` : issue d’un import organisateur ou d’un export de plateforme d’inscription ;
+- `declared` : à défaut, date de création de la participation dans PLUKA.
+
+Une date `verified` prévaut toujours sur une date `declared`, même si elle rend l’achat non éligible.
+
+Le client ne transmet jamais :
+
+- la date d’inscription ;
+- le prix ;
+- l’éligibilité.
+
+L’UI peut recevoir la date de fin d’éligibilité calculée par le serveur pour l’afficher.
+
+L’horloge est injectée (§122).
 
 ---
 
@@ -1653,6 +1742,7 @@ Le checkout reçoit :
 ```text
 productKey
 participantRaceId si Race Pass
+referralCode facultatif (canal A)
 ```
 
 Le serveur vérifie :
@@ -1661,7 +1751,65 @@ Le serveur vérifie :
 - produit valide ;
 - scope ;
 - absence de droit plus large déjà actif ;
+- absence de Race Pass déjà actif sur la participation, quelle que soit sa source ;
+- éligibilité early bird si `productKey = race_pass_early` (sinon `EARLY_BIRD_NOT_ELIGIBLE`) ;
 - idempotence.
+
+Le prix est toujours lu dans le catalogue côté serveur.
+
+Recommandation UX : le serveur indique au client le produit applicable (`race_pass` ou `race_pass_early`) plutôt que de laisser le client choisir.
+
+---
+
+# 73.1 Attribution organisateur — canal A (lien + code)
+
+Un code organisateur est rattaché à :
+
+- une organisation ;
+- une Race (ou une Edition couvrant plusieurs Races).
+
+À l’achat :
+
+- un code valide pour la Race achetée est enregistré sur le purchase (`organization_id`, `channel = organizer_link`) ;
+- un code invalide, expiré ou rattaché à une autre Race est ignoré : l’achat se poursuit sans attribution et l’anomalie est journalisée ;
+- l’entitlement créé est un Race Pass standard (`source = purchase`), sans référence à l’organisation.
+
+La commission organisation est calculée à partir des purchases attribués, dans le domaine Billing.
+
+Le moteur d’entitlements ignore totalement le canal de vente.
+
+---
+
+# 73.2 Import des ventes — canal B (option d’inscription)
+
+Use case :
+
+```text
+importPartnerSales
+```
+
+Exécutable par un membre `admin` / `owner` de l’organisation ou par un admin PLUKA.
+
+Flow :
+
+```text
+export de la plateforme d’inscription
+→ mapping / validation (réutilise l’import participants)
+→ matching ou création de la participation
+→ date d’inscription enregistrée comme verified
+→ invitation du coureur
+→ grant race_pass (source = partner_sale) à l’activation
+```
+
+Règles :
+
+- idempotence par `external_reference` (référence de la ligne d’export) ;
+- le grant est créé / résolu à l’activation de l’invitation, comme Organizer Included (§13, §65) ;
+- l’onboarding n’affiche aucun pricing ;
+- une ligne en conflit (Race Pass déjà actif) ne produit pas de grant et est signalée (§70) ;
+- chaque Race Pass `partner_sale` accordé alimente la facturation de l’organisation au prix de cession.
+
+Un Race Pass `partner_sale` ouvre exactement les mêmes capabilities qu’un Race Pass `purchase`. Il ne devient jamais un Organizer Included.
 
 ---
 
@@ -1725,6 +1873,7 @@ OUTING_NOT_LINKED
 ORGANIZER_INCLUDED_SCOPE_MISMATCH
 PURCHASE_NOT_CONFIRMED
 DUPLICATE_PURCHASE
+EARLY_BIRD_NOT_ELIGIBLE
 ```
 
 ---
@@ -2046,6 +2195,8 @@ Elle crée toujours le même type d’entitlement final.
 
 Le moteur de droits ne dépend pas du prix payé.
 
+Le tarif early bird suit la même règle : il change le prix, jamais l’entitlement.
+
 ---
 
 # 98. Code promotionnel
@@ -2064,6 +2215,8 @@ Pas :
 promoCode checked in every feature
 ```
 
+Même principe pour le code organisateur du canal A : il n’est lu qu’au checkout, jamais par une feature.
+
 ---
 
 # 99. Data Model — concepts attendus
@@ -2077,6 +2230,18 @@ entitlement_usage
 organization participant grants
 ```
 
+Ainsi que, pour l’early bird et les canaux organisateur :
+
+```text
+purchases.product_key
+purchases.channel            (app | organizer_link)
+purchases.organization_id    (attribution canal A)
+organization_referral_codes  (organisation + race / edition, statut)
+participant_races.registered_at
+participant_races.registered_at_origin  (verified | declared)
+partner_sale_import_lines    (canal B, external_reference unique)
+```
+
 Les noms exacts doivent rester alignés avec `02_DATA_MODEL.md`.
 
 ---
@@ -2085,7 +2250,7 @@ Les noms exacts doivent rester alignés avec `02_DATA_MODEL.md`.
 
 Avant implémentation commerciale, vérifier que le schéma actuel couvre explicitement :
 
-- `source` de l’entitlement ;
+- `source` de l’entitlement, valeur `partner_sale` incluse ;
 - scope global / participant_race ;
 - organization source ;
 - starts_at / ends_at ;
@@ -2094,7 +2259,11 @@ Avant implémentation commerciale, vérifier que le schéma actuel couvre explic
 - usage ledger idempotent ;
 - quota lié aux sorties ;
 - historique d’achat ;
-- beta access.
+- beta access ;
+- date d’inscription et son origine sur la participation ;
+- produit, canal et attribution sur le purchase ;
+- codes organisateur ;
+- lignes d’import canal B.
 
 Si certains éléments manquent :
 
@@ -2143,6 +2312,8 @@ entitlement.revoked
 entitlement.usage_consumed
 purchase.completed
 purchase.refunded
+partner_sale.imported
+partner_sale.conflict
 ```
 
 ---
@@ -2188,6 +2359,8 @@ refund confirmé
 sauf override support.
 
 L’historique reste conservé.
+
+Pour un Race Pass `partner_sale`, le remboursement du coureur relève de l’organisation qui a encaissé ; PLUKA révoque le droit uniquement sur notification de l’organisation ou action support.
 
 ---
 
@@ -2574,6 +2747,106 @@ revoked_at / audit.
 
 ---
 
+# 119.1 Tests early bird et canaux organisateur
+
+## E40 — early bird éligible
+
+Inscription vérifiée il y a 3 jours, course dans 120 jours.
+
+Attendu :
+
+`race_pass_early` applicable.
+
+---
+
+## E41 — fenêtre de 15 jours dépassée
+
+Inscription vérifiée il y a 16 jours, course dans 120 jours.
+
+Attendu :
+
+```text
+EARLY_BIRD_NOT_ELIGIBLE
+```
+
+Tarif standard applicable.
+
+---
+
+## E42 — course trop proche
+
+Participation déclarée aujourd’hui, course dans 30 jours.
+
+Attendu :
+
+non éligible (condition des 60 jours).
+
+---
+
+## E43 — date vérifiée prioritaire
+
+Date vérifiée il y a 40 jours, participation déclarée aujourd’hui dans PLUKA.
+
+Attendu :
+
+la date vérifiée s’applique, non éligible.
+
+---
+
+## E44 — payload client
+
+Le client envoie un prix, une date d’inscription ou `eligible = true`.
+
+Attendu :
+
+ignorés ; le serveur recalcule.
+
+---
+
+## E45 — achat via code organisateur
+
+Attendu :
+
+entitlement `race_pass` avec `source = purchase`, identique à un achat direct ; le purchase porte l’attribution organisation.
+
+Code d’une autre Race : achat sans attribution, anomalie journalisée.
+
+---
+
+## E46 — import canal B rejoué
+
+Même ligne d’export importée deux fois.
+
+Attendu :
+
+un seul grant `partner_sale`.
+
+---
+
+## E47 — conflit canal B
+
+Import canal B sur une participation déjà couverte par un Race Pass `purchase`.
+
+Attendu :
+
+aucun second grant ; ligne signalée en conflit.
+
+Inversement, achat dans l’app sur une participation couverte par un `partner_sale` :
+
+```text
+DUPLICATE_PURCHASE
+```
+
+---
+
+## E48 — droits partner_sale
+
+Attendu :
+
+mêmes capabilities qu’un Race Pass `purchase` ; jamais Organizer Included ; aucun pricing à l’onboarding.
+
+---
+
 # 120. Performance
 
 Le resolver est appelé fréquemment.
@@ -2647,6 +2920,8 @@ packages/domain/src/entitlements/
 
 Un package séparé est possible, mais pas nécessaire V1.
 
+L’éligibilité early bird et l’attribution organisateur relèvent du domaine Billing / catalogue, pas du resolver d’entitlements.
+
 ---
 
 # 124. API pure de policy
@@ -2678,6 +2953,7 @@ grantBetaAccess
 revokeEntitlement
 consumeEntitlementUsage
 resolveEntitlements
+importPartnerSales
 ```
 
 ---
@@ -2704,6 +2980,8 @@ Inclus dans Race Pass
 Inclus avec PLUKA+
 Inclus par l’organisation
 Disponible avec PLUKA+
+Race Pass acheté à l’inscription
+Tarif inscrit jusqu’au [date]
 ```
 
 Éviter :
@@ -2713,6 +2991,8 @@ permission denied
 ```
 
 dans l’expérience utilisateur.
+
+Pas de compte à rebours ni de fausse urgence sur le tarif early bird.
 
 ---
 
@@ -2761,6 +3041,9 @@ Ne pas laisser croire que le pricing commercial est annulé.
 Mesures possibles :
 
 - Race Pass achetés ;
+- part des Race Pass au tarif early bird ;
+- ventes par canal (app, lien organisateur, option d’inscription) ;
+- commissions et cessions dues par organisation ;
 - PLUS actifs ;
 - Organizer Included activés ;
 - usage linked outings ;
@@ -2786,7 +3069,11 @@ Une évolution ne peut pas être mergée si elle :
 - supprime les données lors d’une expiration ;
 - mélange role organisation et entitlement participant ;
 - utilise un prix comme identifiant produit ;
-- implémente un crédit Race Pass→PLUS non validé.
+- implémente un crédit Race Pass→PLUS non validé ;
+- calcule l’éligibilité early bird à partir d’une date ou d’un prix fournis par le client ;
+- applique un prix différent selon le canal pour un même moment d’achat ;
+- crée deux Race Pass actifs pour une même participation via deux canaux ;
+- transforme un Race Pass `partner_sale` en Organizer Included.
 
 ---
 
@@ -2829,7 +3116,10 @@ L’implémentation Entitlements V1 est considérée correcte lorsque :
 33. un user PLUS ne peut pas acheter inutilement un Race Pass sans traitement explicite ;
 34. les prix ne pilotent pas la logique métier ;
 35. les promotions produisent des entitlements normaux ;
-36. les tests E01–E39 passent.
+36. l’éligibilité early bird est calculée côté serveur, par une fonction pure à horloge injectée ;
+37. un Race Pass early bird ou vendu via un canal organisateur produit un entitlement `race_pass` standard ;
+38. une participation ne peut avoir qu’un seul Race Pass actif, tous canaux confondus ;
+39. les tests E01–E48 passent.
 
 ---
 
@@ -2838,22 +3128,26 @@ L’implémentation Entitlements V1 est considérée correcte lorsque :
 Après validation de cette spec, vérifier et compléter `02_DATA_MODEL.md` + SQL avec :
 
 ```text
-entitlements.source
+entitlements.source (dont partner_sale)
 entitlements.scope_type
 entitlements.organization_id
 entitlements.starts_at
 entitlements.ends_at
 entitlements.revoked_at / revoke_reason
 entitlements.external_reference
+purchases.product_key / channel / organization_id
+participant_races.registered_at / registered_at_origin
 ```
 
-ainsi qu’une table / structure :
+ainsi que les tables / structures :
 
 ```text
 entitlement_usage
+organization_referral_codes
+partner_sale_import_lines
 ```
 
-si elle n’existe pas déjà.
+si elles n’existent pas déjà.
 
 La migration doit également formaliser les contraintes de scope.
 
@@ -2880,6 +3174,8 @@ Les règles absolues sont :
 > **Une alerte officielle n’est jamais paywallée.**
 
 > **Un entitlement n’autorise jamais l’accès à une donnée que la Privacy/RLS interdit.**
+
+> **Le canal de vente et le prix payé ne changent jamais le droit accordé.**
 
 ---
 

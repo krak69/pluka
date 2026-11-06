@@ -1106,7 +1106,7 @@ DNS / DNF ne détruisent pas l’historique.
 
 # 21. Acceptance — Entitlements
 
-La suite détaillée `ENTITLEMENTS-E01` à `ENTITLEMENTS-E39` est obligatoire.
+La suite détaillée `ENTITLEMENTS-E01` à `ENTITLEMENTS-E48` est obligatoire.
 
 ## AC-ENT-01
 
@@ -1855,6 +1855,14 @@ L’organisation ne voit pas les détails techniques IA inutiles.
 ## AC-B2B-SRC-05
 
 Un fact publié devient immédiatement disponible dans le référentiel Course.
+
+## AC-B2B-SRC-06
+
+Un fichier au contenu déjà déposé, même sous un autre nom, ne crée pas de document. L’écran le dit, et n’annonce pas d’analyse.
+
+## AC-B2B-SRC-07
+
+Quand le site PLUKA de l’événement est en ligne, son adresse est proposée comme page à analyser. Elle reste modifiable, et rien n’est ajouté sans le geste de l’organisation.
 
 ---
 
@@ -3100,7 +3108,7 @@ RACE_INTELLIGENCE
 RI01 → RI44
 
 ENTITLEMENTS
-E01 → E39
+E01 → E48
 
 PRIVACY_RLS
 P01 → P73

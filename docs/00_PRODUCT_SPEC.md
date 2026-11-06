@@ -3,6 +3,7 @@
 **Fichier de référence :** `docs/00_PRODUCT_SPEC.md`  
 **Statut :** Référence fonctionnelle — Product Design Freeze V1  
 **Date :** 2026-09-03  
+**Mise à jour :** 2026-11-06 — tarif early bird du Race Pass et vente via l’organisateur (§6.5)  
 **Langue de référence :** français
 
 ---
@@ -204,7 +205,6 @@ Les données personnelles suivantes appartiennent au participant :
 - sorties ;
 - retours après-course.
 
-
 ## 4.1 Cycle de vie d'une Race
 
 Une Race possède un statut explicite. Les transitions ci-dessous sont les seules autorisées ;
@@ -365,6 +365,8 @@ Le Race Pass débloque sur une course :
 
 Les deux sorties liées peuvent utiliser le moteur Nutrition et les Conditions lorsque leur date est à J-14 ou moins et que les prérequis sont renseignés.
 
+Un tarif early bird existe pour un achat proche de l’inscription (§6.5).
+
 ## 6.3 PLUKA+ — 44,90 € / an
 
 Facturation annuelle, pas d’abonnement mensuel dans la V1.
@@ -395,7 +397,92 @@ Ce droit ne donne pas accès aux sorties personnelles illimitées non liées. Ce
 
 Le participant invité ne doit pas voir de pricing dans son onboarding pour les fonctionnalités financées par l’organisation.
 
-## 6.5 Philosophie du paywall
+## 6.5 Race Pass early bird et vente via l’organisateur
+
+### 6.5.1 Un seul produit
+
+Le Race Pass early bird n’est pas une offre distincte. Il donne exactement les mêmes droits que le Race Pass ; seul le prix change selon le moment de l’achat.
+
+Règle de cohérence :
+
+> **Un même moment d’achat donne le même prix, quel que soit le canal.**
+
+Le canal (app, lien organisateur, option dans le formulaire d’inscription) change uniquement l’attribution de la vente et la rémunération éventuelle de l’organisation, jamais le prix payé par le coureur.
+
+### 6.5.2 Tarif early bird — 9,90 € / course
+
+Prix de référence après la phase de test.
+
+Le Race Pass est vendu au tarif early bird si les deux conditions sont réunies :
+
+1. l’achat a lieu **dans les 15 jours suivant la date d’inscription** à la course ;
+2. l’achat a lieu **au moins 60 jours avant la date de la course**.
+
+Sinon, le Race Pass est vendu au tarif standard de 14,90 €.
+
+La seconde condition limite l’effet d’aubaine lorsque la date d’inscription est seulement déclarée par le coureur : l’early bird récompense un engagement précoce, pas un achat de dernière minute.
+
+L’UI affiche la date de fin du tarif early bird de façon factuelle, par exemple :
+
+> Tarif inscrit jusqu’au 14 mars
+
+Pas de compte à rebours ni de fausse urgence.
+
+### 6.5.3 Date d’inscription de référence
+
+Deux origines possibles :
+
+- **vérifiée** : date issue d’un import organisateur (liste participants) ou d’un export de plateforme d’inscription transmis par l’organisation ;
+- **déclarative** : à défaut, date de création de la participation dans PLUKA.
+
+Une date vérifiée prévaut toujours sur une date déclarative.
+
+L’éligibilité est calculée côté serveur. Le client ne fournit jamais la date utilisée pour le calcul.
+
+### 6.5.4 Canal A — Lien organisateur (canal par défaut)
+
+Flow :
+
+**Inscription sur la plateforme de l’organisation → email / page de confirmation contenant un lien PLUKA avec le code de l’organisation → achat du Race Pass dans PLUKA**
+
+- l’organisation n’a rien à intégrer techniquement : elle ajoute un texte et un lien à sa confirmation d’inscription ;
+- le paiement est encaissé par PLUKA ;
+- la vente est attribuée à l’organisation via son code ;
+- l’organisation perçoit une commission sur les ventes attribuées (référence : **20 % du montant encaissé**, paramétrable par contrat), reversée périodiquement.
+
+C’est le canal proposé par défaut à toutes les organisations.
+
+### 6.5.5 Canal B — Option dans le formulaire d’inscription (sur demande de l’organisation)
+
+Flow :
+
+**Option « Prépa PLUKA » cochée à l’inscription → encaissement par l’organisation → export des acheteurs → import dans PLUKA → Race Pass accordé → invitation du coureur**
+
+- l’option est proposée au tarif early bird (9,90 €), puisque l’achat a lieu au moment de l’inscription ;
+- l’organisation encaisse et transmet l’export des acheteurs ;
+- PLUKA facture l’organisation au **prix de cession** par Race Pass (référence : **7,50 € HT**, paramétrable par contrat) ; la différence constitue la rémunération de l’organisation ;
+- le coureur reçoit une invitation ; son onboarding suit le flow invitation (§7.3) sans pricing, puisque le Race Pass est déjà payé ;
+- le délai d’activation dépend de la fréquence des exports ; l’organisation en informe le coureur.
+
+Un Race Pass vendu par ce canal reste un **Race Pass payé par le coureur**. Il ne doit pas être confondu avec **Organizer Included**, qui est financé par l’organisation pour ses participants.
+
+### 6.5.6 Prix et TVA
+
+Les prix B2C sont exprimés TTC.
+
+Les montants facturés aux organisations (prix de cession, commissions) sont exprimés HT.
+
+### 6.5.7 Hors périmètre V1
+
+- intégration API ou webhook avec une plateforme d’inscription (envisagée plus tard, avec une seule plateforme) ;
+- PLUKA ne devient pas une plateforme d’inscription (§2).
+
+### 6.5.8 Points ouverts
+
+- commission du canal A sur les ventes attribuées au tarif standard (après la fenêtre early bird) : à décider ;
+- fréquence et seuil de reversement des commissions, modalités de facturation : contrat organisateur.
+
+## 6.6 Philosophie du paywall
 
 Règle de référence :
 
@@ -437,6 +524,8 @@ Flow cible :
 Ne pas demander l’Assistance dans cet onboarding.
 
 L’Assistance sera configurée plus tard depuis son module.
+
+Ce flow s’applique aussi au coureur ayant acheté le Race Pass via l’option d’inscription de l’organisation (§6.5.5).
 
 ---
 
@@ -1361,6 +1450,8 @@ Flow attendu :
 
 **Importer → PLUKA analyse → exceptions → validation humaine → publication**
 
+Quand le site PLUKA de l’événement est en ligne, son adresse est proposée comme page à analyser. L’organisation reste libre de la modifier et de l’ajouter ou non. Une information publiée que ce site reprend revient à vérifier comme toute autre, et rien n’est publié sans validation humaine.
+
 ---
 
 # 29. Participants — organisation
@@ -1388,6 +1479,7 @@ Champs utiles :
 - épreuve ;
 - dossard facultatif ;
 - vague facultative ;
+- date d’inscription facultative ;
 - sexe facultatif ;
 - date de naissance facultative ;
 - nationalité facultative ;
@@ -1398,9 +1490,13 @@ Dossard et vague sont souvent attribués au dernier moment. Un participant exist
 - un participant se reconnaît à son épreuve et à son e-mail : un import ne crée jamais de doublon ;
 - une case vide du fichier n'efface rien ;
 - une correction à la main n'est jamais écrasée par un fichier, et la vérification le dit avant l'import ;
-- seuls le dossard et la vague d'une personne déjà présente changent.
+- seuls le dossard, la vague et la date d'inscription d'une personne déjà présente changent.
 
 Un owner ou un admin corrige le dossard et la vague d'un participant. La vague se choisit dans une liste : celles de l'épreuve, et celles déjà apportées par un fichier. Il retire de la liste un participant qui n'a pas activé son compte : la ligne reste, au statut Retiré, et se rétablit. Un fichier ne rétablit pas un participant retiré.
+
+La date d’inscription importée constitue la date d’inscription **vérifiée** utilisée pour l’éligibilité early bird (§6.5.3).
+
+Le même mécanisme d’import sert à intégrer l’export des acheteurs du canal B (§6.5.5).
 
 ## 29.2 Invitations
 
@@ -1855,6 +1951,7 @@ Les éléments suivants ne doivent pas être ajoutés spontanément :
 - gestion bénévoles ;
 - gestion transports complète ;
 - billetterie / inscription ;
+- intégration API / webhook avec une plateforme d’inscription ;
 - simulateur avancé de vagues en expérience MVP principale ;
 - intégration ITRA / UTMB par scraping ;
 - changement automatique de pacing à cause de la météo ;
@@ -1878,6 +1975,9 @@ Les éléments suivants ne doivent pas être ajoutés spontanément :
 | Ma saison | **Core** |
 | Sorties liées Race Pass | **Core premium** |
 | Sorties illimitées PLUKA+ | **Core premium** |
+| Race Pass early bird | **Core commercial** |
+| Vente via l’organisateur — lien + code (canal A) | **Core commercial** |
+| Vente via l’organisateur — option d’inscription (canal B) | **Core commercial, sur demande** |
 | Bibliothèque | **PLUKA+ / V1** |
 | Demander à PLUKA | **V1** |
 | Communauté légère | **V1 non bloquante** |
@@ -1891,6 +1991,7 @@ Les éléments suivants ne doivent pas être ajoutés spontanément :
 | Repère PLUKA moteur | **À calibrer / feature flag** |
 | Enrichissement ITRA / UTMB fichier | **Optionnel B2B** |
 | API ITRA / UTMB | **Non requise V1** |
+| Intégration API plateforme d’inscription | **Hors MVP** |
 | Simulateur de vagues | **Hors MVP visible** |
 | Live / PC course | **Hors scope** |
 
