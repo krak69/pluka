@@ -1,4 +1,9 @@
-import { DbError, type ParticipantImportRepository, type ParticipantImportView } from '@pluka/db';
+import {
+  DbError,
+  type ParticipantImportRepository,
+  type ParticipantImportResult,
+  type ParticipantImportView,
+} from '@pluka/db';
 import { z } from 'zod';
 
 import { invalidStateError, forbiddenError, notFoundError, parseCommand, validationError } from '../errors.js';
@@ -142,7 +147,7 @@ export async function validateParticipantImport(
 export async function commitParticipantImport(
   context: ParticipantImportContext,
   input: unknown,
-): Promise<{ readonly created: number; readonly skipped: number }> {
+): Promise<ParticipantImportResult> {
   const useCase = 'commitParticipantImport';
   const { importId } = parseCommand(z.object({ importId: uuid }), input, useCase);
 
@@ -162,6 +167,50 @@ export async function discardParticipantImport(
 
   try {
     await context.repositories.participantImports.discard(importId);
+  } catch (error) {
+    throw translate(error, useCase);
+  }
+}
+
+export const correctParticipantCommandSchema = z.object({
+  participantRaceId: uuid,
+  bib: z.string().trim().max(30, 'Dossard : 30 caractères au plus.'),
+  wave: z.string().trim().max(120, 'Vague : 120 caractères au plus.'),
+});
+
+/** Dossard et vague, et rien d'autre. Un champ vidé attend le prochain fichier. */
+export async function correctParticipant(
+  context: ParticipantImportContext,
+  input: unknown,
+): Promise<void> {
+  const useCase = 'correctParticipant';
+  const command = parseCommand(correctParticipantCommandSchema, input, useCase);
+
+  try {
+    await context.repositories.participantImports.correct(
+      command.participantRaceId,
+      command.bib,
+      command.wave,
+    );
+  } catch (error) {
+    throw translate(error, useCase);
+  }
+}
+
+/** Retirer ou rétablir : la base refuse le geste sur un participant rattaché à un compte. */
+export async function setParticipantWithdrawn(
+  context: ParticipantImportContext,
+  input: unknown,
+): Promise<void> {
+  const useCase = 'setParticipantWithdrawn';
+  const { participantRaceId, withdrawn } = parseCommand(
+    z.object({ participantRaceId: uuid, withdrawn: z.boolean() }),
+    input,
+    useCase,
+  );
+
+  try {
+    await context.repositories.participantImports.setWithdrawn(participantRaceId, withdrawn);
   } catch (error) {
     throw translate(error, useCase);
   }

@@ -712,10 +712,12 @@ export {
 } from './participants/import-file.js';
 export {
   commitParticipantImport,
+  correctParticipant,
   createParticipantImport,
   discardParticipantImport,
   getParticipantImport,
   listEditionParticipants,
+  setParticipantWithdrawn,
   validateParticipantImport,
   type ParticipantImportContext,
 } from './participants/use-cases.js';
