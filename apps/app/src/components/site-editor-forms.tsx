@@ -289,6 +289,7 @@ export function SiteEditorForm({
       <input type="hidden" name="organizationId" value={organizationId} />
       <input type="hidden" name="eventId" value={eventId} />
       <input type="hidden" name="eventSlug" value={eventSlug} />
+      <input type="hidden" name="onglet" value={tab} />
 
       <fieldset className="st-fieldset" disabled={!canEdit || pending} hidden={tab !== 'identite'}>
         <legend className="pk-h2">Couleur et police</legend>
@@ -855,6 +856,7 @@ export function SiteDocumentForm({
       <input type="hidden" name="organizationId" value={organizationId} />
       <input type="hidden" name="eventId" value={eventId} />
       <input type="hidden" name="eventSlug" value={eventSlug} />
+      <input type="hidden" name="onglet" value="documents" />
       <input type="hidden" name="sourceId" value={sourceId} />
       <input type="hidden" name="public" value={isPublic ? 'false' : 'true'} />
       <button
@@ -907,6 +909,7 @@ export function SiteImageForm({
         <input type="hidden" name="organizationId" value={organizationId} />
         <input type="hidden" name="eventId" value={eventId} />
         <input type="hidden" name="eventSlug" value={eventSlug} />
+        <input type="hidden" name="onglet" value="identite" />
         <input type="hidden" name="kind" value={kind} />
         <div className="pk-field">
           <label className="pk-field-label" htmlFor={`${id}-file`}>
@@ -935,6 +938,7 @@ export function SiteImageForm({
           <input type="hidden" name="organizationId" value={organizationId} />
           <input type="hidden" name="eventId" value={eventId} />
           <input type="hidden" name="eventSlug" value={eventSlug} />
+          <input type="hidden" name="onglet" value="identite" />
           <input type="hidden" name="kind" value={kind} />
           <button type="submit" className="pk-btn pk-button-ghost" disabled={removing}>
             Retirer l’image
@@ -963,6 +967,7 @@ export function SiteGalleryPhotoForm({
       <input type="hidden" name="organizationId" value={organizationId} />
       <input type="hidden" name="eventId" value={eventId} />
       <input type="hidden" name="eventSlug" value={eventSlug} />
+      <input type="hidden" name="onglet" value="galerie" />
       <div className="pk-field">
         <label className="pk-field-label" htmlFor={`${id}-file`}>
           Ajouter une photo
@@ -1018,6 +1023,7 @@ export function SiteGalleryRemoveForm({
       <input type="hidden" name="organizationId" value={organizationId} />
       <input type="hidden" name="eventId" value={eventId} />
       <input type="hidden" name="eventSlug" value={eventSlug} />
+      <input type="hidden" name="onglet" value="galerie" />
       <input type="hidden" name="photoId" value={photoId} />
       <button
         type="submit"

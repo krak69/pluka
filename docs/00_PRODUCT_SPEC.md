@@ -1490,7 +1490,7 @@ Dossard et vague sont souvent attribués au dernier moment. Un participant exist
 - un participant se reconnaît à son épreuve et à son e-mail : un import ne crée jamais de doublon ;
 - une case vide du fichier n'efface rien ;
 - une correction à la main n'est jamais écrasée par un fichier, et la vérification le dit avant l'import ;
-- seuls le dossard, la vague et la date d'inscription d'une personne déjà présente changent.
+- seuls le dossard et la vague d'une personne déjà présente changent. Sa date d'inscription reste figée une fois vérifiée ; une date déclarative est remplacée par celle du fichier (§6.5.3).
 
 Un owner ou un admin corrige le dossard et la vague d'un participant. La vague se choisit dans une liste : celles de l'épreuve, et celles déjà apportées par un fichier. Il retire de la liste un participant qui n'a pas activé son compte : la ligne reste, au statut Retiré, et se rétablit. Un fichier ne rétablit pas un participant retiré.
 

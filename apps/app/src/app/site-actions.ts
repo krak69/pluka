@@ -76,10 +76,13 @@ function sitePath(organizationId: string, eventSlug: string): string {
   return SLUG.test(eventSlug) ? `${base}?evenement=${eventSlug}` : base;
 }
 
+/** L'onglet voyage avec le geste : le retour n'oblige pas à retrouver sa place. */
 function done(form: FormData, notice: string): never {
   const path = sitePath(text(form, 'organizationId'), text(form, 'eventSlug'));
+  const tab = text(form, 'onglet');
+  const query = `${/^[a-z]+$/u.test(tab) ? `onglet=${tab}&` : ''}fait=${notice}`;
   revalidatePath(`/org/${text(form, 'organizationId')}/parametres/site`);
-  redirect(`${path}${path.includes('?') ? '&' : '?'}fait=${notice}`);
+  redirect(`${path}${path.includes('?') ? '&' : '?'}${query}`);
 }
 
 async function context(form: FormData) {

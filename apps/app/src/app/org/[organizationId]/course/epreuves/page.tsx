@@ -317,6 +317,11 @@ export default async function CourseRacesPage({
                       <CancelRaceForm scope={raceScope} raceName={race.name} />
                     </details>
                   </section>
+                ) : permissions.canPublish && race.status === 'draft' ? (
+                  <p className="pk-field-hint">
+                    Une épreuve en brouillon ne s’annule pas : personne ne la voit encore.
+                    L’annulation devient possible une fois l’épreuve publiée.
+                  </p>
                 ) : null}
               </>
             )}
