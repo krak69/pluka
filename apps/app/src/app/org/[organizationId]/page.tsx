@@ -1,11 +1,13 @@
 import {
   DomainError,
   getEventSiteEditor,
+  listCandidatesForReview,
   listOrganizationTeam,
   organizerAttention,
   siteUrl,
   type AttentionKind,
   type AttentionTarget,
+  type InformationReviewSummary,
   type TeamInvitationsSummary,
 } from '@pluka/domain';
 import { TerrainBand } from '@pluka/ui';
@@ -14,6 +16,7 @@ import Link from 'next/link';
 import { editionDateRange } from '@/app/site/format';
 import { publicEnv } from '@/lib/env';
 import { sessionEventSiteContext } from '@/lib/event-site-editing';
+import { courseHref, factReviewContext } from '@/lib/organizer-course';
 import { requireSession } from '@/lib/session';
 import { sessionTeamContext } from '@/lib/team';
 
@@ -57,10 +60,12 @@ export default async function OrganizerHomePage({
       ...(eventSlug === undefined ? {} : { eventSlug }),
     }),
     // Seul un propriétaire lit l'équipe : pour les autres, le sujet n'existe pas.
-    listOrganizationTeam(sessionTeamContext(session), { organizationId }).catch((error: unknown) => {
-      if (error instanceof DomainError && error.code === 'forbidden') return null;
-      throw error;
-    }),
+    listOrganizationTeam(sessionTeamContext(session), { organizationId }).catch(
+      (error: unknown) => {
+        if (error instanceof DomainError && error.code === 'forbidden') return null;
+        throw error;
+      },
+    ),
   ]);
 
   const { event, edition, site } = editor;
@@ -72,7 +77,35 @@ export default async function OrganizerHomePage({
           expired: team.invitations.filter((item) => item.status === 'expired' && !item.sendFailed)
             .length,
         };
-  const items = organizerAttention(editor, invitations, today());
+
+  // Un lecteur ne tranche rien : pour lui, le sujet n'existe pas.
+  const pending = editor.permissions.canEdit
+    ? await Promise.all(
+        editor.races.map(async (race) => {
+          const candidates = await listCandidatesForReview(factReviewContext(session), {
+            raceId: race.id,
+            limit: 100,
+          });
+          const toDecide = candidates.filter((candidate) =>
+            ['detected', 'needs_review', 'conflict'].includes(candidate.status),
+          );
+          const conflicts = toDecide.filter((candidate) => candidate.status === 'conflict').length;
+          return { slug: race.slug, conflicts, toCheck: toDecide.length - conflicts };
+        }),
+      )
+    : [];
+  const firstRace =
+    pending.find((race) => race.conflicts > 0) ?? pending.find((race) => race.toCheck > 0);
+  const review: InformationReviewSummary | null =
+    firstRace === undefined
+      ? null
+      : {
+          conflicts: pending.reduce((total, race) => total + race.conflicts, 0),
+          toCheck: pending.reduce((total, race) => total + race.toCheck, 0),
+          raceSlug: firstRace.slug,
+        };
+
+  const items = organizerAttention(editor, invitations, today(), review);
 
   if (event === null) {
     return (
@@ -91,10 +124,19 @@ export default async function OrganizerHomePage({
   const hrefOf = (target: AttentionTarget): string => {
     if (target.screen === 'live') return address;
     if (target.screen === 'team') return `/org/${organizationId}/parametres/equipe`;
+    if (target.screen === 'informations') {
+      return courseHref(organizationId, 'informations', {
+        event: event.slug,
+        year: edition?.year,
+        race: target.raceSlug,
+        panel: 'a-verifier',
+      });
+    }
     return `${siteBase}&onglet=${target.tab}`;
   };
 
-  const todoCount = items.filter((item) => item.kind === 'todo').length;
+  // « À savoir » n'attend rien de l'organisation : seul le reste se compte.
+  const topicCount = items.filter((item) => item.kind !== 'know').length;
   const first = items[0]?.action ?? null;
   const summary = [
     `${String(editor.races.length)} ${editor.races.length > 1 ? 'épreuves' : 'épreuve'}`,
@@ -109,22 +151,7 @@ export default async function OrganizerHomePage({
   ].join(' · ');
 
   return (
-    <div className="st-editor">
-      {editor.events.length > 1 ? (
-        <nav aria-label="Événements" className="st-events">
-          {editor.events.map((candidate) => (
-            <Link
-              key={candidate.id}
-              href={`/org/${organizationId}?evenement=${candidate.slug}`}
-              aria-current={candidate.id === event.id ? 'page' : undefined}
-              className="st-event"
-            >
-              {candidate.name}
-            </Link>
-          ))}
-        </nav>
-      ) : null}
-
+    <div className="st-editor or-frame">
       <TerrainBand
         tone="dark"
         topo
@@ -135,11 +162,11 @@ export default async function OrganizerHomePage({
         }
         title={event.name}
         body={
-          todoCount === 0
+          topicCount === 0
             ? 'Rien d’urgent aujourd’hui.'
-            : todoCount === 1
+            : topicCount === 1
               ? 'Un sujet mérite votre attention.'
-              : `${String(todoCount)} sujets méritent votre attention.`
+              : `${String(topicCount)} sujets méritent votre attention.`
         }
         footer={<span className="or-summary">{summary}</span>}
         primaryAction={
@@ -154,6 +181,21 @@ export default async function OrganizerHomePage({
           )
         }
       />
+
+      {editor.events.length > 1 ? (
+        <nav aria-label="Événements" className="st-events">
+          {editor.events.map((candidate) => (
+            <Link
+              key={candidate.id}
+              href={`/org/${organizationId}?evenement=${candidate.slug}`}
+              aria-current={candidate.id === event.id ? 'page' : undefined}
+              className="st-event"
+            >
+              {candidate.name}
+            </Link>
+          ))}
+        </nav>
+      ) : null}
 
       <section aria-labelledby="attention-title" className="or-attention">
         <h2 id="attention-title" className="pk-label">

@@ -39,7 +39,8 @@ export type AttentionKind = 'todo' | 'check' | 'know';
 export type AttentionTarget =
   | { readonly screen: 'site'; readonly tab: SiteEditorTab }
   | { readonly screen: 'team' }
-  | { readonly screen: 'live' };
+  | { readonly screen: 'live' }
+  | { readonly screen: 'informations'; readonly raceSlug: string };
 
 export interface AttentionItem {
   readonly key: string;
@@ -53,6 +54,14 @@ export interface AttentionItem {
 export interface TeamInvitationsSummary {
   readonly failed: number;
   readonly expired: number;
+}
+
+/** Ce qui attend une décision dans Informations, sur l'édition affichée. */
+export interface InformationReviewSummary {
+  readonly conflicts: number;
+  readonly toCheck: number;
+  /** L'épreuve à ouvrir d'abord : celle d'une contradiction s'il y en a une. */
+  readonly raceSlug: string;
 }
 
 export const MAX_ATTENTION_ITEMS = 4;
@@ -74,13 +83,49 @@ const BLOCKER_TEXT = {
   },
 } as const;
 
-function daysBetween(from: string, to: string): number {
-  return Math.round(
-    (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000,
-  );
+function informationItem(review: InformationReviewSummary): AttentionItem | null {
+  const action = {
+    label: 'Vérifier',
+    target: { screen: 'informations', raceSlug: review.raceSlug },
+  } as const;
+
+  if (review.conflicts > 0) {
+    return {
+      key: 'information-conflicts',
+      kind: 'todo',
+      title:
+        review.conflicts === 1
+          ? 'Une contradiction dans vos informations'
+          : `${String(review.conflicts)} contradictions dans vos informations`,
+      text: 'Vos documents ne disent pas tous la même chose. Rien ne change sans vous.',
+      action,
+    };
+  }
+
+  if (review.toCheck > 0) {
+    return {
+      key: 'information-review',
+      kind: 'check',
+      title:
+        review.toCheck === 1
+          ? 'Une information à vérifier'
+          : `${String(review.toCheck)} informations à vérifier`,
+      text: 'PLUKA les a relevées dans vos documents. Rien n’est publié sans vous.',
+      action,
+    };
+  }
+
+  return null;
 }
 
-function editionItem(edition: NonNullable<EventSiteEditor['edition']>, today: string): AttentionItem {
+function daysBetween(from: string, to: string): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
+}
+
+function editionItem(
+  edition: NonNullable<EventSiteEditor['edition']>,
+  today: string,
+): AttentionItem {
   const label = `L’édition ${String(edition.year)}`;
   const days = daysBetween(today, edition.startDate);
 
@@ -96,7 +141,13 @@ function editionItem(edition: NonNullable<EventSiteEditor['edition']>, today: st
 
   const when =
     days <= 0 ? 'C’est aujourd’hui' : days === 1 ? 'C’est demain' : `Dans ${String(days)} jours`;
-  return { key: 'edition', kind: 'know', title: `${label} approche`, text: `${when}.`, action: null };
+  return {
+    key: 'edition',
+    kind: 'know',
+    title: `${label} approche`,
+    text: `${when}.`,
+    action: null,
+  };
 }
 
 /** Pur : `today` est passé par l'appelant, en date civile (AGENTS §35). */
@@ -104,6 +155,7 @@ export function organizerAttention(
   editor: EventSiteEditor,
   invitations: TeamInvitationsSummary | null,
   today: string,
+  review: InformationReviewSummary | null = null,
 ): readonly AttentionItem[] {
   const { event, site, permissions, edition, blockers } = editor;
   if (event === null) return [];
@@ -127,6 +179,10 @@ export function organizerAttention(
       action: null,
     });
   }
+
+  // Ce que les coureurs liront passe avant l'habillage du site.
+  const information = review === null || !permissions.canEdit ? null : informationItem(review);
+  if (information !== null) items.push(information);
 
   const missing = eventSiteChecklist(editor).filter((item) => !item.done);
   if (permissions.canEdit && missing[0] !== undefined) {
@@ -154,7 +210,10 @@ export function organizerAttention(
     items.push({
       key: 'invitations',
       kind: 'check',
-      title: count === 1 ? 'Une invitation n’a pas abouti' : `${String(count)} invitations n’ont pas abouti`,
+      title:
+        count === 1
+          ? 'Une invitation n’a pas abouti'
+          : `${String(count)} invitations n’ont pas abouti`,
       text: 'L’e-mail n’est pas parti, ou le lien a expiré. Renvoyez-la depuis l’équipe.',
       action: { label: 'Voir l’équipe', target: { screen: 'team' } },
     });

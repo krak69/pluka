@@ -146,11 +146,66 @@ describe('l’accueil organisateur', () => {
 
   it('une course sur plusieurs jours reste en cours jusqu’à sa fin', () => {
     const edition = editor().edition;
-    const multiDay = editor({ edition: edition === null ? null : { ...edition, endDate: '2026-06-22' } });
+    const multiDay = editor({
+      edition: edition === null ? null : { ...edition, endDate: '2026-06-22' },
+    });
 
     expect(
       organizerAttention(multiDay, null, '2026-06-21').find((item) => item.key === 'edition')?.text,
     ).toBe('C’est aujourd’hui.');
+  });
+
+  it('une contradiction passe avant les manques du site', () => {
+    const items = organizerAttention(
+      editor({ site: { ...COMPLETE_SITE, logoPath: null } }),
+      null,
+      '2026-06-01',
+      { conflicts: 2, toCheck: 5, raceSlug: '42-km' },
+    );
+
+    expect(items[0]).toMatchObject({
+      key: 'information-conflicts',
+      kind: 'todo',
+      title: '2 contradictions dans vos informations',
+      action: { target: { screen: 'informations', raceSlug: '42-km' } },
+    });
+    expect(items[1]?.key).toBe('complete');
+  });
+
+  it('des informations à vérifier forment un seul sujet, à vérifier', () => {
+    const items = organizerAttention(editor(), null, '2026-06-01', {
+      conflicts: 0,
+      toCheck: 1,
+      raceSlug: '42-km',
+    });
+
+    expect(items[0]).toMatchObject({
+      key: 'information-review',
+      kind: 'check',
+      title: 'Une information à vérifier',
+    });
+    expect(items.filter((item) => item.key.startsWith('information'))).toHaveLength(1);
+  });
+
+  it('rien à décider : aucun sujet sur les informations', () => {
+    const items = organizerAttention(editor(), null, '2026-06-01', {
+      conflicts: 0,
+      toCheck: 0,
+      raceSlug: '42-km',
+    });
+
+    expect(items.some((item) => item.key.startsWith('information'))).toBe(false);
+  });
+
+  it('ne demande pas à un lecteur de vérifier ce qu’il ne peut pas trancher', () => {
+    const items = organizerAttention(
+      editor({ permissions: { role: 'viewer', canEdit: false, canPublish: false } }),
+      null,
+      '2026-06-01',
+      { conflicts: 1, toCheck: 3, raceSlug: '42-km' },
+    );
+
+    expect(items.some((item) => item.key.startsWith('information'))).toBe(false);
   });
 
   it('sans événement, il n’y a rien à dire', () => {

@@ -647,6 +647,7 @@ export {
   type AttentionItem,
   type AttentionKind,
   type AttentionTarget,
+  type InformationReviewSummary,
   type EventSiteChecklistItem,
   type SiteEditorTab,
   type TeamInvitationsSummary,
