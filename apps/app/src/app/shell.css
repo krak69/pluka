@@ -1724,10 +1724,12 @@ select.pk-input {
   min-width: 0;
 }
 
+/* Des sous-menus : à l'horizontale, comme ceux de Ma course. */
 .st-tabs {
   display: flex;
   gap: var(--space-1);
   overflow-x: auto;
+  border-bottom: 1px solid var(--pk-hairline);
 }
 
 .st-tab {
@@ -1739,8 +1741,8 @@ select.pk-input {
   min-height: 44px;
   padding: 0 var(--space-3);
   border: 0;
-  border-left: 3px solid transparent;
-  border-radius: var(--radius-sm);
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
   background: transparent;
   color: var(--pk-text-secondary);
   cursor: pointer;
@@ -1755,18 +1757,16 @@ a.st-tab {
 }
 
 .st-tab:hover {
-  background: var(--pk-sand);
+  color: var(--pk-ink);
 }
 
 .st-tab[aria-current='true'] {
-  border-left-color: var(--pk-forest);
-  background: var(--pk-surface);
+  border-bottom-color: var(--pk-forest);
   color: var(--pk-text);
   font-weight: 600;
 }
 
 .st-tab-count {
-  margin-left: auto;
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--pk-text-muted);
@@ -1785,14 +1785,20 @@ a.st-tab {
 }
 
 .st-checklist {
-  display: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-5);
 }
 
 .st-checklist .pk-label {
-  margin: 0 0 var(--space-2);
+  margin: 0;
 }
 
 .st-checklist ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1802,8 +1808,7 @@ a.st-tab {
   display: flex;
   gap: var(--space-2);
   align-items: center;
-  width: 100%;
-  min-height: 32px;
+  min-height: 44px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -1827,34 +1832,6 @@ a.st-tab {
 .st-panels > [hidden],
 .st-fieldset[hidden] {
   display: none;
-}
-
-@media (min-width: 900px) {
-  .st-workspace {
-    grid-template-columns: 13.5rem minmax(0, 1fr);
-    gap: var(--space-8);
-    align-items: start;
-  }
-
-  .st-rail {
-    position: sticky;
-    top: var(--space-4);
-  }
-
-  .st-tabs {
-    flex-direction: column;
-    overflow: visible;
-  }
-
-  .st-tab {
-    width: 100%;
-  }
-
-  .st-checklist {
-    display: block;
-    padding-top: var(--space-4);
-    border-top: 1px solid var(--pk-hairline);
-  }
 }
 
 .st-blockers {

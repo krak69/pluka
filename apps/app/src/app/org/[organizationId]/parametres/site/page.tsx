@@ -141,7 +141,7 @@ export default async function SitePage({
           body={`${editor.organizationName} n’a pas encore d’événement. Le site se règle une fois l’événement créé.`}
         />
       ) : (
-        <div className={`st-editor ${siteFontVariables}`}>
+        <div className={`st-editor or-frame ${siteFontVariables}`}>
           <TerrainBand
             tone="dark"
             topo
@@ -346,11 +346,11 @@ export default async function SitePage({
                 {editor.documents.length === 0 ? (
                   <p className="pk-field-hint">Aucun document dans cette édition.</p>
                 ) : (
-                  <ul className="or-list">
+                  <ul className="cr-facts">
                     {editor.documents.map((document) => (
-                      <li key={document.id} className="or-row">
-                        <div className="or-row-main">
-                          <span className="pk-body">{document.title}</span>
+                      <li key={document.id} className="cr-fact or-line">
+                        <div className="or-line-main">
+                          <span className="cr-fact-value">{document.title}</span>
                           <span className="or-row-meta">
                             {document.hasFile ? 'Fichier' : document.url === null ? 'Saisie' : 'Lien'}
                             {' · '}

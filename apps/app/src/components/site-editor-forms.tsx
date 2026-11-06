@@ -799,6 +799,9 @@ export function SiteStatusForm({
   readonly primary: boolean;
 }) {
   const [state, action, pending] = useActionState(setSiteStatusAction, INITIAL);
+  // Retirer le site coupe son adresse pour tout le monde : le geste se confirme.
+  const [confirming, setConfirming] = useState(false);
+  const className = `pk-btn ${primary ? 'pk-button-primary' : 'pk-button-ghost-dark'}`;
 
   return (
     <form action={action} className="or-inline-form">
@@ -806,13 +809,25 @@ export function SiteStatusForm({
       <input type="hidden" name="eventId" value={eventId} />
       <input type="hidden" name="eventSlug" value={eventSlug} />
       <input type="hidden" name="status" value={status} />
-      <button
-        type="submit"
-        className={`pk-btn ${primary ? 'pk-button-primary' : 'pk-button-ghost-dark'}`}
-        disabled={pending}
-      >
-        {pending ? 'Un instant…' : label}
-      </button>
+      {status === 'draft' && !confirming ? (
+        <button type="button" className={className} onClick={() => setConfirming(true)}>
+          {label}
+        </button>
+      ) : (
+        <button type="submit" className={className} disabled={pending}>
+          {pending ? 'Un instant…' : status === 'draft' ? 'Confirmer le retrait' : label}
+        </button>
+      )}
+      {confirming ? (
+        <button
+          type="button"
+          className="pk-btn pk-button-ghost-dark"
+          disabled={pending}
+          onClick={() => setConfirming(false)}
+        >
+          Annuler
+        </button>
+      ) : null}
       <FormError state={state} />
     </form>
   );
