@@ -15,7 +15,8 @@ import { sessionTeamContext } from '@/lib/team';
  * UUID est traité de même.
  *
  * Les onglets ne nomment que ce qui a un écran : Analyse arrivera avec le sien. Un menu de liens morts serait pire
- * qu'un menu court.
+ * qu'un menu court. Site et Équipe sont des réglages (06_DESIGN_SYSTEM §68) : ils
+ * restent atteignables d'un clic, à part de la navigation principale.
  */
 export default async function OrganizationLayout({
   children,
@@ -40,27 +41,37 @@ export default async function OrganizationLayout({
   });
 
   return (
-    <main className="or-main">
-      <nav aria-label="Fil d’Ariane" className="or-crumb">
-        <Link href="/org">Mes organisations</Link>
-        <span aria-hidden="true">/</span>
-        <span aria-current="page">{organization.organizationName}</span>
-      </nav>
-      <SubTabs
-        label="Organisation"
-        tabs={[
-          { href: `/org/${organizationId}`, label: 'Accueil' },
-          {
-            href: `/org/${organizationId}/course/informations`,
-            label: 'Ma course',
-            match: `/org/${organizationId}/course`,
-          },
-          { href: `/org/${organizationId}/participants`, label: 'Participants' },
-          { href: `/org/${organizationId}/parametres/site`, label: 'Site' },
-          { href: `/org/${organizationId}/parametres/equipe`, label: 'Équipe' },
-        ]}
-      />
-      {children}
-    </main>
+    <div className="or-shell">
+      <aside className="or-side">
+        <div className="or-side-inner">
+          <nav aria-label="Fil d’Ariane" className="or-side-org">
+            <Link href="/org">Mes organisations</Link>
+            <span aria-current="page">{organization.organizationName}</span>
+          </nav>
+          <SubTabs
+            label="Organisation"
+            tabs={[
+              { href: `/org/${organizationId}`, label: 'Accueil' },
+              {
+                href: `/org/${organizationId}/course/informations`,
+                label: 'Ma course',
+                match: `/org/${organizationId}/course`,
+              },
+              { href: `/org/${organizationId}/participants`, label: 'Participants' },
+            ]}
+          />
+          <div className="or-side-end">
+            <SubTabs
+              label="Réglages"
+              tabs={[
+                { href: `/org/${organizationId}/parametres/site`, label: 'Site' },
+                { href: `/org/${organizationId}/parametres/equipe`, label: 'Équipe' },
+              ]}
+            />
+          </div>
+        </div>
+      </aside>
+      <main className="or-main">{children}</main>
+    </div>
   );
 }

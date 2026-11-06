@@ -7,7 +7,7 @@ import {
   type OrganizerCourse,
   type RaceGpxImportStage,
 } from '@pluka/domain';
-import { StatusBadge, TrustBadge, type StatusTone } from '@pluka/ui';
+import { NavTabs, StatusBadge, TrustBadge, type StatusTone } from '@pluka/ui';
 import Link from 'next/link';
 
 import { raceStartLabel } from '@/app/site/format';
@@ -40,9 +40,10 @@ import { requireSession } from '@/lib/session';
 /**
  * Ma course · Épreuves — 00_PRODUCT_SPEC §28.
  *
- * Une épreuve à la fois : ses horaires, sa trace, ses points de passage et ses
- * barrières, son matériel. Puis l'édition suivante. Une édition dupliquée
- * naît en brouillon : elle se relit, ses dates se règlent, puis elle se publie.
+ * Une épreuve à la fois, en trois volets : sa fiche, son parcours, son matériel.
+ * Le volet tient dans l'adresse : chaque geste y ramène, et il se partage. Puis
+ * l'édition suivante. Une édition dupliquée naît en brouillon : elle se relit,
+ * ses dates se règlent, puis elle se publie.
  * Publier une épreuve demande une édition publiée : l'écran le dit dans cet
  * ordre plutôt que de laisser un bouton refusé.
  */
@@ -57,6 +58,12 @@ const STATES: Readonly<Record<string, { label: string; tone: StatusTone }>> = {
   cancelled: { label: 'Annulée', tone: 'error' },
   archived: { label: 'Archivée', tone: 'neutral' },
 };
+
+const PANELS = [
+  { panel: 'fiche', label: 'Fiche' },
+  { panel: 'parcours', label: 'Parcours' },
+  { panel: 'materiel', label: 'Matériel' },
+] as const;
 
 const NOTICES: Readonly<Record<string, string>> = {
   'epreuve-modifiee': 'Épreuve modifiée.',
@@ -141,16 +148,20 @@ export default async function CourseRacesPage({
     ...(edition === null ? {} : { edition: String(edition.year) }),
   }).toString();
   const race = races.find((candidate) => candidate.slug === raceSlug) ?? races[0] ?? null;
+  // Trace et points de passage se lisent avec un rôle d'éditeur (0023, 0025) :
+  // sans lui, le volet Parcours n'a rien à montrer.
+  const panels = PANELS.filter((item) => item.panel !== 'parcours' || permissions.canEdit);
+  const panel = panels.find((item) => item.panel === query.volet)?.panel ?? 'fiche';
   const raceSelection = new URLSearchParams({
     ...(event === null ? {} : { evenement: event.slug }),
     ...(edition === null ? {} : { edition: String(edition.year) }),
     ...(race === null ? {} : { epreuve: race.slug }),
+    volet: panel,
   }).toString();
   const scope = { organizationId, selection: raceSelection };
   const editionScope = { organizationId, selection };
   const next = nextEdition(editions);
 
-  // Trace et points de passage se lisent avec un rôle d'éditeur (0023, 0025).
   const [trace, waypoints, equipment] =
     race === null
       ? [null, [], []]
@@ -164,13 +175,16 @@ export default async function CourseRacesPage({
   const raceScope = race === null ? null : { organizationId, selection: raceSelection, raceId: race.id };
   const raceStart = race === null ? null : civilMoment(race.startDatetime, race.timezone);
   const analysing = trace?.stage === 'queued' || trace?.stage === 'running';
+  const activeGear = equipment.filter((item) => !item.retired).length;
+  // Le matériel en vigueur d'abord : un retrait ne doit pas s'intercaler.
+  const orderedGear = [...equipment].sort((a, b) => Number(a.retired) - Number(b.retired));
 
   return (
     <CourseFrame
       organizationId={organizationId}
       screen="epreuves"
       course={course}
-      body="Vos épreuves, leurs horaires, et l’édition suivante."
+      body="Vos épreuves, leur parcours et leur matériel."
       footer={
         <span className="or-summary">
           {`${String(races.length)} ${races.length > 1 ? 'épreuves' : 'épreuve'}${
@@ -207,224 +221,253 @@ export default async function CourseRacesPage({
       <AutoRefresh active={analysing} />
 
       {race === null || raceScope === null || raceStart === null ? (
-        <section className="or-card">
-          <p className="pk-body">Aucune épreuve dans cette édition pour l’instant.</p>
-        </section>
+        <p className="pk-body">Aucune épreuve dans cette édition pour l’instant.</p>
       ) : (
-        <div className="st-workspace">
-          <div className="st-rail">
-            <nav aria-label="Épreuves" className="st-tabs">
-              {races.map((candidate) => (
-                <Link
-                  key={candidate.id}
-                  href={courseHref(organizationId, 'epreuves', {
-                    event: event?.slug,
-                    year: edition?.year,
-                    race: candidate.slug,
-                  })}
-                  className="st-tab"
-                  aria-current={candidate.id === race.id ? 'true' : undefined}
-                >
-                  {candidate.name}
-                </Link>
-              ))}
-            </nav>
-          </div>
+        <>
+          <nav aria-label="Épreuves" className="st-events">
+            {races.map((candidate) => (
+              <Link
+                key={candidate.id}
+                href={courseHref(organizationId, 'epreuves', {
+                  event: event?.slug,
+                  year: edition?.year,
+                  race: candidate.slug,
+                  panel,
+                })}
+                className="st-event"
+                aria-current={candidate.id === race.id ? 'page' : undefined}
+              >
+                {candidate.status === 'published'
+                  ? candidate.name
+                  : `${candidate.name} · ${STATES[candidate.status]?.label ?? ''}`}
+              </Link>
+            ))}
+          </nav>
 
           <div className="st-panels">
-            <section className="or-card">
-              <div className="cr-fact-head">
-                <h2 className="pk-h2">{race.name}</h2>
-                {STATES[race.status] === undefined ? null : (
-                  <StatusBadge tone={STATES[race.status]?.tone ?? 'neutral'}>
-                    {STATES[race.status]?.label ?? ''}
-                  </StatusBadge>
-                )}
+            <header className="or-section-head">
+              <div className="or-section-title">
+                <div className="cr-fact-head">
+                  <h2 className="pk-h2">{race.name}</h2>
+                  {STATES[race.status] === undefined ? null : (
+                    <StatusBadge tone={STATES[race.status]?.tone ?? 'neutral'}>
+                      {STATES[race.status]?.label ?? ''}
+                    </StatusBadge>
+                  )}
+                </div>
+                <p className="or-row-meta">
+                  {[
+                    kilometers(race.distanceKm),
+                    ...(race.elevationGainM === null
+                      ? []
+                      : [`${String(race.elevationGainM)} m D+`]),
+                    raceStartLabel(race.startDatetime, race.timezone),
+                    ...(race.startLocationName === null ? [] : [race.startLocationName]),
+                  ].join(' · ')}
+                </p>
               </div>
-              <p className="or-row-meta">
-                {[
-                  kilometers(race.distanceKm),
-                  ...(race.elevationGainM === null ? [] : [`${String(race.elevationGainM)} m D+`]),
-                  raceStartLabel(race.startDatetime, race.timezone),
-                  ...(race.startLocationName === null ? [] : [race.startLocationName]),
-                ].join(' · ')}
-              </p>
-              {!permissions.canEdit ? null : (
-                <div className="cr-fact-actions">
-                  {race.status === 'draft' && edition?.status === 'published' ? (
-                    <PublishRaceForm scope={scope} raceId={race.id} label={race.name} />
-                  ) : null}
-                  <details className="st-details">
-                    <summary>Modifier</summary>
-                    <UpdateRaceForm
-                      scope={scope}
-                      race={{
-                        id: race.id,
-                        name: race.name,
-                        day: raceStart.day,
-                        time: raceStart.time,
-                        timezone: race.timezone,
-                        distanceKm: race.distanceKm,
-                        elevationGainM: race.elevationGainM,
-                        startLocationName: race.startLocationName,
-                      }}
-                    />
-                  </details>
-                  {permissions.canPublish && race.status === 'published' ? (
-                    <details className="st-details">
+              {permissions.canEdit && race.status === 'draft' && edition?.status === 'published' ? (
+                <PublishRaceForm scope={scope} raceId={race.id} label={race.name} />
+              ) : null}
+            </header>
+
+            <NavTabs
+              label={`Volets de ${race.name}`}
+              className="or-subnav"
+              tabs={panels.map((item) => ({
+                href: courseHref(organizationId, 'epreuves', {
+                  event: event?.slug,
+                  year: edition?.year,
+                  race: race.slug,
+                  panel: item.panel,
+                }),
+                label:
+                  item.panel === 'materiel' ? `${item.label} (${String(activeGear)})` : item.label,
+                current: item.panel === panel,
+              }))}
+            />
+
+            {panel !== 'fiche' || !permissions.canEdit ? null : (
+              <>
+                <section aria-labelledby="race-card" className="or-card">
+                  <h3 id="race-card" className="pk-h2">
+                    Informations de l’épreuve
+                  </h3>
+                  <UpdateRaceForm
+                    scope={scope}
+                    race={{
+                      id: race.id,
+                      name: race.name,
+                      day: raceStart.day,
+                      time: raceStart.time,
+                      timezone: race.timezone,
+                      distanceKm: race.distanceKm,
+                      elevationGainM: race.elevationGainM,
+                      startLocationName: race.startLocationName,
+                    }}
+                  />
+                </section>
+                {permissions.canPublish && race.status === 'published' ? (
+                  <section aria-labelledby="race-cancel" className="or-card">
+                    <h3 id="race-cancel" className="pk-label">
+                      Geste définitif
+                    </h3>
+                    <details className="st-details or-danger">
                       <summary>Annuler l’épreuve</summary>
                       <CancelRaceForm scope={raceScope} raceName={race.name} />
                     </details>
-                  ) : null}
-                </div>
-              )}
-            </section>
+                  </section>
+                ) : null}
+              </>
+            )}
 
-            {trace === null ? null : (
-              <section aria-labelledby="race-trace" className="or-card">
-                <div className="cr-fact-head">
-                  <h2 id="race-trace" className="pk-h2">
-                    Trace GPX
-                  </h2>
-                  <StatusBadge tone={TRACE_STATES[trace.stage].tone}>
-                    {TRACE_STATES[trace.stage].label}
-                  </StatusBadge>
-                </div>
-                {trace.geometry === null ? null : (
-                  <p className="pk-body">
-                    {[
-                      ...(trace.geometry.lengthMeters === null
-                        ? []
-                        : [`Mesuré : ${kilometers(trace.geometry.lengthMeters / 1000)}`]),
-                      ...(trace.geometry.elevationGainMeters === null
-                        ? []
-                        : [`${String(trace.geometry.elevationGainMeters)} m D+`]),
-                    ].join(' · ')}
-                  </p>
-                )}
-                {trace.quality.length === 0 ? null : (
-                  <ul className="st-blockers">
-                    {trace.quality.map((finding) => (
-                      <li key={finding.code}>{finding.message}</li>
+            {panel !== 'parcours' || trace === null ? null : (
+              <>
+                <section aria-labelledby="race-trace" className="or-card">
+                  <div className="cr-fact-head">
+                    <h3 id="race-trace" className="pk-h2">
+                      Trace GPX
+                    </h3>
+                    <StatusBadge tone={TRACE_STATES[trace.stage].tone}>
+                      {TRACE_STATES[trace.stage].label}
+                    </StatusBadge>
+                  </div>
+                  {trace.geometry === null ? null : (
+                    <p className="pk-body">
+                      {[
+                        ...(trace.geometry.lengthMeters === null
+                          ? []
+                          : [`Mesuré : ${kilometers(trace.geometry.lengthMeters / 1000)}`]),
+                        ...(trace.geometry.elevationGainMeters === null
+                          ? []
+                          : [`${String(trace.geometry.elevationGainMeters)} m D+`]),
+                      ].join(' · ')}
+                    </p>
+                  )}
+                  {trace.quality.length === 0 ? null : (
+                    <ul className="st-blockers">
+                      {trace.quality.map((finding) => (
+                        <li key={finding.code}>{finding.message}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <ImportGpxForm scope={raceScope} hasTrace={trace.stage !== 'none'} />
+                </section>
+
+                <section aria-labelledby="race-points" className="or-card">
+                  <h3 id="race-points" className="pk-h2">
+                    Points de passage et barrières
+                  </h3>
+                  <WaypointsForm
+                    key={waypoints.map((waypoint) => waypoint.id).join('|')}
+                    scope={raceScope}
+                    startDay={raceStart.day}
+                    waypoints={waypoints.map((waypoint) => {
+                      const cutoff =
+                        waypoint.cutoffAt === null
+                          ? null
+                          : civilMoment(waypoint.cutoffAt, race.timezone);
+                      return {
+                        id: waypoint.id,
+                        name: waypoint.name,
+                        waypointType: waypoint.waypointType,
+                        distanceKm: waypoint.distanceKm,
+                        cutoffDay:
+                          cutoff === null
+                            ? null
+                            : Math.round(
+                                (Date.parse(`${cutoff.day}T00:00:00Z`) -
+                                  Date.parse(`${raceStart.day}T00:00:00Z`)) /
+                                  86_400_000,
+                              ),
+                        cutoffTime: cutoff?.time ?? null,
+                      };
+                    })}
+                  />
+                </section>
+              </>
+            )}
+
+            {panel !== 'materiel' ? null : (
+              <section aria-labelledby="race-gear" className="or-card">
+                <h3 id="race-gear" className="pk-h2">
+                  Matériel
+                </h3>
+                {permissions.canEdit ? (
+                  <details className="st-details or-add" open={equipment.length === 0}>
+                    <summary className="pk-btn pk-button-secondary">Ajouter du matériel</summary>
+                    <AddEquipmentForm scope={raceScope} />
+                  </details>
+                ) : null}
+                {equipment.length === 0 ? (
+                  <p className="pk-field-hint">Aucun matériel pour cette épreuve.</p>
+                ) : (
+                  <ul className="cr-facts">
+                    {orderedGear.map((item) => (
+                      <li key={item.factId} className="cr-fact or-line">
+                        <div className="or-line-main">
+                          <span className="cr-fact-value">{item.label}</span>
+                          <span className="or-row-meta">
+                            {[
+                              item.retired
+                                ? 'Retiré'
+                                : (REQUIREMENT_LABELS[item.requirement ?? ''] ?? 'À préciser'),
+                              ...(item.condition === null ? [] : [item.condition]),
+                              ...(item.detail === null ? [] : [item.detail]),
+                            ].join(' · ')}
+                          </span>
+                        </div>
+                        <TrustBadge level={item.trustLevel} />
+                        {!permissions.canEdit ? null : item.retired ? (
+                          <RestoreFactForm
+                            scope={scope}
+                            factId={item.factId}
+                            label={item.label}
+                            screen="epreuves"
+                          />
+                        ) : (
+                          <div className="cr-fact-actions">
+                            <details className="st-details">
+                              <summary>Corriger</summary>
+                              <ReviseEquipmentForm scope={raceScope} item={item} />
+                            </details>
+                            <details className="st-details or-danger">
+                              <summary>Retirer</summary>
+                              <RetireFactForm
+                                scope={scope}
+                                factId={item.factId}
+                                label={item.label}
+                                screen="epreuves"
+                              />
+                            </details>
+                          </div>
+                        )}
+                      </li>
                     ))}
                   </ul>
                 )}
-                <ImportGpxForm scope={raceScope} hasTrace={trace.stage !== 'none'} />
               </section>
             )}
-
-            {trace === null ? null : (
-              <section aria-labelledby="race-points" className="or-card">
-                <h2 id="race-points" className="pk-h2">
-                  Points de passage et barrières
-                </h2>
-                <WaypointsForm
-                  key={waypoints.map((waypoint) => waypoint.id).join('|')}
-                  scope={raceScope}
-                  startDay={raceStart.day}
-                  waypoints={waypoints.map((waypoint) => {
-                    const cutoff =
-                      waypoint.cutoffAt === null
-                        ? null
-                        : civilMoment(waypoint.cutoffAt, race.timezone);
-                    return {
-                      id: waypoint.id,
-                      name: waypoint.name,
-                      waypointType: waypoint.waypointType,
-                      distanceKm: waypoint.distanceKm,
-                      cutoffDay:
-                        cutoff === null
-                          ? null
-                          : Math.round(
-                              (Date.parse(`${cutoff.day}T00:00:00Z`) -
-                                Date.parse(`${raceStart.day}T00:00:00Z`)) /
-                                86_400_000,
-                            ),
-                      cutoffTime: cutoff?.time ?? null,
-                    };
-                  })}
-                />
-              </section>
-            )}
-
-            <section aria-labelledby="race-gear" className="or-card">
-              <h2 id="race-gear" className="pk-h2">
-                Matériel
-              </h2>
-              {equipment.length === 0 ? (
-                <p className="pk-field-hint">Aucun matériel pour cette épreuve.</p>
-              ) : (
-                <ul className="cr-facts">
-                  {equipment.map((item) => (
-                    <li key={item.factId} className="cr-fact">
-                      <div className="cr-fact-head">
-                        <span className="cr-fact-value">{item.label}</span>
-                        <TrustBadge level={item.trustLevel} />
-                      </div>
-                      <span className="or-row-meta">
-                        {[
-                          item.retired
-                            ? 'Retiré'
-                            : (REQUIREMENT_LABELS[item.requirement ?? ''] ?? 'À préciser'),
-                          ...(item.condition === null ? [] : [item.condition]),
-                          ...(item.detail === null ? [] : [item.detail]),
-                        ].join(' · ')}
-                      </span>
-                      {!permissions.canEdit ? null : item.retired ? (
-                        <RestoreFactForm
-                          scope={scope}
-                          factId={item.factId}
-                          label={item.label}
-                          screen="epreuves"
-                        />
-                      ) : (
-                        <div className="cr-fact-actions">
-                          <details className="st-details">
-                            <summary>Corriger</summary>
-                            <ReviseEquipmentForm scope={raceScope} item={item} />
-                          </details>
-                          <details className="st-details">
-                            <summary>Retirer</summary>
-                            <RetireFactForm
-                              scope={scope}
-                              factId={item.factId}
-                              label={item.label}
-                              screen="epreuves"
-                            />
-                          </details>
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {permissions.canEdit ? (
-                <details className="st-details">
-                  <summary>Ajouter du matériel</summary>
-                  <AddEquipmentForm scope={raceScope} />
-                </details>
-              ) : null}
-            </section>
           </div>
-        </div>
+        </>
       )}
 
       {!permissions.canEdit || next === null || event === null ? null : (
         <section aria-labelledby="next-edition" className="or-card">
-          <h2 id="next-edition" className="pk-h2">
-            Préparer l’édition {next.year}
-          </h2>
-          <p className="pk-body">
-            PLUKA reprend les épreuves de {next.sourceYear} avec leurs distances, en brouillon. Les
-            informations publiées, les traces et les liens d’inscription ne suivent pas : ils sont à
-            redonner pour la nouvelle édition.
-          </p>
-          <DuplicateEditionForm
-            scope={editionScope}
-            eventSlug={event.slug}
-            eventId={event.id}
-            next={next}
-          />
+          <details className="st-details">
+            <summary id="next-edition">Préparer l’édition {next.year}</summary>
+            <p className="pk-body">
+              PLUKA reprend les épreuves de {next.sourceYear} avec leurs distances, en brouillon. Les
+              informations publiées, les traces et les liens d’inscription ne suivent pas : ils sont
+              à redonner pour la nouvelle édition.
+            </p>
+            <DuplicateEditionForm
+              scope={editionScope}
+              eventSlug={event.slug}
+              eventId={event.id}
+              next={next}
+            />
+          </details>
         </section>
       )}
     </CourseFrame>

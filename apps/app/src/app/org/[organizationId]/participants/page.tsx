@@ -130,8 +130,8 @@ export default async function ParticipantsPage({
     <CourseFrame
       organizationId={organizationId}
       screen="participants"
-      course={course}
       eyebrow="Participants"
+      course={course}
       section="participants"
       body="Votre liste d’inscrits. Leur préparation reste la leur : vous n’y avez jamais accès."
       footer={

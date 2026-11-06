@@ -1273,10 +1273,209 @@ select.pk-input {
 .or-main {
   max-width: 72rem;
   margin: 0 auto;
-  padding: var(--space-8) var(--space-6) var(--space-16);
+  padding: var(--space-6) var(--space-6) var(--space-16);
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-5);
+}
+
+/* La navigation de l'organisation tient dans une colonne ; les sous-écrans restent à l'horizontale. */
+.or-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.or-shell > .or-main {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.or-side {
+  min-width: 0;
+  border-bottom: 1px solid var(--pk-hairline);
+  background: var(--pk-surface);
+}
+
+.or-side-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-6);
+}
+
+.or-side-org {
+  display: grid;
+  flex-basis: 100%;
+  min-width: 0;
+  font-size: 13.5px;
+  color: var(--pk-text-muted);
+}
+
+.or-side-org a {
+  color: inherit;
+}
+
+.or-side-org [aria-current='page'] {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pk-text);
+  overflow-wrap: anywhere;
+}
+
+.or-side .pk-tab {
+  padding-block: 0;
+}
+
+.or-side .pk-tab:not(.pk-tab-current) {
+  border-color: transparent;
+}
+
+@media (min-width: 900px) {
+  .or-shell {
+    grid-template-columns: 15rem minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .or-side {
+    border-right: 1px solid var(--pk-hairline);
+    border-bottom: 0;
+  }
+
+  .or-side-inner {
+    position: sticky;
+    top: 0;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: var(--space-5);
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .or-side-org {
+    flex-basis: auto;
+    gap: var(--space-1);
+  }
+
+  .or-side .pk-tabs {
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .or-side .pk-tab {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .or-side-end {
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--pk-hairline);
+  }
+}
+
+.or-frame {
+  gap: var(--space-5);
+}
+
+/* Les sous-écrans à gauche, l'édition à droite : une seule ligne avant le travail. */
+.or-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-5);
+}
+
+.or-toolbar:empty {
+  display: none;
+}
+
+.or-toolbar .or-subnav {
+  flex: 1 1 auto;
+}
+
+/* Un niveau sous la navigation : un filet, pas une seconde rangée de boutons. */
+.or-subnav {
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.or-subnav .pk-tab {
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+}
+
+.or-subnav .pk-tab:hover {
+  color: var(--pk-ink);
+}
+
+.or-subnav .pk-tab-current {
+  border-bottom-color: var(--pk-forest);
+  color: var(--pk-ink);
+  font-weight: 600;
+}
+
+.or-card .cr-fact-head .pk-h2,
+.or-card > .pk-label,
+.or-section-head .pk-h2 {
+  margin: 0;
+}
+
+.or-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+}
+
+.or-section-title {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.or-section-title .cr-fact-head {
+  justify-content: flex-start;
+}
+
+/* Une ligne qu'on corrige sur place : le formulaire s'ouvre sur toute la largeur. */
+.or-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-5);
+}
+
+.or-line-main {
+  display: grid;
+  flex: 1 1 18rem;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.or-line .cr-fact-actions:has(details[open]) {
+  flex-basis: 100%;
+}
+
+.or-add summary {
+  width: fit-content;
+  list-style: none;
+}
+
+.or-add summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Un geste qui se voit des coureurs ne ressemble pas à une correction. */
+.cr-fact-actions .or-danger > summary,
+.or-danger > summary {
+  color: var(--pk-error);
 }
 
 .or-list {

@@ -73,6 +73,8 @@ export interface CourseSelection {
   readonly event?: string | undefined;
   readonly year?: number | undefined;
   readonly race?: string | undefined;
+  /** Le volet d'une épreuve : Fiche, Parcours ou Matériel. */
+  readonly panel?: string | undefined;
 }
 
 /** L'adresse d'un écran : l'édition choisie se partage par lien (05_ROUTES §12.1). */
@@ -86,6 +88,7 @@ export function courseHref(
   if (selection.event !== undefined) query.set('evenement', selection.event);
   if (selection.year !== undefined) query.set('edition', String(selection.year));
   if (selection.race !== undefined) query.set('epreuve', selection.race);
+  if (selection.panel !== undefined) query.set('volet', selection.panel);
 
   const search = query.toString();
   const path =
