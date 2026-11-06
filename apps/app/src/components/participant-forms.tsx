@@ -262,7 +262,11 @@ export function ParticipantCorrection({
         import pourra la renseigner.
       </p>
       {canWithdraw ? (
-        <WithdrawForm scope={scope} participantRaceId={participantRaceId} withdrawn />
+        <details className="st-details or-danger">
+          <summary>Retirer de la liste</summary>
+          <p className="pk-field-hint">Sa trace est gardée, et il se rétablit à tout moment.</p>
+          <WithdrawForm scope={scope} participantRaceId={participantRaceId} withdrawn />
+        </details>
       ) : null}
     </details>
   );
@@ -285,8 +289,8 @@ export function WithdrawForm({
       <ScopeFields {...scope} />
       <input type="hidden" name="participantRaceId" value={participantRaceId} />
       <input type="hidden" name="withdrawn" value={String(withdrawn)} />
-      <button type="submit" className="pk-btn pk-button-ghost" disabled={pending}>
-        {withdrawn ? 'Retirer de la liste' : 'Rétablir'}
+      <button type="submit" className="pk-btn pk-button-secondary" disabled={pending}>
+        {withdrawn ? 'Confirmer le retrait' : 'Rétablir'}
       </button>
       <ActionError state={state} />
     </form>

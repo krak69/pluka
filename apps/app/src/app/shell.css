@@ -1202,6 +1202,85 @@ select.pk-input {
   border-left: 3px solid var(--pk-warning);
 }
 
+/* Une liste à colonnes : elles se replient en libellés quand la largeur manque. */
+.pa-head {
+  display: none;
+}
+
+.pa-rows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pa-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1) var(--space-4);
+  align-items: center;
+  padding-block: var(--space-3);
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.pa-name {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pa-name .or-row-meta {
+  overflow-wrap: anywhere;
+}
+
+.pa-cell {
+  min-width: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.pa-cell-label {
+  font-size: 13px;
+  color: var(--pk-text-muted);
+}
+
+.pa-row .pa-correction[open] {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 1100px) {
+  .pa-head,
+  .pa-row {
+    grid-template-columns:
+      minmax(0, 1.7fr) minmax(0, 1fr) 5rem minmax(0, 1fr) 11rem 5.5rem;
+  }
+
+  .pa-head {
+    display: grid;
+    gap: var(--space-4);
+    padding-bottom: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--pk-text-muted);
+  }
+
+  .pa-name {
+    grid-column: auto;
+  }
+
+  .pa-cell-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 .pa-badges {
   display: inline-flex;
   flex-wrap: wrap;

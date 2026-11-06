@@ -4,7 +4,7 @@ import {
   listEditionParticipants,
   suggestColumns,
 } from '@pluka/domain';
-import { StatusBadge } from '@pluka/ui';
+import { NavTabs, StatusBadge } from '@pluka/ui';
 import Link from 'next/link';
 
 import { CourseFrame } from '@/components/course-frame';
@@ -17,7 +17,7 @@ import {
   WithdrawForm,
 } from '@/components/participant-forms';
 import { sessionEventSiteContext } from '@/lib/event-site-editing';
-import { participantImportContext } from '@/lib/organizer-course';
+import { courseHref, participantImportContext } from '@/lib/organizer-course';
 import { requireSession } from '@/lib/session';
 
 /**
@@ -26,6 +26,9 @@ import { requireSession } from '@/lib/session';
  * La liste d'une édition, et son import : fichier, colonnes, vérification. La
  * liste ne dit que ce qui sert au travail : aucun Plan, aucune préparation,
  * aucun signal ; l'e-mail seulement à qui peut inviter (03_PRIVACY_RLS §19, §28).
+ * L'épreuve et le volet tiennent dans l'adresse : une correction y ramène. Une
+ * vague à déclarer reste une mention neutre, pas une alerte : seul le dossard en
+ * double met une ligne à vérifier.
  */
 export const metadata = { title: 'Participants' };
 
@@ -64,6 +67,23 @@ function importOutcome(imported: string, query: SearchParams): string {
     .concat('.');
 }
 
+function fullName(person: {
+  readonly firstName: string | null;
+  readonly lastName: string | null;
+}): string {
+  return [person.firstName, person.lastName].filter((part) => part !== null).join(' ') || 'Sans nom';
+}
+
+/** Une case de la liste : son libellé ne se montre que lorsque les colonnes se replient. */
+function Cell({ label, value }: { readonly label: string; readonly value: string | null }) {
+  return (
+    <span className="pa-cell">
+      <span className="pa-cell-label">{label} </span>
+      {value ?? '—'}
+    </span>
+  );
+}
+
 export default async function ParticipantsPage({
   params,
   searchParams,
@@ -85,7 +105,7 @@ export default async function ParticipantsPage({
     ...(eventSlug === undefined ? {} : { eventSlug }),
     ...(year === undefined ? {} : { year }),
   });
-  const { event, edition, permissions } = course;
+  const { event, edition, races, permissions } = course;
   const context = participantImportContext(session);
 
   const list =
@@ -106,9 +126,41 @@ export default async function ParticipantsPage({
       ? null
       : await getParticipantImport(context, { importId });
 
+  const race = races.find((candidate) => candidate.slug === query.epreuve) ?? null;
+  const rows =
+    race === null
+      ? list.participants
+      : list.participants.filter((participant) => participant.raceId === race.id);
+  const withdrawn =
+    race === null
+      ? list.withdrawn
+      : list.withdrawn.filter((participant) => participant.raceName === race.name);
+  const flagged = rows.filter((participant) => participant.bibConflict);
+  const panels = [
+    { panel: 'tous', label: `Tous (${String(race === null ? list.total : rows.length)})` },
+    ...(flagged.length === 0
+      ? []
+      : [{ panel: 'a-verifier', label: `À vérifier (${String(flagged.length)})` }]),
+    ...(withdrawn.length === 0
+      ? []
+      : [{ panel: 'retires', label: `Retirés (${String(withdrawn.length)})` }]),
+  ];
+  const panel = panels.find((item) => item.panel === query.volet)?.panel ?? 'tous';
+  const shown = panel === 'a-verifier' ? flagged : rows;
+  const pendingWaves = rows.filter((participant) => participant.declaredWaveName !== null).length;
+  const href = (selected: { readonly race?: string | undefined; readonly panel?: string }) =>
+    courseHref(
+      organizationId,
+      'participants',
+      { event: event?.slug, year: edition?.year, ...selected },
+      'participants',
+    );
+
   const selection = new URLSearchParams({
     ...(event === null ? {} : { evenement: event.slug }),
     ...(edition === null ? {} : { edition: String(edition.year) }),
+    ...(race === null ? {} : { epreuve: race.slug }),
+    volet: panel,
   }).toString();
   const scope = { organizationId, selection };
   const activated = list.participants.filter((participant) => participant.activated).length;
@@ -142,7 +194,10 @@ export default async function ParticipantsPage({
     >
       {outcome === null ? null : (
         <p className="pk-body st-notice" role="status">
-          {outcome}
+          {outcome}{' '}
+          <Link href={`/org/${organizationId}/participants?${selection}`} className="pk-link">
+            Fermer
+          </Link>
         </p>
       )}
 
@@ -285,154 +340,180 @@ export default async function ParticipantsPage({
             <DiscardImportForm scope={scope} importId={current.id} />
           </div>
         </section>
-      ) : canImport ? (
-        <section aria-labelledby="import-file" className="or-card">
-          <h2 id="import-file" className="pk-h2">
-            Importer vos inscrits
-          </h2>
-          <ImportFileForm scope={scope} editionId={edition.id} />
-        </section>
-      ) : (
+      ) : canImport ? null : (
         <p className="pk-body st-readonly">
           Un propriétaire ou un administrateur importe la liste.
         </p>
       )}
 
       {edition === null ? null : (
-        <section aria-labelledby="participants-list" className="or-card">
-          <h2 id="participants-list" className="pk-h2">
-            Liste
-          </h2>
-          {list.participants.length === 0 ? (
-            <p className="pk-field-hint">Aucun participant pour l’édition {edition.year}.</p>
-          ) : (
-            <>
-              {list.toCheck.bibs === 0 ? null : (
-                <div className="pa-check">
-                  <p className="pk-label">À vérifier</p>
-                  <p className="pk-body">
-                    {plural(
-                      list.toCheck.bibs,
-                      'participant avec un dossard en double',
-                      'participants avec un dossard en double',
-                    )}
-                    {canImport ? ' : ouvrez Corriger sur leur ligne, en tête de liste.' : '.'}
-                  </p>
+        <>
+          {races.length < 2 ? null : (
+            <nav aria-label="Épreuves" className="st-events">
+              <Link
+                href={href({})}
+                className="st-event"
+                aria-current={race === null ? 'page' : undefined}
+              >
+                Toutes
+              </Link>
+              {races.map((candidate) => (
+                <Link
+                  key={candidate.id}
+                  href={href({ race: candidate.slug })}
+                  className="st-event"
+                  aria-current={candidate.id === race?.id ? 'page' : undefined}
+                >
+                  {candidate.name}
+                </Link>
+              ))}
+            </nav>
+          )}
+
+          <NavTabs
+            label="Volets de la liste"
+            className="or-subnav"
+            tabs={panels.map((item) => ({
+              href: href({ race: race?.slug, panel: item.panel }),
+              label: item.label,
+              current: item.panel === panel,
+            }))}
+          />
+
+          <section aria-labelledby="participants-list" className="or-card">
+            <h2 id="participants-list" className="pk-h2">
+              {panel === 'retires' ? 'Retirés' : panel === 'a-verifier' ? 'À vérifier' : 'Liste'}
+            </h2>
+
+            {canImport && current === null && panel === 'tous' ? (
+              <details className="st-details or-add" open={list.total === 0}>
+                <summary className="pk-btn pk-button-secondary">Importer des inscrits</summary>
+                <ImportFileForm scope={scope} editionId={edition.id} />
+              </details>
+            ) : null}
+
+            {panel === 'a-verifier' && canImport ? (
+              <p className="pk-field-hint">
+                Ces dossards apparaissent plusieurs fois : ouvrez Corriger sur chaque ligne.
+              </p>
+            ) : null}
+
+            {panel === 'tous' && pendingWaves > 0 ? (
+              <p className="pk-field-hint">
+                {plural(
+                  pendingWaves,
+                  'participant attend que sa vague soit déclarée.',
+                  'participants attendent que leur vague soit déclarée.',
+                )}
+              </p>
+            ) : null}
+
+            {panel === 'retires' ? (
+              <p className="pk-field-hint">
+                Ils ne sont plus dans la liste et leur trace est gardée. Un import ne les rétablit pas.
+              </p>
+            ) : null}
+
+            {panel !== 'retires' && shown.length === 0 ? (
+              <p className="pk-field-hint">
+                {race === null
+                  ? `Aucun participant pour l’édition ${String(edition.year)}.`
+                  : `Aucun participant sur ${race.name}.`}
+              </p>
+            ) : (
+              <>
+                <div className="pa-head" aria-hidden="true">
+                  <span>Participant</span>
+                  <span>Épreuve</span>
+                  <span>Dossard</span>
+                  <span>Vague</span>
+                  <span>Statut</span>
+                  <span />
                 </div>
-              )}
-              {list.pendingWaves === 0 ? null : (
-                <p className="pk-field-hint">
-                  {plural(
-                    list.pendingWaves,
-                    'participant attend que sa vague soit déclarée.',
-                    'participants attendent que leur vague soit déclarée.',
-                  )}
-                </p>
-              )}
-              <ul className="cr-facts">
-                {list.participants.map((participant) => {
-                  const wave = participant.waveName ?? participant.declaredWaveName;
-
-                  return (
-                    <li
-                      key={participant.id}
-                      className={participant.bibConflict ? 'cr-fact pa-flagged' : 'cr-fact'}
-                    >
-                      <div className="cr-fact-head">
-                        <span className="cr-fact-value">
-                          {[participant.firstName, participant.lastName]
-                            .filter((part) => part !== null)
-                            .join(' ') || 'Sans nom'}
-                        </span>
-                        <span className="pa-badges">
-                          {participant.bibConflict ? (
-                            <StatusBadge tone="warning">À vérifier</StatusBadge>
+                <ul className="pa-rows">
+                  {panel === 'retires'
+                    ? withdrawn.map((participant) => (
+                        <li key={participant.id} className="pa-row">
+                          <span className="pa-name">
+                            <span className="cr-fact-value">{fullName(participant)}</span>
+                          </span>
+                          <Cell label="Épreuve" value={participant.raceName} />
+                          <Cell label="Dossard" value={participant.bib} />
+                          <Cell label="Vague" value={null} />
+                          <span className="pa-badges">
+                            <StatusBadge tone="neutral">Retiré</StatusBadge>
+                          </span>
+                          {canImport ? (
+                            <WithdrawForm
+                              scope={scope}
+                              participantRaceId={participant.id}
+                              withdrawn={false}
+                            />
                           ) : null}
-                          <StatusBadge tone={participant.activated ? 'success' : 'neutral'}>
-                            {participant.activated ? 'Sur PLUKA' : 'Importé'}
-                          </StatusBadge>
-                        </span>
-                      </div>
-                      {participant.bibConflict ? (
-                        <span className="pa-flag">Dossard {participant.bib} en double</span>
-                      ) : null}
-                      <span className="or-row-meta">
-                        {[
-                          participant.raceName,
-                          ...(participant.bib === null ? [] : [`Dossard ${participant.bib}`]),
-                          ...(participant.waveName === null ? [] : [participant.waveName]),
-                          ...(participant.declaredWaveName === null
-                            ? []
-                            : [`${participant.declaredWaveName} (vague à déclarer)`]),
-                          ...(participant.email === null ? [] : [participant.email]),
-                        ].join(' · ')}
-                      </span>
-                      {canImport ? (
-                        // La clé referme le panneau dès que la valeur enregistrée change.
-                        <ParticipantCorrection
-                          key={`${participant.bib ?? ''}|${wave ?? ''}`}
-                          scope={scope}
-                          participantRaceId={participant.id}
-                          bib={participant.bib}
-                          wave={wave}
-                          waves={list.waveOptions.filter(
-                            (option) => option.raceId === participant.raceId,
-                          )}
-                          canWithdraw={!participant.activated}
-                        />
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-              {list.total <= list.participants.length ? null : (
-                <p className="pk-field-hint">
-                  Les {list.participants.length} premiers sur {list.total}.
-                </p>
-              )}
-            </>
-          )}
-          {list.withdrawn.length === 0 ? null : (
-            <details className="st-details">
-              <summary>Retirés ({list.withdrawn.length})</summary>
-              <ul className="cr-facts">
-                {list.withdrawn.map((participant) => (
-                  <li key={participant.id} className="cr-fact">
-                    <div className="cr-fact-head">
-                      <span className="cr-fact-value">
-                        {[participant.firstName, participant.lastName]
-                          .filter((part) => part !== null)
-                          .join(' ') || 'Sans nom'}
-                      </span>
-                      <StatusBadge tone="neutral">Retiré</StatusBadge>
-                    </div>
-                    <span className="or-row-meta">
-                      {[
-                        participant.raceName,
-                        ...(participant.bib === null ? [] : [`Dossard ${participant.bib}`]),
-                      ].join(' · ')}
-                    </span>
-                    {canImport ? (
-                      <WithdrawForm
-                        scope={scope}
-                        participantRaceId={participant.id}
-                        withdrawn={false}
-                      />
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-        </section>
-      )}
+                        </li>
+                      ))
+                    : shown.map((participant) => {
+                        const wave = participant.waveName ?? participant.declaredWaveName;
 
-      {imported === undefined ? null : (
-        <p className="pk-body">
-          <Link href={`/org/${organizationId}/participants?${selection}`} className="pk-link">
-            Fermer ce message
-          </Link>
-        </p>
+                        return (
+                          <li
+                            key={participant.id}
+                            className={participant.bibConflict ? 'pa-row pa-flagged' : 'pa-row'}
+                          >
+                            <span className="pa-name">
+                              <span className="cr-fact-value">{fullName(participant)}</span>
+                              {participant.email === null ? null : (
+                                <span className="or-row-meta">{participant.email}</span>
+                              )}
+                              {participant.bibConflict ? (
+                                <span className="pa-flag">Dossard {participant.bib} en double</span>
+                              ) : null}
+                            </span>
+                            <Cell label="Épreuve" value={participant.raceName} />
+                            <Cell label="Dossard" value={participant.bib} />
+                            <Cell
+                              label="Vague"
+                              value={
+                                participant.declaredWaveName === null
+                                  ? participant.waveName
+                                  : `${participant.declaredWaveName} (à déclarer)`
+                              }
+                            />
+                            <span className="pa-badges">
+                              {participant.bibConflict ? (
+                                <StatusBadge tone="warning">À vérifier</StatusBadge>
+                              ) : null}
+                              <StatusBadge tone={participant.activated ? 'success' : 'neutral'}>
+                                {participant.activated ? 'Sur PLUKA' : 'Importé'}
+                              </StatusBadge>
+                            </span>
+                            {canImport ? (
+                              // La clé referme le panneau dès que la valeur enregistrée change.
+                              <ParticipantCorrection
+                                key={`${participant.bib ?? ''}|${wave ?? ''}`}
+                                scope={scope}
+                                participantRaceId={participant.id}
+                                bib={participant.bib}
+                                wave={wave}
+                                waves={list.waveOptions.filter(
+                                  (option) => option.raceId === participant.raceId,
+                                )}
+                                canWithdraw={!participant.activated}
+                              />
+                            ) : null}
+                          </li>
+                        );
+                      })}
+                </ul>
+                {panel === 'retires' || list.total <= list.participants.length ? null : (
+                  <p className="pk-field-hint">
+                    Les {list.participants.length} premiers sur {list.total}.
+                  </p>
+                )}
+              </>
+            )}
+          </section>
+        </>
       )}
     </CourseFrame>
   );
