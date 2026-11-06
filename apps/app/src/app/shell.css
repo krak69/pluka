@@ -1163,6 +1163,55 @@ select.pk-input {
   width: 100%;
 }
 
+/* Ce qui demande un regard : le filet et le libellé le disent, pas la couleur seule. */
+.pa-check {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--pk-warning);
+  background: var(--pk-warning-bg);
+}
+
+.pa-effects {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pa-correction summary {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--pk-text-secondary);
+}
+
+.pa-correction-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.pa-correction-form .pk-input {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.pa-flagged {
+  padding-left: var(--space-3);
+  border-left: 3px solid var(--pk-warning);
+}
+
+.pa-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.pa-flag {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
 .cr-add {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));

@@ -3,9 +3,11 @@
 import {
   DomainError,
   commitParticipantImport,
+  correctParticipant,
   createParticipantImport,
   discardParticipantImport,
   getOrganizerCourse,
+  setParticipantWithdrawn,
   validateParticipantImport,
 } from '@pluka/domain';
 import { revalidatePath } from 'next/cache';
@@ -127,7 +129,7 @@ export async function commitImportAction(
   _previous: ParticipantActionState,
   form: FormData,
 ): Promise<ParticipantActionState> {
-  let result: { created: number; skipped: number };
+  let result: Awaited<ReturnType<typeof commitParticipantImport>>;
   try {
     result = await commitParticipantImport(
       participantImportContext(await requireSession(pagePath(form))),
@@ -139,9 +141,58 @@ export async function commitImportAction(
 
   revalidatePath(pagePath(form));
   const selection = selectionOf(form);
+  // L'import reste dans l'adresse : ses lignes refusées se lisent encore après coup.
   redirect(
-    `${pagePath(form)}?${selection === '' ? '' : `${selection}&`}importes=${String(result.created)}&ignores=${String(result.skipped)}`,
+    `${pagePath(form)}?${selection === '' ? '' : `${selection}&`}import=${text(form, 'importId')}&importes=${String(result.created)}&majs=${String(result.updated)}&ignores=${String(result.skipped)}&gardes=${String(result.kept)}&retires=${String(result.withdrawn)}`,
   );
+}
+
+function participantFailure(error: unknown): ParticipantActionState {
+  if (error instanceof DomainError && error.code === 'invalid_state') {
+    return { error: 'Ce participant ne peut pas être modifié dans cet état.' };
+  }
+  if (error instanceof DomainError && error.code === 'forbidden') {
+    return { error: 'Seuls un propriétaire ou un administrateur modifient la liste.' };
+  }
+  if (error instanceof DomainError && error.code === 'not_found') {
+    return { error: 'Ce participant n’existe plus.' };
+  }
+  return failure(error);
+}
+
+export async function correctParticipantAction(
+  _previous: ParticipantActionState,
+  form: FormData,
+): Promise<ParticipantActionState> {
+  try {
+    await correctParticipant(participantImportContext(await requireSession(pagePath(form))), {
+      participantRaceId: text(form, 'participantRaceId'),
+      bib: text(form, 'bib'),
+      wave: text(form, 'wave'),
+    });
+  } catch (error) {
+    return participantFailure(error);
+  }
+
+  revalidatePath(pagePath(form));
+  return {};
+}
+
+export async function setParticipantWithdrawnAction(
+  _previous: ParticipantActionState,
+  form: FormData,
+): Promise<ParticipantActionState> {
+  try {
+    await setParticipantWithdrawn(participantImportContext(await requireSession(pagePath(form))), {
+      participantRaceId: text(form, 'participantRaceId'),
+      withdrawn: text(form, 'withdrawn') === 'true',
+    });
+  } catch (error) {
+    return participantFailure(error);
+  }
+
+  revalidatePath(pagePath(form));
+  return {};
 }
 
 export async function discardImportAction(

@@ -13,6 +13,8 @@ import {
   CommitImportForm,
   DiscardImportForm,
   ImportFileForm,
+  ParticipantCorrection,
+  WithdrawForm,
 } from '@/components/participant-forms';
 import { sessionEventSiteContext } from '@/lib/event-site-editing';
 import { participantImportContext } from '@/lib/organizer-course';
@@ -31,6 +33,35 @@ type SearchParams = Record<string, string | string[] | undefined>;
 
 function today(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date());
+}
+
+function count(value: string | string[] | undefined): number {
+  const parsed = typeof value === 'string' ? Number(value) : 0;
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function plural(value: number, one: string, many: string): string {
+  return `${String(value)} ${value > 1 ? many : one}`;
+}
+
+/** Le bilan d'un import : un fichier repris compte ses mises à jour, pas seulement ses créations. */
+function importOutcome(imported: string, query: SearchParams): string {
+  const updated = count(query.majs);
+  const ignored = count(query.ignores);
+  const kept = count(query.gardes);
+  const withdrawn = count(query.retires);
+
+  return [
+    plural(count(imported), 'participant importé', 'participants importés'),
+    ...(updated === 0 ? [] : [`${String(updated)} mis à jour`]),
+    ...(ignored === 0 ? [] : [`${String(ignored)} déjà dans la liste`]),
+    ...(kept === 0
+      ? []
+      : [plural(kept, 'correction à la main gardée', 'corrections à la main gardées')]),
+    ...(withdrawn === 0 ? [] : [plural(withdrawn, 'retiré, non rétabli', 'retirés, non rétablis')]),
+  ]
+    .join(', ')
+    .concat('.');
 }
 
 export default async function ParticipantsPage({
@@ -59,7 +90,14 @@ export default async function ParticipantsPage({
 
   const list =
     edition === null
-      ? { total: 0, participants: [] }
+      ? {
+          total: 0,
+          toCheck: { bibs: 0 },
+          pendingWaves: 0,
+          waveOptions: [],
+          participants: [],
+          withdrawn: [],
+        }
       : await listEditionParticipants(context, { editionId: edition.id });
   // Owner et admin importent ; le même rang que la base (0060).
   const canImport = permissions.canPublish;
@@ -75,13 +113,18 @@ export default async function ParticipantsPage({
   const scope = { organizationId, selection };
   const activated = list.participants.filter((participant) => participant.activated).length;
   const imported = typeof query.importes === 'string' ? query.importes : undefined;
-  const ignored = typeof query.ignores === 'string' ? query.ignores : '0';
+  const outcome = imported === undefined ? null : importOutcome(imported, query);
 
   const firstRow = current?.rows[0]?.data ?? {};
   const headers = current?.headers ?? [];
+  const effects = current?.effects;
   const validCount = current?.counts['valid'] ?? 0;
   const errorCount = current?.counts['error'] ?? 0;
   const skippedCount = current?.counts['skipped'] ?? 0;
+  const refused =
+    current?.status === 'imported'
+      ? current.exceptions.filter((exception) => exception.status === 'error')
+      : [];
 
   return (
     <CourseFrame
@@ -97,11 +140,33 @@ export default async function ParticipantsPage({
         </span>
       }
     >
-      {imported === undefined ? null : (
+      {outcome === null ? null : (
         <p className="pk-body st-notice" role="status">
-          {imported} {Number(imported) > 1 ? 'participants importés' : 'participant importé'}
-          {ignored === '0' ? '.' : `, ${ignored} déjà dans la liste.`}
+          {outcome}
         </p>
+      )}
+
+      {refused.length === 0 ? null : (
+        <section aria-labelledby="import-refused" className="pa-check">
+          <h2 id="import-refused" className="pk-label">
+            À corriger · {errorCount} {errorCount > 1 ? 'lignes non importées' : 'ligne non importée'}
+          </h2>
+          <ul className="cr-facts">
+            {refused.map((exception) => (
+              <li key={exception.rowNumber} className="cr-fact">
+                <span className="cr-fact-value">Ligne {exception.rowNumber + 1}</span>
+                <span className="or-row-meta">{exception.message}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="pk-field-hint">
+            {refused.length < errorCount
+              ? `Les ${String(refused.length)} premières sur ${String(errorCount)}. `
+              : ''}
+            Corrigez ces lignes dans votre fichier et relancez l’import : les autres ne seront pas
+            doublées.
+          </p>
+        </section>
       )}
 
       {edition === null ? (
@@ -144,6 +209,26 @@ export default async function ParticipantsPage({
             {errorCount === 0 ? '' : `, ${String(errorCount)} à corriger`}
             {skippedCount === 0 ? '' : `, ${String(skippedCount)} en double`}.
           </p>
+          {effects === undefined || effects.created === validCount ? null : (
+            <ul className="pa-effects">
+              {effects.created === 0 ? null : (
+                <li>{plural(effects.created, 'nouveau participant', 'nouveaux participants')}</li>
+              )}
+              {effects.updated === 0 ? null : (
+                <li>{effects.updated} mis à jour : dossard ou vague</li>
+              )}
+              {effects.unchanged === 0 ? null : <li>{effects.unchanged} déjà à jour</li>}
+              {effects.kept === 0 ? null : (
+                <li>
+                  {plural(effects.kept, 'correction à la main gardée', 'corrections à la main gardées')}
+                  , le fichier dit autre chose
+                </li>
+              )}
+              {effects.withdrawn === 0 ? null : (
+                <li>{plural(effects.withdrawn, 'retiré, non rétabli', 'retirés, non rétablis')}</li>
+              )}
+            </ul>
+          )}
           {current.exceptions.length === 0 ? null : (
             <ul className="cr-facts">
               {current.exceptions.map((exception) => (
@@ -154,12 +239,49 @@ export default async function ParticipantsPage({
               ))}
             </ul>
           )}
+          {current.unknownWaves.rows === 0 ? null : (
+            <>
+              <p className="pk-body">
+                {current.unknownWaves.rows}{' '}
+                {current.unknownWaves.rows > 1
+                  ? 'lignes ont une vague inconnue'
+                  : 'ligne a une vague inconnue'}{' '}
+                sur cette édition. Ces coureurs seront importés et leur vague est gardée : elle se
+                rattachera dès qu’elle sera déclarée sur l’épreuve. D’ici là, ils partent à l’heure
+                de départ de l’épreuve.
+              </p>
+              <ul className="cr-facts">
+                {current.unknownWaves.shown.map((group) => (
+                  <li key={`${group.raceName}|${group.wave}`} className="cr-fact">
+                    <span className="cr-fact-value">
+                      {group.raceName} · {group.wave}
+                    </span>
+                    <span className="or-row-meta">
+                      {group.rows} {group.rows > 1 ? 'lignes' : 'ligne'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {current.unknownWaves.groups <= current.unknownWaves.shown.length ? null : (
+                <p className="pk-field-hint">
+                  {current.unknownWaves.shown.length} vagues sur {current.unknownWaves.groups}.
+                  Vérifiez que la colonne Vague est la bonne.
+                </p>
+              )}
+            </>
+          )}
           <p className="pk-field-hint">
-            Les lignes à corriger ne sont pas importées : corrigez votre fichier et relancez, celles
-            déjà importées ne seront pas doublées.
+            Les lignes à corriger ne sont pas importées : corrigez votre fichier et relancez. Une
+            personne déjà présente n’est jamais doublée, seuls son dossard et sa vague se
+            complètent. Une case vide n’efface rien.
           </p>
           <div className="or-inline-form">
-            <CommitImportForm scope={scope} importId={current.id} count={validCount} />
+            <CommitImportForm
+              scope={scope}
+              importId={current.id}
+              created={effects?.created ?? 0}
+              updated={effects?.updated ?? 0}
+            />
             <DiscardImportForm scope={scope} importId={current.id} />
           </div>
         </section>
@@ -185,29 +307,83 @@ export default async function ParticipantsPage({
             <p className="pk-field-hint">Aucun participant pour l’édition {edition.year}.</p>
           ) : (
             <>
+              {list.toCheck.bibs === 0 ? null : (
+                <div className="pa-check">
+                  <p className="pk-label">À vérifier</p>
+                  <p className="pk-body">
+                    {plural(
+                      list.toCheck.bibs,
+                      'participant avec un dossard en double',
+                      'participants avec un dossard en double',
+                    )}
+                    {canImport ? ' : ouvrez Corriger sur leur ligne, en tête de liste.' : '.'}
+                  </p>
+                </div>
+              )}
+              {list.pendingWaves === 0 ? null : (
+                <p className="pk-field-hint">
+                  {plural(
+                    list.pendingWaves,
+                    'participant attend que sa vague soit déclarée.',
+                    'participants attendent que leur vague soit déclarée.',
+                  )}
+                </p>
+              )}
               <ul className="cr-facts">
-                {list.participants.map((participant) => (
-                  <li key={participant.id} className="cr-fact">
-                    <div className="cr-fact-head">
-                      <span className="cr-fact-value">
-                        {[participant.firstName, participant.lastName]
-                          .filter((part) => part !== null)
-                          .join(' ') || 'Sans nom'}
+                {list.participants.map((participant) => {
+                  const wave = participant.waveName ?? participant.declaredWaveName;
+
+                  return (
+                    <li
+                      key={participant.id}
+                      className={participant.bibConflict ? 'cr-fact pa-flagged' : 'cr-fact'}
+                    >
+                      <div className="cr-fact-head">
+                        <span className="cr-fact-value">
+                          {[participant.firstName, participant.lastName]
+                            .filter((part) => part !== null)
+                            .join(' ') || 'Sans nom'}
+                        </span>
+                        <span className="pa-badges">
+                          {participant.bibConflict ? (
+                            <StatusBadge tone="warning">À vérifier</StatusBadge>
+                          ) : null}
+                          <StatusBadge tone={participant.activated ? 'success' : 'neutral'}>
+                            {participant.activated ? 'Sur PLUKA' : 'Importé'}
+                          </StatusBadge>
+                        </span>
+                      </div>
+                      {participant.bibConflict ? (
+                        <span className="pa-flag">Dossard {participant.bib} en double</span>
+                      ) : null}
+                      <span className="or-row-meta">
+                        {[
+                          participant.raceName,
+                          ...(participant.bib === null ? [] : [`Dossard ${participant.bib}`]),
+                          ...(participant.waveName === null ? [] : [participant.waveName]),
+                          ...(participant.declaredWaveName === null
+                            ? []
+                            : [`${participant.declaredWaveName} (vague à déclarer)`]),
+                          ...(participant.email === null ? [] : [participant.email]),
+                        ].join(' · ')}
                       </span>
-                      <StatusBadge tone={participant.activated ? 'success' : 'neutral'}>
-                        {participant.activated ? 'Sur PLUKA' : 'Importé'}
-                      </StatusBadge>
-                    </div>
-                    <span className="or-row-meta">
-                      {[
-                        participant.raceName,
-                        ...(participant.bib === null ? [] : [`Dossard ${participant.bib}`]),
-                        ...(participant.waveName === null ? [] : [participant.waveName]),
-                        ...(participant.email === null ? [] : [participant.email]),
-                      ].join(' · ')}
-                    </span>
-                  </li>
-                ))}
+                      {canImport ? (
+                        // La clé referme le panneau dès que la valeur enregistrée change.
+                        <ParticipantCorrection
+                          key={`${participant.bib ?? ''}|${wave ?? ''}`}
+                          scope={scope}
+                          participantRaceId={participant.id}
+                          bib={participant.bib}
+                          wave={wave}
+                          waves={list.waveOptions.filter(
+                            (option) => option.raceId === participant.raceId,
+                          )}
+                          canWithdraw={!participant.activated}
+                        />
+                      ) : null}
+                    </li>
+                  );
+                })}
               </ul>
               {list.total <= list.participants.length ? null : (
                 <p className="pk-field-hint">
@@ -215,6 +391,38 @@ export default async function ParticipantsPage({
                 </p>
               )}
             </>
+          )}
+          {list.withdrawn.length === 0 ? null : (
+            <details className="st-details">
+              <summary>Retirés ({list.withdrawn.length})</summary>
+              <ul className="cr-facts">
+                {list.withdrawn.map((participant) => (
+                  <li key={participant.id} className="cr-fact">
+                    <div className="cr-fact-head">
+                      <span className="cr-fact-value">
+                        {[participant.firstName, participant.lastName]
+                          .filter((part) => part !== null)
+                          .join(' ') || 'Sans nom'}
+                      </span>
+                      <StatusBadge tone="neutral">Retiré</StatusBadge>
+                    </div>
+                    <span className="or-row-meta">
+                      {[
+                        participant.raceName,
+                        ...(participant.bib === null ? [] : [`Dossard ${participant.bib}`]),
+                      ].join(' · ')}
+                    </span>
+                    {canImport ? (
+                      <WithdrawForm
+                        scope={scope}
+                        participantRaceId={participant.id}
+                        withdrawn={false}
+                      />
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </details>
           )}
         </section>
       )}

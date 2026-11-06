@@ -1,12 +1,14 @@
 'use client';
 
 import { PARTICIPANT_FIELDS } from '@pluka/domain';
-import { useActionState, useId } from 'react';
+import { useActionState, useEffect, useId, useRef } from 'react';
 
 import {
   commitImportAction,
+  correctParticipantAction,
   createImportAction,
   discardImportAction,
+  setParticipantWithdrawnAction,
   validateImportAction,
   type ParticipantActionState,
 } from '@/app/participant-actions';
@@ -139,14 +141,24 @@ export function ColumnsForm({
   );
 }
 
+function commitLabel(created: number, updated: number): string {
+  const add = `Importer ${String(created)} ${created > 1 ? 'participants' : 'participant'}`;
+  const update = `Mettre à jour ${String(updated)} ${updated > 1 ? 'participants' : 'participant'}`;
+  if (created === 0 && updated === 0) return 'Terminer sans rien changer';
+  if (created === 0) return update;
+  return updated === 0 ? add : `${add} et en mettre à jour ${String(updated)}`;
+}
+
 export function CommitImportForm({
   scope,
   importId,
-  count,
+  created,
+  updated,
 }: {
   readonly scope: Scope;
   readonly importId: string;
-  readonly count: number;
+  readonly created: number;
+  readonly updated: number;
 }) {
   const [state, action, pending] = useActionState(commitImportAction, INITIAL);
 
@@ -154,10 +166,127 @@ export function CommitImportForm({
     <form action={action} className="or-inline-form">
       <ScopeFields {...scope} />
       <input type="hidden" name="importId" value={importId} />
-      <button type="submit" className="pk-btn pk-button-primary" disabled={pending || count === 0}>
-        {pending
-          ? 'Import…'
-          : `Importer ${String(count)} ${count > 1 ? 'participants' : 'participant'}`}
+      <button type="submit" className="pk-btn pk-button-primary" disabled={pending}>
+        {pending ? 'Import…' : commitLabel(created, updated)}
+      </button>
+      <ActionError state={state} />
+    </form>
+  );
+}
+
+/** Corriger une ligne : dossard et vague, puis le retrait pour qui n'a pas de compte. */
+export function ParticipantCorrection({
+  scope,
+  participantRaceId,
+  bib,
+  wave,
+  waves,
+  canWithdraw,
+}: {
+  readonly scope: Scope;
+  readonly participantRaceId: string;
+  readonly bib: string | null;
+  readonly wave: string | null;
+  readonly waves: readonly { readonly name: string; readonly official: boolean }[];
+  readonly canWithdraw: boolean;
+}) {
+  const [state, action, pending] = useActionState(correctParticipantAction, INITIAL);
+  const id = useId();
+  const panel = useRef<HTMLDetailsElement>(null);
+
+  // Enregistrer referme le panneau, même sans changement ; une erreur le laisse ouvert.
+  useEffect(() => {
+    if (state !== INITIAL && state.error === undefined && panel.current !== null) {
+      panel.current.open = false;
+    }
+  }, [state]);
+
+  function cancel(form: HTMLFormElement | null) {
+    form?.reset();
+    if (panel.current !== null) panel.current.open = false;
+  }
+  // La vague actuelle reste choisie même hors de la liste : enregistrer ne doit pas la vider.
+  const options =
+    wave === null || waves.some((option) => option.name === wave)
+      ? waves
+      : [{ name: wave, official: false }, ...waves];
+
+  return (
+    <details ref={panel} className="st-details pa-correction">
+      <summary>Corriger</summary>
+      <form action={action} className="pa-correction-form">
+        <ScopeFields {...scope} />
+        <input type="hidden" name="participantRaceId" value={participantRaceId} />
+        <div className="pk-field">
+          <label className="pk-field-label" htmlFor={`${id}-bib`}>
+            Dossard
+          </label>
+          <input
+            id={`${id}-bib`}
+            name="bib"
+            className="pk-input"
+            defaultValue={bib ?? ''}
+            maxLength={30}
+          />
+        </div>
+        <div className="pk-field">
+          <label className="pk-field-label" htmlFor={`${id}-wave`}>
+            Vague
+          </label>
+          <select id={`${id}-wave`} name="wave" className="pk-input" defaultValue={wave ?? ''}>
+            <option value="">Sans vague</option>
+            {options.map((option) => (
+              <option key={option.name} value={option.name}>
+                {option.official ? option.name : `${option.name} (à déclarer)`}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="or-inline-form">
+          <button type="submit" className="pk-btn pk-button-primary" disabled={pending}>
+            {pending ? 'Enregistrement…' : 'Enregistrer'}
+          </button>
+          <button
+            type="button"
+            className="pk-btn pk-button-ghost"
+            disabled={pending}
+            onClick={(event) => cancel(event.currentTarget.form)}
+          >
+            Annuler
+          </button>
+        </div>
+        <ActionError state={state} />
+      </form>
+      <p className="pk-field-hint">
+        Une valeur choisie ici n’est jamais remplacée par un fichier. Laissée vide, un prochain
+        import pourra la renseigner.
+      </p>
+      {canWithdraw ? (
+        <WithdrawForm scope={scope} participantRaceId={participantRaceId} withdrawn />
+      ) : null}
+    </details>
+  );
+}
+
+export function WithdrawForm({
+  scope,
+  participantRaceId,
+  withdrawn,
+}: {
+  readonly scope: Scope;
+  readonly participantRaceId: string;
+  /** L'état à atteindre : vrai retire, faux rétablit. */
+  readonly withdrawn: boolean;
+}) {
+  const [state, action, pending] = useActionState(setParticipantWithdrawnAction, INITIAL);
+
+  return (
+    <form action={action} className="or-inline-form">
+      <ScopeFields {...scope} />
+      <input type="hidden" name="participantRaceId" value={participantRaceId} />
+      <input type="hidden" name="withdrawn" value={String(withdrawn)} />
+      <button type="submit" className="pk-btn pk-button-ghost" disabled={pending}>
+        {withdrawn ? 'Retirer de la liste' : 'Rétablir'}
       </button>
       <ActionError state={state} />
     </form>
