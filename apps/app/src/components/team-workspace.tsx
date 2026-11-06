@@ -7,11 +7,12 @@ import { WorkspaceTabs } from '@/components/workspace-tabs';
 
 /**
  * L'écran Équipe — même cadre que Site : la scène, puis une rubrique à la fois.
- * Client pour une seule raison : garder la rubrique ouverte quand un geste
- * recharge la page.
+ * Inviter n'est pas une rubrique : le bouton de la scène ouvre le formulaire
+ * au-dessus des invitations, là où l'envoi se retrouve. Client pour une seule
+ * raison : garder la rubrique ouverte quand un geste recharge la page.
  */
 
-type TeamTab = 'membres' | 'invitations' | 'inviter';
+type TeamTab = 'membres' | 'invitations';
 
 export function TeamWorkspace({
   organizationName,
@@ -36,14 +37,18 @@ export function TeamWorkspace({
   readonly invite: ReactNode;
 }) {
   const [tab, setTab] = useState<TeamTab>(focus ?? 'membres');
+  const [inviting, setInviting] = useState(false);
   const [seenFocus, setSeenFocus] = useState(focus);
   if (focus !== seenFocus) {
     setSeenFocus(focus);
-    if (focus !== undefined) setTab(focus);
+    if (focus !== undefined) {
+      setTab(focus);
+      setInviting(false);
+    }
   }
 
   return (
-    <div className="st-editor">
+    <div className="st-editor or-frame">
       <TerrainBand
         tone="dark"
         topo
@@ -55,7 +60,10 @@ export function TeamWorkspace({
           <button
             type="button"
             className="pk-btn pk-button-primary"
-            onClick={() => setTab('inviter')}
+            onClick={() => {
+              setTab('invitations');
+              setInviting(true);
+            }}
           >
             Inviter quelqu’un
           </button>
@@ -77,15 +85,32 @@ export function TeamWorkspace({
             tabs={[
               { key: 'membres', label: 'Membres', count: memberCount },
               { key: 'invitations', label: 'Invitations', count: invitationCount },
-              { key: 'inviter', label: 'Inviter' },
             ]}
           />
         </div>
 
         <div className="st-panels">
           <div hidden={tab !== 'membres'}>{members}</div>
-          <div hidden={tab !== 'invitations'}>{invitations}</div>
-          <div hidden={tab !== 'inviter'}>{invite}</div>
+          <div hidden={tab !== 'invitations'} className="st-panels">
+            {inviting ? (
+              <section aria-labelledby="invite-title" className="or-card">
+                <div className="cr-fact-head">
+                  <h2 id="invite-title" className="pk-h2">
+                    Inviter quelqu’un
+                  </h2>
+                  <button
+                    type="button"
+                    className="pk-btn pk-button-secondary"
+                    onClick={() => setInviting(false)}
+                  >
+                    Fermer
+                  </button>
+                </div>
+                {invite}
+              </section>
+            ) : null}
+            {invitations}
+          </div>
         </div>
       </div>
     </div>

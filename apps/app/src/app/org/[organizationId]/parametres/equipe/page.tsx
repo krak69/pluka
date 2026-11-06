@@ -65,7 +65,7 @@ export default async function TeamPage({
 
   if (team === null) {
     return (
-      <div className="st-editor">
+      <div className="st-editor or-frame">
         <TerrainBand
           tone="dark"
           topo
@@ -92,48 +92,50 @@ export default async function TeamPage({
       memberCount={team.members.length}
       invitationCount={team.invitations.length}
       members={
-          <section aria-labelledby="members-title" className="or-card">
-            <h2 id="members-title" className="pk-h2">
-              Membres
-            </h2>
-            <ul className="or-list">
-              {team.members.map((member) => {
-                const name =
-                  [member.firstName, member.lastName].filter((part) => part !== null).join(' ') ||
-                  member.email;
-                const isMe = member.userId === session.userId;
+        <section aria-labelledby="members-title" className="or-card">
+          <h2 id="members-title" className="pk-h2">
+            Membres
+          </h2>
+          <ul className="cr-facts">
+            {team.members.map((member) => {
+              const name =
+                [member.firstName, member.lastName].filter((part) => part !== null).join(' ') ||
+                member.email;
+              const isMe = member.userId === session.userId;
 
-                return (
-                  <li key={member.userId} className="or-row">
-                    <div className="or-row-main">
-                      <span className="pk-body">
-                        {name}
-                        {isMe ? ' (vous)' : ''}
-                      </span>
-                      <span className="or-row-meta">
-                        {name === member.email ? '' : `${member.email} · `}membre depuis le{' '}
-                        {dayOf(member.joinedAt)}
-                      </span>
-                    </div>
-                    <TeamMemberRoleForm
-                      organizationId={organizationId}
-                      userId={member.userId}
-                      memberName={name}
-                      role={member.role}
-                    />
-                    <details>
-                      <summary>Retirer…</summary>
+              return (
+                <li key={member.userId} className="cr-fact or-line">
+                  <div className="or-line-main">
+                    <span className="cr-fact-value">
+                      {name}
+                      {isMe ? ' (vous)' : ''}
+                    </span>
+                    <span className="or-row-meta">
+                      {name === member.email ? '' : `${member.email} · `}membre depuis le{' '}
+                      {dayOf(member.joinedAt)}
+                    </span>
+                  </div>
+                  <TeamMemberRoleForm
+                    organizationId={organizationId}
+                    userId={member.userId}
+                    memberName={name}
+                    role={member.role}
+                  />
+                  <div className="cr-fact-actions">
+                    <details className="st-details or-danger">
+                      <summary>Retirer</summary>
                       <RemoveTeamMemberForm
                         organizationId={organizationId}
                         userId={member.userId}
                         memberName={name}
                       />
                     </details>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       }
       invitations={
         <section aria-labelledby="invitations-title" className="or-card">
@@ -143,43 +145,48 @@ export default async function TeamPage({
           {team.invitations.length === 0 ? (
             <p className="pk-field-hint">Aucune invitation en attente.</p>
           ) : (
-              <ul className="or-list">
-                {team.invitations.map((invitation) => (
-                  <li key={invitation.invitationId} className="or-row">
-                    <div className="or-row-main">
-                      <span className="pk-body">{invitation.email}</span>
-                      <span className="or-row-meta">
-                        {teamRoleLabel(invitation.role)} ·{' '}
-                        {invitation.status === 'expired'
-                          ? 'Expirée — renvoyez une invitation'
-                          : invitation.sendFailed
-                            ? 'Envoi en échec — l’email n’est pas parti'
-                            : invitation.sentAt !== null
-                              ? `Envoyée le ${dayOf(invitation.sentAt)}`
-                              : 'Envoi en cours'}
-                      </span>
-                    </div>
-                    <RevokeTeamInvitationForm
-                      organizationId={organizationId}
-                      invitationId={invitation.invitationId}
-                    />
-                  </li>
-                ))}
-              </ul>
+            <ul className="cr-facts">
+              {team.invitations.map((invitation) => (
+                <li key={invitation.invitationId} className="cr-fact or-line">
+                  <div className="or-line-main">
+                    <span className="cr-fact-value">{invitation.email}</span>
+                    <span className="or-row-meta">
+                      {teamRoleLabel(invitation.role)} ·{' '}
+                      {invitation.status === 'expired'
+                        ? 'Expirée — renvoyez une invitation'
+                        : invitation.sendFailed
+                          ? 'Envoi en échec — l’email n’est pas parti'
+                          : invitation.sentAt !== null
+                            ? `Envoyée le ${dayOf(invitation.sentAt)}`
+                            : 'Envoi en cours'}
+                    </span>
+                  </div>
+                  <div className="cr-fact-actions">
+                    <details className="st-details or-danger">
+                      <summary>Révoquer</summary>
+                      <p className="pk-field-hint">
+                        Le lien reçu cesse de fonctionner. Vous pourrez réinviter cette adresse.
+                      </p>
+                      <RevokeTeamInvitationForm
+                        organizationId={organizationId}
+                        invitationId={invitation.invitationId}
+                      />
+                    </details>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </section>
       }
       invite={
-          <section aria-labelledby="invite-title" className="or-card">
-            <h2 id="invite-title" className="pk-h2">
-              Inviter quelqu’un
-            </h2>
-            <p className="pk-body">
-              L’invitation part par email ; la personne l’accepte en se connectant avec cette
-              adresse. Réinviter une adresse annule le lien précédent.
-            </p>
-            <InviteTeamMemberForm organizationId={organizationId} />
-          </section>
+        <>
+          <p className="pk-body">
+            L’invitation part par email ; la personne l’accepte en se connectant avec cette adresse.
+            Réinviter une adresse annule le lien précédent.
+          </p>
+          <InviteTeamMemberForm organizationId={organizationId} />
+        </>
       }
     />
   );

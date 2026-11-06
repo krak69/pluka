@@ -182,7 +182,7 @@ export function RevokeTeamInvitationForm({
       <input type="hidden" name="organizationId" value={organizationId} />
       <input type="hidden" name="invitationId" value={invitationId} />
       <button type="submit" className="pk-btn pk-button-secondary" disabled={pending}>
-        Révoquer
+        Confirmer la révocation
       </button>
       {state.error === undefined ? null : (
         <p className="pk-field-error" role="alert">
