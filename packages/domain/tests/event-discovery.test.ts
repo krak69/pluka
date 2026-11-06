@@ -28,7 +28,7 @@ function context(overrides: Partial<EventDiscoveryRepository> = {}): {
     addDocuments: async () => 0,
     addFile: async (input) => {
       calls.push(input);
-      return 'source-id';
+      return { sourceId: 'source-id', created: true };
     },
     listDocuments: async () => ({ documents: [], pendingByCategory: [] }),
     ...overrides,
@@ -149,7 +149,7 @@ describe('fichiers', () => {
     ).rejects.toMatchObject({ code: 'validation' });
     expect(calls).toEqual([]);
 
-    await addEditionFile(ctx, {
+    const added = await addEditionFile(ctx, {
       editionId: EDITION,
       fileName: 'Règlement 2027.pdf',
       bytes: new TextEncoder().encode('%PDF-1.7 …'),
@@ -157,5 +157,6 @@ describe('fichiers', () => {
       raceId: null,
     });
     expect(calls[0]).toMatchObject({ title: 'Règlement 2027' });
+    expect(added.created).toBe(true);
   });
 });

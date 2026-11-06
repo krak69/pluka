@@ -273,7 +273,7 @@ export async function addEditionDocuments(
 export async function addEditionFile(
   context: EventDiscoveryContext,
   input: unknown,
-): Promise<{ readonly sourceId: string }> {
+): Promise<{ readonly sourceId: string; readonly created: boolean }> {
   const useCase = 'addEditionFile';
   const command = parseCommand(addEditionFileCommandSchema, input, useCase);
 
@@ -291,14 +291,13 @@ export async function addEditionFile(
   }
 
   try {
-    const sourceId = await context.repositories.eventDiscovery.addFile({
+    return await context.repositories.eventDiscovery.addFile({
       editionId: command.editionId,
       title: command.fileName.replace(/\.pdf$/i, ''),
       contentHash: command.contentHash,
       bytes: command.bytes,
       raceId: command.raceId,
     });
-    return { sourceId };
   } catch (error) {
     throw translate(error, useCase, 'édition');
   }

@@ -10,7 +10,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(11);
+select plan(14);
 
 \ir _personas.psql
 
@@ -72,6 +72,24 @@ select throws_ok(
   $$ select public.list_edition_documents('aaaaaaaa-0000-4000-8000-000000000012') $$,
   '42501', null, 'DOCS-11 — anonyme : refusé');
 reset role;
+
+-- Un même contenu, sous un autre nom.
+select pg_temp.act_as('55555555-5555-4555-8555-555555555555');
+select is(
+  public.add_edition_file('aaaaaaaa-0000-4000-8000-000000000012', 'Règlement',
+    'editions/aaaaaaaa-0000-4000-8000-000000000012/documents/' || repeat('d', 64) || '.pdf',
+    repeat('d', 64), 2048) ->> 'created',
+  'true', 'DOCS-12 — un fichier nouveau devient une source');
+select is(
+  public.add_edition_file('aaaaaaaa-0000-4000-8000-000000000012', 'Autre nom',
+    'editions/aaaaaaaa-0000-4000-8000-000000000012/documents/' || repeat('d', 64) || '.pdf',
+    repeat('d', 64), 2048) ->> 'created',
+  'false', 'DOCS-13 — le même contenu se dit déjà déposé');
+reset role;
+select is(
+  (select count(*)::integer from public.sources
+   where storage_path like '%/documents/' || repeat('d', 64) || '.pdf'),
+  1, 'DOCS-14 — le même contenu ne crée pas une seconde source');
 
 select * from finish();
 rollback;

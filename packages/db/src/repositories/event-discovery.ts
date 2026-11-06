@@ -82,6 +82,12 @@ export interface EditionDocumentsRecord {
   readonly pendingByCategory: readonly { readonly category: string; readonly count: number }[];
 }
 
+/** `created` est faux quand ce contenu est déjà une source de l'édition, même sous un autre nom. */
+export interface EditionFileResult {
+  readonly sourceId: string;
+  readonly created: boolean;
+}
+
 export interface EventDiscoveryRepository {
   /** Événement, édition, épreuves — et l'inventaire du site s'il est donné. Rend l'événement. */
   createEvent(input: CreateEventInput): Promise<string>;
@@ -90,7 +96,7 @@ export interface EventDiscoveryRepository {
   refreshDiscovery(eventId: string): Promise<string>;
   addDocuments(editionId: string, documents: readonly EditionDocumentInput[]): Promise<number>;
   /** Dépose le PDF sous la session — la policy du bucket tranche —, puis déclare la source. */
-  addFile(input: EditionFileInput): Promise<string>;
+  addFile(input: EditionFileInput): Promise<EditionFileResult>;
   listDocuments(editionId: string): Promise<EditionDocumentsRecord>;
 }
 
@@ -195,7 +201,7 @@ export const eventDiscoveryRepository = defineRepository<EventDiscoveryRepositor
     if (error !== null) throw storageError(error, 'edition_document.upload');
 
     const operation = 'add_edition_file';
-    return uuidOf(
+    const row = objectOf(
       await invoke(context, operation, {
         p_edition_id: input.editionId,
         p_title: input.title,
@@ -206,6 +212,8 @@ export const eventDiscoveryRepository = defineRepository<EventDiscoveryRepositor
       }),
       operation,
     );
+
+    return { sourceId: uuidOf(row['sourceId'], operation), created: row['created'] === true };
   },
 
   async listDocuments(editionId) {

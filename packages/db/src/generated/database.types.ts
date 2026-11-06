@@ -5891,7 +5891,7 @@ export type Database = {
           p_storage_path: string
           p_title: string
         }
-        Returns: string
+        Returns: Json
       }
       add_event_site_gallery_photo: {
         Args: { p_alt: string; p_event_id: string; p_path: string }

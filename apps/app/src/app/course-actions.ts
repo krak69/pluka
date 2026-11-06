@@ -219,18 +219,22 @@ export async function addDocumentFileAction(
     return { error: 'Ce fichier dépasse 25 Mo.' };
   }
 
+  let created: boolean;
   try {
     const bytes = new Uint8Array(await file.arrayBuffer());
     const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
-    await addEditionFile(courseDocumentsContext(await requireSession(pagePath(form, 'sources'))), {
-      editionId: text(form, 'editionId'),
-      fileName: file.name,
-      bytes,
-      contentHash: [...new Uint8Array(digest)]
-        .map((byte) => byte.toString(16).padStart(2, '0'))
-        .join(''),
-      raceId: text(form, 'raceId') === '' ? null : text(form, 'raceId'),
-    });
+    ({ created } = await addEditionFile(
+      courseDocumentsContext(await requireSession(pagePath(form, 'sources'))),
+      {
+        editionId: text(form, 'editionId'),
+        fileName: file.name,
+        bytes,
+        contentHash: [...new Uint8Array(digest)]
+          .map((byte) => byte.toString(16).padStart(2, '0'))
+          .join(''),
+        raceId: text(form, 'raceId') === '' ? null : text(form, 'raceId'),
+      },
+    ));
   } catch (error) {
     const result = failure(error);
     return result.fieldErrors?.['file'] === undefined
@@ -238,7 +242,7 @@ export async function addDocumentFileAction(
       : { error: result.fieldErrors['file'] };
   }
 
-  done(form, 'document', 'sources');
+  done(form, created ? 'document' : 'fichier-deja-depose', 'sources');
 }
 
 export async function addDocumentLinkAction(

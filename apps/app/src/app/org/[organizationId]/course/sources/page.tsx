@@ -31,6 +31,8 @@ const STATES: Readonly<Record<string, { label: string; tone: StatusTone }>> = {
 const NOTICES: Readonly<Record<string, string>> = {
   document: 'Document ajouté : PLUKA l’analyse.',
   'deja-ajoute': 'Cette adresse est déjà dans vos documents.',
+  'fichier-deja-depose':
+    'Ce fichier est déjà dans vos documents, avec le même contenu, peut-être sous un autre nom. Rien n’a été ajouté.',
 };
 
 function today(): string {
