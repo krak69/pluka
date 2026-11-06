@@ -86,6 +86,16 @@ export default async function CourseSourcesPage({
     ...(edition === null ? {} : { edition: String(edition.year) }),
   }).toString();
 
+  const documentScope =
+    edition === null
+      ? null
+      : {
+          organizationId,
+          selection,
+          editionId: edition.id,
+          races: races.map((race) => ({ id: race.id, name: race.name })),
+        };
+
   return (
     <CourseFrame
       organizationId={organizationId}
@@ -121,38 +131,13 @@ export default async function CourseSourcesPage({
         </p>
       )}
 
-      {edition === null ? (
+      {edition === null || documentScope === null ? (
         <section className="or-card">
           <p className="pk-body">Les documents se rattachent à une édition : il n’y en a pas encore.</p>
         </section>
       ) : (
         <>
-          {permissions.canEdit ? (
-            <section aria-labelledby="add-document" className="or-card">
-              <h2 id="add-document" className="pk-h2">
-                Ajouter un document
-              </h2>
-              <div className="cr-add">
-                <AddDocumentFileForm
-                  scope={{
-                    organizationId,
-                    selection,
-                    editionId: edition.id,
-                    races: races.map((race) => ({ id: race.id, name: race.name })),
-                  }}
-                />
-                <AddDocumentLinkForm
-                  siteAddress={siteAlreadyAdded ? null : siteAddress}
-                  scope={{
-                    organizationId,
-                    selection,
-                    editionId: edition.id,
-                    races: races.map((race) => ({ id: race.id, name: race.name })),
-                  }}
-                />
-              </div>
-            </section>
-          ) : (
+          {permissions.canEdit ? null : (
             <p className="pk-body st-readonly">
               Votre rôle permet de voir les documents, pas d’en ajouter.
             </p>
@@ -162,6 +147,23 @@ export default async function CourseSourcesPage({
             <h2 id="documents" className="pk-h2">
               Vos documents
             </h2>
+
+            {permissions.canEdit ? (
+              <div className="or-adds">
+                <details className="st-details or-add" open={documents.length === 0}>
+                  <summary className="pk-btn pk-button-secondary">Déposer un PDF</summary>
+                  <AddDocumentFileForm scope={documentScope} />
+                </details>
+                <details className="st-details or-add" open={documents.length === 0}>
+                  <summary className="pk-btn pk-button-secondary">Ajouter une page web</summary>
+                  <AddDocumentLinkForm
+                    siteAddress={siteAlreadyAdded ? null : siteAddress}
+                    scope={documentScope}
+                  />
+                </details>
+              </div>
+            ) : null}
+
             {documents.length === 0 ? (
               <p className="pk-field-hint">
                 Aucun document pour l’édition {edition.year}. Commencez par votre règlement.
@@ -171,26 +173,30 @@ export default async function CourseSourcesPage({
                 {documents.map((document) => {
                   const state = STATES[document.state] ?? STATES['queued'];
                   return (
-                    <li key={document.sourceId} className="cr-fact">
-                      <div className="cr-fact-head">
+                    <li key={document.sourceId} className="cr-fact or-line">
+                      <div className="or-line-main">
                         <span className="cr-fact-value">{document.title}</span>
-                        {state === undefined ? null : (
-                          <StatusBadge tone={state.tone}>{state.label}</StatusBadge>
-                        )}
+                        <span className="or-row-meta">
+                          {[
+                            document.uploaded
+                              ? 'Fichier'
+                              : document.url === null
+                                ? 'Saisie'
+                                : 'Page web',
+                            document.raceName ?? 'Toutes les épreuves',
+                            ...(document.state === 'done'
+                              ? [
+                                  document.candidateCount === 0
+                                    ? 'Aucune information relevée'
+                                    : `${String(document.candidateCount)} ${document.candidateCount > 1 ? 'informations relevées' : 'information relevée'}`,
+                                ]
+                              : []),
+                          ].join(' · ')}
+                        </span>
                       </div>
-                      <span className="or-row-meta">
-                        {[
-                          document.uploaded ? 'Fichier' : document.url === null ? 'Saisie' : 'Page web',
-                          document.raceName ?? 'Toutes les épreuves',
-                          ...(document.state === 'done'
-                            ? [
-                                document.candidateCount === 0
-                                  ? 'Aucune information relevée'
-                                  : `${String(document.candidateCount)} ${document.candidateCount > 1 ? 'informations relevées' : 'information relevée'}`,
-                              ]
-                            : []),
-                        ].join(' · ')}
-                      </span>
+                      {state === undefined ? null : (
+                        <StatusBadge tone={state.tone}>{state.label}</StatusBadge>
+                      )}
                     </li>
                   );
                 })}

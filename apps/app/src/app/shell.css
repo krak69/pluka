@@ -1124,7 +1124,8 @@ select.pk-input {
   border-bottom: 1px solid var(--pk-hairline);
 }
 
-@media (min-width: 1100px) {
+/* 1240 px : le menu latéral retire 15 rem à la ligne. */
+@media (min-width: 1240px) {
   .wp-row {
     grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr) 6rem minmax(0, 1.2fr) 6.5rem auto;
   }
@@ -1210,12 +1211,6 @@ select.pk-input {
 .pa-flag {
   font-size: 13.5px;
   font-weight: 500;
-}
-
-.cr-add {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
-  gap: var(--space-5);
 }
 
 /* Une section de page : un fond clair, un filet, rien de plus (§42). */
@@ -1460,6 +1455,16 @@ select.pk-input {
 }
 
 .or-line .cr-fact-actions:has(details[open]) {
+  flex-basis: 100%;
+}
+
+.or-adds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.or-adds .or-add[open] {
   flex-basis: 100%;
 }
 
