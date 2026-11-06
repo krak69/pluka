@@ -300,6 +300,8 @@ export interface OrganizerCourse {
   readonly editions: readonly EventSiteEditionRecord[];
   readonly edition: EventSiteEditionRecord | null;
   readonly races: readonly EventSiteRaceRecord[];
+  /** Le site PLUKA de l'événement répond au public : son adresse peut servir de source. */
+  readonly siteOnline: boolean;
 }
 
 export const getOrganizerCourseQuerySchema = getEventSiteEditorQuerySchema.extend({
@@ -331,7 +333,16 @@ export async function getOrganizerCourse(
       : events.find((candidate) => candidate.slug === query.eventSlug)) ?? events[0] ?? null;
 
   if (event === null) {
-    return { organizationName, permissions, events, event, editions: [], edition: null, races: [] };
+    return {
+      organizationName,
+      permissions,
+      events,
+      event,
+      editions: [],
+      edition: null,
+      races: [],
+      siteOnline: false,
+    };
   }
 
   const editions = (await repository.listEditions(event.id))
@@ -340,9 +351,14 @@ export async function getOrganizerCourse(
   const edition =
     editions.find((candidate) => candidate.year === query.year) ??
     currentSiteEdition(editions, query.today);
-  const races = edition === null ? [] : await repository.listRaces(edition.id);
+  const [races, site] = await Promise.all([
+    edition === null ? [] : repository.listRaces(edition.id),
+    repository.findSite(event.id),
+  ]);
+  const siteOnline =
+    site?.status === 'published' && event.status === 'published' && isSiteSubdomain(event.slug);
 
-  return { organizationName, permissions, events, event, editions, edition, races };
+  return { organizationName, permissions, events, event, editions, edition, races, siteOnline };
 }
 
 export const duplicateEditionCommandSchema = z

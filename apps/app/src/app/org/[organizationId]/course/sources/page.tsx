@@ -1,4 +1,4 @@
-import { getOrganizerCourse, listEditionDocuments } from '@pluka/domain';
+import { getOrganizerCourse, listEditionDocuments, siteUrl } from '@pluka/domain';
 import { StatusBadge, type StatusTone } from '@pluka/ui';
 import Link from 'next/link';
 
@@ -6,6 +6,7 @@ import { AutoRefresh } from '@/components/auto-refresh';
 import { AddDocumentFileForm, AddDocumentLinkForm } from '@/components/course-forms';
 import { CourseFrame } from '@/components/course-frame';
 import { sessionEventSiteContext } from '@/lib/event-site-editing';
+import { publicEnv } from '@/lib/env';
 import { courseDocumentsContext, courseHref } from '@/lib/organizer-course';
 import { requireSession } from '@/lib/session';
 
@@ -60,7 +61,7 @@ export default async function CourseSourcesPage({
     ...(eventSlug === undefined ? {} : { eventSlug }),
     ...(year === undefined ? {} : { year }),
   });
-  const { event, edition, races, permissions } = course;
+  const { event, edition, races, permissions, siteOnline } = course;
 
   const record =
     edition === null
@@ -75,6 +76,11 @@ export default async function CourseSourcesPage({
     (document) => document.state === 'queued' || document.state === 'reading',
   );
   const pending = record.pendingByCategory.reduce((total, item) => total + item.count, 0);
+  const siteAddress =
+    siteOnline && event !== null ? siteUrl(event.slug, publicEnv().NEXT_PUBLIC_APP_URL) : null;
+  const siteAlreadyAdded = documents.some(
+    (document) => document.url?.replace(/\/+$/u, '') === siteAddress,
+  );
   const selection = new URLSearchParams({
     ...(event === null ? {} : { evenement: event.slug }),
     ...(edition === null ? {} : { edition: String(edition.year) }),
@@ -136,6 +142,7 @@ export default async function CourseSourcesPage({
                   }}
                 />
                 <AddDocumentLinkForm
+                  siteAddress={siteAlreadyAdded ? null : siteAddress}
                   scope={{
                     organizationId,
                     selection,

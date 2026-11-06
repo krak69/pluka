@@ -300,7 +300,14 @@ export function AddDocumentFileForm({ scope }: { readonly scope: DocumentScope }
   );
 }
 
-export function AddDocumentLinkForm({ scope }: { readonly scope: DocumentScope }) {
+export function AddDocumentLinkForm({
+  scope,
+  siteAddress,
+}: {
+  readonly scope: DocumentScope;
+  /** L'adresse du site PLUKA, tant qu'elle n'est pas déjà dans les documents. */
+  readonly siteAddress: string | null;
+}) {
   const [state, action, pending] = useActionState(addDocumentLinkAction, INITIAL);
   const id = useId();
 
@@ -312,8 +319,14 @@ export function AddDocumentLinkForm({ scope }: { readonly scope: DocumentScope }
         name="url"
         type="url"
         label="Page de votre site"
+        key={siteAddress ?? 'vide'}
+        defaultValue={siteAddress ?? ''}
         placeholder="https://"
-        hint="PLUKA lit cette page, et seulement elle."
+        hint={
+          siteAddress === null
+            ? 'PLUKA lit cette page, et seulement elle.'
+            : 'L’adresse de votre site PLUKA, à modifier pour viser une autre page. PLUKA lit cette page, et seulement elle.'
+        }
         disabled={pending}
       />
       <div className="or-inline-form">

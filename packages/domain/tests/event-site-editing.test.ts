@@ -526,6 +526,19 @@ describe('le périmètre de Ma course', () => {
     expect(course.permissions.canEdit).toBe(false);
   });
 
+  it('dit si le site PLUKA répond au public', async () => {
+    const online = () =>
+      getOrganizerCourse(context(), { organizationId: ORG, today: '2026-06-01' });
+
+    expect((await online()).siteOnline).toBe(false);
+
+    world.site = { status: 'draft' } as EventSiteRecord;
+    expect((await online()).siteOnline).toBe(false);
+
+    world.site = { status: 'published' } as EventSiteRecord;
+    expect((await online()).siteOnline).toBe(true);
+  });
+
   it('retombe sur l’édition courante pour une année inconnue', async () => {
     const course = await getOrganizerCourse(context(), {
       organizationId: ORG,
