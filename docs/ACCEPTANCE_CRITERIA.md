@@ -1788,6 +1788,18 @@ Le BO ne montre jamais :
 - Nutrition ;
 - Assistance.
 
+## AC-B2B-PART-09
+
+Un second import complète dossard et vague sans créer de doublon. Une case vide n'efface rien.
+
+## AC-B2B-PART-10
+
+Un owner ou un admin corrige dossard et vague. Un fichier n'écrase jamais cette correction, et la vérification le dit avant l'import.
+
+## AC-B2B-PART-11
+
+Un participant sans compte se retire sans effacer sa ligne, se rétablit, et aucun fichier ne le rétablit.
+
 ---
 
 # 33. Acceptance — B2B Enrichment

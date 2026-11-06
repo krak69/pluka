@@ -1379,6 +1379,12 @@ Workflow CSV :
 
 Sexe, date de naissance et nationalité vont dans `private.participant_demographics`, indices et identifiants dans `private.participant_performance_signals`, un fournisseur par ligne. Aucune organisation ne les relit.
 
+Une vague se rattache par son nom à `race_start_waves`. Sans vague de ce nom sur l'épreuve, la ligne reste importée, l'organisation en est prévenue à la vérification, et le nom est gardé dans `participant_races.declared_wave_name` (0061). Il devient `start_wave_id` dès qu'une vague du même nom existe. Le fichier ne crée jamais de vague : une vague officielle porte une heure de départ, que le fichier n'a pas.
+
+La liste d'une édition dit ce qui reste à vérifier (0062) : un même dossard sur plusieurs lignes d'une épreuve. Un tel dossard n'est pas refusé à l'import : c'est un signal, l'organisation tranche. Une vague à déclarer se mentionne sans alerte, tant qu'aucun écran ne permet de la déclarer.
+
+Un import repris complète les présents (0064) : l'épreuve et l'e-mail les reconnaissent, seuls `bib_number` et la vague changent, une case vide n'efface rien. `bib_set_manually` et `wave_set_manually` marquent une correction à la main, qu'aucun fichier n'écrase ; vider le champ à la main rend la place au fichier. Un participant retiré est au statut `archived`, garde sa ligne, et sort de la liste, des comptes et des conflits de dossard ; un fichier ne le rétablit pas. Le retrait est refusé à un participant rattaché à un compte.
+
 ## 20.2 `participant_invitations`
 
 Invitation liée à une participation.
