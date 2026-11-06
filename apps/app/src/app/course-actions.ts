@@ -506,3 +506,22 @@ export async function cancelRaceAction(
 
   done(form, 'epreuve-annulee', 'epreuves');
 }
+
+/** Rétablir demande le même rang qu'annuler ; l'avertissement part de la base (0067). */
+export async function reinstateRaceAction(
+  _previous: CourseActionState,
+  form: FormData,
+): Promise<CourseActionState> {
+  try {
+    await changeRaceStatus(courseContext(await requireSession(pagePath(form, 'epreuves'))), {
+      raceId: text(form, 'raceId'),
+      status: 'published',
+    });
+  } catch (error) {
+    return error instanceof DomainError && error.code === 'forbidden'
+      ? { error: 'Seuls un propriétaire ou un administrateur rétablissent une épreuve.' }
+      : failure(error);
+  }
+
+  done(form, 'epreuve-retablie', 'epreuves');
+}

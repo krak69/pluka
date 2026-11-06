@@ -24,6 +24,7 @@ import { CourseFrame } from '@/components/course-frame';
 import {
   AddEquipmentForm,
   CancelRaceForm,
+  ReinstateRaceForm,
   ImportGpxForm,
   ReviseEquipmentForm,
   WaypointsForm,
@@ -74,7 +75,8 @@ const NOTICES: Readonly<Record<string, string>> = {
   'points-enregistres': 'Points de passage enregistrés. PLUKA recalcule le parcours.',
   'materiel-ajoute': 'Matériel ajouté.',
   'materiel-corrige': 'Matériel corrigé.',
-  'epreuve-annulee': 'Épreuve annulée.',
+  'epreuve-annulee': 'Épreuve annulée : les participants vont être avertis.',
+  'epreuve-retablie': 'Épreuve rétablie : les participants vont être avertis.',
   retiree: 'Matériel retiré : les coureurs ne le voient plus.',
   restauree: 'Matériel restauré.',
 };
@@ -310,11 +312,21 @@ export default async function CourseRacesPage({
                 {permissions.canPublish && race.status === 'published' ? (
                   <section aria-labelledby="race-cancel" className="or-card">
                     <h3 id="race-cancel" className="pk-label">
-                      Geste définitif
+                      Annulation
                     </h3>
                     <details className="st-details or-danger">
                       <summary>Annuler l’épreuve</summary>
                       <CancelRaceForm scope={raceScope} raceName={race.name} />
+                    </details>
+                  </section>
+                ) : permissions.canPublish && race.status === 'cancelled' ? (
+                  <section aria-labelledby="race-reinstate" className="or-card">
+                    <h3 id="race-reinstate" className="pk-label">
+                      Annulation
+                    </h3>
+                    <details className="st-details">
+                      <summary>Rétablir l’épreuve</summary>
+                      <ReinstateRaceForm scope={raceScope} raceName={race.name} />
                     </details>
                   </section>
                 ) : permissions.canPublish && race.status === 'draft' ? (

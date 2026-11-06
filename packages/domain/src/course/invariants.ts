@@ -139,8 +139,8 @@ export type PublicationVerdict =
  *
  * Publier une Race sous une édition ou un événement non diffusés produirait
  * une course inatteignable : la lecture publique remonte toute la chaîne. La
- * transition part toujours de `draft` — les autres statuts ne sont pas des
- * états de travail.
+ * transition part de `draft`, ou de `cancelled` quand une annulation est
+ * levée — les autres statuts ne sont pas des états de travail.
  */
 export function checkRacePublication(
   race: RaceRecord,
@@ -149,7 +149,9 @@ export function checkRacePublication(
 ): PublicationVerdict {
   if (!isEventReadable(event)) return { ok: false, reason: 'event_not_published' };
   if (!isEditionReadable(edition)) return { ok: false, reason: 'edition_not_published' };
-  if (race.status !== 'draft') return { ok: false, reason: 'race_not_draft' };
+  if (race.status !== 'draft' && race.status !== 'cancelled') {
+    return { ok: false, reason: 'race_not_draft' };
+  }
 
   return { ok: true };
 }

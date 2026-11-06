@@ -52,7 +52,18 @@ export {
 } from './templates/event-site-contact.js';
 
 export {
+  renderRaceCancelledNotice,
+  renderRaceReinstatedNotice,
+  type RaceStatusNotice,
+} from './templates/race-reinstated.js';
+
+export {
   EVENT_SITE_CONTACT_TEMPLATE_VERSION,
+  RACE_CANCELLED_TEMPLATE_VERSION,
+  RACE_REINSTATED_TEMPLATE_VERSION,
+  sendRaceCancelledNotice,
+  sendRaceReinstatedNotice,
+  type RaceStatusDelivery,
   sendEventSiteContact,
   type EventSiteContactDelivery,
   INVITATION_TEMPLATE_VERSION,

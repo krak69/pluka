@@ -384,6 +384,12 @@ Une Race `unlisted` / `private` ne devient pas listable publiquement par connais
 
 La timezone de la Race est stockée et utilisée dans les calculs temporels.
 
+## AC-COURSE-07
+
+Un `admin` de l'organisation gestionnaire rétablit une Race `cancelled` ; un `editor` et une autre organisation sont refusés.
+
+L'annulation et le rétablissement avertissent par email, une fois chacun, les participants actifs dont le compte est activé, même s'ils ont coupé leurs notifications. Un retiré et une ligne jamais activée ne reçoivent rien. Un rejeu ne produit aucun second message, et un désarchivage n'écrit à personne.
+
 ---
 
 # 9. Acceptance — Onboarding coureur

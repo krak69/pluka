@@ -27,13 +27,14 @@ const ALL_STATUSES: readonly RaceStatus[] = [
 
 describe('table de transitions', () => {
   it('reprend exactement le tableau de §4.1', () => {
-    // Six lignes au tableau, sept transitions : la dernière ligne couvre
+    // Sept lignes au tableau, huit transitions : la dernière ligne couvre
     // `archived → completed` et `archived → cancelled`.
     expect(
       RACE_TRANSITIONS.map((transition) => [transition.from, transition.to, transition.authority]),
     ).toEqual([
       ['draft', 'published', 'organization_editor'],
       ['published', 'cancelled', 'organization_admin'],
+      ['cancelled', 'published', 'organization_admin'],
       ['published', 'completed', 'platform_admin'],
       ['completed', 'archived', 'platform_admin'],
       ['cancelled', 'archived', 'platform_admin'],
@@ -45,7 +46,7 @@ describe('table de transitions', () => {
   it('refuse toute transition non listée', () => {
     // §4.1 : « Une transition non listée ci-dessus est refusée avec
     // `invalid_state`. » On énumère les 25 couples possibles et on vérifie
-    // que seuls les 7 attendus existent.
+    // que seuls les 8 attendus existent.
     const allowed = new Set(
       RACE_TRANSITIONS.map((transition) => `${transition.from}→${transition.to}`),
     );
@@ -58,7 +59,7 @@ describe('table de transitions', () => {
     }
 
     expect(new Set(found)).toEqual(allowed);
-    expect(found).toHaveLength(7);
+    expect(found).toHaveLength(8);
   });
 
   it('ne permet jamais de revenir en brouillon', () => {

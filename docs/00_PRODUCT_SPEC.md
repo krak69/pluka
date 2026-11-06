@@ -212,8 +212,9 @@ toute autre est refusée avec `invalid_state`.
 
 ```text
 draft ──► published ──► completed ──► archived
-             │                            ▲
-             └────────► cancelled ────────┘
+             ▲ │                          ▲
+             │ ▼                          │
+             cancelled ───────────────────┘
 ```
 
 | Statut | Sens |
@@ -230,6 +231,7 @@ draft ──► published ──► completed ──► archived
 | --- | --- |
 | `draft → published` | `editor` de l'organisation gestionnaire, ou `pluka_admin` |
 | `published → cancelled` | `admin` de l'organisation gestionnaire, ou `pluka_admin` |
+| `cancelled → published` | `admin` de l'organisation gestionnaire, ou `pluka_admin` |
 | `published → completed` | `pluka_admin` uniquement |
 | `completed → archived` | `pluka_admin` uniquement |
 | `cancelled → archived` | `pluka_admin` uniquement |
@@ -248,6 +250,10 @@ après la date de départ : une course peut être annulée sur place le jour J.
 Une course annulée **reste visible** pour tous les coureurs concernés, avec une mention
 « Annulée » explicite partout où elle apparaît : Ma saison, page de course, Race Pack.
 
+Les participants sont **avertis par email** dans la transaction de l'annulation : compte
+activé et participation active. Savoir si sa course a lieu relève de la sécurité : ce message
+part même si le coureur a coupé ses notifications de changement officiel.
+
 Elle n'est jamais masquée ni retirée de l'espace du coureur. Le travail de préparation
 appartient au coureur, pas à l'organisation.
 
@@ -259,6 +265,20 @@ Aucune donnée personnelle n'est supprimée, dégradée ni verrouillée par une 
 
 Les moteurs restent utilisables sur une course annulée. PLUKA ne recalcule ni ne réinitialise
 quoi que ce soit lors de la transition.
+
+### Rétablir une course annulée
+
+Une annulation se lève : une erreur ou une décision revue ne doit pas laisser la course
+perdue. La course redevient `published`, sous les mêmes conditions qu'une publication : son
+Edition et son Event sont diffusés.
+
+Les participants sont avertis par email dans les mêmes conditions que pour l'annulation, y
+compris s'ils ont coupé leurs notifications : qui a appris l'annulation doit apprendre qu'elle
+est levée. Une préparation n'étant jamais touchée par l'annulation, rien n'est à recalculer et
+le message le dit.
+
+Chaque rétablissement est un fait distinct : annuler puis rétablir une seconde fois envoie un
+second message. Un rejeu de l'envoi n'en produit aucun.
 
 ### Effets d'un archivage
 
@@ -1731,8 +1751,9 @@ Lorsqu’une information officielle est modifiée :
 - permettre de suivre des agrégats de consultation.
 
 Le coureur peut couper les notifications d’un changement officiel pour une course donnée
-(`participant_race_settings.notifications_enabled`, actif par défaut). Ce réglage ne
-concerne que la diffusion : l’impact reste visible dans l’application, qui est le canal
+(`participant_race_settings.notifications_enabled`, actif par défaut). L’annulation et le
+rétablissement d’une course n’en dépendent pas (§4.1). Ce réglage ne concerne que la
+diffusion : l’impact reste visible dans l’application, qui est le canal
 ne dépendant d’aucun fournisseur. Une préférence ne doit jamais empêcher un coureur de
 constater qu’une information de sa course a changé.
 

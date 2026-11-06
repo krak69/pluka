@@ -206,6 +206,35 @@ describe('transitions réservées à pluka_admin', () => {
     );
   });
 
+  it('cancelled → published : un admin de l’organisation rétablit l’épreuve', async () => {
+    await driveTo('cancelled');
+
+    const race = await changeRaceStatus(contextFor(ADMIN_A), {
+      raceId: RACE_ID,
+      status: 'published',
+    });
+
+    expect(race.status).toBe('published');
+  });
+
+  it('cancelled → published : un éditeur ne rétablit pas', async () => {
+    await driveTo('cancelled');
+
+    await expectDomainError(
+      changeRaceStatus(contextFor(EDITOR_A), { raceId: RACE_ID, status: 'published' }),
+      'forbidden',
+    );
+  });
+
+  it('cancelled → published : une autre organisation ne rétablit pas', async () => {
+    await driveTo('cancelled');
+
+    await expectDomainError(
+      changeRaceStatus(contextFor(OWNER_B), { raceId: RACE_ID, status: 'published' }),
+      'forbidden',
+    );
+  });
+
   it('cancelled → archived autorise l’admin plateforme', async () => {
     await driveTo('cancelled');
 

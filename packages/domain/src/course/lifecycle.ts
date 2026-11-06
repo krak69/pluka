@@ -5,8 +5,9 @@ import type { EditionRecord, EventRecord, RaceRecord } from '@pluka/db';
  *
  * ```text
  * draft ──► published ──► completed ──► archived
- *              │                            ▲
- *              └────────► cancelled ────────┘
+ *              ▲ │                          ▲
+ *              │ ▼                          │
+ *              cancelled ───────────────────┘
  * ```
  *
  * Module pur : une table de transitions et les fonctions qui l'interrogent.
@@ -70,6 +71,7 @@ function allowedFrom<TStatus extends string>(
 export const RACE_TRANSITIONS: readonly RaceTransition[] = [
   { from: 'draft', to: 'published', authority: 'organization_editor' },
   { from: 'published', to: 'cancelled', authority: 'organization_admin' },
+  { from: 'cancelled', to: 'published', authority: 'organization_admin' },
   { from: 'published', to: 'completed', authority: 'platform_admin' },
   { from: 'completed', to: 'archived', authority: 'platform_admin' },
   { from: 'cancelled', to: 'archived', authority: 'platform_admin' },

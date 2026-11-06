@@ -1,6 +1,8 @@
 import {
   isNotificationError,
   sendChangeImpactNotice,
+  sendRaceCancelledNotice,
+  sendRaceReinstatedNotice,
   type ImpactedModule,
 } from '@pluka/notifications';
 
@@ -11,6 +13,7 @@ import type { QueueMessage, WorkerPorts } from '../ports.js';
  * Job `email.send` — notification du coureur, §46.
  *
  *   participant_change_impact → livraison → EmailProvider
+ *   course annulée ou rétablie (§4.1, 0067, 0068) → livraison → EmailProvider
  *
  * « Le Plan existant est marqué potentiellement impacté ; **le coureur est
  * informé** ; le recalcul se fait selon le workflow produit. »
@@ -40,16 +43,18 @@ export const EMAIL_QUEUE = 'pluka_email';
 interface NotificationJobPayload {
   readonly deliveryId: string;
   readonly idempotencyKey: string;
+  /** Un message sans genre précède 0067 : c'est un changement officiel. */
+  readonly kind: unknown;
 }
 
 function readPayload(message: QueueMessage): NotificationJobPayload {
-  const { deliveryId, idempotencyKey } = message.payload;
+  const { deliveryId, idempotencyKey, kind } = message.payload;
 
   if (typeof deliveryId !== 'string' || typeof idempotencyKey !== 'string') {
     throw permanent('PAYLOAD_INVALID', 'charge utile incomplète');
   }
 
-  return { deliveryId, idempotencyKey };
+  return { deliveryId, idempotencyKey, kind };
 }
 
 export type NotificationOutcome =
@@ -96,19 +101,28 @@ export async function handleNotificationMessage(
       throw transient('EMAIL_NOT_CONFIGURED', 'aucun fournisseur email configuré');
     }
 
-    const sent = await sendChangeImpactNotice(ports.email, {
-      idempotencyKey: claim.idempotencyKey,
-      notice: {
-        recipientEmail: claim.recipientEmail ?? '',
-        recipientFirstName: claim.recipientFirstName,
-        eventName: claim.eventName ?? '',
-        raceName: claim.raceName ?? '',
-        changeTitle: claim.changeTitle ?? '',
-        severity: claim.severity ?? 'info',
-        modules: (claim.modules ?? []) as readonly ImpactedModule[],
-        raceUrl: `${ports.appUrl}/courses/${claim.raceId ?? ''}`,
-      },
-    });
+    const recipient = {
+      recipientEmail: claim.recipientEmail ?? '',
+      recipientFirstName: claim.recipientFirstName,
+      eventName: claim.eventName ?? '',
+      raceName: claim.raceName ?? '',
+      raceUrl: `${ports.appUrl}/courses/${claim.raceId ?? ''}`,
+    };
+    const delivery = { idempotencyKey: claim.idempotencyKey, notice: recipient };
+    const sent =
+      payload.kind === 'race_cancelled'
+        ? await sendRaceCancelledNotice(ports.email, delivery)
+        : payload.kind === 'race_reinstated'
+          ? await sendRaceReinstatedNotice(ports.email, delivery)
+          : await sendChangeImpactNotice(ports.email, {
+              idempotencyKey: claim.idempotencyKey,
+              notice: {
+                ...recipient,
+                changeTitle: claim.changeTitle ?? '',
+                severity: claim.severity ?? 'info',
+                modules: (claim.modules ?? []) as readonly ImpactedModule[],
+              },
+            });
 
     await ports.notifications.complete(payload.deliveryId, {
       provider: sent.provider,

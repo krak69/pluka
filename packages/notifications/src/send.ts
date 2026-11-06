@@ -5,6 +5,12 @@ import {
   renderOrganizationInvitation,
   type OrganizationInvitationNotice,
 } from './templates/organization-invitation.js';
+import {
+  renderRaceCancelledNotice,
+  renderRaceReinstatedNotice,
+  type RaceStatusNotice,
+  type RenderedRaceStatusNotice,
+} from './templates/race-reinstated.js';
 import { renderStaffInvitation, type StaffInvitationNotice } from './templates/staff-invitation.js';
 import {
   renderEventSiteContact,
@@ -26,6 +32,10 @@ import {
  */
 
 export const NOTIFICATION_TEMPLATE_VERSION = 'change-impact-1.0.0';
+
+export const RACE_REINSTATED_TEMPLATE_VERSION = 'race-reinstated-1.0.0';
+
+export const RACE_CANCELLED_TEMPLATE_VERSION = 'race-cancelled-1.0.0';
 
 export const INVITATION_TEMPLATE_VERSION = 'organization-invitation-1.0.0';
 
@@ -154,6 +164,80 @@ export async function sendChangeImpactNotice(
     providerMessageId: result.providerMessageId,
     acceptedAt: result.acceptedAt,
     templateVersion: NOTIFICATION_TEMPLATE_VERSION,
+  };
+}
+
+export interface RaceStatusDelivery {
+  readonly notice: RaceStatusNotice;
+  readonly idempotencyKey: string;
+}
+
+/** Écrit puis envoie l'avis d'annulation d'une course (§4.1). */
+export function sendRaceCancelledNotice(
+  provider: EmailProvider,
+  delivery: RaceStatusDelivery,
+): Promise<NotificationSent> {
+  return sendRaceStatusNotice(
+    provider,
+    delivery,
+    renderRaceCancelledNotice,
+    RACE_CANCELLED_TEMPLATE_VERSION,
+  );
+}
+
+/** Écrit puis envoie l'avis de rétablissement d'une course annulée (§4.1). */
+export function sendRaceReinstatedNotice(
+  provider: EmailProvider,
+  delivery: RaceStatusDelivery,
+): Promise<NotificationSent> {
+  return sendRaceStatusNotice(
+    provider,
+    delivery,
+    renderRaceReinstatedNotice,
+    RACE_REINSTATED_TEMPLATE_VERSION,
+  );
+}
+
+async function sendRaceStatusNotice(
+  provider: EmailProvider,
+  delivery: RaceStatusDelivery,
+  render: (notice: RaceStatusNotice) => RenderedRaceStatusNotice,
+  templateVersion: string,
+): Promise<NotificationSent> {
+  const { notice } = delivery;
+
+  if (!isPlausibleAddress(notice.recipientEmail)) {
+    throw new NotificationError('RECIPIENT_INVALID', 'adresse destinataire inexploitable');
+  }
+
+  const rendered = render(notice);
+  let result: EmailSendResult;
+
+  try {
+    result = await provider.send({
+      // Un seul destinataire : l'organisation ne reçoit rien (§37).
+      to: [
+        notice.recipientFirstName === null
+          ? { address: notice.recipientEmail }
+          : { address: notice.recipientEmail, name: notice.recipientFirstName },
+      ],
+      subject: rendered.subject,
+      textBody: rendered.textBody,
+      idempotencyKey: delivery.idempotencyKey,
+    });
+  } catch (error) {
+    throw new NotificationError(
+      'PROVIDER_UNAVAILABLE',
+      'envoi refusé par le fournisseur',
+      error instanceof Error ? error.name : 'inconnu',
+    );
+  }
+
+  return {
+    provider: provider.name,
+    providerMessageId: result.providerMessageId,
+    acceptedAt: result.acceptedAt,
+    templateVersion,
   };
 }
 

@@ -7,6 +7,7 @@ import { useActionState, useId, useRef, useState } from 'react';
 import {
   addEquipmentAction,
   cancelRaceAction,
+  reinstateRaceAction,
   importGpxAction,
   reviseEquipmentAction,
   saveWaypointsAction,
@@ -454,8 +455,9 @@ export function CancelRaceForm({
     <form action={action} className="cr-revise">
       <ScopeFields scope={scope} />
       <p className="pk-field-hint">
-        L’annulation est visible des coureurs, et seule l’équipe PLUKA peut l’archiver ensuite : elle
-        ne se défait pas ici.
+        L’annulation est visible des coureurs, et les participants qui ont activé leur compte
+        reçoivent un e-mail. Vous pourrez la lever depuis cet écran : ils en seront avertis de la
+        même façon.
       </p>
       <div className="or-inline-form">
         <button
@@ -464,7 +466,33 @@ export function CancelRaceForm({
           disabled={pending}
           aria-label={`Confirmer l’annulation de ${raceName}`}
         >
-          {pending ? 'Annulation…' : `Confirmer l’annulation de ${raceName}`}
+          {pending ? 'Annulation…' : `Annuler ${raceName} et avertir les participants`}
+        </button>
+      </div>
+      <ActionError state={state} />
+    </form>
+  );
+}
+
+export function ReinstateRaceForm({
+  scope,
+  raceName,
+}: {
+  readonly scope: RaceScope;
+  readonly raceName: string;
+}) {
+  const [state, action, pending] = useActionState(reinstateRaceAction, INITIAL);
+
+  return (
+    <form action={action} className="cr-revise">
+      <ScopeFields scope={scope} />
+      <p className="pk-field-hint">
+        L’épreuve redevient publiée, et les participants qui ont activé leur compte reçoivent un
+        e-mail.
+      </p>
+      <div className="or-inline-form">
+        <button type="submit" className="pk-btn pk-button-secondary" disabled={pending}>
+          {pending ? 'Rétablissement…' : `Rétablir ${raceName} et avertir les participants`}
         </button>
       </div>
       <ActionError state={state} />
