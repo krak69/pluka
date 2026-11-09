@@ -2173,3 +2173,11 @@ a.st-tab {
 .rp-repere-result .pk-h2 {
   margin: 0;
 }
+
+/* Ce que le droit actuel ne permet pas, dit avant le geste plutôt qu’après. */
+.rp-notice {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--pk-dawn);
+  background: var(--pk-surface);
+}

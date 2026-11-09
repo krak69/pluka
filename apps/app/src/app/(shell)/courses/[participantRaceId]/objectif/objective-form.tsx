@@ -1,6 +1,7 @@
 'use client';
 
 import { Button, Input, MicroLabel } from '@pluka/ui';
+import Link from 'next/link';
 import { useActionState, type ReactNode } from 'react';
 
 import { generatePlanAction, type ActionState } from '@/app/actions';
@@ -32,11 +33,14 @@ export function ObjectiveForm({
   participantRaceId,
   currentTargetSeconds,
   hasPlan,
+  canChangeTarget,
   repere,
 }: {
   readonly participantRaceId: string;
   readonly currentTargetSeconds: number | null;
   readonly hasPlan: boolean;
+  /** Le droit de recaler l'objectif plus tard : Race Pass, PLUKA+ ou accès inclus. */
+  readonly canChangeTarget: boolean;
   /** « Estime-le pour moi », hors du formulaire : une plage ne part jamais sans être reprise. */
   readonly repere?: ReactNode;
 }) {
@@ -52,6 +56,16 @@ export function ObjectiveForm({
       <h2 className="pk-h2" style={{ margin: 'var(--space-2) 0 var(--space-3)' }}>
         Quel chrono prépares-tu ?
       </h2>
+
+      {hasPlan && !canChangeTarget ? (
+        <p className="pk-body rp-notice">
+          Changer d’objectif demande le Race Pass sur cette course : avec l’accès gratuit, le
+          premier objectif reste celui de ton Plan.{' '}
+          <Link href="/offre" className="pk-link">
+            Voir ce que le Race Pass débloque
+          </Link>
+        </p>
+      ) : null}
 
       <form action={submit} className="rp-form">
         <input type="hidden" name="participantRaceId" value={participantRaceId} />
@@ -78,7 +92,9 @@ export function ObjectiveForm({
       <p className="rp-hint">
         {hasPlan
           ? 'Ton plan est recalculé pour finir sur ce chrono. Tes arrêts et tes passages verrouillés sont conservés.'
-          : 'PLUKA construit un premier plan, que tu pourras ajuster point par point ensuite.'}
+          : canChangeTarget
+            ? 'PLUKA construit un premier plan, que tu pourras ajuster point par point ensuite.'
+            : 'PLUKA construit un premier plan sur ce chrono. Avec l’accès gratuit, cet objectif ne se change plus ensuite : prends le temps de le choisir.'}
       </p>
     </section>
   );

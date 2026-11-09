@@ -1,4 +1,10 @@
-import { DomainError, getPlanOverview, getTrailProfile } from '@pluka/domain';
+import {
+  DomainError,
+  can,
+  getPlanOverview,
+  getTrailProfile,
+  resolveEntitlements,
+} from '@pluka/domain';
 import { Divider, SectionHeader } from '@pluka/ui';
 
 import { ObjectiveForm } from '@/app/(shell)/courses/[participantRaceId]/objectif/objective-form';
@@ -36,6 +42,11 @@ export default async function ObjectivePage({
 
   const session = await requireSession(returnTo);
   const context = planContext(session);
+  // 04_ENTITLEMENTS : changer d'objectif est une capacité premium. L'écran le
+  // dit avant le geste ; le domaine reste seul juge au moment de l'écrire.
+  const canChangeTarget = await resolveEntitlements(context, { participantRaceId })
+    .then((resolved) => can(resolved, 'plan.edit').allowed)
+    .catch(() => true);
   const withRepere = repereEnabled();
   const profile = withRepere
     ? (await getTrailProfile(profileContext(session)).catch(() => null))?.profile ?? null
@@ -66,6 +77,7 @@ export default async function ObjectivePage({
         participantRaceId={participantRaceId}
         currentTargetSeconds={overview?.targetDurationSeconds ?? null}
         hasPlan={overview !== null}
+        canChangeTarget={canChangeTarget}
         repere={
           withRepere ? (
             <RepereHelper
