@@ -825,6 +825,8 @@ avec dates, statut, motif et révocation.
 
 Cette séparation évite de modifier artificiellement Free ou de créer un faux produit commercial `beta`.
 
+Écritures (0073) : `admin_grant_beta_access` ouvre un accès **global** à une liste d'adresses jusqu'à une date de fin obligatoire, ou le prolonge s'il est en cours ; `admin_revoke_beta_access` le retire avec sa raison. Une adresse sans compte est gardée dans `private.beta_access_reservations`, et l'accès s'ouvre à la création du compte. Réservé à un `pluka_admin`, inscrit au journal sans adresse. Le coureur lit ses propres accès sous RLS.
+
 ## 10.3 `purchases`
 
 Historique minimal de transaction commerciale distinct de l'entitlement résultant.

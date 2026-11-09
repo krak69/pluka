@@ -39,6 +39,11 @@ export default async function UsersPage({
     <main className="ad-page">
       <AdminPageHeader
         title="Utilisateurs"
+        aside={
+          <Link href="/utilisateurs/beta" className="pk-btn pk-button-secondary">
+            Testeurs bêta
+          </Link>
+        }
         lede="Informations nécessaires au support uniquement. Le contenu personnel d’un participant — plan, nutrition, sacs, notes — n’est pas accessible. Chaque recherche est inscrite au journal."
       />
 
@@ -57,7 +62,10 @@ export default async function UsersPage({
       </form>
 
       {users.length === 0 ? (
-        <AdminEmpty icon="UserList" title={term === '' ? 'Aucun compte.' : 'Aucune correspondance.'}>
+        <AdminEmpty
+          icon="UserList"
+          title={term === '' ? 'Aucun compte.' : 'Aucune correspondance.'}
+        >
           <p>
             {term === ''
               ? 'La plateforme ne compte encore aucun utilisateur.'

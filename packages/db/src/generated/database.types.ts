@@ -5997,6 +5997,10 @@ export type Database = {
         Args: { p_product_id: string }
         Returns: undefined
       }
+      admin_cancel_beta_reservation: {
+        Args: { p_email: string }
+        Returns: undefined
+      }
       admin_change_event_organization: {
         Args: { p_event_id: string; p_organization_id: string }
         Returns: boolean
@@ -6125,6 +6129,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_grant_beta_access: {
+        Args: { p_emails: string[]; p_ends_at: string; p_reason?: string }
+        Returns: Json
+      }
       admin_hide_reported_content: {
         Args: { p_report_id: string }
         Returns: number
@@ -6148,6 +6156,20 @@ export type Database = {
           entry_id: number
           organization_name: string
           request_id: string
+        }[]
+      }
+      admin_list_beta_access: {
+        Args: never
+        Returns: {
+          email: string
+          ends_at: string
+          first_name: string
+          grant_id: string
+          last_name: string
+          reason: string
+          reserved: boolean
+          starts_at: string
+          status: string
         }[]
       }
       admin_list_fact_candidates: {
@@ -6277,6 +6299,10 @@ export type Database = {
         Returns: string
       }
       admin_retry_job: { Args: { p_job_id: string }; Returns: number }
+      admin_revoke_beta_access: {
+        Args: { p_grant_id: string; p_reason?: string }
+        Returns: undefined
+      }
       admin_save_nutrition_product: {
         Args: { p_product: Json; p_product_id: string }
         Returns: string

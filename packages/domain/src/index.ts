@@ -747,3 +747,12 @@ export {
   type RepereContext,
   type RepereEstimate,
 } from './repere/use-cases.js';
+export {
+  MAX_BETA_EMAILS,
+  cancelBetaReservation,
+  grantBetaAccess,
+  listBetaAccess,
+  revokeBetaAccess,
+  splitEmails,
+  type BetaAccessContext,
+} from './entitlements/beta-access.js';

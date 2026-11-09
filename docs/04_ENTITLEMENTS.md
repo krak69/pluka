@@ -381,6 +381,8 @@ Il doit avoir :
 
 À expiration, les droits reviennent au niveau commercial normal.
 
+Implémentation (0073) : l'admin « Utilisateurs › Testeurs bêta » ouvre un accès global à une liste d'adresses, jusqu'à une date de fin, avec une raison ; une adresse sans compte est réservée et s'ouvre à l'inscription. Accorder de nouveau prolonge, retirer est possible à tout moment. La page Offre du coureur dit s'il a cet accès et jusqu'à quand. Le scope course reste possible dans le modèle, sans écran en V1.
+
 ---
 
 # 15. Feature flags vs entitlements
@@ -2448,6 +2450,8 @@ effective PLUS.
 Attendu :
 
 droits beta selon scope.
+
+Vérifié par pgTAP 50 : seul un `pluka_admin` accorde ; la date de fin est future ; accorder de nouveau prolonge sans doubler ; une adresse réservée s'ouvre à la création du compte ; un autre compte ne lit pas l'accès ; le retrait se lit dans la liste.
 
 ---
 

@@ -2,6 +2,7 @@ import {
   DbError,
   createAdminActionsRepositories,
   createAdminConsoleRepositories,
+  createBetaAccessRepositories,
   createCourseRepositories,
   createEventDiscoveryRepositories,
   createFactEditingRepositories,
@@ -19,6 +20,7 @@ import {
   getMyStaffRole,
   type AdminActionsContext,
   type AdminConsoleContext,
+  type BetaAccessContext,
   type CourseContext,
   type EventDiscoveryContext,
   type FactEditingContext,
@@ -45,6 +47,15 @@ import { createDataClient } from '@/lib/supabase/data';
  * (03_PRIVACY_RLS §11, §178). Cette application ne peut donc pas se déclarer
  * administratrice — elle ne fait que dire *qui* agit.
  */
+/** Les testeurs bêta (0073) : la garde `pluka_admin` est en base. */
+export function betaAccessContext(session: Session): BetaAccessContext {
+  return {
+    repositories: createBetaAccessRepositories({ client: createDataClient(session.accessToken) }),
+    actor: { userId: session.userId },
+    now: () => new Date(),
+  };
+}
+
 /** L'accès inclus d'une édition, réglé par PLUKA (0069). */
 export function participantInvitationContext(session: Session): ParticipantInvitationContext {
   return {

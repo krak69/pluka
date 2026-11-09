@@ -308,3 +308,12 @@ export {
   type RepereOutcome,
   type RepereRepositories,
 } from './repositories/repere.js';
+export {
+  betaAccessRepository,
+  createBetaAccessRepositories,
+  type BetaAccessGrantOutcome,
+  type BetaAccessRecord,
+  type BetaAccessRepositories,
+  type BetaAccessRepository,
+  type BetaAccessStatus,
+} from './repositories/beta-access.js';

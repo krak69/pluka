@@ -463,6 +463,7 @@ Mais la landing organisateurs promet explicitement : « Partagez-le avec votre �
 /signalements/[reportId]         lecture journalisée
 /utilisateurs
 /utilisateurs/[userId]           lecture journalisée
+/utilisateurs/beta               testeurs bêta : ouvrir, prolonger, retirer (0073)
 /traitements                     Imports et traitements
 /journal                         → redirige vers /parametres/journal (ancienne adresse)
 /parametres                      → premier onglet permis : /equipe (super-admin), /journal sinon
