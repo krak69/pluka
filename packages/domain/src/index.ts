@@ -722,3 +722,12 @@ export {
   validateParticipantImport,
   type ParticipantImportContext,
 } from './participants/use-cases.js';
+export {
+  acceptParticipantInvitation,
+  isEditionParticipantsIncluded,
+  listParticipantInvitations,
+  previewParticipantInvitation,
+  sendParticipantInvitations,
+  setEditionParticipantsIncluded,
+  type ParticipantInvitationContext,
+} from './participants/invitations.js';

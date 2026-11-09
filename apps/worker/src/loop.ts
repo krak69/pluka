@@ -20,6 +20,10 @@ import {
   handleStaffInvitationMessage,
   isStaffInvitationMessage,
 } from './jobs/staff-invitation-send.js';
+import {
+  handleParticipantInvitationMessage,
+  isParticipantInvitationMessage,
+} from './jobs/participant-invitation-send.js';
 import { SOURCES_QUEUE, handleSourceMessage } from './jobs/source-ingest.js';
 import { handleParseMessage, isParseMessage } from './jobs/source-parse.js';
 import type { QueueMessage, WorkerPorts } from './ports.js';
@@ -129,6 +133,9 @@ const CONSUMERS: readonly {
       if (isNotificationMessage(message)) return handleNotificationMessage(ports, message);
       if (isInvitationMessage(message)) return handleInvitationMessage(ports, message);
       if (isStaffInvitationMessage(message)) return handleStaffInvitationMessage(ports, message);
+      if (isParticipantInvitationMessage(message)) {
+        return handleParticipantInvitationMessage(ports, message);
+      }
       if (isEventSiteContactMessage(message)) return handleEventSiteContactMessage(ports, message);
 
       return Promise.resolve({ kind: 'abandoned' as const });

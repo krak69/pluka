@@ -290,3 +290,13 @@ export {
   type ParticipantImportView,
   type ParticipantWaveOption,
 } from './repositories/participant-import.js';
+export {
+  createParticipantInvitationRepositories,
+  participantInvitationRepository,
+  type ParticipantInvitationPreviewRecord,
+  type ParticipantInvitationPreviewState,
+  type ParticipantInvitationRecord,
+  type ParticipantInvitationRepositories,
+  type ParticipantInvitationRepository,
+  type ParticipantInvitationStatus,
+} from './repositories/participant-invitations.js';

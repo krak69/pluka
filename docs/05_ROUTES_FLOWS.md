@@ -235,6 +235,8 @@ Les trois étapes du prototype (`invStep` 0 à 2) sont des étapes de formulaire
 
 **Remarque de confidentialité, hors périmètre de ce document :** le prototype préremplit prénom, nom, email, dossard et vague. `03_PRIVACY_RLS.md` §28 impose de minimiser l'email ; le contenu exact du payload de cette route appartient à `03_PRIVACY_RLS.md`, pas ici.
 
+**État livré (0069).** Sans session, la page montre l'événement, l'épreuve, la date de départ, l'adresse masquée et si l'accès est offert, puis propose la connexion avec retour. Connecté, un bouton active l'invitation ; une autre adresse est refusée sans citer celle attendue. Activée, la page renvoie vers `/courses/[participantRaceId]/objectif`. Elle n'est pas indexée, n'envoie pas de referrer, et répond 404 tant que le flag `participant_invitations` est coupé. Côté organisation, l'écran Participants porte « Inviter les participants » à côté de l'import, l'état d'invitation de chaque ligne, et le renvoi dans le panneau Corriger.
+
 ## 4.3 `/epreuves/[eventSlug]/[editionSlug]/[raceSlug]`
 
 La fiche épreuve, unique et publique (§1.8). C'est à la fois la page indexable de la course et la première étape de l'entonnoir : c'est ici que le coureur valide la course qu'il prépare, et c'est cette validation qui crée la participation (§1.7).

@@ -4,7 +4,11 @@ import { createAI } from './ai/index.js';
 import { createDiscoveryStore } from './discoveries-store.js';
 import { createEmail } from './email/index.js';
 import { createNotificationStore } from './notifications-store.js';
-import { createInvitationStore, createStaffInvitationStore } from './invitations-store.js';
+import {
+  createInvitationStore,
+  createParticipantInvitationStore,
+  createStaffInvitationStore,
+} from './invitations-store.js';
 import { createSiteContactStore } from './site-contacts-store.js';
 import type { ConfiguredAI, WorkerPorts } from './ports.js';
 import { fetchSource } from './fetcher.js';
@@ -65,6 +69,7 @@ export function createPorts(
     notifications: createNotificationStore(client),
     invitations: createInvitationStore(client),
     staffInvitations: createStaffInvitationStore(client),
+    participantInvitations: createParticipantInvitationStore(client),
     siteContacts: createSiteContactStore(client),
     discoveries: createDiscoveryStore(client),
     email: createEmail(process.env),

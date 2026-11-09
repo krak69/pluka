@@ -1,7 +1,9 @@
 import {
   getOrganizerCourse,
   getParticipantImport,
+  isEditionParticipantsIncluded,
   listEditionParticipants,
+  listParticipantInvitations,
   suggestColumns,
 } from '@pluka/domain';
 import { NavTabs, StatusBadge } from '@pluka/ui';
@@ -14,10 +16,15 @@ import {
   DiscardImportForm,
   ImportFileForm,
   ParticipantCorrection,
+  SendInvitationsForm,
   WithdrawForm,
 } from '@/components/participant-forms';
 import { sessionEventSiteContext } from '@/lib/event-site-editing';
 import { courseHref, participantImportContext } from '@/lib/organizer-course';
+import {
+  participantInvitationsEnabled,
+  sessionParticipantInvitationContext,
+} from '@/lib/participant-invitations';
 import { requireSession } from '@/lib/session';
 
 /**
@@ -71,8 +78,20 @@ function fullName(person: {
   readonly firstName: string | null;
   readonly lastName: string | null;
 }): string {
-  return [person.firstName, person.lastName].filter((part) => part !== null).join(' ') || 'Sans nom';
+  return (
+    [person.firstName, person.lastName].filter((part) => part !== null).join(' ') || 'Sans nom'
+  );
 }
+
+/** Ce que l'organisation voit d'une invitation : son état, jamais le lien (0069). */
+const INVITATION_BADGES: Readonly<
+  Record<string, { readonly label: string; readonly tone: 'neutral' | 'warning' | 'success' }>
+> = {
+  pending: { label: 'Envoi en cours', tone: 'neutral' },
+  sent: { label: 'Invité', tone: 'neutral' },
+  expired: { label: 'Invitation expirée', tone: 'warning' },
+  revoked: { label: 'Importé', tone: 'neutral' },
+};
 
 /** Une case de la liste : son libellé ne se montre que lorsque les colonnes se replient. */
 function Cell({ label, value }: { readonly label: string; readonly value: string | null }) {
@@ -122,9 +141,28 @@ export default async function ParticipantsPage({
   // Owner et admin importent ; le même rang que la base (0060).
   const canImport = permissions.canPublish;
   const current =
-    importId === undefined || !canImport
-      ? null
-      : await getParticipantImport(context, { importId });
+    importId === undefined || !canImport ? null : await getParticipantImport(context, { importId });
+
+  // Coupé en production jusqu'à la validation juridique : sans le flag, rien ne change.
+  const inviting = participantInvitationsEnabled() && edition !== null;
+  const invitationContext = sessionParticipantInvitationContext(session);
+  const [invitations, included] =
+    !inviting || edition === null
+      ? [[], false]
+      : await Promise.all([
+          listParticipantInvitations(invitationContext, { editionId: edition.id }),
+          isEditionParticipantsIncluded(invitationContext, { editionId: edition.id }),
+        ]);
+  const invitationOf = new Map(
+    invitations.map((invitation) => [invitation.participantRaceId, invitation]),
+  );
+  const invitable = list.participants.filter((participant) => {
+    if (participant.activated || participant.email === null) return false;
+    const invitation = invitationOf.get(participant.id);
+    if (invitation === undefined || invitation.sendFailed) return true;
+    return invitation.status !== 'pending' && invitation.status !== 'sent';
+  }).length;
+  const sentCount = typeof query.invitations === 'string' ? count(query.invitations) : null;
 
   const race = races.find((candidate) => candidate.slug === query.epreuve) ?? null;
   const rows =
@@ -201,10 +239,22 @@ export default async function ParticipantsPage({
         </p>
       )}
 
+      {sentCount === null ? null : (
+        <p className="pk-body st-notice" role="status">
+          {sentCount === 0
+            ? 'Aucune invitation à envoyer : chaque participant avec une adresse est déjà invité ou sur PLUKA.'
+            : `${plural(sentCount, 'invitation envoyée', 'invitations envoyées')} : les e-mails partent dans quelques minutes.`}{' '}
+          <Link href={`/org/${organizationId}/participants?${selection}`} className="pk-link">
+            Fermer
+          </Link>
+        </p>
+      )}
+
       {refused.length === 0 ? null : (
         <section aria-labelledby="import-refused" className="pa-check">
           <h2 id="import-refused" className="pk-label">
-            À corriger · {errorCount} {errorCount > 1 ? 'lignes non importées' : 'ligne non importée'}
+            À corriger · {errorCount}{' '}
+            {errorCount > 1 ? 'lignes non importées' : 'ligne non importée'}
           </h2>
           <ul className="cr-facts">
             {refused.map((exception) => (
@@ -226,7 +276,9 @@ export default async function ParticipantsPage({
 
       {edition === null ? (
         <section className="or-card">
-          <p className="pk-body">Les participants se rattachent à une édition : il n’y en a pas encore.</p>
+          <p className="pk-body">
+            Les participants se rattachent à une édition : il n’y en a pas encore.
+          </p>
         </section>
       ) : current !== null && current.status === 'mapping' ? (
         <section aria-labelledby="import-columns" className="or-card">
@@ -275,7 +327,11 @@ export default async function ParticipantsPage({
               {effects.unchanged === 0 ? null : <li>{effects.unchanged} déjà à jour</li>}
               {effects.kept === 0 ? null : (
                 <li>
-                  {plural(effects.kept, 'correction à la main gardée', 'corrections à la main gardées')}
+                  {plural(
+                    effects.kept,
+                    'correction à la main gardée',
+                    'corrections à la main gardées',
+                  )}
                   , le fichier dit autre chose
                 </li>
               )}
@@ -386,10 +442,42 @@ export default async function ParticipantsPage({
             </h2>
 
             {canImport && current === null && panel === 'tous' ? (
-              <details className="st-details or-add" open={list.total === 0}>
-                <summary className="pk-btn pk-button-secondary">Importer des inscrits</summary>
-                <ImportFileForm scope={scope} editionId={edition.id} />
-              </details>
+              <div className="or-adds">
+                <details className="st-details or-add" open={list.total === 0}>
+                  <summary className="pk-btn pk-button-secondary">Importer des inscrits</summary>
+                  <ImportFileForm scope={scope} editionId={edition.id} />
+                </details>
+                {inviting && list.total > 0 ? (
+                  <details className="st-details or-add">
+                    <summary className="pk-btn pk-button-secondary">
+                      Inviter les participants
+                    </summary>
+                    <p className="pk-body">
+                      Chaque participant reçoit un lien personnel, valable jusqu’au départ de son
+                      épreuve. Son espace est déjà prérempli : il choisit son objectif et obtient
+                      son Plan.
+                    </p>
+                    <p className="pk-field-hint">
+                      {included
+                        ? 'L’accès complet à la préparation leur est offert par votre organisation.'
+                        : 'L’accès premium n’est pas inclus pour cette édition : ils démarrent avec la version gratuite.'}{' '}
+                      Seules les épreuves publiées et pas encore parties sont concernées ; un
+                      participant retiré ou déjà sur PLUKA n’est pas invité.
+                    </p>
+                    {invitable === 0 ? (
+                      <p className="pk-field-hint">
+                        Tous les participants avec une adresse sont déjà invités ou sur PLUKA.
+                      </p>
+                    ) : (
+                      <SendInvitationsForm
+                        scope={scope}
+                        editionId={edition.id}
+                        label={`Inviter ${plural(invitable, 'participant', 'participants')}`}
+                      />
+                    )}
+                  </details>
+                ) : null}
+              </div>
             ) : null}
 
             {panel === 'a-verifier' && canImport ? (
@@ -410,7 +498,8 @@ export default async function ParticipantsPage({
 
             {panel === 'retires' ? (
               <p className="pk-field-hint">
-                Ils ne sont plus dans la liste et leur trace est gardée. Un import ne les rétablit pas.
+                Ils ne sont plus dans la liste et leur trace est gardée. Un import ne les rétablit
+                pas.
               </p>
             ) : null}
 
@@ -483,9 +572,25 @@ export default async function ParticipantsPage({
                               {participant.bibConflict ? (
                                 <StatusBadge tone="warning">À vérifier</StatusBadge>
                               ) : null}
-                              <StatusBadge tone={participant.activated ? 'success' : 'neutral'}>
-                                {participant.activated ? 'Sur PLUKA' : 'Importé'}
-                              </StatusBadge>
+                              {(() => {
+                                const invitation = participant.activated
+                                  ? undefined
+                                  : invitationOf.get(participant.id);
+                                const badge =
+                                  invitation === undefined
+                                    ? null
+                                    : invitation.sendFailed
+                                      ? { label: 'Envoi en échec', tone: 'warning' as const }
+                                      : (INVITATION_BADGES[invitation.status] ?? null);
+
+                                return participant.activated ? (
+                                  <StatusBadge tone="success">Sur PLUKA</StatusBadge>
+                                ) : (
+                                  <StatusBadge tone={badge?.tone ?? 'neutral'}>
+                                    {badge?.label ?? 'Importé'}
+                                  </StatusBadge>
+                                );
+                              })()}
                             </span>
                             {canImport ? (
                               // La clé referme le panneau dès que la valeur enregistrée change.
@@ -499,6 +604,22 @@ export default async function ParticipantsPage({
                                   (option) => option.raceId === participant.raceId,
                                 )}
                                 canWithdraw={!participant.activated}
+                                invite={
+                                  inviting &&
+                                  !participant.activated &&
+                                  participant.email !== null ? (
+                                    <SendInvitationsForm
+                                      scope={scope}
+                                      editionId={edition.id}
+                                      participantRaceId={participant.id}
+                                      label={
+                                        invitationOf.has(participant.id)
+                                          ? 'Renvoyer l’invitation'
+                                          : 'Inviter'
+                                      }
+                                    />
+                                  ) : undefined
+                                }
                               />
                             ) : null}
                           </li>

@@ -9,6 +9,7 @@ import {
   createGpxRepositories,
   createNutritionCatalogueRepositories,
   createOrganizationTeamRepositories,
+  createParticipantInvitationRepositories,
   createStaffTeamRepositories,
   type DbErrorCode,
 } from '@pluka/db';
@@ -26,6 +27,7 @@ import {
   type GpxImportContext,
   type NutritionCatalogueContext,
   type OrganizationTeamContext,
+  type ParticipantInvitationContext,
   type StaffTeamContext,
 } from '@pluka/domain';
 import { createServerClient } from '@pluka/db/server';
@@ -43,6 +45,16 @@ import { createDataClient } from '@/lib/supabase/data';
  * (03_PRIVACY_RLS §11, §178). Cette application ne peut donc pas se déclarer
  * administratrice — elle ne fait que dire *qui* agit.
  */
+/** L'accès inclus d'une édition, réglé par PLUKA (0069). */
+export function participantInvitationContext(session: Session): ParticipantInvitationContext {
+  return {
+    repositories: createParticipantInvitationRepositories({
+      client: createDataClient(session.accessToken),
+    }),
+    actor: { userId: session.userId },
+  };
+}
+
 export function courseContext(session: Session): CourseContext {
   return {
     repositories: createCourseRepositories({ client: createDataClient(session.accessToken) }),

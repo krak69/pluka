@@ -58,6 +58,14 @@ export {
 } from './templates/race-reinstated.js';
 
 export {
+  renderParticipantInvitation,
+  type ParticipantInvitationNotice,
+} from './templates/participant-invitation.js';
+
+export {
+  PARTICIPANT_INVITATION_TEMPLATE_VERSION,
+  sendParticipantInvitation,
+  type ParticipantInvitationDelivery,
   EVENT_SITE_CONTACT_TEMPLATE_VERSION,
   RACE_CANCELLED_TEMPLATE_VERSION,
   RACE_REINSTATED_TEMPLATE_VERSION,

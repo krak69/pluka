@@ -1393,6 +1393,12 @@ Le token est hashé.
 
 L'activation associe la participation importée au compte utilisateur sans exposer le Plan à l'organisation.
 
+Mécanique de 0069, celle de l'équipe (0033) : pas de jeton à la création, le worker le tire à l'envoi et n'en stocke que le SHA-256. Une seule invitation ouverte (`pending`, `sent`) par participation ; un renvoi révoque la précédente. `expires_at` est le départ de l'épreuve. `send_attempts` et `last_send_error` suivent l'envoi, `invited_by_user_id` et `accepted_by_user_id` les auteurs. Écritures uniquement par `org_send_participant_invitations`, `accept_participant_invitation` et les fonctions `worker_*` ; lectures par `org_list_participant_invitations` (état sans adresse) et `preview_participant_invitation` (anonyme, adresse masquée).
+
+L'activation exige l'adresse invitée. Si le compte a déjà sa participation sur l'épreuve, la ligne importée y est fusionnée : invitation, lignes d'import, données déclaratives et signaux privés la rejoignent, puis elle est supprimée ; dossard, vague, indicateurs de saisie manuelle, `invite_email` et `external_registration_id` passent sur la participation du coureur.
+
+`editions.participants_included` (0069) ouvre un Organizer Included à l'activation (`source = organization`, l'organisation de l'événement, l'identifiant d'invitation en `metadata`). Un trigger refuse son changement à tout autre qu'un `pluka_admin` : la policy d'écriture des éditions ne suffit pas à le poser.
+
 ---
 
 # 21. Enrichissement ITRA / UTMB

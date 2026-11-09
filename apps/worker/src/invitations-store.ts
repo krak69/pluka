@@ -4,6 +4,8 @@ import { transient } from './errors.js';
 import type {
   InvitationSendClaim,
   InvitationStore,
+  ParticipantInvitationSendClaim,
+  ParticipantInvitationStore,
   StaffInvitationSendClaim,
   StaffInvitationStore,
 } from './ports.js';
@@ -91,6 +93,66 @@ export function createInvitationStore(client: PlukaClient): InvitationStore {
 }
 
 /** Même adaptateur pour l'équipe PLUKA — fonctions `worker_*_staff_invitation` de 0036. */
+const NOT_SENDABLE: ParticipantInvitationSendClaim = {
+  sendable: false,
+  email: null,
+  firstName: null,
+  eventName: null,
+  raceName: null,
+  organizationName: null,
+  raceStart: null,
+  raceTimezone: null,
+  included: false,
+  attempt: 0,
+};
+
+/** Invitations des participants — migration 0069. */
+export function createParticipantInvitationStore(client: PlukaClient): ParticipantInvitationStore {
+  return {
+    async claim(invitationId, tokenHash) {
+      const operation = 'worker_claim_participant_invitation';
+      const data = unwrapRpc(
+        await rpc(client).rpc(operation, {
+          p_invitation_id: invitationId,
+          p_token_hash: tokenHash,
+        }),
+        operation,
+      );
+      const row = (Array.isArray(data) ? data[0] : undefined) as
+        Record<string, unknown> | undefined;
+
+      if (row === undefined || row['sendable'] !== true) return NOT_SENDABLE;
+
+      return {
+        sendable: true,
+        email: text(row['email']),
+        firstName: text(row['first_name']),
+        eventName: text(row['event_name']),
+        raceName: text(row['race_name']),
+        organizationName: text(row['organization_name']),
+        raceStart: text(row['race_start']),
+        raceTimezone: text(row['race_timezone']),
+        included: row['included'] === true,
+        attempt: typeof row['attempt'] === 'number' ? row['attempt'] : 1,
+      };
+    },
+
+    async complete(invitationId) {
+      const operation = 'worker_complete_participant_invitation';
+      unwrapRpc(await rpc(client).rpc(operation, { p_invitation_id: invitationId }), operation);
+    },
+
+    async fail(invitationId, error) {
+      const operation = 'worker_fail_participant_invitation';
+      const data = unwrapRpc(
+        await rpc(client).rpc(operation, { p_invitation_id: invitationId, p_error: error }),
+        operation,
+      );
+      return typeof data === 'number' ? data : 0;
+    },
+  };
+}
+
 export function createStaffInvitationStore(client: PlukaClient): StaffInvitationStore {
   return {
     async claim(invitationId, tokenHash): Promise<StaffInvitationSendClaim> {

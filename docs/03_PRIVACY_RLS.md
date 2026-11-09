@@ -2270,6 +2270,8 @@ Même principes :
 
 Une invitation ne doit pas permettre de lire le ParticipantRace complet sans validation.
 
+Implémentation (0069) : avant connexion, l’aperçu ne rend que l’événement, l’épreuve, son départ, l’organisation et l’adresse masquée (`c***@domaine`), pour que le coureur sache avec quel compte se connecter. Ni nom, ni dossard, ni vague. L’organisation lit l’état de ses invitations, jamais leur jeton ni leur lien.
+
 ---
 
 # 116. Claim invitation

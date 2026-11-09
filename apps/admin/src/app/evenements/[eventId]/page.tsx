@@ -9,6 +9,7 @@ import {
   getMyStaffRole,
   getRaceGpxImport,
   getRaceWaypoints,
+  isEditionParticipantsIncluded,
   isRaceVisibleToRunners,
   listAdminOrganizations,
   listEditionDocuments,
@@ -22,7 +23,11 @@ import {
 import { ActionList, ActivityFeed, Checklist, StatTiles, TerrainBand } from '@pluka/ui';
 import Link from 'next/link';
 
-import { changeEditionStatusAction, changeEventStatusAction } from '@/app/actions';
+import {
+  changeEditionStatusAction,
+  changeEventStatusAction,
+  setEditionParticipantsIncludedAction,
+} from '@/app/actions';
 import {
   CreateEditionForm,
   CreateRaceForm,
@@ -44,6 +49,7 @@ import {
   eventDiscoveryContext,
   factEditingContext,
   gpxImportContext,
+  participantInvitationContext,
   redirectOnDomainError,
   requireAdminContext,
   staffTeamContext,
@@ -180,6 +186,19 @@ export default async function EventPage({
   // Changer l'organisation est réservé au super-admin (0044) : le menu n'est
   // lu que pour lui. La base revérifie de toute façon.
   const isSuperAdmin = (await getMyStaffRole(staffTeamContext(session))) === 'super_admin';
+  const inclusion = new Map(
+    await Promise.all(
+      editionsWithRaces.map(
+        async ({ edition }) =>
+          [
+            edition.id,
+            await isEditionParticipantsIncluded(participantInvitationContext(session), {
+              editionId: edition.id,
+            }).catch(() => false),
+          ] as const,
+      ),
+    ),
+  );
 
   // Lectures d'appoint : `null` plutôt qu'un écran d'erreur.
   const [organization, inventory, documents, organizations] = await Promise.all([
@@ -490,7 +509,6 @@ export default async function EventPage({
         />
       </div>
 
-
       <h2 className="ad-event-section">Éditions et épreuves</h2>
 
       <div className="ad-org-grid">
@@ -603,6 +621,35 @@ export default async function EventPage({
                     <summary>Historique de l’édition</summary>
                     <StatusHistory entries={editionHistory} domain="edition" />
                   </details>
+                </div>
+
+                <div className="ad-event-status" id={`edition-${edition.id}-inclus`}>
+                  <h4 className="ad-org-subtitle">
+                    Accès inclus des participants —{' '}
+                    {inclusion.get(edition.id) === true ? 'ouvert' : 'fermé'}
+                  </h4>
+                  <p className="ad-org-panel-lede">
+                    Ouvert, un participant qui active son invitation reçoit l’accès premium à sa
+                    course, financé par l’organisation. À régler selon le contrat.
+                  </p>
+                  <ConsoleAction
+                    action={setEditionParticipantsIncludedAction}
+                    fields={{
+                      editionId: edition.id,
+                      eventId: event.id,
+                      included: String(inclusion.get(edition.id) !== true),
+                    }}
+                    label={
+                      inclusion.get(edition.id) === true
+                        ? 'Fermer l’accès inclus'
+                        : 'Ouvrir l’accès inclus'
+                    }
+                    confirm={
+                      inclusion.get(edition.id) === true
+                        ? 'Les prochaines activations n’ouvriront plus l’accès premium. Les accès déjà donnés restent.'
+                        : 'L’organisation finance l’accès premium de chaque participant qui active son invitation.'
+                    }
+                  />
                 </div>
               </section>
             ))

@@ -809,6 +809,7 @@ export type Database = {
           end_date: string | null
           event_id: string
           id: string
+          participants_included: boolean
           registration_url: string | null
           slug: string
           start_date: string
@@ -821,6 +822,7 @@ export type Database = {
           end_date?: string | null
           event_id: string
           id?: string
+          participants_included?: boolean
           registration_url?: string | null
           slug: string
           start_date: string
@@ -833,6 +835,7 @@ export type Database = {
           end_date?: string | null
           event_id?: string
           id?: string
+          participants_included?: boolean
           registration_url?: string | null
           slug?: string
           start_date?: string
@@ -2917,45 +2920,74 @@ export type Database = {
       }
       participant_invitations: {
         Row: {
+          accepted_by_user_id: string | null
           activated_at: string | null
           created_at: string
           email: string
-          expires_at: string | null
+          expires_at: string
           id: string
+          invited_by_user_id: string | null
+          last_send_error: string | null
           opened_at: string | null
           participant_race_id: string
+          revoked_at: string | null
+          send_attempts: number
           sent_at: string | null
           status: Database["public"]["Enums"]["invitation_status"]
-          token_hash: string
+          token_hash: string | null
           updated_at: string
         }
         Insert: {
+          accepted_by_user_id?: string | null
           activated_at?: string | null
           created_at?: string
           email: string
-          expires_at?: string | null
+          expires_at: string
           id?: string
+          invited_by_user_id?: string | null
+          last_send_error?: string | null
           opened_at?: string | null
           participant_race_id: string
+          revoked_at?: string | null
+          send_attempts?: number
           sent_at?: string | null
           status?: Database["public"]["Enums"]["invitation_status"]
-          token_hash: string
+          token_hash?: string | null
           updated_at?: string
         }
         Update: {
+          accepted_by_user_id?: string | null
           activated_at?: string | null
           created_at?: string
           email?: string
-          expires_at?: string | null
+          expires_at?: string
           id?: string
+          invited_by_user_id?: string | null
+          last_send_error?: string | null
           opened_at?: string | null
           participant_race_id?: string
+          revoked_at?: string | null
+          send_attempts?: number
           sent_at?: string | null
           status?: Database["public"]["Enums"]["invitation_status"]
-          token_hash?: string
+          token_hash?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "participant_invitations_accepted_by_user_id_fkey"
+            columns: ["accepted_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participant_invitations_invited_by_user_id_fkey"
+            columns: ["invited_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "participant_invitations_participant_race_id_fkey"
             columns: ["participant_race_id"]
@@ -5874,6 +5906,10 @@ export type Database = {
         Args: { p_token_hash: string }
         Returns: string
       }
+      accept_participant_invitation: {
+        Args: { p_token_hash: string }
+        Returns: string
+      }
       accept_staff_invitation: {
         Args: { p_token_hash: string }
         Returns: Database["public"]["Enums"]["staff_role"]
@@ -6211,6 +6247,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_set_edition_participants_included: {
+        Args: { p_edition_id: string; p_included: boolean }
+        Returns: undefined
+      }
       admin_update_organization: {
         Args: {
           p_contact_email: string
@@ -6444,6 +6484,16 @@ export type Database = {
           user_id: string
         }[]
       }
+      org_list_participant_invitations: {
+        Args: { p_edition_id: string }
+        Returns: {
+          created_at: string
+          participant_race_id: string
+          send_failed: boolean
+          sent_at: string
+          status: Database["public"]["Enums"]["invitation_status"]
+        }[]
+      }
       org_remove_member: {
         Args: { p_organization_id: string; p_user_id: string }
         Returns: undefined
@@ -6451,6 +6501,10 @@ export type Database = {
       org_revoke_invitation: {
         Args: { p_invitation_id: string }
         Returns: undefined
+      }
+      org_send_participant_invitations: {
+        Args: { p_edition_id: string; p_participant_race_ids?: string[] }
+        Returns: number
       }
       persist_race_plan: {
         Args: {
@@ -6472,6 +6526,19 @@ export type Database = {
         Returns: {
           organization_name: string
           role: Database["public"]["Enums"]["organization_member_role"]
+          state: string
+        }[]
+      }
+      preview_participant_invitation: {
+        Args: { p_token_hash: string }
+        Returns: {
+          event_name: string
+          included: boolean
+          masked_email: string
+          organization_name: string
+          race_name: string
+          race_start: string
+          race_timezone: string
           state: string
         }[]
       }
@@ -6719,6 +6786,21 @@ export type Database = {
           sendable: boolean
         }[]
       }
+      worker_claim_participant_invitation: {
+        Args: { p_invitation_id: string; p_token_hash: string }
+        Returns: {
+          attempt: number
+          email: string
+          event_name: string
+          first_name: string
+          included: boolean
+          organization_name: string
+          race_name: string
+          race_start: string
+          race_timezone: string
+          sendable: boolean
+        }[]
+      }
       worker_claim_staff_invitation: {
         Args: { p_invitation_id: string; p_token_hash: string }
         Returns: {
@@ -6777,6 +6859,10 @@ export type Database = {
         }
         Returns: number
       }
+      worker_complete_participant_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: undefined
+      }
       worker_complete_staff_invitation: {
         Args: { p_invitation_id: string }
         Returns: undefined
@@ -6813,6 +6899,10 @@ export type Database = {
       worker_fail_parse_run: {
         Args: { p_error: string; p_run_id: string }
         Returns: undefined
+      }
+      worker_fail_participant_invitation: {
+        Args: { p_error: string; p_invitation_id: string }
+        Returns: number
       }
       worker_fail_staff_invitation: {
         Args: { p_error: string; p_invitation_id: string }

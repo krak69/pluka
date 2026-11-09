@@ -11,6 +11,10 @@ import {
   type RaceStatusNotice,
   type RenderedRaceStatusNotice,
 } from './templates/race-reinstated.js';
+import {
+  renderParticipantInvitation,
+  type ParticipantInvitationNotice,
+} from './templates/participant-invitation.js';
 import { renderStaffInvitation, type StaffInvitationNotice } from './templates/staff-invitation.js';
 import {
   renderEventSiteContact,
@@ -41,6 +45,8 @@ export const INVITATION_TEMPLATE_VERSION = 'organization-invitation-1.0.0';
 
 export const STAFF_INVITATION_TEMPLATE_VERSION = 'staff-invitation-1.0.0';
 
+export const PARTICIPANT_INVITATION_TEMPLATE_VERSION = 'participant-invitation-1.0.0';
+
 export const EVENT_SITE_CONTACT_TEMPLATE_VERSION = 'event-site-contact-1.0.0';
 
 /**
@@ -58,8 +64,11 @@ export const NOTIFICATION_ERROR_CODES = [
 
 export type NotificationErrorCode = (typeof NOTIFICATION_ERROR_CODES)[number];
 
-/** Une adresse invalide ne deviendra pas valide au prochain essai. */
-const PERMANENT_CODES = new Set<NotificationErrorCode>(['RECIPIENT_INVALID']);
+/**
+ * Ne guériront pas au prochain essai : une adresse invalide, et un refus que le
+ * fournisseur dit définitif (expéditeur non autorisé, destinataire refusé).
+ */
+const PERMANENT_CODES = new Set<NotificationErrorCode>(['RECIPIENT_INVALID', 'PROVIDER_REJECTED']);
 
 export class NotificationError extends Error {
   readonly code: NotificationErrorCode;
@@ -79,6 +88,31 @@ export class NotificationError extends Error {
 
 export function isNotificationError(error: unknown): error is NotificationError {
   return error instanceof NotificationError;
+}
+
+/**
+ * L'échec d'un fournisseur, nommé sans laisser fuir son message d'origine, qui
+ * peut contenir l'adresse.
+ *
+ * Deux choses en sont gardées, parce qu'elles décident de la suite : le statut
+ * HTTP s'il y en a un, et le caractère définitif que l'adapter a signalé
+ * (`kind = 'permanent'`). Sans elles, un expéditeur refusé était retenté cinq
+ * fois et l'écran ne pouvait pas dire pourquoi. Le contrat `EmailProvider` ne
+ * type pas ses erreurs : la forme est lue, jamais supposée.
+ */
+function providerFailure(error: unknown): NotificationError {
+  const kind =
+    typeof error === 'object' && error !== null && 'kind' in error
+      ? (error as { readonly kind: unknown }).kind
+      : undefined;
+  const status = error instanceof Error ? /\b([45]\d\d)\b/u.exec(error.message)?.[1] : undefined;
+  const reason =
+    status === undefined ? 'envoi refusé par le fournisseur' : `réponse ${status} du fournisseur`;
+  const detail = error instanceof Error ? error.name : 'inconnu';
+
+  return kind === 'permanent'
+    ? new NotificationError('PROVIDER_REJECTED', reason, detail)
+    : new NotificationError('PROVIDER_UNAVAILABLE', reason, detail);
 }
 
 /**
@@ -152,11 +186,7 @@ export async function sendChangeImpactNotice(
     // §35 : le provider tombe, l'objet métier reste. L'appelant décidera du
     // retry ; ici on se contente de nommer l'échec sans laisser fuir le
     // message d'origine, qui peut contenir l'adresse.
-    throw new NotificationError(
-      'PROVIDER_UNAVAILABLE',
-      'envoi refusé par le fournisseur',
-      error instanceof Error ? error.name : 'inconnu',
-    );
+    throw providerFailure(error);
   }
 
   return {
@@ -226,11 +256,7 @@ async function sendRaceStatusNotice(
       idempotencyKey: delivery.idempotencyKey,
     });
   } catch (error) {
-    throw new NotificationError(
-      'PROVIDER_UNAVAILABLE',
-      'envoi refusé par le fournisseur',
-      error instanceof Error ? error.name : 'inconnu',
-    );
+    throw providerFailure(error);
   }
 
   return {
@@ -275,11 +301,7 @@ export async function sendOrganizationInvitation(
       idempotencyKey: delivery.idempotencyKey,
     });
   } catch (error) {
-    throw new NotificationError(
-      'PROVIDER_UNAVAILABLE',
-      'envoi refusé par le fournisseur',
-      error instanceof Error ? error.name : 'inconnu',
-    );
+    throw providerFailure(error);
   }
 
   return {
@@ -287,6 +309,50 @@ export async function sendOrganizationInvitation(
     providerMessageId: result.providerMessageId,
     acceptedAt: result.acceptedAt,
     templateVersion: INVITATION_TEMPLATE_VERSION,
+  };
+}
+
+export interface ParticipantInvitationDelivery {
+  readonly notice: ParticipantInvitationNotice;
+  /** Inclut le numéro de tentative : une relance porte un nouveau jeton. */
+  readonly idempotencyKey: string;
+}
+
+/** Écrit puis envoie l'invitation d'un participant (migration 0069). */
+export async function sendParticipantInvitation(
+  provider: EmailProvider,
+  delivery: ParticipantInvitationDelivery,
+): Promise<NotificationSent> {
+  const { notice } = delivery;
+
+  if (!isPlausibleAddress(notice.recipientEmail)) {
+    throw new NotificationError('RECIPIENT_INVALID', 'adresse destinataire inexploitable');
+  }
+
+  const rendered = renderParticipantInvitation(notice);
+  let result: EmailSendResult;
+
+  try {
+    result = await provider.send({
+      // Un seul destinataire : l'adresse invitée. L'organisation ne reçoit rien.
+      to: [
+        notice.recipientFirstName === null
+          ? { address: notice.recipientEmail }
+          : { address: notice.recipientEmail, name: notice.recipientFirstName },
+      ],
+      subject: rendered.subject,
+      textBody: rendered.textBody,
+      idempotencyKey: delivery.idempotencyKey,
+    });
+  } catch (error) {
+    throw providerFailure(error);
+  }
+
+  return {
+    provider: provider.name,
+    providerMessageId: result.providerMessageId,
+    acceptedAt: result.acceptedAt,
+    templateVersion: PARTICIPANT_INVITATION_TEMPLATE_VERSION,
   };
 }
 
@@ -318,11 +384,7 @@ export async function sendStaffInvitation(
       idempotencyKey: delivery.idempotencyKey,
     });
   } catch (error) {
-    throw new NotificationError(
-      'PROVIDER_UNAVAILABLE',
-      'envoi refusé par le fournisseur',
-      error instanceof Error ? error.name : 'inconnu',
-    );
+    throw providerFailure(error);
   }
 
   return {
@@ -375,11 +437,7 @@ export async function sendEventSiteContact(
   try {
     result = await provider.send(message);
   } catch (error) {
-    throw new NotificationError(
-      'PROVIDER_UNAVAILABLE',
-      'envoi refusé par le fournisseur',
-      error instanceof Error ? error.name : 'inconnu',
-    );
+    throw providerFailure(error);
   }
 
   return {

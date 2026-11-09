@@ -1781,9 +1781,13 @@ Le BO affiche uniquement les PII nécessaires au workflow.
 
 L’organisation peut inviter ses participants.
 
+Un owner ou un admin invite ; un editor et une autre organisation sont refusés. Un participant retiré, une ligne sans adresse, un compte déjà rattaché et une épreuve partie ne sont pas invités. Le lien vaut jusqu’au départ, ne s’active qu’une fois, et seulement avec l’adresse invitée. Un coureur déjà inscrit seul garde sa préparation, et reçoit le dossard et la vague du fichier. (pgTAP 47)
+
 ## AC-B2B-PART-07
 
 Une invitation Organizer Included peut créer le grant prévu.
+
+Le grant n’est créé que si l’édition ouvre l’accès inclus, réglage que seul PLUKA pose. (pgTAP 47)
 
 ## AC-B2B-PART-08
 

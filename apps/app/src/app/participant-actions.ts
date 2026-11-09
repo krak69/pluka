@@ -2,11 +2,14 @@
 
 import {
   DomainError,
+  OTHER_EMAIL_REASON,
+  acceptParticipantInvitation,
   commitParticipantImport,
   correctParticipant,
   createParticipantImport,
   discardParticipantImport,
   getOrganizerCourse,
+  sendParticipantInvitations,
   setParticipantWithdrawn,
   validateParticipantImport,
 } from '@pluka/domain';
@@ -15,6 +18,10 @@ import { redirect } from 'next/navigation';
 
 import { sessionEventSiteContext } from '@/lib/event-site-editing';
 import { participantImportContext } from '@/lib/organizer-course';
+import {
+  participantInvitationsEnabled,
+  sessionParticipantInvitationContext,
+} from '@/lib/participant-invitations';
 import { requireSession } from '@/lib/session';
 
 /**
@@ -195,15 +202,82 @@ export async function setParticipantWithdrawnAction(
   return {};
 }
 
+/**
+ * Inviter les participants — migration 0069. Sans participant désigné : tous
+ * ceux qui peuvent l'être ; avec : un renvoi, qui remplace le lien précédent.
+ */
+export async function sendParticipantInvitationsAction(
+  _previous: ParticipantActionState,
+  form: FormData,
+): Promise<ParticipantActionState> {
+  if (!participantInvitationsEnabled())
+    return { error: 'Les invitations ne sont pas encore ouvertes.' };
+
+  const participantRaceId = text(form, 'participantRaceId');
+  let sent: number;
+
+  try {
+    sent = await sendParticipantInvitations(
+      sessionParticipantInvitationContext(await requireSession(pagePath(form))),
+      {
+        editionId: text(form, 'editionId'),
+        ...(participantRaceId === '' ? {} : { participantRaceIds: [participantRaceId] }),
+      },
+    );
+  } catch (error) {
+    if (error instanceof DomainError && error.code === 'forbidden') {
+      return { error: 'Seuls un propriétaire ou un administrateur invitent les participants.' };
+    }
+    return failure(error);
+  }
+
+  revalidatePath(pagePath(form));
+  const selection = selectionOf(form);
+  redirect(
+    `${pagePath(form)}?${selection === '' ? '' : `${selection}&`}invitations=${String(sent)}`,
+  );
+}
+
+const TOKEN = /^[A-Za-z0-9_-]{43}$/u;
+
+/** Activer une invitation, depuis `/invitation/[token]` (§116). */
+export async function acceptParticipantInvitationAction(form: FormData): Promise<void> {
+  const raw = form.get('token');
+  const token = typeof raw === 'string' && TOKEN.test(raw) ? raw : null;
+
+  if (token === null || !participantInvitationsEnabled()) redirect('/');
+
+  const page = `/invitation/${token}`;
+  const context = sessionParticipantInvitationContext(await requireSession(page));
+  let target: string;
+
+  try {
+    const { participantRaceId } = await acceptParticipantInvitation(context, { token });
+    target = `${page}?etat=activee&participation=${participantRaceId}`;
+  } catch (error) {
+    if (error instanceof DomainError && error.details['reason'] === OTHER_EMAIL_REASON) {
+      target = `${page}?etat=autre-adresse`;
+    } else if (error instanceof DomainError) {
+      target = `${page}?etat=impossible`;
+    } else {
+      console.error('activation d’invitation : erreur non traduite', {
+        name: error instanceof Error ? error.name : 'inconnu',
+      });
+      target = `${page}?etat=erreur`;
+    }
+  }
+
+  redirect(target);
+}
+
 export async function discardImportAction(
   _previous: ParticipantActionState,
   form: FormData,
 ): Promise<ParticipantActionState> {
   try {
-    await discardParticipantImport(
-      participantImportContext(await requireSession(pagePath(form))),
-      { importId: text(form, 'importId') },
-    );
+    await discardParticipantImport(participantImportContext(await requireSession(pagePath(form))), {
+      importId: text(form, 'importId'),
+    });
   } catch (error) {
     return failure(error);
   }

@@ -1639,7 +1639,10 @@ repere_pluka
 race_intelligence
 community
 advanced_offline
+participant_invitations
 ```
+
+`participant_invitations` tient les invitations des participants (0069) hors de la production tant que l'envoi d'emails aux inscrits n'est pas validé juridiquement : coupé, ni le bouton d'envoi, ni la page `/invitation/[token]` n'existent.
 
 Les flags ne doivent pas remplacer les entitlements.
 

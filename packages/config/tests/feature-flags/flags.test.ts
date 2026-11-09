@@ -19,6 +19,7 @@ describe('liste des flags', () => {
       'race_intelligence',
       'community',
       'advanced_offline',
+      'participant_invitations',
     ]);
   });
 

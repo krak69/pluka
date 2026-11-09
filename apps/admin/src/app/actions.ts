@@ -12,13 +12,20 @@ import {
   decideFactCandidate,
   DomainError,
   publishFactCandidate,
+  setEditionParticipantsIncluded,
   setRaceVisibility,
   updateRace,
 } from '@pluka/domain';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-import { actionFailure, courseContext, factReviewContext, gpxImportContext } from '@/lib/admin';
+import {
+  actionFailure,
+  courseContext,
+  factReviewContext,
+  gpxImportContext,
+  participantInvitationContext,
+} from '@/lib/admin';
 import { publicEnv } from '@/lib/env';
 import {
   candidateCorrection,
@@ -217,6 +224,26 @@ export async function changeEventStatusAction(
 
   // La liste des événements affiche aussi leur statut.
   revalidatePath('/');
+  return {};
+}
+
+/** L'accès inclus des participants d'une édition — contractuel, réservé à PLUKA (0069). */
+export async function setEditionParticipantsIncludedAction(
+  _previous: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const session = await requireSession('/');
+
+  try {
+    await setEditionParticipantsIncluded(participantInvitationContext(session), {
+      editionId: text(form, 'editionId'),
+      included: text(form, 'included') === 'true',
+    });
+  } catch (error) {
+    return actionFailure(error);
+  }
+
+  revalidatePath(`/evenements/${text(form, 'eventId')}`);
   return {};
 }
 

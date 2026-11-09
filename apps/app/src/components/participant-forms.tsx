@@ -8,6 +8,7 @@ import {
   correctParticipantAction,
   createImportAction,
   discardImportAction,
+  sendParticipantInvitationsAction,
   setParticipantWithdrawnAction,
   validateImportAction,
   type ParticipantActionState,
@@ -182,6 +183,7 @@ export function ParticipantCorrection({
   wave,
   waves,
   canWithdraw,
+  invite,
 }: {
   readonly scope: Scope;
   readonly participantRaceId: string;
@@ -189,6 +191,8 @@ export function ParticipantCorrection({
   readonly wave: string | null;
   readonly waves: readonly { readonly name: string; readonly official: boolean }[];
   readonly canWithdraw: boolean;
+  /** Le renvoi de l'invitation, quand il a lieu d'être. */
+  readonly invite?: React.ReactNode;
 }) {
   const [state, action, pending] = useActionState(correctParticipantAction, INITIAL);
   const id = useId();
@@ -261,6 +265,7 @@ export function ParticipantCorrection({
         Une valeur choisie ici n’est jamais remplacée par un fichier. Laissée vide, un prochain
         import pourra la renseigner.
       </p>
+      {invite}
       {canWithdraw ? (
         <details className="st-details or-danger">
           <summary>Retirer de la liste</summary>
@@ -269,6 +274,46 @@ export function ParticipantCorrection({
         </details>
       ) : null}
     </details>
+  );
+}
+
+/**
+ * Inviter — sans participant : toute la liste à inviter ; avec : un renvoi.
+ * La base dit combien sont partis, et l'écran le répète.
+ */
+export function SendInvitationsForm({
+  scope,
+  editionId,
+  participantRaceId,
+  label,
+}: {
+  readonly scope: Scope;
+  readonly editionId: string;
+  readonly participantRaceId?: string;
+  readonly label: string;
+}) {
+  const [state, action, pending] = useActionState(sendParticipantInvitationsAction, INITIAL);
+
+  return (
+    <form action={action} className="or-inline-form">
+      <ScopeFields {...scope} />
+      <input type="hidden" name="editionId" value={editionId} />
+      {participantRaceId === undefined ? null : (
+        <input type="hidden" name="participantRaceId" value={participantRaceId} />
+      )}
+      <button
+        type="submit"
+        className={
+          participantRaceId === undefined
+            ? 'pk-btn pk-button-primary'
+            : 'pk-btn pk-button-secondary'
+        }
+        disabled={pending}
+      >
+        {pending ? 'Envoi…' : label}
+      </button>
+      <ActionError state={state} />
+    </form>
   );
 }
 

@@ -345,6 +345,27 @@ export interface InvitationStore {
   fail(invitationId: string, error: string): Promise<number>;
 }
 
+/** Envoi d'une invitation de participant — migration 0069. Même contrat que `InvitationStore`. */
+export interface ParticipantInvitationSendClaim {
+  readonly sendable: boolean;
+  readonly email: string | null;
+  readonly firstName: string | null;
+  readonly eventName: string | null;
+  readonly raceName: string | null;
+  readonly organizationName: string | null;
+  readonly raceStart: string | null;
+  readonly raceTimezone: string | null;
+  readonly included: boolean;
+  readonly attempt: number;
+}
+
+export interface ParticipantInvitationStore {
+  claim(invitationId: string, tokenHash: string): Promise<ParticipantInvitationSendClaim>;
+  complete(invitationId: string): Promise<void>;
+  /** Rend le nombre de tentatives faites. */
+  fail(invitationId: string, error: string): Promise<number>;
+}
+
 /** Envoi d'une invitation à l'équipe PLUKA — migration 0036. Même contrat que `InvitationStore`. */
 export interface StaffInvitationSendClaim {
   readonly sendable: boolean;
@@ -419,6 +440,7 @@ export interface WorkerPorts {
   readonly notifications: NotificationStore;
   readonly invitations: InvitationStore;
   readonly staffInvitations: StaffInvitationStore;
+  readonly participantInvitations: ParticipantInvitationStore;
   readonly siteContacts: EventSiteContactStore;
   readonly discoveries: DiscoveryStore;
   /**

@@ -16,6 +16,7 @@ describe('loadServerEnv', () => {
       race_intelligence: false,
       community: false,
       advanced_offline: false,
+      participant_invitations: false,
     });
   });
 

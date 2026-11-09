@@ -18,6 +18,8 @@ export const FEATURE_FLAGS = [
   'race_intelligence',
   'community',
   'advanced_offline',
+  // Les emails aux inscrits attendent la validation juridique (0069).
+  'participant_invitations',
 ] as const;
 
 export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
@@ -36,6 +38,7 @@ export const DEFAULT_FEATURE_FLAGS: FeatureFlagSet = {
   race_intelligence: false,
   community: false,
   advanced_offline: false,
+  participant_invitations: false,
 };
 
 /** Nom de la variable d'environnement portant un flag : `advanced_offline` → `FLAG_ADVANCED_OFFLINE`. */
@@ -62,10 +65,15 @@ export const featureFlagEnvSchema = z
       'FLAG_ADVANCED_OFFLINE',
       DEFAULT_FEATURE_FLAGS.advanced_offline,
     ),
+    FLAG_PARTICIPANT_INVITATIONS: booleanEnv(
+      'FLAG_PARTICIPANT_INVITATIONS',
+      DEFAULT_FEATURE_FLAGS.participant_invitations,
+    ),
   })
   .transform((raw): FeatureFlagSet => ({
     repere_pluka: raw.FLAG_REPERE_PLUKA,
     race_intelligence: raw.FLAG_RACE_INTELLIGENCE,
     community: raw.FLAG_COMMUNITY,
     advanced_offline: raw.FLAG_ADVANCED_OFFLINE,
+    participant_invitations: raw.FLAG_PARTICIPANT_INVITATIONS,
   }));

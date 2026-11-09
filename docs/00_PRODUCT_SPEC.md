@@ -1526,6 +1526,18 @@ L’invitation est personnalisée à l’événement.
 
 L’activation doit ouvrir un onboarding court et co-brandé.
 
+Règles décidées le 2026-11-09 (migration 0069) :
+
+- un owner ou un admin invite toute la liste d’un geste, ou renvoie une invitation ligne par ligne ; renvoyer remplace le lien précédent ;
+- ne sont invités ni un participant retiré, ni une ligne sans adresse, ni un compte déjà rattaché, ni une épreuve non publiée, annulée ou partie. Retirer un participant révoque son invitation ;
+- le lien vaut jusqu’au départ de l’épreuve ;
+- il s’active avec un compte dont l’adresse est celle de l’invitation : un lien transféré ne suffit pas (03_PRIVACY_RLS §117). Avant connexion, la page ne montre que l’événement, l’épreuve et l’adresse masquée ;
+- un coureur déjà inscrit seul à la course garde sa participation et sa préparation : le dossard, la vague et l’adresse du fichier la rejoignent, et la ligne importée disparaît ;
+- l’accès « Inclus par l’organisation » s’ouvre à l’activation seulement si l’édition le prévoit. Ce réglage est contractuel : PLUKA le pose, l’organisation ne le change pas ;
+- l’organisation voit l’état de chaque invitation (envoyée, en échec, expirée), jamais le lien.
+
+Les invitations restent coupées en production (flag `participant_invitations`) tant que l’envoi d’emails aux inscrits n’est pas validé juridiquement.
+
 ## 29.3 Enrichissement ITRA / UTMB
 
 L’enrichissement est facultatif et doit rester simple.
