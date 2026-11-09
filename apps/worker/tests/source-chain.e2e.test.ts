@@ -84,9 +84,17 @@ beforeAll(async () => {
 
   // Seule la capture réseau est remplacée.
   ports = {
-    ...createPorts(client, { appUrl: TEST_APP_URL, adminUrl: 'http://localhost:3002' }),
+    ...createPorts(client, {
+      appUrl: TEST_APP_URL,
+      adminUrl: 'http://localhost:3002',
+      siteUrl: 'http://localhost:3000',
+    }),
     sources: {
-      ...createPorts(client, { appUrl: TEST_APP_URL, adminUrl: 'http://localhost:3002' }).sources,
+      ...createPorts(client, {
+        appUrl: TEST_APP_URL,
+        adminUrl: 'http://localhost:3002',
+        siteUrl: 'http://localhost:3000',
+      }).sources,
       fetch: fakeCapture,
     },
   };
@@ -255,8 +263,11 @@ describe.runIf(process.env.SUPABASE_SERVICE_ROLE_KEY !== undefined)('ingestion d
       ...ports,
       sources: {
         ...ports.sources,
-        fetch: createPorts(client, { appUrl: TEST_APP_URL, adminUrl: 'http://localhost:3002' })
-          .sources.fetch,
+        fetch: createPorts(client, {
+          appUrl: TEST_APP_URL,
+          adminUrl: 'http://localhost:3002',
+          siteUrl: 'http://localhost:3000',
+        }).sources.fetch,
       },
     };
 

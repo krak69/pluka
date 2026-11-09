@@ -22,6 +22,7 @@ const NOTICE: ParticipantInvitationNotice = {
   included: true,
   acceptUrl: 'https://app.pluka.test/invitation/jeton',
   declineUrl: 'https://app.pluka.test/invitation/jeton?refus=1',
+  privacyUrl: 'https://pluka.test/confidentialite',
 };
 
 function provider(sent: EmailMessage[], behaviour: 'ok' | 'throw' = 'ok'): EmailProvider {
@@ -52,6 +53,7 @@ describe('l’invitation d’un participant', () => {
 
     expect(textBody).toContain("Trail Club t'a inscrit à Les 5 clochers et a transmis ton adresse à PLUKA");
     expect(textBody).toContain(`Tu ne souhaites pas être contacté : ${NOTICE.declineUrl}`);
+    expect(textBody).toContain(`Tes données et tes droits : ${NOTICE.privacyUrl}`);
   });
 
   it('ne promet l’accès offert que s’il l’est', () => {

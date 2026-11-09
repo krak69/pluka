@@ -76,6 +76,7 @@ export async function handleParticipantInvitationMessage(
         included: claim.included,
         acceptUrl: `${ports.appUrl}/invitation/${token}`,
         declineUrl: `${ports.appUrl}/invitation/${token}?refus=1`,
+        privacyUrl: `${ports.siteUrl}/confidentialite`,
       },
     });
 

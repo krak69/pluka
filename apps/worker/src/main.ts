@@ -30,7 +30,11 @@ function main(): void {
     secretKey: env.SUPABASE_SERVICE_ROLE_KEY,
   });
 
-  const ports = createPorts(client, { appUrl: env.APP_URL, adminUrl: env.ADMIN_URL });
+  const ports = createPorts(client, {
+    appUrl: env.APP_URL,
+    adminUrl: env.ADMIN_URL,
+    siteUrl: env.SITE_URL,
+  });
   const controller = new AbortController();
 
   // Arrêt propre : le tour en cours va à son terme, aucun message n'est

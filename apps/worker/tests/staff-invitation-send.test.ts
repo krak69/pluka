@@ -31,6 +31,7 @@ function setup(claim: StaffInvitationSendClaim) {
   const ports = {
     email: provider,
     adminUrl: 'http://localhost:3002',
+    siteUrl: 'http://localhost:3000',
     staffInvitations: {
       claim: (_id: string, hash: string) => {
         claims.push(hash);

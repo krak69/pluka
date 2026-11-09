@@ -24,6 +24,8 @@ export interface ParticipantInvitationNotice {
   readonly acceptUrl: string;
   /** La page où refuser d'être contacté, sans compte (0075). */
   readonly declineUrl: string;
+  /** La politique de confidentialité du site public. */
+  readonly privacyUrl: string;
 }
 
 export interface RenderedParticipantInvitation {
@@ -70,6 +72,7 @@ export function renderParticipantInvitation(
     // doit dire un premier e-mail envoyé à partir d'une liste transmise.
     `Tu reçois ce message parce que ${host} t'a inscrit à ${notice.raceName} et a transmis ton adresse à PLUKA, le service de préparation proposé aux participants de la course.`,
     `Tu ne souhaites pas être contacté : ${notice.declineUrl}`,
+    `Tes données et tes droits : ${notice.privacyUrl}`,
   ].join('\n');
 
   return {

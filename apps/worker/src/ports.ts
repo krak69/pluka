@@ -454,6 +454,8 @@ export interface WorkerPorts {
   readonly appUrl: string;
   /** Base des liens d'invitation à l'équipe PLUKA — `ADMIN_URL` (0036). */
   readonly adminUrl: string;
+  /** Site public, où vivent les pages légales — `SITE_URL` (0075). */
+  readonly siteUrl: string;
   readonly ai: ConfiguredAI | null;
   readonly outbox: OutboxDispatcher;
   readonly logger: Logger;

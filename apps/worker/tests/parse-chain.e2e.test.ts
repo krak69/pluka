@@ -95,7 +95,11 @@ beforeAll(async () => {
       contentType: 'text/html; charset=utf-8',
     });
 
-  const base = createPorts(client, { appUrl: TEST_APP_URL, adminUrl: 'http://localhost:3002' });
+  const base = createPorts(client, {
+    appUrl: TEST_APP_URL,
+    adminUrl: 'http://localhost:3002',
+    siteUrl: 'http://localhost:3000',
+  });
   ports = { ...base, sources: { ...base.sources, fetch: capture } };
 
   await client.from('organizations').delete().eq('id', ORG_ID);

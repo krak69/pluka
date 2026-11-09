@@ -167,6 +167,7 @@ function createHarness(): Harness {
     email: null,
     appUrl: 'http://localhost:3001',
     adminUrl: 'http://localhost:3002',
+    siteUrl: 'http://localhost:3000',
     ai: null,
     outbox: { dispatch: async () => 0 },
     logger: {

@@ -64,6 +64,12 @@ describe('loadWorkerEnv', () => {
     expect(() => loadWorkerEnv(sans)).toThrow(/APP_URL/);
   });
 
+  it('refuse un site public absent — pages légales des courriels (0075)', () => {
+    const { SITE_URL: _absent, ...sans } = workerEnvFixture();
+
+    expect(() => loadWorkerEnv(sans)).toThrow(/SITE_URL/);
+  });
+
   it('refuse une base de liens d’administration absente — invitations PLUKA (0036)', () => {
     const { ADMIN_URL: _absent, ...sans } = workerEnvFixture();
 

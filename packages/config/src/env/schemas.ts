@@ -58,7 +58,9 @@ export type SupabaseServiceEnv = z.infer<typeof supabaseServiceEnvSchema>;
  *   mais il écrit des courriels, et un lien y est une donnée de production —
  *   pas une valeur à deviner quand la variable manque (AGENTS §38) ;
  * - `ADMIN_URL` : la base des liens d'invitation à l'équipe PLUKA (0036), qui
- *   s'acceptent dans la console d'administration. Même règle que `APP_URL`.
+ *   s'acceptent dans la console d'administration. Même règle que `APP_URL` ;
+ * - `SITE_URL` : le site public, où vivent les pages légales qu'un courriel
+ *   d'invitation doit citer (0075). Même règle.
  *
  * Les providers externes n'y figurent pas : ils sont facultatifs par
  * construction et se désactivent proprement (`providerEnvSchema`).
@@ -68,6 +70,7 @@ export const workerEnvSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: requiredText('SUPABASE_SERVICE_ROLE_KEY'),
   APP_URL: httpUrl('APP_URL'),
   ADMIN_URL: httpUrl('ADMIN_URL'),
+  SITE_URL: httpUrl('SITE_URL'),
 });
 
 export type WorkerEnv = z.infer<typeof workerEnvSchema>;

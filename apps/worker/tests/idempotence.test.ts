@@ -180,6 +180,7 @@ function createRecorder(): Recorder {
     email: null,
     appUrl: 'http://localhost:3001',
     adminUrl: 'http://localhost:3002',
+    siteUrl: 'http://localhost:3000',
     // Aucune IA configurée : l'extraction déterministe suffit (§29).
     ai: null,
     outbox: { dispatch: async (): Promise<number> => 0 },

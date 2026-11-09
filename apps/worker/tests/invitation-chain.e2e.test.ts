@@ -127,7 +127,11 @@ beforeAll(async () => {
 
   service = createServiceRoleClient({ url: SUPABASE_URL, secretKey: SERVICE_KEY });
   ports = {
-    ...createPorts(service, { appUrl: 'http://localhost:3001', adminUrl: 'http://localhost:3002' }),
+    ...createPorts(service, {
+      appUrl: 'http://localhost:3001',
+      adminUrl: 'http://localhost:3002',
+      siteUrl: 'http://localhost:3000',
+    }),
     email: fakeEmail,
   };
 

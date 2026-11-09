@@ -48,6 +48,7 @@ function setup(claim: ParticipantInvitationSendClaim, options: { failSend?: bool
   const ports = {
     email: provider,
     appUrl: 'https://app.pluka.test',
+    siteUrl: 'https://pluka.test',
     participantInvitations: {
       claim: (_id: string, hash: string) => {
         hashes.push(hash);
@@ -96,6 +97,7 @@ describe('l’envoi d’une invitation de participant', () => {
     expect(hashes).toEqual(['hash-du-jeton']);
     expect(sent[0]?.textBody).toContain('https://app.pluka.test/invitation/jeton-en-clair');
     expect(sent[0]?.textBody).toContain('https://app.pluka.test/invitation/jeton-en-clair?refus=1');
+    expect(sent[0]?.textBody).toContain('https://pluka.test/confidentialite');
     expect(sent[0]?.idempotencyKey).toBe(`participant-invitation:${INVITATION_ID}:2`);
     expect(completed).toEqual([INVITATION_ID]);
     // Le journal ne porte ni l'adresse ni le jeton.

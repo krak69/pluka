@@ -467,8 +467,9 @@ export default async function ParticipantsPage({
                       {included
                         ? 'L’accès complet à la préparation leur est offert par votre organisation.'
                         : 'L’accès premium n’est pas inclus pour cette édition : ils démarrent avec la version gratuite.'}{' '}
-                      Seules les épreuves publiées et pas encore parties sont concernées ; un
-                      participant retiré ou déjà sur PLUKA n’est pas invité.
+                      Seules les épreuves publiées et pas encore parties sont concernées. Ne sont
+                      pas invités : un participant retiré, déjà sur PLUKA, qui a refusé d’être
+                      contacté, ou de moins de 15 ans d’après sa date de naissance.
                     </p>
                     {invitable === 0 ? (
                       <p className="pk-field-hint">

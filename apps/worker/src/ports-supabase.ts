@@ -49,6 +49,8 @@ export interface PortsConfig {
   readonly appUrl: string;
   /** Base des liens d'invitation à l'équipe PLUKA. */
   readonly adminUrl: string;
+  /** Site public : les pages légales citées par les courriels. */
+  readonly siteUrl: string;
 }
 
 export function createPorts(
@@ -75,6 +77,7 @@ export function createPorts(
     email: createEmail(process.env),
     appUrl: config.appUrl,
     adminUrl: config.adminUrl,
+    siteUrl: config.siteUrl,
     ai,
     outbox: createOutboxDispatcher(client),
     logger: createLogger(),
