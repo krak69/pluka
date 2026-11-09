@@ -1849,6 +1849,8 @@ Architecture à prévoir :
 
 Ne pas implémenter des durées arbitraires sans validation juridique.
 
+Durées décidées le 2026-11-09 (usages de la CNIL, `docs/legal/RGPD_AUTO_EVALUATION.md`) et appliquées par `private.purge_expired_data` (0077, chaque nuit) : liste importée et données déclaratives 12 mois après l'édition, journal 1 an. Le compte inactif (3 ans) attend la suppression de compte de §94.
+
 ---
 
 # 94. User deletion

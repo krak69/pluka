@@ -64,16 +64,15 @@
 
 Par ordre d'importance.
 
-1. **Politique de confidentialité et mentions légales.** La politique existe depuis le 2026-11-09 (`pluka.run/confidentialite`, `apps/www/src/content/legal.ts`). Il manque le nom de l'éditeur et l'adresse dédiée : tant qu'ils sont vides, la page affiche « à compléter » et n'est pas indexée. Restent les mentions légales, et le lien vers la politique dans l'e-mail d'invitation.
+1. **Politique de confidentialité et mentions légales.** La politique existe depuis le 2026-11-09 (`pluka.run/confidentialite`, `apps/www/src/content/legal.ts`). Il manque le nom de l'éditeur et l'adresse dédiée : tant qu'ils sont vides, la page affiche « à compléter » et n'est pas indexée. Les mentions légales (`/mentions-legales`, hébergeur Vercel Inc. vérifié sur ses conditions) et les CGU (`/cgu`) existent aussi, et l'e-mail d'invitation renvoie à la politique. Les CGU sont à faire relire.
 2. **CGU** pour les coureurs et **conditions organisateurs**, avec le contrat de sous-traitance (§1).
 3. **Information dans le formulaire d'inscription de l'organisation.** Les inscrits doivent être prévenus que leur adresse est transmise à PLUKA. C'est à l'organisation de l'écrire, mais PLUKA doit lui fournir le texte.
-4. **Purge automatique.** Les durées sont décidées (§5) et affichées dans la politique, mais rien n'est encore purgé : l'adresse importée et les données déclaratives restent tant que la ligne existe. La politique ne sera exacte qu'une fois la purge en place.
+4. **Purge automatique.** En place depuis 0077 : chaque nuit, `private.purge_expired_data` efface les lignes importées jamais activées et toutes les données déclaratives et indices 12 mois après l'édition, et le journal au-delà d'un an. Reste la suppression des comptes inactifs depuis 3 ans, qui attend la suppression de compte (point 5).
 5. **Droits des personnes.** Il n'existe encore ni suppression de compte, ni export de ses données (§94). Il faut au minimum une adresse de contact pour les demandes, et un délai de réponse d'un mois.
 6. **Sous-traitants de PLUKA et transferts hors UE.**
-   - Resend, pour les e-mails, est américain : vérifier son DPA et son adhésion au Data Privacy Framework, ou des clauses contractuelles types.
-   - Vérifier aussi la région de Supabase et de Vercel.
-   - Les lister dans la politique de confidentialité.
-7. **Mineurs.** Décidé : PLUKA s'adresse aux 15 ans et plus. Reste à l'écrire dans les CGU, et à ne pas inviter un inscrit de moins de 15 ans quand l'import porte sa date de naissance.
+   - Vérifié le 2026-11-09 sur leurs propres pages : Resend et Vercel se déclarent certifiés au Data Privacy Framework UE–États-Unis ; Supabase encadre ses transferts par les clauses contractuelles types. C'est écrit dans la politique. À confirmer sur la liste officielle (dataprivacyframework.gov), et signer leurs DPA.
+   - Reste à choisir la région de la base Supabase (une région UE limite les transferts).
+7. **Mineurs.** Décidé : PLUKA s'adresse aux 15 ans et plus. C'est écrit dans les CGU et la politique, et depuis 0076 un inscrit de moins de 15 ans d'après sa date de naissance n'est pas invité.
 8. **Violation de données.** Écrire une procédure courte : qui prévient la CNIL sous 72 heures, et qui prévient les organisations.
 9. **Domaine d'envoi.** Un domaine vérifié dans Resend, pour que l'expéditeur soit identifiable.
 
