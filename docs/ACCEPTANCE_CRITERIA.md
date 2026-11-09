@@ -1797,6 +1797,8 @@ L’organisation peut inviter ses participants.
 
 Un owner ou un admin invite ; un editor et une autre organisation sont refusés. Un participant retiré, une ligne sans adresse, un compte déjà rattaché et une épreuve partie ne sont pas invités. Le lien vaut jusqu’au départ, ne s’active qu’une fois, et seulement avec l’adresse invitée. Un coureur déjà inscrit seul garde sa préparation, et reçoit le dossard et la vague du fichier. (pgTAP 47)
 
+L’e-mail dit d’où vient l’adresse et porte un lien de refus. Refuser, sans compte, révoque l’invitation ; ni un renvoi ni un import de la même organisation ne recontactent l’adresse, une autre organisation le peut ; l’organisation voit que la ligne a refusé, pas plus. (pgTAP 52)
+
 ## AC-B2B-PART-07
 
 Une invitation Organizer Included peut créer le grant prévu.

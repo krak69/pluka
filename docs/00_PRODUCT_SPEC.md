@@ -1536,7 +1536,8 @@ Règles décidées le 2026-11-09 (migration 0069) :
 - il s’active avec un compte dont l’adresse est celle de l’invitation : un lien transféré ne suffit pas (03_PRIVACY_RLS §117). Avant connexion, la page ne montre que l’événement, l’épreuve et l’adresse masquée ;
 - un coureur déjà inscrit seul à la course garde sa participation et sa préparation : le dossard, la vague et l’adresse du fichier la rejoignent, et la ligne importée disparaît ;
 - l’accès « Inclus par l’organisation » s’ouvre seulement si l’édition le prévoit. Ce réglage est contractuel : PLUKA le pose, l’organisation ne le change pas. L’ouvrir l’accorde aux participants de la liste déjà sur PLUKA, puis à chaque activation ; le fermer ne retire rien de ce qui a été donné (0072) ;
-- l’organisation voit l’état de chaque invitation (envoyée, en échec, expirée), jamais le lien.
+- l’organisation voit l’état de chaque invitation (envoyée, en échec, expirée), jamais le lien ;
+- l’e-mail dit d’où vient l’adresse (l’organisation l’a transmise à PLUKA) et porte un lien pour refuser d’être contacté. Refuser se fait par un bouton, sans compte : l’invitation est révoquée et l’adresse n’est plus recontactée par cette organisation, ni par un renvoi ni par un nouvel import (0075). L’organisation voit seulement « A refusé d’être contacté ».
 
 Les invitations restent coupées en production (flag `participant_invitations`) tant que l’envoi d’emails aux inscrits n’est pas validé juridiquement.
 

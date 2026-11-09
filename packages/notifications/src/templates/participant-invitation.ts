@@ -22,6 +22,8 @@ export interface ParticipantInvitationNotice {
   /** L'organisation offre l'accès premium à la course. */
   readonly included: boolean;
   readonly acceptUrl: string;
+  /** La page où refuser d'être contacté, sans compte (0075). */
+  readonly declineUrl: string;
 }
 
 export interface RenderedParticipantInvitation {
@@ -63,6 +65,11 @@ export function renderParticipantInvitation(
     "Si tu n'es pas inscrit à cette course, ignore ce message : rien ne se passera.",
     '',
     '— PLUKA',
+    '',
+    // D'où vient l'adresse, et comment ne plus être contacté : le minimum que
+    // doit dire un premier e-mail envoyé à partir d'une liste transmise.
+    `Tu reçois ce message parce que ${host} t'a inscrit à ${notice.raceName} et a transmis ton adresse à PLUKA, le service de préparation proposé aux participants de la course.`,
+    `Tu ne souhaites pas être contacté : ${notice.declineUrl}`,
   ].join('\n');
 
   return {

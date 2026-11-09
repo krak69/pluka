@@ -152,6 +152,35 @@ export async function previewParticipantInvitation(
 }
 
 /**
+ * Refuser d'être contacté, depuis le lien de l'e-mail, sans compte (0075).
+ * Un jeton mal formé est un lien inconnu.
+ */
+export async function declineParticipantInvitation(
+  context: ParticipantInvitationContext,
+  input: unknown,
+): Promise<'declined' | 'closed' | 'unknown'> {
+  const parsed = participantInvitationTokenSchema.safeParse(input);
+  if (!parsed.success) return 'unknown';
+
+  return context.repositories.participantInvitations.decline(hashInvitationToken(parsed.data.token));
+}
+
+/** Les participations de l'édition qui ont refusé d'être contactées (0075). */
+export async function listContactOptouts(
+  context: ParticipantInvitationContext,
+  input: unknown,
+): Promise<readonly string[]> {
+  const useCase = 'listContactOptouts';
+  const query = parseCommand(participantInvitationEditionQuerySchema, input, useCase);
+
+  try {
+    return await context.repositories.participantInvitations.listOptouts(query.editionId);
+  } catch (error) {
+    throw translate(error, useCase, 'refus illisibles');
+  }
+}
+
+/**
  * Active une invitation. Le refus d'un compte d'une autre adresse porte
  * `details.reason = other_email` (§117), sans jamais citer l'adresse attendue.
  */

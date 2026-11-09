@@ -95,6 +95,7 @@ describe('l’envoi d’une invitation de participant', () => {
     expect(outcome).toEqual({ kind: 'sent', invitationId: INVITATION_ID });
     expect(hashes).toEqual(['hash-du-jeton']);
     expect(sent[0]?.textBody).toContain('https://app.pluka.test/invitation/jeton-en-clair');
+    expect(sent[0]?.textBody).toContain('https://app.pluka.test/invitation/jeton-en-clair?refus=1');
     expect(sent[0]?.idempotencyKey).toBe(`participant-invitation:${INVITATION_ID}:2`);
     expect(completed).toEqual([INVITATION_ID]);
     // Le journal ne porte ni l'adresse ni le jeton.

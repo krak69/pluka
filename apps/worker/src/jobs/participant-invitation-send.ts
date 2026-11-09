@@ -75,6 +75,7 @@ export async function handleParticipantInvitationMessage(
         raceTimezone: claim.raceTimezone,
         included: claim.included,
         acceptUrl: `${ports.appUrl}/invitation/${token}`,
+        declineUrl: `${ports.appUrl}/invitation/${token}?refus=1`,
       },
     });
 

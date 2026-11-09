@@ -48,6 +48,10 @@ export interface ParticipantInvitationRepository {
   preview(tokenHash: string): Promise<ParticipantInvitationPreviewRecord>;
   /** Rend la participation à ouvrir. */
   accept(tokenHash: string): Promise<string>;
+  /** Refuser d'être contacté (0075) : `declined`, `closed` ou `unknown`. */
+  decline(tokenHash: string): Promise<'declined' | 'closed' | 'unknown'>;
+  /** Les participations de l'édition dont l'adresse a refusé d'être contactée. */
+  listOptouts(editionId: string): Promise<readonly string[]>;
 }
 
 interface RpcCapableClient {
@@ -182,6 +186,22 @@ export const participantInvitationRepository = defineRepository<ParticipantInvit
         maskedEmail: text(row, 'masked_email'),
         included: row['included'] === true,
       };
+    },
+
+    async decline(tokenHash) {
+      const operation = 'decline_participant_invitation';
+      const data = await invoke(context.client, operation, { p_token_hash: tokenHash });
+
+      if (data === 'declined' || data === 'closed' || data === 'unknown') return data;
+      throw unexpected(operation, 'état de refus inconnu');
+    },
+
+    async listOptouts(editionId) {
+      const operation = 'org_list_contact_optouts';
+      return rows(
+        await invoke(context.client, operation, { p_edition_id: editionId }),
+        operation,
+      ).map((row) => requiredText(row, 'participant_race_id', operation));
     },
 
     async accept(tokenHash) {

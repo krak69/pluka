@@ -2,6 +2,7 @@ import {
   getOrganizerCourse,
   getParticipantImport,
   isEditionParticipantsIncluded,
+  listContactOptouts,
   listEditionParticipants,
   listParticipantInvitations,
   suggestColumns,
@@ -146,18 +147,23 @@ export default async function ParticipantsPage({
   // Coupé en production jusqu'à la validation juridique : sans le flag, rien ne change.
   const inviting = participantInvitationsEnabled() && edition !== null;
   const invitationContext = sessionParticipantInvitationContext(session);
-  const [invitations, included] =
+  const [invitations, included, optouts] =
     !inviting || edition === null
-      ? [[], false]
+      ? [[], false, []]
       : await Promise.all([
           listParticipantInvitations(invitationContext, { editionId: edition.id }),
           isEditionParticipantsIncluded(invitationContext, { editionId: edition.id }),
+          listContactOptouts(invitationContext, { editionId: edition.id }),
         ]);
+  // 0075 : ces adresses ont refusé d'être contactées ; aucun envoi ne les recontacte.
+  const declined = new Set(optouts);
   const invitationOf = new Map(
     invitations.map((invitation) => [invitation.participantRaceId, invitation]),
   );
   const invitable = list.participants.filter((participant) => {
-    if (participant.activated || participant.email === null) return false;
+    if (participant.activated || participant.email === null || declined.has(participant.id)) {
+      return false;
+    }
     const invitation = invitationOf.get(participant.id);
     if (invitation === undefined || invitation.sendFailed) return true;
     return invitation.status !== 'pending' && invitation.status !== 'sent';
@@ -585,6 +591,8 @@ export default async function ParticipantsPage({
 
                                 return participant.activated ? (
                                   <StatusBadge tone="success">Sur PLUKA</StatusBadge>
+                                ) : declined.has(participant.id) ? (
+                                  <StatusBadge tone="neutral">A refusé d’être contacté</StatusBadge>
                                 ) : (
                                   <StatusBadge tone={badge?.tone ?? 'neutral'}>
                                     {badge?.label ?? 'Importé'}
@@ -607,7 +615,8 @@ export default async function ParticipantsPage({
                                 invite={
                                   inviting &&
                                   !participant.activated &&
-                                  participant.email !== null ? (
+                                  participant.email !== null &&
+                                  !declined.has(participant.id) ? (
                                     <SendInvitationsForm
                                       scope={scope}
                                       editionId={edition.id}

@@ -4,7 +4,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { acceptParticipantInvitationAction } from '@/app/participant-actions';
+import {
+  acceptParticipantInvitationAction,
+  declineParticipantInvitationAction,
+} from '@/app/participant-actions';
 import {
   anonymousParticipantInvitationContext,
   participantInvitationsEnabled,
@@ -110,9 +113,49 @@ export default async function ParticipantInvitationPage({
     );
   }
 
+  if (state === 'refusee') {
+    return (
+      <Frame>
+        <h1 className="pk-h1" style={{ margin: 'var(--space-2) 0 var(--space-6)' }}>
+          C’est noté
+        </h1>
+        <p className="pk-body">
+          Tu ne recevras plus d’invitation PLUKA de la part de cette organisation. Son lien ne
+          fonctionne plus.
+        </p>
+      </Frame>
+    );
+  }
+
   const preview = await previewParticipantInvitation(anonymousParticipantInvitationContext(), {
     token,
   });
+
+  if (first(query.refus) === '1' && preview.state === 'valid') {
+    return (
+      <Frame>
+        <h1 className="pk-h1" style={{ margin: 'var(--space-2) 0 var(--space-6)' }}>
+          Ne plus être contacté
+        </h1>
+        <p className="pk-body">
+          {preview.organizationName ?? preview.eventName ?? 'L’organisation'} a transmis ton
+          adresse à PLUKA pour t’inviter à préparer {preview.raceName}. Si tu refuses,
+          l’invitation est annulée et cette organisation ne pourra plus te la renvoyer.
+        </p>
+        <form action={declineParticipantInvitationAction}>
+          <input type="hidden" name="token" value={token} />
+          <button type="submit" className="pk-btn pk-button-secondary">
+            Je ne souhaite pas être contacté
+          </button>
+        </form>
+        <p className="pk-body" style={{ marginTop: 'var(--space-6)' }}>
+          <Link href={`/invitation/${token}`} className="pk-link">
+            Finalement, voir l’invitation
+          </Link>
+        </p>
+      </Frame>
+    );
+  }
 
   if (preview.state !== 'valid') {
     const message =

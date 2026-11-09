@@ -5,6 +5,7 @@ import {
   OTHER_EMAIL_REASON,
   acceptParticipantInvitation,
   commitParticipantImport,
+  declineParticipantInvitation,
   correctParticipant,
   createParticipantImport,
   discardParticipantImport,
@@ -19,6 +20,7 @@ import { redirect } from 'next/navigation';
 import { sessionEventSiteContext } from '@/lib/event-site-editing';
 import { participantImportContext } from '@/lib/organizer-course';
 import {
+  anonymousParticipantInvitationContext,
   participantInvitationsEnabled,
   sessionParticipantInvitationContext,
 } from '@/lib/participant-invitations';
@@ -239,6 +241,24 @@ export async function sendParticipantInvitationsAction(
 }
 
 const TOKEN = /^[A-Za-z0-9_-]{43}$/u;
+
+/**
+ * Refuser d'être contacté, depuis `/invitation/[token]?refus=1` (0075). Un
+ * bouton, jamais l'ouverture du lien : un antivirus qui suit les liens d'un
+ * e-mail ne doit pas refuser à la place du coureur.
+ */
+export async function declineParticipantInvitationAction(form: FormData): Promise<void> {
+  const raw = form.get('token');
+  const token = typeof raw === 'string' && TOKEN.test(raw) ? raw : null;
+
+  if (token === null || !participantInvitationsEnabled()) redirect('/');
+
+  const outcome = await declineParticipantInvitation(
+    anonymousParticipantInvitationContext(),
+    { token },
+  ).catch(() => 'unknown' as const);
+  redirect(`/invitation/${token}?etat=${outcome === 'declined' ? 'refusee' : 'impossible'}`);
+}
 
 /** Activer une invitation, depuis `/invitation/[token]` (§116). */
 export async function acceptParticipantInvitationAction(form: FormData): Promise<void> {

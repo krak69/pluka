@@ -724,7 +724,9 @@ export {
 } from './participants/use-cases.js';
 export {
   acceptParticipantInvitation,
+  declineParticipantInvitation,
   isEditionParticipantsIncluded,
+  listContactOptouts,
   listParticipantInvitations,
   previewParticipantInvitation,
   sendParticipantInvitations,

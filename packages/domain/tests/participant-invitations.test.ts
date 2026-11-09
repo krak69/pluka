@@ -43,6 +43,8 @@ function contextWith(overrides: Partial<ParticipantInvitationRepository>) {
     ) as ParticipantInvitationRepository['setEditionIncluded'],
     preview: record('preview', { state: 'valid' }) as ParticipantInvitationRepository['preview'],
     accept: record('accept', 'participation') as ParticipantInvitationRepository['accept'],
+    decline: record('decline', 'declined') as ParticipantInvitationRepository['decline'],
+    listOptouts: record('listOptouts', []) as ParticipantInvitationRepository['listOptouts'],
     ...overrides,
   };
   const context: ParticipantInvitationContext = {

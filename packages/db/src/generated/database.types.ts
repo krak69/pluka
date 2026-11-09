@@ -6427,6 +6427,10 @@ export type Database = {
         }
         Returns: string
       }
+      decline_participant_invitation: {
+        Args: { p_token_hash: string }
+        Returns: string
+      }
       discard_participant_import: {
         Args: { p_import_id: string }
         Returns: undefined
@@ -6595,6 +6599,12 @@ export type Database = {
           p_role: Database["public"]["Enums"]["organization_member_role"]
         }
         Returns: string
+      }
+      org_list_contact_optouts: {
+        Args: { p_edition_id: string }
+        Returns: {
+          participant_race_id: string
+        }[]
       }
       org_list_invitations: {
         Args: { p_organization_id: string }
