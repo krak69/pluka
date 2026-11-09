@@ -116,9 +116,27 @@ export function storageError(
   operation: string,
 ): DbError {
   const status = Number(error.statusCode ?? 0);
+  const message = error.message ?? '';
+
+  // Seul un refus de policy dit « votre rôle ne le permet pas ». Un autre 403
+  // — une fonction de policy que la base ne laisse pas exécuter, comme le
+  // 2026-11-09 — est une panne de configuration : la lire comme un refus de
+  // rôle enverrait l'organisation chercher un droit qu'elle a déjà.
+  if (
+    (status === 403 || status === 401) &&
+    /row-level security|unauthorized/iu.test(message) &&
+    !/permission denied for function/iu.test(message)
+  ) {
+    return mapPostgrestError({ code: '42501', message: 'dépôt refusé' }, operation);
+  }
 
   if (status === 403 || status === 401) {
-    return mapPostgrestError({ code: '42501', message: 'dépôt refusé' }, operation);
+    return new DbError({
+      code: 'unknown',
+      operation,
+      message: 'dépôt refusé par le stockage',
+      cause: error,
+    });
   }
 
   return new DbError({
