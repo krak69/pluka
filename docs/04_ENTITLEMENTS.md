@@ -1494,7 +1494,7 @@ L’entitlement doit être lié à :
 - participant ;
 - date de création.
 
-Implémentation (0069) : la « sponsor access rule » est `editions.participants_included`, posée par PLUKA selon le contrat, coupée par défaut. À l’activation d’une invitation sur une édition qui l’ouvre, un `organizer_included` est créé dans la même transaction, avant toute mutation premium (§13). Fermer le réglage n’atteint que les activations suivantes : les accès déjà donnés restent (§66).
+Implémentation (0069) : la « sponsor access rule » est `editions.participants_included`, posée par PLUKA selon le contrat, coupée par défaut. À l’activation d’une invitation sur une édition qui l’ouvre, un `organizer_included` est créé dans la même transaction, avant toute mutation premium (§13). L’ouvrir l’accorde aussi aux participants de la liste déjà sur PLUKA (0072), pas à un coureur inscrit seul hors de la liste. Fermer le réglage n’atteint que les activations suivantes : les accès déjà donnés restent (§66).
 
 ---
 

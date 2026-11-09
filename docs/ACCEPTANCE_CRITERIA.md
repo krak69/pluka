@@ -1797,7 +1797,7 @@ Un owner ou un admin invite ; un editor et une autre organisation sont refusés.
 
 Une invitation Organizer Included peut créer le grant prévu.
 
-Le grant n’est créé que si l’édition ouvre l’accès inclus, réglage que seul PLUKA pose. (pgTAP 47)
+Le grant n’est créé que si l’édition ouvre l’accès inclus, réglage que seul PLUKA pose. L’ouvrir l’accorde aussi aux participants de la liste déjà activés, pas aux inscrits hors liste ; le fermer ne retire rien. (pgTAP 47)
 
 ## AC-B2B-PART-08
 

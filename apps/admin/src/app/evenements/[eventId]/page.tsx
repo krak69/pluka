@@ -629,8 +629,9 @@ export default async function EventPage({
                     {inclusion.get(edition.id) === true ? 'ouvert' : 'fermé'}
                   </h4>
                   <p className="ad-org-panel-lede">
-                    Ouvert, un participant qui active son invitation reçoit l’accès premium à sa
-                    course, financé par l’organisation. À régler selon le contrat.
+                    Ouvert, les participants déjà sur PLUKA et ceux qui activeront leur invitation
+                    reçoivent l’accès premium à leur course, financé par l’organisation. À régler
+                    selon le contrat.
                   </p>
                   <ConsoleAction
                     action={setEditionParticipantsIncludedAction}
@@ -647,7 +648,7 @@ export default async function EventPage({
                     confirm={
                       inclusion.get(edition.id) === true
                         ? 'Les prochaines activations n’ouvriront plus l’accès premium. Les accès déjà donnés restent.'
-                        : 'L’organisation finance l’accès premium de chaque participant qui active son invitation.'
+                        : 'L’organisation finance l’accès premium de ses participants : ceux déjà sur PLUKA le reçoivent tout de suite, les suivants à l’activation.'
                     }
                   />
                 </div>

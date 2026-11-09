@@ -1535,7 +1535,7 @@ Règles décidées le 2026-11-09 (migration 0069) :
 - le lien vaut jusqu’au départ de l’épreuve ;
 - il s’active avec un compte dont l’adresse est celle de l’invitation : un lien transféré ne suffit pas (03_PRIVACY_RLS §117). Avant connexion, la page ne montre que l’événement, l’épreuve et l’adresse masquée ;
 - un coureur déjà inscrit seul à la course garde sa participation et sa préparation : le dossard, la vague et l’adresse du fichier la rejoignent, et la ligne importée disparaît ;
-- l’accès « Inclus par l’organisation » s’ouvre à l’activation seulement si l’édition le prévoit. Ce réglage est contractuel : PLUKA le pose, l’organisation ne le change pas ;
+- l’accès « Inclus par l’organisation » s’ouvre seulement si l’édition le prévoit. Ce réglage est contractuel : PLUKA le pose, l’organisation ne le change pas. L’ouvrir l’accorde aux participants de la liste déjà sur PLUKA, puis à chaque activation ; le fermer ne retire rien de ce qui a été donné (0072) ;
 - l’organisation voit l’état de chaque invitation (envoyée, en échec, expirée), jamais le lien.
 
 Les invitations restent coupées en production (flag `participant_invitations`) tant que l’envoi d’emails aux inscrits n’est pas validé juridiquement.

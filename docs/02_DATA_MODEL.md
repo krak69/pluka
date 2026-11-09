@@ -1403,7 +1403,7 @@ Mécanique de 0069, celle de l'équipe (0033) : pas de jeton à la création, le
 
 L'activation exige l'adresse invitée. Si le compte a déjà sa participation sur l'épreuve, la ligne importée y est fusionnée : invitation, lignes d'import, données déclaratives et signaux privés la rejoignent, puis elle est supprimée ; dossard, vague, indicateurs de saisie manuelle, `invite_email` et `external_registration_id` passent sur la participation du coureur.
 
-`editions.participants_included` (0069) ouvre un Organizer Included à l'activation (`source = organization`, l'organisation de l'événement, l'identifiant d'invitation en `metadata`). Un trigger refuse son changement à tout autre qu'un `pluka_admin` : la policy d'écriture des éditions ne suffit pas à le poser.
+`editions.participants_included` (0069) ouvre un Organizer Included à l'activation, et, au moment où PLUKA l'ouvre, à chaque participation active de l'édition rattachée à un compte et venue de la liste de l'organisation (`invite_email` renseigné, 0072). Le fermer ne révoque rien. L'Organizer Included porte `source = organization`, l'organisation de l'événement, et son origine en `metadata` (invitation ou ouverture de l'édition). Un trigger refuse son changement à tout autre qu'un `pluka_admin` : la policy d'écriture des éditions ne suffit pas à le poser.
 
 ---
 

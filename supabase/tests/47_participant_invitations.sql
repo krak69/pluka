@@ -6,7 +6,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(37);
+select plan(40);
 
 \ir _personas.psql
 
@@ -304,6 +304,46 @@ select is(
   public.org_send_participant_invitations('aaaaaaaa-0000-4000-8000-000000000012'),
   0, 'INVITE-36 — une épreuve partie n''invite plus');
 reset role;
+
+-- ============================================================
+-- 5. Ouvrir l'accès inclus après coup (0072)
+-- ============================================================
+
+select pg_temp.act_as('88888888-8888-4888-8888-888888888888');
+select public.admin_set_edition_participants_included('aaaaaaaa-0000-4000-8000-000000000012', false);
+reset role;
+
+-- Activé avant l'ouverture : venu de la liste de l'organisation.
+insert into public.participant_races (id, race_id, user_id, invite_email, status, registration_source)
+values ('cccccccc-0000-4000-8000-000000000006', 'aaaaaaaa-0000-4000-8000-000000000014',
+        'cccccccc-1111-4111-8111-000000000003', 'autre@example.com', 'active', 'organizer_import');
+-- Inscrit seul, hors de la liste.
+insert into public.participant_races (id, race_id, user_id, status)
+values ('cccccccc-0000-4000-8000-000000000007', 'aaaaaaaa-0000-4000-8000-000000000014',
+        'cccccccc-1111-4111-8111-000000000002', 'active');
+
+select pg_temp.act_as('88888888-8888-4888-8888-888888888888');
+select public.admin_set_edition_participants_included('aaaaaaaa-0000-4000-8000-000000000012', true);
+reset role;
+
+select isnt_empty(
+  $$ select id from public.entitlements
+     where participant_race_id = 'cccccccc-0000-4000-8000-000000000006'
+       and kind = 'organizer_included' and status = 'active' $$,
+  'INVITE-38 — ouvrir l''accès l''accorde aux participants déjà activés');
+select is_empty(
+  $$ select id from public.entitlements
+     where participant_race_id = 'cccccccc-0000-4000-8000-000000000007' $$,
+  'INVITE-39 — pas à un coureur inscrit seul, hors de la liste');
+
+select pg_temp.act_as('88888888-8888-4888-8888-888888888888');
+select public.admin_set_edition_participants_included('aaaaaaaa-0000-4000-8000-000000000012', false);
+reset role;
+
+select isnt_empty(
+  $$ select id from public.entitlements
+     where participant_race_id = 'cccccccc-0000-4000-8000-000000000006' and status = 'active' $$,
+  'INVITE-40 — fermer ne retire pas un accès donné');
 
 select * from finish();
 rollback;
