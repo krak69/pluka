@@ -138,9 +138,10 @@ export default function PrivacyPage() {
           </li>
         </ul>
         <p>
-          Certains sont établis hors de l’Union européenne. Les garanties qui encadrent ces
-          transferts (Data Privacy Framework ou clauses contractuelles types) sont en cours de
-          vérification et seront précisées ici.
+          Ces prestataires sont établis aux États-Unis. Resend et Vercel déclarent être certifiés au
+          Data Privacy Framework UE–États-Unis ; Supabase encadre ses transferts par les clauses
+          contractuelles types de la Commission européenne. Anthropic ne reçoit que des documents
+          publics des courses.
         </p>
 
         <h2>Combien de temps</h2>

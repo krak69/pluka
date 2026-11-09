@@ -466,7 +466,8 @@ export const footerColumns: readonly FooterColumn[] = [
       { label: 'PLUKA côté coureur', href: '/' },
       { label: 'Contact', href: '#contact' },
       { label: 'Confidentialité', href: '/confidentialite' },
-      { label: 'CGU', href: '#contact' },
+      { label: 'CGU', href: '/cgu' },
+      { label: 'Mentions légales', href: '/mentions-legales' },
     ],
   },
 ];
