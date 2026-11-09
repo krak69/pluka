@@ -1906,3 +1906,33 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+/* Pages légales : une colonne de lecture, sans habillage de page d’accueil. */
+.lp-legal {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: var(--space-12) var(--space-6) var(--space-16);
+  line-height: 1.6;
+}
+
+.lp-legal h1 {
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.lp-legal h2 {
+  margin: var(--space-8) 0 var(--space-3);
+  font-size: 1.25rem;
+}
+
+.lp-legal ul {
+  padding-left: var(--space-5);
+}
+
+.lp-legal li + li {
+  margin-top: var(--space-2);
+}
+
+.lp-legal-meta {
+  color: var(--pk-text-muted);
+  font-size: 0.9rem;
+}

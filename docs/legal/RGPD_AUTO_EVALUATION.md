@@ -64,16 +64,16 @@
 
 Par ordre d'importance.
 
-1. **Politique de confidentialité et mentions légales.** Aucune page n'existe : il n'y a qu'un engagement dans la page Organisateurs. Elles doivent dire qui est PLUKA, ce qui est collecté, pourquoi, combien de temps, les sous-traitants, et comment exercer ses droits. L'e-mail d'invitation devra y renvoyer.
+1. **Politique de confidentialité et mentions légales.** La politique existe depuis le 2026-11-09 (`pluka.run/confidentialite`, `apps/www/src/content/legal.ts`). Il manque le nom de l'éditeur et l'adresse dédiée : tant qu'ils sont vides, la page affiche « à compléter » et n'est pas indexée. Restent les mentions légales, et le lien vers la politique dans l'e-mail d'invitation.
 2. **CGU** pour les coureurs et **conditions organisateurs**, avec le contrat de sous-traitance (§1).
 3. **Information dans le formulaire d'inscription de l'organisation.** Les inscrits doivent être prévenus que leur adresse est transmise à PLUKA. C'est à l'organisation de l'écrire, mais PLUKA doit lui fournir le texte.
-4. **Durées de conservation**, puis leur purge automatique (§2). Rien n'est purgé aujourd'hui : l'adresse importée et les données déclaratives restent tant que la ligne existe.
+4. **Purge automatique.** Les durées sont décidées (§5) et affichées dans la politique, mais rien n'est encore purgé : l'adresse importée et les données déclaratives restent tant que la ligne existe. La politique ne sera exacte qu'une fois la purge en place.
 5. **Droits des personnes.** Il n'existe encore ni suppression de compte, ni export de ses données (§94). Il faut au minimum une adresse de contact pour les demandes, et un délai de réponse d'un mois.
 6. **Sous-traitants de PLUKA et transferts hors UE.**
    - Resend, pour les e-mails, est américain : vérifier son DPA et son adhésion au Data Privacy Framework, ou des clauses contractuelles types.
    - Vérifier aussi la région de Supabase et de Vercel.
    - Les lister dans la politique de confidentialité.
-7. **Mineurs.** Des coureurs de moins de 15 ans peuvent être inscrits à une course. À décider : refuser leur invitation, ou demander l'accord d'un parent.
+7. **Mineurs.** Décidé : PLUKA s'adresse aux 15 ans et plus. Reste à l'écrire dans les CGU, et à ne pas inviter un inscrit de moins de 15 ans quand l'import porte sa date de naissance.
 8. **Violation de données.** Écrire une procédure courte : qui prévient la CNIL sous 72 heures, et qui prévient les organisations.
 9. **Domaine d'envoi.** Un domaine vérifié dans Resend, pour que l'expéditeur soit identifiable.
 
@@ -81,13 +81,14 @@ Par ordre d'importance.
 
 ## 5. Décisions à prendre (à cocher)
 
-- [ ] Durée de conservation du compte inactif
-- [ ] Durée de conservation de la liste importée après l'édition
+- [x] Durée de conservation du compte inactif : 3 ans sans connexion (2026-11-09)
+- [x] Durée de conservation de la liste importée après l'édition : 12 mois (2026-11-09)
 - [ ] Base légale et information pour sexe, date de naissance, nationalité
 - [ ] Usage des indices ITRA / UTMB : quelles sources sont « légitimes »
-- [ ] Durée du journal d'audit
-- [ ] Mineurs : refus ou accord parental
-- [ ] Contact pour l'exercice des droits (adresse dédiée)
+- [x] Durée du journal d'audit : 1 an (2026-11-09)
+- [x] Mineurs : réservé aux 15 ans et plus (2026-11-09)
+- [ ] Contact pour l'exercice des droits : adresse dédiée décidée, à créer
+- [ ] Nom de l'éditeur (personne physique pendant la bêta)
 - [ ] Sous-traitants retenus et leurs garanties de transfert
 
 ---

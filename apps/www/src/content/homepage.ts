@@ -466,7 +466,7 @@ export const footerColumns: readonly FooterColumn[] = [
     links: [
       { label: 'À propos', href: '#contact' },
       { label: 'Contact', href: '#contact' },
-      { label: 'Confidentialité', href: '#contact' },
+      { label: 'Confidentialité', href: '/confidentialite' },
       { label: 'CGU', href: '#contact' },
     ],
   },
