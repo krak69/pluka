@@ -748,6 +748,21 @@ export {
   type RepereEstimate,
 } from './repere/use-cases.js';
 export {
+  MIN_CALIBRATION_SAMPLES,
+  calibrateRepere,
+  type CalibrationReport,
+  type CalibrationSample,
+} from './repere/calibration.js';
+export {
+  addCalibrationPair,
+  addCalibrationPairCommandSchema,
+  getRepereCalibrationReport,
+  listMyCalibrationPairs,
+  removeCalibrationPair,
+  type RepereCalibrationContext,
+  type RepereCalibrationView,
+} from './repere/calibration-use-cases.js';
+export {
   MAX_BETA_EMAILS,
   cancelBetaReservation,
   grantBetaAccess,

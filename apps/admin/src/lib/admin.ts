@@ -11,6 +11,7 @@ import {
   createNutritionCatalogueRepositories,
   createOrganizationTeamRepositories,
   createParticipantInvitationRepositories,
+  createRepereCalibrationRepositories,
   createStaffTeamRepositories,
   type DbErrorCode,
 } from '@pluka/db';
@@ -30,6 +31,7 @@ import {
   type NutritionCatalogueContext,
   type OrganizationTeamContext,
   type ParticipantInvitationContext,
+  type RepereCalibrationContext,
   type StaffTeamContext,
 } from '@pluka/domain';
 import { createServerClient } from '@pluka/db/server';
@@ -47,6 +49,17 @@ import { createDataClient } from '@/lib/supabase/data';
  * (03_PRIVACY_RLS §11, §178). Cette application ne peut donc pas se déclarer
  * administratrice — elle ne fait que dire *qui* agit.
  */
+/** Le rapport de calibrage du Repère (0074) : échantillons anonymes, garde en base. */
+export function repereCalibrationContext(session: Session): RepereCalibrationContext {
+  return {
+    repositories: createRepereCalibrationRepositories({
+      client: createDataClient(session.accessToken),
+    }),
+    actor: { userId: session.userId },
+    now: () => new Date(),
+  };
+}
+
 /** Les testeurs bêta (0073) : la garde `pluka_admin` est en base. */
 export function betaAccessContext(session: Session): BetaAccessContext {
   return {

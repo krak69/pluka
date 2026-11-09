@@ -164,6 +164,13 @@ export function RepereHelper({
               ? ' Attention : le haut de la plage dépasse la barrière d’arrivée.'
               : ''}
           </p>
+          <p className="rp-hint">
+            Tu as couru une course après une sortie de ce genre ?{' '}
+            <a href="/profil/repere" className="pk-link">
+              Aide à calibrer le Repère
+            </a>
+            .
+          </p>
           <Button
             type="button"
             variant="secondary"

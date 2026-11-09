@@ -2,6 +2,8 @@ import { getTrailProfile } from '@pluka/domain';
 import { Badge, Divider, SectionHeader } from '@pluka/ui';
 import Link from 'next/link';
 
+import { repereEnabled } from '@/lib/repere';
+
 import { ProfileForms } from '@/app/(shell)/profil/profile-forms';
 import { organizerPathOf } from '@/lib/organizer-link';
 import { requireProfileContext } from '@/lib/profile';
@@ -58,6 +60,17 @@ export default async function ProfilePage() {
       <Divider spaced />
 
       <ProfileForms profile={view.profile} />
+
+      {repereEnabled() ? (
+        <>
+          <Divider spaced />
+          <p className="pk-body">
+            <Link href="/profil/repere" className="pk-link">
+              Aider à calibrer le Repère PLUKA (bêta)
+            </Link>
+          </p>
+        </>
+      ) : null}
 
       {organizerHref === null ? null : (
         <>

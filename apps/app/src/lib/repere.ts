@@ -1,6 +1,10 @@
 import { loadFeatureFlags } from '@pluka/config';
-import { createPlanRepositories, createRepereRepositories } from '@pluka/db';
-import type { RepereContext } from '@pluka/domain';
+import {
+  createPlanRepositories,
+  createRepereCalibrationRepositories,
+  createRepereRepositories,
+} from '@pluka/db';
+import type { RepereCalibrationContext, RepereContext } from '@pluka/domain';
 
 import type { Session } from '@/lib/session';
 import { createDataClient } from '@/lib/supabase/data';
@@ -23,6 +27,17 @@ export function repereContext(session: Session): RepereContext {
       ...createPlanRepositories({ client }),
       ...createRepereRepositories({ client }),
     },
+    actor: { userId: session.userId },
+    now: () => new Date(),
+  };
+}
+
+/** Les couples de calibrage du coureur (0074), sous sa session. */
+export function repereCalibrationContext(session: Session): RepereCalibrationContext {
+  return {
+    repositories: createRepereCalibrationRepositories({
+      client: createDataClient(session.accessToken),
+    }),
     actor: { userId: session.userId },
     now: () => new Date(),
   };

@@ -573,6 +573,10 @@ Le Repère PLUKA suit `engines/REPERE_PLUKA.md` §7 : mêmes entrées, même pla
 
 Le Repère ne crée ni objectif ni Plan. Un autre compte et l'organisation ne lisent pas les estimations d'un coureur (pgTAP 48).
 
+## AC-REPERE-03
+
+Les couples de calibrage sont au coureur seul ; une organisation ne lit pas les échantillons ; PLUKA ne les lit que sans identité ; la référence précède la course (pgTAP 51). Le rapport retrouve l'exposant qui a produit des temps connus et compte à part les couples sans plage (`repere-calibration.test.ts`).
+
 ---
 
 # 11. Acceptance — Plan UX

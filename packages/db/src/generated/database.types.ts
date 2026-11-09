@@ -5236,6 +5236,56 @@ export type Database = {
           },
         ]
       }
+      repere_calibration_pairs: {
+        Row: {
+          course_date: string
+          course_distance_km: number
+          course_duration_seconds: number
+          course_elevation_gain_m: number
+          created_at: string
+          id: string
+          reference_date: string
+          reference_distance_km: number
+          reference_duration_seconds: number
+          reference_elevation_gain_m: number
+          user_id: string
+        }
+        Insert: {
+          course_date: string
+          course_distance_km: number
+          course_duration_seconds: number
+          course_elevation_gain_m: number
+          created_at?: string
+          id?: string
+          reference_date: string
+          reference_distance_km: number
+          reference_duration_seconds: number
+          reference_elevation_gain_m: number
+          user_id: string
+        }
+        Update: {
+          course_date?: string
+          course_distance_km?: number
+          course_duration_seconds?: number
+          course_elevation_gain_m?: number
+          created_at?: string
+          id?: string
+          reference_date?: string
+          reference_distance_km?: number
+          reference_duration_seconds?: number
+          reference_elevation_gain_m?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repere_calibration_pairs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       repere_estimates: {
         Row: {
           central_seconds: number | null
@@ -6297,6 +6347,19 @@ export type Database = {
       admin_refresh_event_discovery: {
         Args: { p_event_id: string }
         Returns: string
+      }
+      admin_repere_calibration_samples: {
+        Args: never
+        Returns: {
+          actual_duration_seconds: number
+          course_distance_km: number
+          course_elevation_gain_m: number
+          months_before: number
+          reference_distance_km: number
+          reference_duration_seconds: number
+          reference_elevation_gain_m: number
+          source: string
+        }[]
       }
       admin_retry_job: { Args: { p_job_id: string }; Returns: number }
       admin_revoke_beta_access: {

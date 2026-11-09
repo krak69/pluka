@@ -2174,3 +2174,26 @@ a.st-tab {
   border-left: 3px solid var(--pk-dawn);
   background: var(--pk-surface);
 }
+
+/* Les couples de calibrage du Repère : deux lignes de chiffres et leur suppression. */
+.rp-pair-fieldset {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.rp-pairs {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rp-pair {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--pk-hairline);
+}

@@ -157,6 +157,8 @@ Chaque Repère affiché est enregistré avec ses entrées, sa version et sa plag
 - la part des temps réels tombés dans la plage ;
 - le biais du central.
 
+**Implémentation (0074).** Les testeurs donnent leurs couples depuis `/profil/repere` (« Aider à calibrer le Repère ») : une sortie, puis une course courue ensuite, avec distance, D+, temps et date. Chaque Repère tiré d'une sortie et suivi d'une arrivée déclarée en devient un aussi. Le rapport `/parametres/repere` de l'admin lit ces couples sans identité (ni compte, ni course, ni date absolue, seulement l'écart en mois) et affiche des agrégats : nombre de couples, part des temps réels dans la plage, écart médian au central, exposant ajusté par moindres carrés sur ln(t / t_ref) = k · ln(r), et demi-largeur qui contiendrait 70 % des temps. En dessous de 10 couples, il n'en tire aucune conclusion. Il ne change aucune constante.
+
 Avant la production :
 
 - un jeu d'au moins 100 couples (référence, temps réel) ;

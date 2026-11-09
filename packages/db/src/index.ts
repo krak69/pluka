@@ -309,6 +309,15 @@ export {
   type RepereRepositories,
 } from './repositories/repere.js';
 export {
+  createRepereCalibrationRepositories,
+  repereCalibrationRepository,
+  type RepereCalibrationPairInput,
+  type RepereCalibrationPairRecord,
+  type RepereCalibrationRepositories,
+  type RepereCalibrationRepository,
+  type RepereCalibrationSampleRecord,
+} from './repositories/repere-calibration.js';
+export {
   betaAccessRepository,
   createBetaAccessRepositories,
   type BetaAccessGrantOutcome,

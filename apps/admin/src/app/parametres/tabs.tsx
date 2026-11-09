@@ -17,6 +17,7 @@ import { AdminPageHeader } from '@/components/admin-page';
 const TABS = [
   { href: '/parametres/equipe', label: 'Équipe PLUKA', superAdminOnly: true },
   { href: '/parametres/journal', label: 'Journal', superAdminOnly: false },
+  { href: '/parametres/repere', label: 'Repère PLUKA', superAdminOnly: false },
 ] as const;
 
 export type SettingsTab = (typeof TABS)[number]['href'];

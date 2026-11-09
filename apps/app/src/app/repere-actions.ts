@@ -1,9 +1,17 @@
 'use server';
 
-import { DomainError, estimateRepere, updateTrailProfile, type RepereRefusal } from '@pluka/domain';
+import {
+  DomainError,
+  addCalibrationPair,
+  estimateRepere,
+  removeCalibrationPair,
+  updateTrailProfile,
+  type RepereRefusal,
+} from '@pluka/domain';
+import { revalidatePath } from 'next/cache';
 
 import { profileContext } from '@/lib/profile';
-import { repereContext, repereEnabled } from '@/lib/repere';
+import { repereCalibrationContext, repereContext, repereEnabled } from '@/lib/repere';
 import { requireSession } from '@/lib/session';
 
 /**
@@ -141,4 +149,81 @@ export async function estimateRepereAction(
     });
     return { error: 'Une erreur est survenue. Réessaie dans un instant.' };
   }
+}
+
+export interface CalibrationActionState {
+  readonly error?: string;
+  readonly fieldErrors?: Readonly<Record<string, string>>;
+  readonly done?: boolean;
+}
+
+/** Un couple de calibrage — REPERE_PLUKA §5, migration 0074. */
+export async function addCalibrationPairAction(
+  _previous: CalibrationActionState,
+  form: FormData,
+): Promise<CalibrationActionState> {
+  if (!repereEnabled()) return { error: 'Le Repère PLUKA n’est pas encore ouvert.' };
+
+  const referenceDistanceKm = number(text(form, 'referenceDistance'));
+  const referenceElevationGainM = number(text(form, 'referenceElevation'));
+  const referenceDurationSeconds = clock(text(form, 'referenceDuration'));
+  const courseDistanceKm = number(text(form, 'courseDistance'));
+  const courseElevationGainM = number(text(form, 'courseElevation'));
+  const courseDurationSeconds = clock(text(form, 'courseDuration'));
+
+  if (referenceDistanceKm === null || courseDistanceKm === null) {
+    return { error: 'Indique les deux distances, en km.' };
+  }
+  if (referenceElevationGainM === null || courseElevationGainM === null) {
+    return { error: 'Indique les deux D+, en mètres.' };
+  }
+  if (referenceDurationSeconds === null || courseDurationSeconds === null) {
+    return { error: 'Indique les deux temps au format H:MM.' };
+  }
+
+  const session = await requireSession('/profil/repere');
+  try {
+    await addCalibrationPair(repereCalibrationContext(session), {
+      referenceDistanceKm,
+      referenceElevationGainM: Math.round(referenceElevationGainM),
+      referenceDurationSeconds,
+      referenceDate: text(form, 'referenceDate'),
+      courseDistanceKm,
+      courseElevationGainM: Math.round(courseElevationGainM),
+      courseDurationSeconds,
+      courseDate: text(form, 'courseDate'),
+    });
+  } catch (error) {
+    if (error instanceof DomainError && error.code === 'validation') {
+      const fieldErrors = error.details as Record<string, string>;
+      return {
+        error: Object.values(fieldErrors)[0] ?? 'Vérifie les valeurs saisies.',
+        fieldErrors,
+      };
+    }
+    console.error('calibrage : erreur non traduite', {
+      name: error instanceof Error ? error.name : 'inconnu',
+    });
+    return { error: 'Une erreur est survenue. Réessaie dans un instant.' };
+  }
+
+  revalidatePath('/profil/repere');
+  return { done: true };
+}
+
+export async function removeCalibrationPairAction(
+  _previous: CalibrationActionState,
+  form: FormData,
+): Promise<CalibrationActionState> {
+  const session = await requireSession('/profil/repere');
+  try {
+    await removeCalibrationPair(repereCalibrationContext(session), {
+      pairId: text(form, 'pairId'),
+    });
+  } catch {
+    return { error: 'Ce couple n’a pas pu être supprimé.' };
+  }
+
+  revalidatePath('/profil/repere');
+  return {};
 }

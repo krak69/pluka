@@ -313,6 +313,7 @@ L'entonnoir traverse les trois zones : public, global, puis scopé à la partici
 /recherche                                      Trouver ma course              global
 /epreuves/[eventSlug]/[editionSlug]/[raceSlug]  Fiche épreuve — validation     public
 /profil                                         Profil trailer                 global
+/profil/repere                                  Couples de calibrage du Repère (bêta, 0074)
 /courses/[participantRaceId]/objectif           Mon objectif                   participation
 /offre                                          Choix de l'offre               global
 /courses/[participantRaceId]/plan               Génération, puis premier plan  participation
@@ -469,6 +470,7 @@ Mais la landing organisateurs promet explicitement : « Partagez-le avec votre �
 /parametres                      → premier onglet permis : /equipe (super-admin), /journal sinon
 /parametres/equipe               Équipe PLUKA — super-admin (0035, 0036)
 /parametres/journal              Journal d'audit — tout le staff (déplacé le 2026-10-07)
+/parametres/repere               Calibrage du Repère : agrégats anonymes (0074)
 /invitation-equipe/[token]       Invitation à l'équipe PLUKA — hors équipe, par jeton
 ```
 
