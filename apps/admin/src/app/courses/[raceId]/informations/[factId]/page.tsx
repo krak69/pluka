@@ -99,7 +99,7 @@ export default async function FactPage({
           fields={{ raceId, factId }}
           label="Supprimer l’information"
           variant="destructive"
-          confirm="Je confirme retirer cette information des coureurs"
+          confirm="Cette information ne sera plus visible des coureurs."
         />
       </section>
 

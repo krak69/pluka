@@ -4143,3 +4143,19 @@ a.ad-card:hover {
     justify-content: center;
   }
 }
+
+/* Un geste qui se confirme : ce qui va se passer, puis Confirmer ou Annuler. */
+.ad-confirm-step {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ad-confirm-step .pk-body {
+  margin: 0;
+}
+
+.ad-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

@@ -100,7 +100,7 @@ export function TeamSection({
                       fields={{ organizationId, userId: member.userId }}
                       label="Retirer de l’équipe"
                       variant="destructive"
-                      confirm={`Je confirme retirer ${displayName(member)} : ses accès cessent immédiatement`}
+                      confirm={`${displayName(member)} perd ses accès à l’organisation immédiatement.`}
                     />
                   </details>
                 </div>

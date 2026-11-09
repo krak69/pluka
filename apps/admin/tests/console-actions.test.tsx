@@ -15,7 +15,7 @@ import { checked } from '@/lib/form';
  * traduction des refus par les tests du domaine. Ce fichier relit ce que
  * l'écran envoie et ce qu'il montre :
  *
- * - un geste destructeur porte une case de confirmation, décochée ;
+ * - un geste destructeur se confirme en deux temps : un bouton, puis Confirmer ;
  * - les gestes suivent le statut de l'objet, et chacun poste sa propre cible ;
  * - le compte rendu d'un succès ne recopie jamais l'URL.
  */
@@ -49,24 +49,23 @@ describe('ConsoleAction', () => {
     expect(markup).not.toContain('type="checkbox"');
   });
 
-  it('un geste destructeur porte une case de confirmation, décochée et étiquetée', () => {
+  it('un geste destructeur se confirme en deux temps, sans case à cocher', () => {
     const markup = renderToStaticMarkup(
       <ConsoleAction
         action={noop}
         fields={{ reportId: 'r-1' }}
         label="Masquer le contenu"
         variant="destructive"
-        confirm="Je confirme masquer ce message aux participants"
+        confirm="Ce message ne sera plus visible des participants."
       />,
     );
 
-    const checkbox = /<input[^>]*type="checkbox"[^>]*>/.exec(markup)?.[0] ?? '';
-    const id = /\bid="([^"]+)"/.exec(checkbox)?.[1];
-
-    expect(checkbox).toContain('name="confirmed"');
-    expect(checkbox).not.toContain('checked');
-    expect(id).toBeDefined();
-    expect(markup).toContain(`for="${id}"`);
+    // Le premier bouton n'envoie rien : il ouvre l'étape « Confirmer ».
+    expect(markup).not.toContain('type="checkbox"');
+    expect(markup).not.toContain('type="submit"');
+    expect(markup).toMatch(/<button[^>]*type="button"[^>]*>Masquer le contenu<\/button>/);
+    expect(markup).not.toContain('Ce message ne sera plus visible des participants.');
+    expect(hidden(markup)).toEqual({ reportId: 'r-1', confirmed: 'on' });
     expect(markup).toContain('pk-button-destructive');
   });
 
@@ -189,7 +188,11 @@ describe('gestes de la Banque Nutrition', () => {
     const posted = forms(markup);
 
     expect(posted).toHaveLength(1);
-    expect(hidden(posted[0] as string)).toEqual({ productId: 'p-valid', from: 'catalogue' });
+    expect(hidden(posted[0] as string)).toEqual({
+      productId: 'p-valid',
+      from: 'catalogue',
+      confirmed: 'on',
+    });
     expect(markup).toMatch(/<summary>Archiver…<\/summary>/);
     expect(markup).not.toContain('Supprimer…');
   });

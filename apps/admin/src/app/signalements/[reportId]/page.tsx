@@ -126,8 +126,8 @@ export default async function ReportPage({
               variant="destructive"
               confirm={
                 report.targetKind === 'thread'
-                  ? 'Je confirme masquer ce fil aux participants'
-                  : 'Je confirme masquer ce message aux participants'
+                  ? 'Ce fil ne sera plus visible des participants.'
+                  : 'Ce message ne sera plus visible des participants.'
               }
             />
 

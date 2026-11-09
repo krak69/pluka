@@ -130,7 +130,6 @@ export function RemoveTeamMemberForm({
   readonly memberName: string;
 }) {
   const [state, action, pending] = useActionState(removeTeamMemberAction, INITIAL);
-  const id = useId();
   const confirmError = state.fieldErrors?.['confirmed'];
 
   return (
@@ -138,15 +137,9 @@ export function RemoveTeamMemberForm({
       <input type="hidden" name="organizationId" value={organizationId} />
       <input type="hidden" name="userId" value={userId} />
 
-      <label className="or-confirm" htmlFor={`${id}-confirm`}>
-        <input
-          id={`${id}-confirm`}
-          type="checkbox"
-          name="confirmed"
-          aria-invalid={confirmError === undefined ? undefined : true}
-        />
-        <span>Je confirme retirer {memberName} : ses accès cessent immédiatement</span>
-      </label>
+      {/* « Retirer » a déjà ouvert ce panneau : ce bouton est la confirmation. */}
+      <input type="hidden" name="confirmed" value="on" />
+      <p className="pk-field-hint">{memberName} perd ses accès à l’organisation immédiatement.</p>
       {confirmError === undefined ? null : (
         <p className="pk-field-error" role="alert">
           {confirmError}
@@ -155,7 +148,7 @@ export function RemoveTeamMemberForm({
 
       <div>
         <button type="submit" className="pk-btn pk-button-destructive" disabled={pending}>
-          Retirer de l’équipe
+          Confirmer le retrait
         </button>
       </div>
 

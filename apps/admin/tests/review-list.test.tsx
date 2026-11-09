@@ -218,12 +218,12 @@ describe('contradiction', () => {
   });
 
   it('exige une confirmation explicite — §38', () => {
-    // « Il ne choisit pas automatiquement une valeur. » La case n'est pas
-    // cochée par défaut, et sans elle le domaine refuse.
-    expect(conflicted).toContain('name="resolveConflict"');
-    expect(conflicted).toContain('Je confirme remplacer la valeur publiée');
-    expect(conflicted).not.toContain('checked');
-    expect(conflicted).toContain('Résoudre et publier');
+    // « Il ne choisit pas automatiquement une valeur. » Le premier bouton
+    // n'envoie rien : la confirmation est un second geste, et sans elle le
+    // domaine refuse.
+    expect(conflicted).not.toContain('name="resolveConflict"');
+    expect(conflicted).not.toContain('type="checkbox"');
+    expect(conflicted).toMatch(/<button[^>]*type="button"[^>]*>Résoudre et publier<\/button>/);
   });
 
   it('ne demande aucune confirmation sans contradiction', () => {

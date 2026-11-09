@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@pluka/ui';
-import { useActionState, useId } from 'react';
+import { useActionState, useState } from 'react';
 
 import type { ActionState } from '@/app/actions';
 
@@ -18,12 +18,11 @@ const INITIAL: ActionState = {};
  * 2. **Le refus s'affiche à côté du bouton** (`role="alert"`), dans le
  *    formulaire qui l'a provoqué — jamais en tête d'écran, où il ne dirait
  *    pas quel geste a échoué.
- * 3. **Un geste destructeur se confirme à l'écran** par une case explicite,
- *    pas par `window.confirm` : la case est lisible, focalisable, et le
- *    domaine la revérifie — une requête forgée sans elle est refusée.
- *
- * Le refus de confirmation est posé sous la case, pas sous le bouton : c'est
- * elle qu'il faut corriger.
+ * 3. **Un geste destructeur se confirme en deux temps** : le bouton, puis
+ *    une phrase qui dit ce qui va se passer et « Confirmer », avec
+ *    « Annuler » à côté. Pas de `window.confirm`, et plus de case à cocher
+ *    (décision produit du 2026-11-09). Le domaine revérifie `confirmed` : une
+ *    requête forgée sans lui est refusée.
  */
 export function ConsoleAction({
   action,
@@ -37,48 +36,47 @@ export function ConsoleAction({
   readonly fields: Readonly<Record<string, string>>;
   readonly label: string;
   readonly variant?: 'primary' | 'secondary' | 'destructive';
-  /** Phrase de la case de confirmation. Absente : le geste n'en demande pas. */
+  /** Ce que le geste va faire, dit avant « Confirmer ». Absent : le geste n'en demande pas. */
   readonly confirm?: string;
 }) {
   const [state, submit, pending] = useActionState(action, INITIAL);
-  const id = useId();
-
-  const confirmError = state.fieldErrors?.['confirmed'];
-  // Un refus de confirmation est déjà dit sous la case : le répéter sous le
-  // bouton, préfixé de « Les informations saisies sont invalides », brouille
-  // ce qu'il faut faire.
-  const error = confirmError === undefined ? state.error : undefined;
+  const [confirming, setConfirming] = useState(false);
+  const error = state.fieldErrors?.['confirmed'] ?? state.error;
 
   return (
     <form action={submit} className="ad-action">
       {Object.entries(fields).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}
+      {/* Le bouton d'envoi n'existe qu'après le premier clic : la confirmation est ce geste. */}
+      {confirm === undefined ? null : <input type="hidden" name="confirmed" value="on" />}
 
-      {confirm === undefined ? null : (
-        <>
-          <label className="ad-confirm" htmlFor={`${id}-confirm`}>
-            <input
-              id={`${id}-confirm`}
-              type="checkbox"
-              name="confirmed"
-              aria-invalid={confirmError === undefined ? undefined : true}
-              aria-describedby={confirmError === undefined ? undefined : `${id}-confirm-error`}
-            />
-            <span>{confirm}</span>
-          </label>
-
-          {confirmError === undefined ? null : (
-            <p id={`${id}-confirm-error`} className="pk-field-error" role="alert">
-              {confirmError}
-            </p>
-          )}
-        </>
+      {confirm === undefined ? (
+        <Button type="submit" variant={variant} disabled={pending} aria-busy={pending}>
+          {label}
+        </Button>
+      ) : !confirming ? (
+        <Button type="button" variant={variant} onClick={() => setConfirming(true)}>
+          {label}
+        </Button>
+      ) : (
+        <div className="ad-confirm-step" role="group" aria-label={label}>
+          <p className="pk-body">{confirm}</p>
+          <div className="ad-confirm-actions">
+            <Button type="submit" variant={variant} disabled={pending} aria-busy={pending}>
+              Confirmer
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={pending}
+              onClick={() => setConfirming(false)}
+            >
+              Annuler
+            </Button>
+          </div>
+        </div>
       )}
-
-      <Button type="submit" variant={variant} disabled={pending} aria-busy={pending}>
-        {label}
-      </Button>
 
       {error === undefined ? null : (
         <p className="pk-field-error" role="alert">

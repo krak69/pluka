@@ -11,7 +11,7 @@ import {
   TrustBadge,
 } from '@pluka/ui';
 import { equipmentValueOf } from '@pluka/domain';
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 
 import { decideCandidateAction, publishCandidateAction, type ActionState } from '@/app/actions';
 import { EquipmentFields, type EquipmentDraft } from '@/app/courses/[raceId]/equipment-forms';
@@ -154,6 +154,8 @@ function CandidateCard({
 }) {
   const [publishState, publish, publishing] = useActionState(publishCandidateAction, INITIAL);
   const [decideState, decide, deciding] = useActionState(decideCandidateAction, INITIAL);
+  // Remplacer une valeur publiée se confirme en deux temps (§38) : rien n'est choisi d'office.
+  const [confirmingConflict, setConfirmingConflict] = useState(false);
 
   const conflicting = candidate.status === 'conflict';
   const equipment = candidate.category === 'equipment';
@@ -411,21 +413,51 @@ function CandidateCard({
             defaultValue=""
           />
 
-          {conflicting ? (
-            <label className="pk-label" style={{ display: 'flex', gap: 'var(--space-2)' }}>
-              <input type="checkbox" name="resolveConflict" />
-              Je confirme remplacer la valeur publiée
-            </label>
-          ) : null}
-
-          <button
-            type="submit"
-            className="pk-btn pk-button-primary"
-            disabled={publishing}
-            style={{ minHeight: '44px' }}
-          >
-            {conflicting ? 'Résoudre et publier' : 'Accepter et publier'}
-          </button>
+          {!conflicting ? (
+            <button
+              type="submit"
+              className="pk-btn pk-button-primary"
+              disabled={publishing}
+              style={{ minHeight: '44px' }}
+            >
+              Accepter et publier
+            </button>
+          ) : !confirmingConflict ? (
+            <button
+              type="button"
+              className="pk-btn pk-button-primary"
+              style={{ minHeight: '44px' }}
+              onClick={() => setConfirmingConflict(true)}
+            >
+              Résoudre et publier
+            </button>
+          ) : (
+            <>
+              <input type="hidden" name="resolveConflict" value="on" />
+              <p className="pk-body" style={{ margin: 0 }}>
+                La valeur publiée sera remplacée par celle-ci.
+              </p>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                <button
+                  type="submit"
+                  className="pk-btn pk-button-primary"
+                  disabled={publishing}
+                  style={{ minHeight: '44px' }}
+                >
+                  Confirmer le remplacement
+                </button>
+                <button
+                  type="button"
+                  className="pk-btn pk-button-secondary"
+                  disabled={publishing}
+                  style={{ minHeight: '44px' }}
+                  onClick={() => setConfirmingConflict(false)}
+                >
+                  Annuler
+                </button>
+              </div>
+            </>
+          )}
         </form>
 
         <form action={decide} style={{ display: 'grid', gap: 'var(--space-2)', alignSelf: 'end' }}>

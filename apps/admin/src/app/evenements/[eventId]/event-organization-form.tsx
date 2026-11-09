@@ -35,6 +35,7 @@ export function EventOrganizationForm({
   const [state, action, pending] = useActionState(changeEventOrganizationAction, INITIAL);
   const current = currentOrganizationId ?? '';
   const [choice, setChoice] = useState(current);
+  const [confirming, setConfirming] = useState(false);
   const id = useId();
   const confirmError = state.fieldErrors?.['confirmed'];
   const error = confirmError === undefined ? state.error : undefined;
@@ -56,7 +57,10 @@ export function EventOrganizationForm({
           name="organizationId"
           className="pk-input"
           value={choice}
-          onChange={(change) => setChoice(change.target.value)}
+          onChange={(change) => {
+            setChoice(change.target.value);
+            setConfirming(false);
+          }}
         >
           <option value="">Aucune — maintenu par PLUKA</option>
           {organizations.map((organization) => (
@@ -85,18 +89,9 @@ export function EventOrganizationForm({
             </li>
           </ul>
 
-          <label className="ad-confirm" htmlFor={`${id}-confirm`}>
-            <input
-              id={`${id}-confirm`}
-              type="checkbox"
-              name="confirmed"
-              aria-invalid={confirmError === undefined ? undefined : true}
-              aria-describedby={confirmError === undefined ? undefined : `${id}-confirm-error`}
-            />
-            <span>Je confirme confier cet événement à {target}</span>
-          </label>
+          <input type="hidden" name="confirmed" value="on" />
           {confirmError === undefined ? null : (
-            <p id={`${id}-confirm-error`} className="pk-field-error">
+            <p className="pk-field-error" role="alert">
               {confirmError}
             </p>
           )}
@@ -104,13 +99,30 @@ export function EventOrganizationForm({
       )}
 
       <div className="ad-form-actions">
-        <button
-          type="submit"
-          className="pk-btn pk-button-secondary"
-          disabled={pending || choice === current}
-        >
-          {pending ? 'Changement…' : 'Changer l’organisation'}
-        </button>
+        {!confirming ? (
+          <button
+            type="button"
+            className="pk-btn pk-button-secondary"
+            disabled={pending || choice === current}
+            onClick={() => setConfirming(true)}
+          >
+            Changer l’organisation
+          </button>
+        ) : (
+          <>
+            <button type="submit" className="pk-btn pk-button-primary" disabled={pending}>
+              {pending ? 'Changement…' : `Confier l’événement à ${target}`}
+            </button>
+            <button
+              type="button"
+              className="pk-btn pk-button-secondary"
+              disabled={pending}
+              onClick={() => setConfirming(false)}
+            >
+              Annuler
+            </button>
+          </>
+        )}
       </div>
 
       {error === undefined ? null : (

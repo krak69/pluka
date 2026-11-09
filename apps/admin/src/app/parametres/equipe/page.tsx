@@ -140,7 +140,7 @@ export default async function StaffTeamPage({
                         fields={{ userId: member.userId }}
                         label="Retirer de l’équipe PLUKA"
                         variant="destructive"
-                        confirm={`Je confirme retirer ${displayName(member)} : ses accès à l’administration cessent immédiatement`}
+                        confirm={`${displayName(member)} perd ses accès à l’administration immédiatement.`}
                       />
                     </details>
                   </div>

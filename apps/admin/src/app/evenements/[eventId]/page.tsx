@@ -645,11 +645,12 @@ export default async function EventPage({
                         ? 'Fermer l’accès inclus'
                         : 'Ouvrir l’accès inclus'
                     }
-                    confirm={
-                      inclusion.get(edition.id) === true
-                        ? 'Les prochaines activations n’ouvriront plus l’accès premium. Les accès déjà donnés restent.'
-                        : 'L’organisation finance l’accès premium de ses participants : ceux déjà sur PLUKA le reçoivent tout de suite, les suivants à l’activation.'
-                    }
+                    {...(inclusion.get(edition.id) === true
+                      ? {}
+                      : {
+                          confirm:
+                            'L’organisation finance l’accès premium de ses participants : ceux déjà sur PLUKA le reçoivent tout de suite, les suivants à l’activation.',
+                        })}
                   />
                 </div>
               </section>

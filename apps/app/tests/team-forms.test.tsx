@@ -63,7 +63,7 @@ describe('formulaires d’équipe', () => {
     expect(markup).toContain('Rôle de Marie');
   });
 
-  it('retirer poste les champs de la commande, case de confirmation comprise', () => {
+  it('retirer poste les champs de la commande, confirmation comprise, sans case à cocher', () => {
     const markup = renderToStaticMarkup(
       <RemoveTeamMemberForm organizationId={ORGANIZATION} userId={USER} memberName="Marie" />,
     );
@@ -71,6 +71,8 @@ describe('formulaires d’équipe', () => {
     expect(fieldNames(markup)).toEqual(
       Object.keys(removeOrganizationMemberCommandSchema.shape).sort(),
     );
-    expect(markup).toMatch(/type="checkbox"[^>]*name="confirmed"/);
+    expect(markup).not.toContain('type="checkbox"');
+    expect(markup).toMatch(/name="confirmed" value="on"/);
+    expect(markup).toContain('Confirmer le retrait');
   });
 });

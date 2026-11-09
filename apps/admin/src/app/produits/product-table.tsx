@@ -149,7 +149,7 @@ export function ProductTable({
                   fields={{ productId: product.productId, from: tab }}
                   label={product.status === 'draft' ? 'Refuser la fiche' : 'Archiver la fiche'}
                   variant="destructive"
-                  confirm="Je confirme retirer cette fiche des coureurs"
+                  confirm="Cette fiche ne sera plus visible des coureurs."
                 />
               </details>
             )}
@@ -162,7 +162,7 @@ export function ProductTable({
                   fields={{ productId: product.productId, from: tab }}
                   label="Supprimer la fiche"
                   variant="destructive"
-                  confirm="Je confirme supprimer définitivement cette fiche"
+                  confirm="Cette fiche sera supprimée définitivement."
                 />
               </details>
             )}

@@ -388,7 +388,7 @@ export default async function OrganizationPage({
                     fields={{ organizationId: organization.organizationId }}
                     label="Supprimer définitivement"
                     variant="destructive"
-                    confirm="Je confirme supprimer définitivement cette organisation"
+                    confirm="L’organisation sera supprimée définitivement."
                   />
                 </details>
               </>
@@ -414,7 +414,7 @@ export default async function OrganizationPage({
                     fields={{ organizationId: organization.organizationId }}
                     label="Supprimer l’organisation"
                     variant="destructive"
-                    confirm="Je confirme supprimer cette organisation et détacher ce qu’elle porte"
+                    confirm="L’organisation sera supprimée, et ce qu’elle porte détaché."
                   />
                 </details>
               </>
