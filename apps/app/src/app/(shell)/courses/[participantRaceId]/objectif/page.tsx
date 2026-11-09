@@ -1,8 +1,12 @@
-import { DomainError, getPlanOverview } from '@pluka/domain';
+import { DomainError, getPlanOverview, getTrailProfile } from '@pluka/domain';
 import { Divider, SectionHeader } from '@pluka/ui';
 
 import { ObjectiveForm } from '@/app/(shell)/courses/[participantRaceId]/objectif/objective-form';
-import { redirectOnDomainError, requirePlanContext } from '@/lib/plan';
+import { RepereHelper } from '@/app/(shell)/courses/[participantRaceId]/objectif/repere-helper';
+import { planContext, redirectOnDomainError } from '@/lib/plan';
+import { profileContext } from '@/lib/profile';
+import { repereEnabled } from '@/lib/repere';
+import { requireSession } from '@/lib/session';
 
 /**
  * Mon objectif — `05_ROUTES_FLOWS.md` §1.7, §5.2.
@@ -11,9 +15,9 @@ import { redirectOnDomainError, requirePlanContext } from '@/lib/plan';
  * validation de la course sur la fiche épreuve.
  *
  * 00_PRODUCT_SPEC §9.1 : « le coureur choisit l'objectif qu'il veut préparer,
- * en HH:MM. L'objectif reste la décision du coureur. » Aucune suggestion n'est
- * affichée — le Repère PLUKA n'est ni spécifié ni calibré (PLAN_ENGINE §46), et
- * afficher un chrono sans modèle validé serait une fausse confiance.
+ * en HH:MM. L'objectif reste la décision du coureur. » Le Repère PLUKA
+ * (docs/engines/REPERE_PLUKA.md) n'apparaît qu'en bêta, derrière le flag
+ * `repere_pluka` : une plage indicative, que le coureur reprend ou non.
  *
  * Ce que l'écran donne à la place, c'est l'aperçu : l'objectif saisi produit un
  * Plan, et le Plan se lit. C'est plus honnête qu'une estimation et c'est déjà
@@ -30,7 +34,12 @@ export default async function ObjectivePage({
   const { participantRaceId } = await params;
   const returnTo = `/courses/${participantRaceId}/objectif`;
 
-  const context = await requirePlanContext(returnTo);
+  const session = await requireSession(returnTo);
+  const context = planContext(session);
+  const withRepere = repereEnabled();
+  const profile = withRepere
+    ? (await getTrailProfile(profileContext(session)).catch(() => null))?.profile ?? null
+    : null;
 
   /*
    * Un Plan existe déjà quand le coureur revient changer d'objectif. Son
@@ -57,6 +66,21 @@ export default async function ObjectivePage({
         participantRaceId={participantRaceId}
         currentTargetSeconds={overview?.targetDurationSeconds ?? null}
         hasPlan={overview !== null}
+        repere={
+          withRepere ? (
+            <RepereHelper
+              participantRaceId={participantRaceId}
+              targetInputId="objective-target"
+              defaults={{
+                distanceKm: profile?.representativeDistanceKm ?? null,
+                elevationGainM: profile?.representativeElevationGainM ?? null,
+                durationSeconds: profile?.representativeDurationSeconds ?? null,
+                date: profile?.representativeEffortDate ?? null,
+                paceSecondsPerKm: profile?.fallbackTrailPaceSecondsPerKm ?? null,
+              }}
+            />
+          ) : undefined
+        }
       />
     </div>
   );

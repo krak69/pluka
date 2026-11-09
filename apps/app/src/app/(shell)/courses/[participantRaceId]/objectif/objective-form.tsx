@@ -1,7 +1,7 @@
 'use client';
 
 import { Button, Input, MicroLabel } from '@pluka/ui';
-import { useActionState } from 'react';
+import { useActionState, type ReactNode } from 'react';
 
 import { generatePlanAction, type ActionState } from '@/app/actions';
 import { setObjectiveAction } from '@/app/profile-actions';
@@ -32,10 +32,13 @@ export function ObjectiveForm({
   participantRaceId,
   currentTargetSeconds,
   hasPlan,
+  repere,
 }: {
   readonly participantRaceId: string;
   readonly currentTargetSeconds: number | null;
   readonly hasPlan: boolean;
+  /** « Estime-le pour moi », hors du formulaire : une plage ne part jamais sans être reprise. */
+  readonly repere?: ReactNode;
 }) {
   const [state, submit] = useActionState(
     hasPlan ? setObjectiveAction : generatePlanAction,
@@ -69,6 +72,8 @@ export function ObjectiveForm({
           </Button>
         </div>
       </form>
+
+      {repere}
 
       <p className="rp-hint">
         {hasPlan

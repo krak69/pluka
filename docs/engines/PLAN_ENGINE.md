@@ -1566,7 +1566,7 @@ Chaque mutation premium est revérifiée serveur.
 
 Le Profil trailer est un objet fonctionnel important, mais **il ne doit pas être transformé implicitement en coefficients de pacing V1**.
 
-Le Repère PLUKA est encore un moteur distinct à calibrer / feature flagger.
+Le Repère PLUKA est encore un moteur distinct à calibrer / feature flagger. Sa spécification V0 est `REPERE_PLUKA.md` : un module pur du domaine, qui n'entre jamais dans ce calcul.
 
 Donc :
 

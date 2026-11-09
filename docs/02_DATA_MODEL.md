@@ -251,6 +251,12 @@ allure. La contrainte vit en SQL parce que `trail_profiles` est écrite directem
 client sous RLS : le use case serveur n'est pas le seul chemin d'écriture. Le libellé et la
 date restent indépendants — l'un nomme l'effort, l'autre le situe, aucun des deux ne mesure.
 
+**Repère PLUKA.** L'effort saisi depuis « Estime-le pour moi » est enregistré ici, comme
+l'allure de repli. Chaque plage affichée est gardée dans `repere_estimates` (0070) avec ses
+entrées, la version du moteur et son résultat (plage ou raison du refus), pour le calibrage
+de `engines/REPERE_PLUKA.md` §5. Lecture et insertion par le coureur seul, aucune
+modification ; aucune policy pour l'organisation.
+
 **Complétude.** Un profil est complet lorsqu'il porte un signal d'allure : un effort
 représentatif complet, **ou** une allure de repli. La complétude n'est pas une contrainte de
 table — §7.2 veut qu'on puisse reprendre un profil sans reposer toutes les questions, donc

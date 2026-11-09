@@ -629,6 +629,8 @@ Tant qu’une spec séparée et une validation appropriée n’existent pas, la 
 
 Ne pas transcrire en production une formule de démonstration présente dans le prototype.
 
+**Spécification V0 (2026-11-09) :** `engines/REPERE_PLUKA.md`. Le coureur ouvre « Estime-le pour moi » sous le champ objectif et donne une sortie récente (distance, D+, temps), ou à défaut son allure trail habituelle. PLUKA affiche une plage, et « Partir de ce repère » remplit le champ avec son milieu, à ajuster ; rien n'est appliqué sans le coureur. Ni chrono route, ni indice ITRA/UTMB. Bêta non calibrée, derrière le flag `repere_pluka` : allumé pour les testeurs, coupé en production.
+
 ---
 
 # 10. Accueil coureur

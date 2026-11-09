@@ -1642,6 +1642,8 @@ advanced_offline
 participant_invitations
 ```
 
+`repere_pluka` ouvre le Repère PLUKA V0 (`engines/REPERE_PLUKA.md`), non calibré : allumé pour les testeurs, coupé en production jusqu'au calibrage.
+
 `participant_invitations` tient les invitations des participants (0069) hors de la production tant que l'envoi d'emails aux inscrits n'est pas validé juridiquement : coupé, ni le bouton d'envoi, ni la page `/invitation/[token]` n'existent.
 
 Les flags ne doivent pas remplacer les entitlements.

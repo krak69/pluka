@@ -731,3 +731,19 @@ export {
   setEditionParticipantsIncluded,
   type ParticipantInvitationContext,
 } from './participants/invitations.js';
+export {
+  REPERE_V0,
+  computeRepere,
+  effortKm,
+  type RepereConfig,
+  type RepereInput,
+  type RepereReference,
+  type RepereRefusal,
+  type RepereResult,
+} from './repere/engine.js';
+export {
+  estimateRepere,
+  estimateRepereCommandSchema,
+  type RepereContext,
+  type RepereEstimate,
+} from './repere/use-cases.js';

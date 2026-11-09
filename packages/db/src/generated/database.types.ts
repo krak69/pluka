@@ -5236,6 +5236,53 @@ export type Database = {
           },
         ]
       }
+      repere_estimates: {
+        Row: {
+          central_seconds: number | null
+          config_version: string
+          created_at: string
+          high_seconds: number | null
+          id: string
+          input: Json
+          low_seconds: number | null
+          outcome: string
+          participant_race_id: string
+          reference_kind: string
+        }
+        Insert: {
+          central_seconds?: number | null
+          config_version: string
+          created_at?: string
+          high_seconds?: number | null
+          id?: string
+          input: Json
+          low_seconds?: number | null
+          outcome: string
+          participant_race_id: string
+          reference_kind: string
+        }
+        Update: {
+          central_seconds?: number | null
+          config_version?: string
+          created_at?: string
+          high_seconds?: number | null
+          id?: string
+          input?: Json
+          low_seconds?: number | null
+          outcome?: string
+          participant_race_id?: string
+          reference_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repere_estimates_participant_race_id_fkey"
+            columns: ["participant_race_id"]
+            isOneToOne: false
+            referencedRelation: "participant_races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       source_race_scopes: {
         Row: {
           race_id: string

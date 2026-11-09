@@ -565,6 +565,16 @@ Une modification Weather n’altère jamais automatiquement :
 
 ---
 
+## AC-REPERE-01
+
+Le Repère PLUKA suit `engines/REPERE_PLUKA.md` §7 : mêmes entrées, même plage ; bas < central < haut, arrondis à 5 minutes ; une course plus longue ou plus dénivelée donne un central plus long ; l'allure de secours élargit la plage ; chaque cas de §3.4 rend une raison et pas de plage (`packages/domain/tests/repere.test.ts`).
+
+## AC-REPERE-02
+
+Le Repère ne crée ni objectif ni Plan. Un autre compte et l'organisation ne lisent pas les estimations d'un coureur (pgTAP 48).
+
+---
+
 # 11. Acceptance — Plan UX
 
 ## AC-PLAN-UX-01

@@ -3215,6 +3215,7 @@ L’orga peut consulter candidats / conflits via endpoints contrôlés sans gran
 | `participant_races` | — | R | R limité via safe API | CRUD |
 | `participant_race_settings` | — | CRUD | — | CRUD |
 | `race_plans` | — | R | — | CRUD |
+| `repere_estimates` | — | R + insert | — | CRUD |
 | `plan_waypoints` | — | R | — | CRUD |
 | `plan_segments` | — | R | — | CRUD |
 | `plan_cutoff_statuses` | — | R | — | CRUD |

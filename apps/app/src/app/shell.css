@@ -2125,3 +2125,51 @@ a.st-tab {
   margin: 0;
   color: var(--pk-dawn);
 }
+
+/* Repère PLUKA (bêta) : sous le champ objectif, replié tant qu’on ne le demande pas. */
+.rp-repere {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+.rp-repere > summary {
+  font-weight: 600;
+}
+
+.rp-beta {
+  margin-left: var(--space-2);
+  padding: 1px 6px;
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pk-text-secondary);
+}
+
+.rp-repere-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+}
+
+.rp-repere-kinds label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+}
+
+.rp-repere-result {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  padding: var(--space-4);
+  border-left: 3px solid var(--pk-forest);
+  background: var(--pk-surface);
+}
+
+.rp-repere-result .pk-h2 {
+  margin: 0;
+}

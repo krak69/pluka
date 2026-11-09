@@ -300,3 +300,11 @@ export {
   type ParticipantInvitationRepository,
   type ParticipantInvitationStatus,
 } from './repositories/participant-invitations.js';
+export {
+  createRepereRepositories,
+  repereEstimateRepository,
+  type RepereEstimateInput,
+  type RepereEstimateRepository,
+  type RepereOutcome,
+  type RepereRepositories,
+} from './repositories/repere.js';
