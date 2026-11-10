@@ -1849,7 +1849,7 @@ Architecture à prévoir :
 
 Ne pas implémenter des durées arbitraires sans validation juridique.
 
-Durées décidées le 2026-11-09 (usages de la CNIL, `docs/legal/RGPD_AUTO_EVALUATION.md`) et appliquées par `private.purge_expired_data` (0077, chaque nuit) : liste importée et données déclaratives 12 mois après l'édition, journal 1 an. Le compte inactif (3 ans) attend un e-mail de prévenance avant effacement.
+Durées décidées le 2026-11-09 (usages de la CNIL, `docs/legal/RGPD_AUTO_EVALUATION.md`) et appliquées par `private.purge_expired_data` (0077, chaque nuit) : liste importée et données déclaratives 12 mois après l'édition, journal 1 an. Compte inactif (0079) : 30 jours avant les 3 ans sans connexion, un e-mail prévient le coureur ; l'effacement suit 30 jours après l'envoi, sauf reconnexion, et n'a jamais lieu si l'e-mail n'est pas parti.
 
 ---
 

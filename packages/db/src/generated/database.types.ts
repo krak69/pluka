@@ -6882,6 +6882,16 @@ export type Database = {
         Args: { p_course_geometry_id: string; p_issue: string }
         Returns: undefined
       }
+      worker_claim_account_notice: {
+        Args: { p_user: string }
+        Returns: {
+          attempt: number
+          first_name: string
+          purge_after: string
+          recipient_email: string
+          sendable: boolean
+        }[]
+      }
       worker_claim_event_site_contact: {
         Args: { p_message_id: string }
         Returns: {
@@ -6961,6 +6971,10 @@ export type Database = {
           staff_role: Database["public"]["Enums"]["staff_role"]
         }[]
       }
+      worker_complete_account_notice: {
+        Args: { p_user: string }
+        Returns: undefined
+      }
       worker_complete_event_discovery: {
         Args: {
           p_discovery_id: string
@@ -7021,6 +7035,10 @@ export type Database = {
         Returns: Json
       }
       worker_dispatch_outbox: { Args: { p_limit?: number }; Returns: number }
+      worker_fail_account_notice: {
+        Args: { p_abandon: boolean; p_error: string; p_user: string }
+        Returns: undefined
+      }
       worker_fail_event_discovery: {
         Args: { p_discovery_id: string; p_error_code: string }
         Returns: undefined

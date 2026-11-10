@@ -408,6 +408,27 @@ export interface EventSiteContactStore {
 }
 
 /**
+ * Avertissement avant la suppression d'un compte inactif — migration 0079.
+ *
+ * `claim` rend `sendable = false` si la demande a été annulée (le coureur
+ * s'est reconnecté) ou si l'avertissement est déjà parti. `complete` fait
+ * courir les 30 jours depuis l'envoi.
+ */
+export interface AccountNoticeClaim {
+  readonly sendable: boolean;
+  readonly recipientEmail: string | null;
+  readonly firstName: string | null;
+  readonly purgeAfter: string | null;
+  readonly attempt: number;
+}
+
+export interface AccountNoticeStore {
+  claim(userId: string): Promise<AccountNoticeClaim>;
+  complete(userId: string): Promise<void>;
+  fail(userId: string, error: string, abandon: boolean): Promise<void>;
+}
+
+/**
  * Inventaire d'un site officiel — migrations 0040, 0042, SOURCES_EXTRACTION §11.1.
  *
  * `begin` rend l'URL à lire, ou `null` si l'inventaire n'est plus à faire :
@@ -442,6 +463,7 @@ export interface WorkerPorts {
   readonly staffInvitations: StaffInvitationStore;
   readonly participantInvitations: ParticipantInvitationStore;
   readonly siteContacts: EventSiteContactStore;
+  readonly accountNotices: AccountNoticeStore;
   readonly discoveries: DiscoveryStore;
   /**
    * Fournisseur email, ou son absence.

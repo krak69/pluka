@@ -58,6 +58,11 @@ export {
 } from './templates/race-reinstated.js';
 
 export {
+  renderAccountInactivityNotice,
+  type AccountInactivityNotice,
+} from './templates/account-inactivity.js';
+
+export {
   renderParticipantInvitation,
   type ParticipantInvitationNotice,
 } from './templates/participant-invitation.js';
@@ -74,6 +79,9 @@ export {
   type RaceStatusDelivery,
   sendEventSiteContact,
   type EventSiteContactDelivery,
+  ACCOUNT_INACTIVITY_TEMPLATE_VERSION,
+  sendAccountInactivityNotice,
+  type AccountInactivityDelivery,
   INVITATION_TEMPLATE_VERSION,
   STAFF_INVITATION_TEMPLATE_VERSION,
   NOTIFICATION_ERROR_CODES,

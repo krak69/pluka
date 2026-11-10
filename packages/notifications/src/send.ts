@@ -1,5 +1,9 @@
 import type { EmailMessage, EmailProvider, EmailSendResult } from '@pluka/contracts';
 
+import {
+  renderAccountInactivityNotice,
+  type AccountInactivityNotice,
+} from './templates/account-inactivity.js';
 import { renderChangeImpactNotice, type ChangeImpactNotice } from './templates/change-impact.js';
 import {
   renderOrganizationInvitation,
@@ -48,6 +52,8 @@ export const STAFF_INVITATION_TEMPLATE_VERSION = 'staff-invitation-1.0.0';
 export const PARTICIPANT_INVITATION_TEMPLATE_VERSION = 'participant-invitation-1.0.0';
 
 export const EVENT_SITE_CONTACT_TEMPLATE_VERSION = 'event-site-contact-1.0.0';
+
+export const ACCOUNT_INACTIVITY_TEMPLATE_VERSION = 'account-inactivity-1.0.0';
 
 /**
  * Échecs d'envoi, dans un vocabulaire stable.
@@ -445,5 +451,46 @@ export async function sendEventSiteContact(
     providerMessageId: result.providerMessageId,
     acceptedAt: result.acceptedAt,
     templateVersion: EVENT_SITE_CONTACT_TEMPLATE_VERSION,
+  };
+}
+
+export interface AccountInactivityDelivery {
+  readonly idempotencyKey: string;
+  readonly notice: AccountInactivityNotice;
+}
+
+/** Prévient un coureur inactif, 30 jours avant la suppression de son compte (0079). */
+export async function sendAccountInactivityNotice(
+  provider: EmailProvider,
+  delivery: AccountInactivityDelivery,
+): Promise<NotificationSent> {
+  const { notice } = delivery;
+
+  if (!isPlausibleAddress(notice.recipientEmail)) {
+    throw new NotificationError('RECIPIENT_INVALID', 'adresse destinataire inexploitable');
+  }
+
+  const rendered = renderAccountInactivityNotice(notice);
+  let result: EmailSendResult;
+  try {
+    result = await provider.send({
+      to: [
+        notice.recipientFirstName === null
+          ? { address: notice.recipientEmail }
+          : { address: notice.recipientEmail, name: notice.recipientFirstName },
+      ],
+      subject: rendered.subject,
+      textBody: rendered.textBody,
+      idempotencyKey: delivery.idempotencyKey,
+    });
+  } catch (error) {
+    throw providerFailure(error);
+  }
+
+  return {
+    provider: provider.name,
+    providerMessageId: result.providerMessageId,
+    acceptedAt: result.acceptedAt,
+    templateVersion: ACCOUNT_INACTIVITY_TEMPLATE_VERSION,
   };
 }

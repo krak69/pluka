@@ -147,8 +147,9 @@ export default function PrivacyPage() {
         <h2>Combien de temps</h2>
         <ul>
           <li>
-            Votre compte et votre préparation : tant que votre compte est actif, puis supprimés
-            après 3 ans sans connexion.
+            Votre compte et votre préparation : tant que votre compte est actif. Après bientôt 3 ans
+            sans connexion, un e-mail vous prévient ; sans connexion dans les 30 jours qui suivent,
+            ils sont supprimés.
           </li>
           <li>
             Une liste d’inscrits transmise par une organisation : jusqu’à 12 mois après l’édition.

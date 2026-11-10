@@ -1,3 +1,4 @@
+import { handleAccountNoticeMessage, isAccountNoticeMessage } from './jobs/account-notice-send.js';
 import { handleCourseWaypointsMessage, isCourseWaypointsMessage } from './jobs/course-waypoints.js';
 import {
   handleEventSiteContactMessage,
@@ -137,6 +138,7 @@ const CONSUMERS: readonly {
         return handleParticipantInvitationMessage(ports, message);
       }
       if (isEventSiteContactMessage(message)) return handleEventSiteContactMessage(ports, message);
+      if (isAccountNoticeMessage(message)) return handleAccountNoticeMessage(ports, message);
 
       return Promise.resolve({ kind: 'abandoned' as const });
     },
