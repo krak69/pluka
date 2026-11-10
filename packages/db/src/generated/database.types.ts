@@ -6594,6 +6594,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      org_declare_start_wave: {
+        Args: { p_name: string; p_race_id: string; p_start_datetime: string }
+        Returns: string
+      }
       org_invite_member: {
         Args: {
           p_email: string
@@ -6642,6 +6646,16 @@ export type Database = {
           status: Database["public"]["Enums"]["invitation_status"]
         }[]
       }
+      org_list_start_waves: {
+        Args: { p_edition_id: string }
+        Returns: {
+          name: string
+          participants: number
+          race_id: string
+          start_datetime: string
+          wave_id: string
+        }[]
+      }
       org_race_adoption: {
         Args: { p_edition_id: string }
         Returns: {
@@ -6665,6 +6679,10 @@ export type Database = {
       org_send_participant_invitations: {
         Args: { p_edition_id: string; p_participant_race_ids?: string[] }
         Returns: number
+      }
+      org_update_start_wave: {
+        Args: { p_name: string; p_start_datetime: string; p_wave_id: string }
+        Returns: string
       }
       persist_race_plan: {
         Args: {

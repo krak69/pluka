@@ -7,6 +7,8 @@ import {
   commitImportAction,
   correctParticipantAction,
   createImportAction,
+  declareStartWaveAction,
+  updateStartWaveAction,
   discardImportAction,
   sendParticipantInvitationsAction,
   setParticipantWithdrawnAction,
@@ -360,5 +362,109 @@ export function DiscardImportForm({
       </button>
       <ActionError state={state} />
     </form>
+  );
+}
+
+/**
+ * Déclarer une vague, ou la changer — migration 0081. Un nom et une heure de
+ * départ, dans le fuseau de l'épreuve. Publier prévient les coureurs de la vague
+ * dont le Plan en dépend : le texte le dit avant le geste.
+ */
+export function StartWaveForm({
+  scope,
+  raceId,
+  waveId,
+  timeZone,
+  name,
+  day,
+  time,
+  participants,
+}: {
+  readonly scope: Scope;
+  readonly raceId: string;
+  /** Absent : une déclaration. Présent : une nouvelle version de cette vague. */
+  readonly waveId?: string;
+  readonly timeZone: string;
+  readonly name: string;
+  readonly day: string;
+  readonly time: string;
+  readonly participants: number;
+}) {
+  const [state, action, pending] = useActionState(
+    waveId === undefined ? declareStartWaveAction : updateStartWaveAction,
+    INITIAL,
+  );
+  const id = useId();
+  const panel = useRef<HTMLDetailsElement>(null);
+
+  useEffect(() => {
+    if (state !== INITIAL && state.error === undefined && panel.current !== null) {
+      panel.current.open = false;
+    }
+  }, [state]);
+
+  return (
+    <details ref={panel} className="st-details pa-correction">
+      <summary>
+        {waveId !== undefined ? 'Modifier' : name === '' ? 'Ajouter une vague' : 'Déclarer'}
+      </summary>
+      <form action={action} className="pa-correction-form">
+        <ScopeFields {...scope} />
+        <input type="hidden" name="raceId" value={raceId} />
+        {waveId === undefined ? null : <input type="hidden" name="waveId" value={waveId} />}
+        <input type="hidden" name="timeZone" value={timeZone} />
+        <div className="pk-field">
+          <label className="pk-field-label" htmlFor={`${id}-name`}>
+            Nom
+          </label>
+          <input
+            id={`${id}-name`}
+            name="name"
+            className="pk-input"
+            defaultValue={name}
+            maxLength={120}
+            required
+          />
+        </div>
+        <div className="pk-field">
+          <label className="pk-field-label" htmlFor={`${id}-day`}>
+            Jour du départ
+          </label>
+          <input
+            id={`${id}-day`}
+            name="day"
+            type="date"
+            className="pk-input"
+            defaultValue={day}
+            required
+          />
+        </div>
+        <div className="pk-field">
+          <label className="pk-field-label" htmlFor={`${id}-time`}>
+            Heure du départ
+          </label>
+          <input
+            id={`${id}-time`}
+            name="time"
+            type="time"
+            className="pk-input"
+            defaultValue={time}
+            required
+          />
+        </div>
+        <p className="pk-field-hint">
+          C’est une information officielle : elle s’affiche aux coureurs de l’épreuve.
+          {participants === 0
+            ? ''
+            : ` Ceux de ses ${String(participants)} inscrits qui ont déjà un Plan sont prévenus que leur heure de départ ${waveId === undefined ? 'est fixée' : 'change'}, et choisissent de le recalculer.`}
+        </p>
+        <div>
+          <button type="submit" className="pk-btn pk-button-primary" disabled={pending}>
+            {waveId === undefined ? 'Publier la vague' : 'Publier la modification'}
+          </button>
+        </div>
+        <ActionError state={state} />
+      </form>
+    </details>
   );
 }

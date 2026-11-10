@@ -289,6 +289,7 @@ export {
   type ParticipantImportResult,
   type ParticipantImportView,
   type ParticipantWaveOption,
+  type StartWaveRecord,
 } from './repositories/participant-import.js';
 export {
   createParticipantInvitationRepositories,

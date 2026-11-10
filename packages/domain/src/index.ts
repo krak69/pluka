@@ -723,6 +723,11 @@ export {
   type ParticipantImportContext,
 } from './participants/use-cases.js';
 export {
+  declareStartWave,
+  listStartWaves,
+  updateStartWave,
+} from './participants/waves.js';
+export {
   acceptParticipantInvitation,
   declineParticipantInvitation,
   getRaceAdoption,

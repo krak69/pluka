@@ -1,4 +1,4 @@
-import { mapPostgrestError, type PostgrestLikeError } from '../errors.js';
+import { DbError, mapPostgrestError, type PostgrestLikeError } from '../errors.js';
 import { defineRepository } from '../repository.js';
 import type { PlukaClient } from '../types.js';
 
@@ -98,6 +98,18 @@ export interface EditionParticipants {
   readonly withdrawn: readonly WithdrawnParticipantRecord[];
 }
 
+/**
+ * Une vague de l'édition, ou un nom venu d'un fichier qui attend sa vague
+ * (`waveId` nul) — 0081. Un compte d'inscrits, jamais qui.
+ */
+export interface StartWaveRecord {
+  readonly raceId: string;
+  readonly waveId: string | null;
+  readonly name: string;
+  readonly startDatetime: string | null;
+  readonly participants: number;
+}
+
 export interface ParticipantImportRepository {
   create(
     editionId: string,
@@ -116,6 +128,11 @@ export interface ParticipantImportRepository {
   listParticipants(editionId: string): Promise<EditionParticipants>;
   correct(participantRaceId: string, bib: string, wave: string): Promise<void>;
   setWithdrawn(participantRaceId: string, withdrawn: boolean): Promise<void>;
+  listStartWaves(editionId: string): Promise<readonly StartWaveRecord[]>;
+  /** Rend l'identifiant de la vague. Publie une information officielle (0081). */
+  declareStartWave(raceId: string, name: string, startDatetime: string): Promise<string>;
+  /** Publie une version de plus de son information officielle. */
+  updateStartWave(waveId: string, name: string, startDatetime: string): Promise<void>;
 }
 
 interface RpcCapableClient {
@@ -183,6 +200,49 @@ export const participantImportRepository = defineRepository<ParticipantImportRep
       await call(context.client, 'set_participant_withdrawn', {
         p_participant_race_id: participantRaceId,
         p_withdrawn: withdrawn,
+      });
+    },
+
+    async listStartWaves(editionId) {
+      const data = await call(context.client, 'org_list_start_waves', { p_edition_id: editionId });
+      const rows = Array.isArray(data) ? (data as readonly Record<string, unknown>[]) : [];
+      return rows.flatMap((row) => {
+        const raceId = row['race_id'];
+        const name = row['name'];
+        if (typeof raceId !== 'string' || typeof name !== 'string') return [];
+        return [
+          {
+            raceId,
+            waveId: typeof row['wave_id'] === 'string' ? row['wave_id'] : null,
+            name,
+            startDatetime: typeof row['start_datetime'] === 'string' ? row['start_datetime'] : null,
+            participants: typeof row['participants'] === 'number' ? row['participants'] : 0,
+          },
+        ];
+      });
+    },
+
+    async declareStartWave(raceId, name, startDatetime) {
+      const data = await call(context.client, 'org_declare_start_wave', {
+        p_race_id: raceId,
+        p_name: name,
+        p_start_datetime: startDatetime,
+      });
+      if (typeof data !== 'string') {
+        throw new DbError({
+          code: 'unknown',
+          operation: 'org_declare_start_wave',
+          message: 'la fonction devait rendre un uuid',
+        });
+      }
+      return data;
+    },
+
+    async updateStartWave(waveId, name, startDatetime) {
+      await call(context.client, 'org_update_start_wave', {
+        p_wave_id: waveId,
+        p_name: name,
+        p_start_datetime: startDatetime,
       });
     },
   }),

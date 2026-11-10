@@ -1,4 +1,5 @@
 import {
+  civilMoment,
   getOrganizerCourse,
   getParticipantImport,
   getRaceAdoption,
@@ -6,6 +7,7 @@ import {
   listContactOptouts,
   listEditionParticipants,
   listParticipantInvitations,
+  listStartWaves,
   suggestColumns,
 } from '@pluka/domain';
 import { NavTabs, StatusBadge } from '@pluka/ui';
@@ -19,6 +21,7 @@ import {
   ImportFileForm,
   ParticipantCorrection,
   SendInvitationsForm,
+  StartWaveForm,
   WithdrawForm,
 } from '@/components/participant-forms';
 import { sessionEventSiteContext } from '@/lib/event-site-editing';
@@ -198,6 +201,7 @@ export default async function ParticipantsPage({
   // Coupé en production jusqu'à la validation juridique : sans le flag, rien ne change.
   const inviting = participantInvitationsEnabled() && edition !== null;
   const invitationContext = sessionParticipantInvitationContext(session);
+  const waves = edition === null ? [] : await listStartWaves(context, { editionId: edition.id });
   const adoption =
     edition === null ? [] : await getRaceAdoption(invitationContext, { editionId: edition.id });
   const [invitations, included, optouts] =
@@ -241,6 +245,7 @@ export default async function ParticipantsPage({
     ...(withdrawn.length === 0
       ? []
       : [{ panel: 'retires', label: `Retirés (${String(withdrawn.length)})` }]),
+    { panel: 'vagues', label: 'Vagues' },
   ];
   const panel = panels.find((item) => item.panel === query.volet)?.panel ?? 'tous';
   const shown = panel === 'a-verifier' ? flagged : rows;
@@ -523,208 +528,306 @@ export default async function ParticipantsPage({
             </section>
           )}
 
-          <section aria-labelledby="participants-list" className="or-card">
-            <h2 id="participants-list" className="pk-h2">
-              {panel === 'retires' ? 'Retirés' : panel === 'a-verifier' ? 'À vérifier' : 'Liste'}
-            </h2>
+          {panel === 'vagues' ? (
+            <section aria-labelledby="participants-waves" className="or-card">
+              <h2 id="participants-waves" className="pk-h2">
+                Vagues de départ
+              </h2>
+              <p className="pk-body">
+                Une vague a un nom et une heure de départ. C’est une information officielle : vos
+                coureurs la voient, et leur Plan part de cette heure.
+              </p>
+              {races
+                .filter((candidate) => race === null || candidate.id === race.id)
+                .map((candidate) => {
+                  const start = civilMoment(candidate.startDatetime, candidate.timezone);
+                  const ofRace = waves.filter((wave) => wave.raceId === candidate.id);
+                  const declared = ofRace.filter((wave) => wave.waveId !== null);
+                  const pending = ofRace.filter((wave) => wave.waveId === null);
+                  return (
+                    <div key={candidate.id} className="pa-waves">
+                      {races.length > 1 ? <h3 className="pk-label">{candidate.name}</h3> : null}
+                      {declared.length === 0 && pending.length === 0 ? (
+                        <p className="pk-field-hint">
+                          Aucune vague : tous partent à l’heure de l’épreuve.
+                        </p>
+                      ) : (
+                        <ul className="cr-facts">
+                          {declared.map((wave) => {
+                            const moment =
+                              wave.startDatetime === null
+                                ? start
+                                : civilMoment(wave.startDatetime, candidate.timezone);
+                            return (
+                              <li key={wave.waveId} className="cr-fact">
+                                <span className="cr-fact-value">{wave.name}</span>
+                                <span className="or-row-meta">
+                                  {`Départ le ${moment.day.split('-').reverse().join('/')} à ${moment.time} · ${plural(wave.participants, 'inscrit', 'inscrits')}`}
+                                </span>
+                                {canImport && wave.waveId !== null ? (
+                                  <StartWaveForm
+                                    scope={scope}
+                                    raceId={candidate.id}
+                                    waveId={wave.waveId}
+                                    timeZone={candidate.timezone}
+                                    name={wave.name}
+                                    day={moment.day}
+                                    time={moment.time}
+                                    participants={wave.participants}
+                                  />
+                                ) : null}
+                              </li>
+                            );
+                          })}
+                          {pending.map((wave) => (
+                            <li key={`a-declarer-${wave.name}`} className="cr-fact">
+                              <span className="cr-fact-value">{wave.name}</span>
+                              <span className="or-row-meta">
+                                {`À déclarer · ${plural(wave.participants, 'inscrit', 'inscrits')} venus de votre fichier`}
+                              </span>
+                              {canImport ? (
+                                <StartWaveForm
+                                  scope={scope}
+                                  raceId={candidate.id}
+                                  timeZone={candidate.timezone}
+                                  name={wave.name}
+                                  day={start.day}
+                                  time={start.time}
+                                  participants={wave.participants}
+                                />
+                              ) : null}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {canImport ? (
+                        <StartWaveForm
+                          scope={scope}
+                          raceId={candidate.id}
+                          timeZone={candidate.timezone}
+                          name=""
+                          day={start.day}
+                          time={start.time}
+                          participants={0}
+                        />
+                      ) : null}
+                    </div>
+                  );
+                })}
+              {canImport ? null : (
+                <p className="pk-body st-readonly">
+                  Un propriétaire ou un administrateur déclare les vagues.
+                </p>
+              )}
+            </section>
+          ) : (
+            <section aria-labelledby="participants-list" className="or-card">
+              <h2 id="participants-list" className="pk-h2">
+                {panel === 'retires' ? 'Retirés' : panel === 'a-verifier' ? 'À vérifier' : 'Liste'}
+              </h2>
 
-            {canImport && current === null && panel === 'tous' ? (
-              <div className="or-adds">
-                <details className="st-details or-add" open={list.total === 0}>
-                  <summary className="pk-btn pk-button-secondary">Importer des inscrits</summary>
-                  <ImportFileForm scope={scope} editionId={edition.id} />
-                </details>
-                {inviting && list.total > 0 ? (
-                  <details className="st-details or-add">
-                    <summary className="pk-btn pk-button-secondary">
-                      Inviter les participants
-                    </summary>
-                    <p className="pk-body">
-                      Chaque participant reçoit un lien personnel, valable jusqu’au départ de son
-                      épreuve. Son espace est déjà prérempli : il choisit son objectif et obtient
-                      son Plan.
-                    </p>
-                    <p className="pk-field-hint">
-                      {included
-                        ? 'L’accès complet à la préparation leur est offert par votre organisation.'
-                        : 'L’accès premium n’est pas inclus pour cette édition : ils démarrent avec la version gratuite.'}{' '}
-                      Seules les épreuves publiées et pas encore parties sont concernées. Ne sont
-                      pas invités : un participant retiré, déjà sur PLUKA, qui a refusé d’être
-                      contacté, ou de moins de 15 ans d’après sa date de naissance.
-                    </p>
-                    {invitable === 0 ? (
-                      <p className="pk-field-hint">
-                        Tous les participants avec une adresse sont déjà invités ou sur PLUKA.
-                      </p>
-                    ) : (
-                      <SendInvitationsForm
-                        scope={scope}
-                        editionId={edition.id}
-                        label={`Inviter ${plural(invitable, 'participant', 'participants')}`}
-                      />
-                    )}
+              {canImport && current === null && panel === 'tous' ? (
+                <div className="or-adds">
+                  <details className="st-details or-add" open={list.total === 0}>
+                    <summary className="pk-btn pk-button-secondary">Importer des inscrits</summary>
+                    <ImportFileForm scope={scope} editionId={edition.id} />
                   </details>
-                ) : null}
-              </div>
-            ) : null}
-
-            {panel === 'a-verifier' && canImport ? (
-              <p className="pk-field-hint">
-                Ces dossards apparaissent plusieurs fois : ouvrez Corriger sur chaque ligne.
-              </p>
-            ) : null}
-
-            {panel === 'tous' && pendingWaves > 0 ? (
-              <p className="pk-field-hint">
-                {plural(
-                  pendingWaves,
-                  'participant attend que sa vague soit déclarée.',
-                  'participants attendent que leur vague soit déclarée.',
-                )}
-              </p>
-            ) : null}
-
-            {panel === 'retires' ? (
-              <p className="pk-field-hint">
-                Ils ne sont plus dans la liste et leur trace est gardée. Un import ne les rétablit
-                pas.
-              </p>
-            ) : null}
-
-            {panel !== 'retires' && shown.length === 0 ? (
-              <p className="pk-field-hint">
-                {race === null
-                  ? `Aucun participant pour l’édition ${String(edition.year)}.`
-                  : `Aucun participant sur ${race.name}.`}
-              </p>
-            ) : (
-              <>
-                <div className="pa-head" aria-hidden="true">
-                  <span>Participant</span>
-                  <span>Épreuve</span>
-                  <span>Dossard</span>
-                  <span>Vague</span>
-                  <span>Statut</span>
-                  <span />
+                  {inviting && list.total > 0 ? (
+                    <details className="st-details or-add">
+                      <summary className="pk-btn pk-button-secondary">
+                        Inviter les participants
+                      </summary>
+                      <p className="pk-body">
+                        Chaque participant reçoit un lien personnel, valable jusqu’au départ de son
+                        épreuve. Son espace est déjà prérempli : il choisit son objectif et obtient
+                        son Plan.
+                      </p>
+                      <p className="pk-field-hint">
+                        {included
+                          ? 'L’accès complet à la préparation leur est offert par votre organisation.'
+                          : 'L’accès premium n’est pas inclus pour cette édition : ils démarrent avec la version gratuite.'}{' '}
+                        Seules les épreuves publiées et pas encore parties sont concernées. Ne sont
+                        pas invités : un participant retiré, déjà sur PLUKA, qui a refusé d’être
+                        contacté, ou de moins de 15 ans d’après sa date de naissance.
+                      </p>
+                      {invitable === 0 ? (
+                        <p className="pk-field-hint">
+                          Tous les participants avec une adresse sont déjà invités ou sur PLUKA.
+                        </p>
+                      ) : (
+                        <SendInvitationsForm
+                          scope={scope}
+                          editionId={edition.id}
+                          label={`Inviter ${plural(invitable, 'participant', 'participants')}`}
+                        />
+                      )}
+                    </details>
+                  ) : null}
                 </div>
-                <ul className="pa-rows">
-                  {panel === 'retires'
-                    ? withdrawn.map((participant) => (
-                        <li key={participant.id} className="pa-row">
-                          <span className="pa-name">
-                            <span className="cr-fact-value">{fullName(participant)}</span>
-                          </span>
-                          <Cell label="Épreuve" value={participant.raceName} />
-                          <Cell label="Dossard" value={participant.bib} />
-                          <Cell label="Vague" value={null} />
-                          <span className="pa-badges">
-                            <StatusBadge tone="neutral">Retiré</StatusBadge>
-                          </span>
-                          {canImport ? (
-                            <WithdrawForm
-                              scope={scope}
-                              participantRaceId={participant.id}
-                              withdrawn={false}
-                            />
-                          ) : null}
-                        </li>
-                      ))
-                    : shown.map((participant) => {
-                        const wave = participant.waveName ?? participant.declaredWaveName;
+              ) : null}
 
-                        return (
-                          <li
-                            key={participant.id}
-                            className={participant.bibConflict ? 'pa-row pa-flagged' : 'pa-row'}
-                          >
+              {panel === 'a-verifier' && canImport ? (
+                <p className="pk-field-hint">
+                  Ces dossards apparaissent plusieurs fois : ouvrez Corriger sur chaque ligne.
+                </p>
+              ) : null}
+
+              {panel === 'tous' && pendingWaves > 0 ? (
+                <p className="pk-field-hint">
+                  {plural(
+                    pendingWaves,
+                    'participant attend que sa vague soit déclarée.',
+                    'participants attendent que leur vague soit déclarée.',
+                  )}
+                </p>
+              ) : null}
+
+              {panel === 'retires' ? (
+                <p className="pk-field-hint">
+                  Ils ne sont plus dans la liste et leur trace est gardée. Un import ne les rétablit
+                  pas.
+                </p>
+              ) : null}
+
+              {panel !== 'retires' && shown.length === 0 ? (
+                <p className="pk-field-hint">
+                  {race === null
+                    ? `Aucun participant pour l’édition ${String(edition.year)}.`
+                    : `Aucun participant sur ${race.name}.`}
+                </p>
+              ) : (
+                <>
+                  <div className="pa-head" aria-hidden="true">
+                    <span>Participant</span>
+                    <span>Épreuve</span>
+                    <span>Dossard</span>
+                    <span>Vague</span>
+                    <span>Statut</span>
+                    <span />
+                  </div>
+                  <ul className="pa-rows">
+                    {panel === 'retires'
+                      ? withdrawn.map((participant) => (
+                          <li key={participant.id} className="pa-row">
                             <span className="pa-name">
                               <span className="cr-fact-value">{fullName(participant)}</span>
-                              {participant.email === null ? null : (
-                                <span className="or-row-meta">{participant.email}</span>
-                              )}
-                              {participant.bibConflict ? (
-                                <span className="pa-flag">Dossard {participant.bib} en double</span>
-                              ) : null}
                             </span>
                             <Cell label="Épreuve" value={participant.raceName} />
                             <Cell label="Dossard" value={participant.bib} />
-                            <Cell
-                              label="Vague"
-                              value={
-                                participant.declaredWaveName === null
-                                  ? participant.waveName
-                                  : `${participant.declaredWaveName} (à déclarer)`
-                              }
-                            />
+                            <Cell label="Vague" value={null} />
                             <span className="pa-badges">
-                              {participant.bibConflict ? (
-                                <StatusBadge tone="warning">À vérifier</StatusBadge>
-                              ) : null}
-                              {(() => {
-                                const invitation = participant.activated
-                                  ? undefined
-                                  : invitationOf.get(participant.id);
-                                const badge =
-                                  invitation === undefined
-                                    ? null
-                                    : invitation.sendFailed
-                                      ? { label: 'Envoi en échec', tone: 'warning' as const }
-                                      : (INVITATION_BADGES[invitation.status] ?? null);
-
-                                return participant.activated ? (
-                                  <StatusBadge tone="success">Sur PLUKA</StatusBadge>
-                                ) : declined.has(participant.id) ? (
-                                  <StatusBadge tone="neutral">A refusé d’être contacté</StatusBadge>
-                                ) : (
-                                  <StatusBadge tone={badge?.tone ?? 'neutral'}>
-                                    {badge?.label ?? 'Importé'}
-                                  </StatusBadge>
-                                );
-                              })()}
+                              <StatusBadge tone="neutral">Retiré</StatusBadge>
                             </span>
                             {canImport ? (
-                              // La clé referme le panneau dès que la valeur enregistrée change.
-                              <ParticipantCorrection
-                                key={`${participant.bib ?? ''}|${wave ?? ''}`}
+                              <WithdrawForm
                                 scope={scope}
                                 participantRaceId={participant.id}
-                                bib={participant.bib}
-                                wave={wave}
-                                waves={list.waveOptions.filter(
-                                  (option) => option.raceId === participant.raceId,
-                                )}
-                                canWithdraw={!participant.activated}
-                                invite={
-                                  inviting &&
-                                  !participant.activated &&
-                                  participant.email !== null &&
-                                  !declined.has(participant.id) ? (
-                                    <SendInvitationsForm
-                                      scope={scope}
-                                      editionId={edition.id}
-                                      participantRaceId={participant.id}
-                                      label={
-                                        invitationOf.has(participant.id)
-                                          ? 'Renvoyer l’invitation'
-                                          : 'Inviter'
-                                      }
-                                    />
-                                  ) : undefined
-                                }
+                                withdrawn={false}
                               />
                             ) : null}
                           </li>
-                        );
-                      })}
-                </ul>
-                {panel === 'retires' || list.total <= list.participants.length ? null : (
-                  <p className="pk-field-hint">
-                    Les {list.participants.length} premiers sur {list.total}.
-                  </p>
-                )}
-              </>
-            )}
-          </section>
+                        ))
+                      : shown.map((participant) => {
+                          const wave = participant.waveName ?? participant.declaredWaveName;
+
+                          return (
+                            <li
+                              key={participant.id}
+                              className={participant.bibConflict ? 'pa-row pa-flagged' : 'pa-row'}
+                            >
+                              <span className="pa-name">
+                                <span className="cr-fact-value">{fullName(participant)}</span>
+                                {participant.email === null ? null : (
+                                  <span className="or-row-meta">{participant.email}</span>
+                                )}
+                                {participant.bibConflict ? (
+                                  <span className="pa-flag">
+                                    Dossard {participant.bib} en double
+                                  </span>
+                                ) : null}
+                              </span>
+                              <Cell label="Épreuve" value={participant.raceName} />
+                              <Cell label="Dossard" value={participant.bib} />
+                              <Cell
+                                label="Vague"
+                                value={
+                                  participant.declaredWaveName === null
+                                    ? participant.waveName
+                                    : `${participant.declaredWaveName} (à déclarer)`
+                                }
+                              />
+                              <span className="pa-badges">
+                                {participant.bibConflict ? (
+                                  <StatusBadge tone="warning">À vérifier</StatusBadge>
+                                ) : null}
+                                {(() => {
+                                  const invitation = participant.activated
+                                    ? undefined
+                                    : invitationOf.get(participant.id);
+                                  const badge =
+                                    invitation === undefined
+                                      ? null
+                                      : invitation.sendFailed
+                                        ? { label: 'Envoi en échec', tone: 'warning' as const }
+                                        : (INVITATION_BADGES[invitation.status] ?? null);
+
+                                  return participant.activated ? (
+                                    <StatusBadge tone="success">Sur PLUKA</StatusBadge>
+                                  ) : declined.has(participant.id) ? (
+                                    <StatusBadge tone="neutral">
+                                      A refusé d’être contacté
+                                    </StatusBadge>
+                                  ) : (
+                                    <StatusBadge tone={badge?.tone ?? 'neutral'}>
+                                      {badge?.label ?? 'Importé'}
+                                    </StatusBadge>
+                                  );
+                                })()}
+                              </span>
+                              {canImport ? (
+                                // La clé referme le panneau dès que la valeur enregistrée change.
+                                <ParticipantCorrection
+                                  key={`${participant.bib ?? ''}|${wave ?? ''}`}
+                                  scope={scope}
+                                  participantRaceId={participant.id}
+                                  bib={participant.bib}
+                                  wave={wave}
+                                  waves={list.waveOptions.filter(
+                                    (option) => option.raceId === participant.raceId,
+                                  )}
+                                  canWithdraw={!participant.activated}
+                                  invite={
+                                    inviting &&
+                                    !participant.activated &&
+                                    participant.email !== null &&
+                                    !declined.has(participant.id) ? (
+                                      <SendInvitationsForm
+                                        scope={scope}
+                                        editionId={edition.id}
+                                        participantRaceId={participant.id}
+                                        label={
+                                          invitationOf.has(participant.id)
+                                            ? 'Renvoyer l’invitation'
+                                            : 'Inviter'
+                                        }
+                                      />
+                                    ) : undefined
+                                  }
+                                />
+                              ) : null}
+                            </li>
+                          );
+                        })}
+                  </ul>
+                  {panel === 'retires' || list.total <= list.participants.length ? null : (
+                    <p className="pk-field-hint">
+                      Les {list.participants.length} premiers sur {list.total}.
+                    </p>
+                  )}
+                </>
+              )}
+            </section>
+          )}
         </>
       )}
     </CourseFrame>

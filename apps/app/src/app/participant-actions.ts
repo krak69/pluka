@@ -8,10 +8,12 @@ import {
   declineParticipantInvitation,
   correctParticipant,
   createParticipantImport,
+  declareStartWave,
   discardParticipantImport,
   getOrganizerCourse,
   sendParticipantInvitations,
   setParticipantWithdrawn,
+  updateStartWave,
   validateParticipantImport,
 } from '@pluka/domain';
 import { revalidatePath } from 'next/cache';
@@ -205,6 +207,67 @@ export async function setParticipantWithdrawnAction(
 }
 
 /**
+ * Vagues de départ — migration 0081. Déclarer ou changer une vague publie une
+ * information officielle : les coureurs de la vague dont le Plan en dépend sont
+ * prévenus. Le fuseau est celui de l'épreuve, rendu par la page.
+ */
+function waveFailure(error: unknown): ParticipantActionState {
+  if (error instanceof DomainError && error.code === 'forbidden') {
+    return { error: 'Seuls un propriétaire ou un administrateur déclarent les vagues.' };
+  }
+  if (error instanceof DomainError && error.code === 'invalid_state') {
+    return { error: 'Rien n’a changé : ni le nom, ni l’heure.' };
+  }
+  if (error instanceof DomainError && error.code === 'not_found') {
+    return { error: 'Cette vague n’existe plus.' };
+  }
+  if (error instanceof DomainError && error.code === 'conflict') {
+    return { error: 'Une vague porte déjà ce nom sur cette épreuve.' };
+  }
+  return failure(error);
+}
+
+export async function declareStartWaveAction(
+  _previous: ParticipantActionState,
+  form: FormData,
+): Promise<ParticipantActionState> {
+  try {
+    await declareStartWave(participantImportContext(await requireSession(pagePath(form))), {
+      raceId: text(form, 'raceId'),
+      name: text(form, 'name'),
+      day: text(form, 'day'),
+      time: text(form, 'time'),
+      timeZone: text(form, 'timeZone'),
+    });
+  } catch (error) {
+    return waveFailure(error);
+  }
+
+  revalidatePath(pagePath(form));
+  return {};
+}
+
+export async function updateStartWaveAction(
+  _previous: ParticipantActionState,
+  form: FormData,
+): Promise<ParticipantActionState> {
+  try {
+    await updateStartWave(participantImportContext(await requireSession(pagePath(form))), {
+      waveId: text(form, 'waveId'),
+      name: text(form, 'name'),
+      day: text(form, 'day'),
+      time: text(form, 'time'),
+      timeZone: text(form, 'timeZone'),
+    });
+  } catch (error) {
+    return waveFailure(error);
+  }
+
+  revalidatePath(pagePath(form));
+  return {};
+}
+
+/**
  * Inviter les participants — migration 0069. Sans participant désigné : tous
  * ceux qui peuvent l'être ; avec : un renvoi, qui remplace le lien précédent.
  */
@@ -253,10 +316,9 @@ export async function declineParticipantInvitationAction(form: FormData): Promis
 
   if (token === null || !participantInvitationsEnabled()) redirect('/');
 
-  const outcome = await declineParticipantInvitation(
-    anonymousParticipantInvitationContext(),
-    { token },
-  ).catch(() => 'unknown' as const);
+  const outcome = await declineParticipantInvitation(anonymousParticipantInvitationContext(), {
+    token,
+  }).catch(() => 'unknown' as const);
   redirect(`/invitation/${token}?etat=${outcome === 'declined' ? 'refusee' : 'impossible'}`);
 }
 

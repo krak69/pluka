@@ -358,6 +358,8 @@ Vagues officielles de départ.
 
 Une vague peut être associée à un `race_fact` pour conserver sa provenance.
 
+Depuis 0081 (décision du 2026-11-10), une vague déclarée par l'organisation dans Participants › Vagues l'est toujours : un `race_fact` de catégorie `start`, clé `start/wave/<id>`, versionné. `org_declare_start_wave` et `org_update_start_wave` publient la vague et son information ensemble ; le chemin générique (`revise_race_fact`, retrait) est refusé sur une vague. L'analyse d'impact d'une vague ne touche que ses coureurs sans départ personnel. Pas encore traités : supprimer une vague, et prévenir un coureur qui change de vague à la main ou par un fichier.
+
 ## 6.6 `race_waypoints`
 
 Points structurants du parcours :

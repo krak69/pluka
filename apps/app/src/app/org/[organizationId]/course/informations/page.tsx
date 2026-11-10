@@ -102,13 +102,18 @@ function Fact({
   const value = factValue(fact);
   const source = sourceLabel(fact.source);
   // Le matériel porte une exigence structurée : il se corrige depuis Épreuves.
-  const editable = canEdit && fact.category !== 'equipment';
+  // Une vague, depuis Participants › Vagues (0081) : la base refuse ailleurs.
+  const wave = fact.factKey.startsWith('start/wave/');
+  const editable = canEdit && fact.category !== 'equipment' && !wave;
 
   return (
     <li className="cr-fact or-line">
       <div className="or-line-main">
         <span className="cr-fact-value">{value}</span>
         {source === null ? null : <span className="or-row-meta">{source}</span>}
+        {wave && canEdit ? (
+          <span className="or-row-meta">Se modifie dans Participants › Vagues.</span>
+        ) : null}
       </div>
       <TrustBadge level={fact.trustLevel} />
       {!editable ? null : (

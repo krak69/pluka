@@ -155,12 +155,14 @@ function FactRow({ fact }: { readonly fact: PublishedRaceFactRecord }) {
   const source = fact.source;
   const page = pageLabel(fact);
   const equipment = fact.category === 'equipment';
+  // Une vague (0081) porte une clé technique : son nom est dans la valeur.
+  const wave = fact.factKey.startsWith('start/wave/');
 
   return (
     <div className="rp-fact-row">
       <div className="rp-fact-row-head">
         {/* Un matériel se nomme par son nom, pas par sa clé technique. */}
-        <span className="rp-fact-row-key">{equipment ? 'Matériel' : fact.factKey}</span>
+        <span className="rp-fact-row-key">{equipment ? 'Matériel' : wave ? 'Vague de départ' : fact.factKey}</span>
         <TrustBadge level={fact.trustLevel} />
       </div>
 
