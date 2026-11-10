@@ -1,6 +1,7 @@
 import {
   DomainError,
   getEventSiteEditor,
+  getRaceAdoption,
   listCandidatesForReview,
   listOrganizationTeam,
   organizerAttention,
@@ -17,6 +18,7 @@ import { editionDateRange } from '@/app/site/format';
 import { publicEnv } from '@/lib/env';
 import { sessionEventSiteContext } from '@/lib/event-site-editing';
 import { courseHref, factReviewContext } from '@/lib/organizer-course';
+import { sessionParticipantInvitationContext } from '@/lib/participant-invitations';
 import { requireSession } from '@/lib/session';
 import { sessionTeamContext } from '@/lib/team';
 
@@ -69,6 +71,16 @@ export default async function OrganizerHomePage({
   ]);
 
   const { event, edition, site } = editor;
+  // §26.2 : l'adoption tient dans la ligne de résumé, jamais en tableau de bord.
+  // Une lecture en échec n'empêche pas l'Accueil de s'afficher.
+  const adoption =
+    edition === null
+      ? []
+      : await getRaceAdoption(sessionParticipantInvitationContext(session), {
+          editionId: edition.id,
+        }).catch(() => []);
+  const registered = adoption.reduce((sum, line) => sum + line.registered, 0);
+  const activated = adoption.reduce((sum, line) => sum + line.activated, 0);
   const invitations: TeamInvitationsSummary | null =
     team === null
       ? null
@@ -145,6 +157,11 @@ export default async function OrganizerHomePage({
       : site?.status === 'suspended'
         ? 'Site suspendu'
         : 'Site hors ligne',
+    ...(registered === 0
+      ? []
+      : [
+          `${String(registered)} ${registered > 1 ? 'inscrits' : 'inscrit'} · ${String(activated)} ${activated > 1 ? 'activés' : 'activé'}`,
+        ]),
     ...(team === null
       ? []
       : [`${String(team.members.length)} ${team.members.length > 1 ? 'membres' : 'membre'}`]),

@@ -6642,6 +6642,18 @@ export type Database = {
           status: Database["public"]["Enums"]["invitation_status"]
         }[]
       }
+      org_race_adoption: {
+        Args: { p_edition_id: string }
+        Returns: {
+          activated: number
+          invited: number
+          race_id: string
+          registered: number
+          with_assistance: number
+          with_nutrition: number
+          with_plan: number
+        }[]
+      }
       org_remove_member: {
         Args: { p_organization_id: string; p_user_id: string }
         Returns: undefined

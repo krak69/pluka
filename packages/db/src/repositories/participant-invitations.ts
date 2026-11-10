@@ -13,6 +13,20 @@ import type { Enum, PlukaClient } from '../types.js';
 
 export type ParticipantInvitationStatus = Enum<'invitation_status'>;
 
+/**
+ * Adoption d'une épreuve (0080) : des compteurs, jamais une ligne par coureur.
+ * Les trois chiffres de préparation sont nuls sous 10 activés (§70).
+ */
+export interface RaceAdoptionRecord {
+  readonly raceId: string;
+  readonly registered: number;
+  readonly invited: number;
+  readonly activated: number;
+  readonly withPlan: number | null;
+  readonly withNutrition: number | null;
+  readonly withAssistance: number | null;
+}
+
 /** L'état de la dernière invitation d'une participation, sans adresse (§28). */
 export interface ParticipantInvitationRecord {
   readonly participantRaceId: string;
@@ -52,6 +66,8 @@ export interface ParticipantInvitationRepository {
   decline(tokenHash: string): Promise<'declined' | 'closed' | 'unknown'>;
   /** Les participations de l'édition dont l'adresse a refusé d'être contactée. */
   listOptouts(editionId: string): Promise<readonly string[]>;
+  /** L'adoption par épreuve de l'édition (0080). */
+  adoption(editionId: string): Promise<readonly RaceAdoptionRecord[]>;
 }
 
 interface RpcCapableClient {
@@ -202,6 +218,25 @@ export const participantInvitationRepository = defineRepository<ParticipantInvit
         await invoke(context.client, operation, { p_edition_id: editionId }),
         operation,
       ).map((row) => requiredText(row, 'participant_race_id', operation));
+    },
+
+    async adoption(editionId) {
+      const operation = 'org_race_adoption';
+      const count = (row: Record<string, unknown>, key: string): number | null =>
+        typeof row[key] === 'number' ? row[key] : null;
+
+      return rows(
+        await invoke(context.client, operation, { p_edition_id: editionId }),
+        operation,
+      ).map((row) => ({
+        raceId: requiredText(row, 'race_id', operation),
+        registered: count(row, 'registered') ?? 0,
+        invited: count(row, 'invited') ?? 0,
+        activated: count(row, 'activated') ?? 0,
+        withPlan: count(row, 'with_plan'),
+        withNutrition: count(row, 'with_nutrition'),
+        withAssistance: count(row, 'with_assistance'),
+      }));
     },
 
     async accept(tokenHash) {

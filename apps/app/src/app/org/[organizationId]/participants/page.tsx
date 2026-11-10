@@ -1,6 +1,7 @@
 import {
   getOrganizerCourse,
   getParticipantImport,
+  getRaceAdoption,
   isEditionParticipantsIncluded,
   listContactOptouts,
   listEditionParticipants,
@@ -94,6 +95,56 @@ const INVITATION_BADGES: Readonly<
   revoked: { label: 'Importé', tone: 'neutral' },
 };
 
+/**
+ * L'adoption d'une épreuve — §36, 0080. Secondaire : une ligne, pas un tableau
+ * de bord. Sous 10 activés, la base ne rend aucun chiffre de préparation (§70).
+ */
+function AdoptionLine({
+  name,
+  adoption,
+  inviting,
+}: {
+  readonly name: string | null;
+  readonly adoption: {
+    readonly registered: number;
+    readonly invited: number;
+    readonly activated: number;
+    readonly withPlan: number | null;
+    readonly withNutrition: number | null;
+    readonly withAssistance: number | null;
+  };
+  readonly inviting: boolean;
+}) {
+  const reach = [
+    plural(adoption.registered, 'inscrit', 'inscrits'),
+    ...(inviting ? [plural(adoption.invited, 'invité', 'invités')] : []),
+    plural(adoption.activated, 'activé', 'activés'),
+  ].join(' · ');
+  const preparation =
+    adoption.withPlan === null ||
+    adoption.withNutrition === null ||
+    adoption.withAssistance === null
+      ? null
+      : [
+          plural(adoption.withPlan, 'Plan', 'Plans'),
+          `${String(adoption.withNutrition)} avec Nutrition`,
+          `${String(adoption.withAssistance)} avec Assistance`,
+        ].join(' · ');
+
+  return (
+    <li className="cr-fact">
+      {name === null ? null : <span className="cr-fact-value">{name}</span>}
+      <span className="or-row-meta">{reach}</span>
+      <span className="or-row-meta">
+        {preparation ??
+          (adoption.activated === 0
+            ? 'Aucun participant activé pour l’instant.'
+            : 'Groupe trop petit pour afficher une analyse agrégée.')}
+      </span>
+    </li>
+  );
+}
+
 /** Une case de la liste : son libellé ne se montre que lorsque les colonnes se replient. */
 function Cell({ label, value }: { readonly label: string; readonly value: string | null }) {
   return (
@@ -147,6 +198,8 @@ export default async function ParticipantsPage({
   // Coupé en production jusqu'à la validation juridique : sans le flag, rien ne change.
   const inviting = participantInvitationsEnabled() && edition !== null;
   const invitationContext = sessionParticipantInvitationContext(session);
+  const adoption =
+    edition === null ? [] : await getRaceAdoption(invitationContext, { editionId: edition.id });
   const [invitations, included, optouts] =
     !inviting || edition === null
       ? [[], false, []]
@@ -441,6 +494,34 @@ export default async function ParticipantsPage({
               current: item.panel === panel,
             }))}
           />
+
+          {adoption.length === 0 ? null : (
+            <section aria-labelledby="participants-adoption" className="or-card">
+              <h2 id="participants-adoption" className="pk-h2">
+                Sur PLUKA
+              </h2>
+              <ul className="cr-facts">
+                {races
+                  .filter((candidate) => race === null || candidate.id === race.id)
+                  .map((candidate) => {
+                    const line = adoption.find((item) => item.raceId === candidate.id);
+                    return line === undefined ? null : (
+                      <AdoptionLine
+                        key={candidate.id}
+                        name={races.length > 1 ? candidate.name : null}
+                        adoption={line}
+                        inviting={inviting}
+                      />
+                    );
+                  })}
+              </ul>
+              <p className="pk-field-hint">
+                Des nombres, jamais qui : vous ne voyez ni les Plans, ni la Nutrition, ni
+                l’Assistance de vos participants. Sous 10 participants activés sur une épreuve, ces
+                chiffres restent masqués.
+              </p>
+            </section>
+          )}
 
           <section aria-labelledby="participants-list" className="or-card">
             <h2 id="participants-list" className="pk-h2">

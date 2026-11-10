@@ -296,6 +296,7 @@ export {
   type ParticipantInvitationPreviewRecord,
   type ParticipantInvitationPreviewState,
   type ParticipantInvitationRecord,
+  type RaceAdoptionRecord,
   type ParticipantInvitationRepositories,
   type ParticipantInvitationRepository,
   type ParticipantInvitationStatus,

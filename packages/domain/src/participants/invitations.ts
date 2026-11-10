@@ -5,6 +5,7 @@ import {
   type ParticipantInvitationPreviewRecord,
   type ParticipantInvitationRecord,
   type ParticipantInvitationRepositories,
+  type RaceAdoptionRecord,
 } from '@pluka/db';
 
 import type { Actor } from '../authorization/organization-role.js';
@@ -162,7 +163,9 @@ export async function declineParticipantInvitation(
   const parsed = participantInvitationTokenSchema.safeParse(input);
   if (!parsed.success) return 'unknown';
 
-  return context.repositories.participantInvitations.decline(hashInvitationToken(parsed.data.token));
+  return context.repositories.participantInvitations.decline(
+    hashInvitationToken(parsed.data.token),
+  );
 }
 
 /** Les participations de l'édition qui ont refusé d'être contactées (0075). */
@@ -177,6 +180,24 @@ export async function listContactOptouts(
     return await context.repositories.participantInvitations.listOptouts(query.editionId);
   } catch (error) {
     throw translate(error, useCase, 'refus illisibles');
+  }
+}
+
+/**
+ * L'adoption par épreuve — 00_PRODUCT_SPEC §36. La base applique le seuil de
+ * 10 (§70) : un chiffre nul se dit « groupe trop petit », jamais « 0 ».
+ */
+export async function getRaceAdoption(
+  context: ParticipantInvitationContext,
+  input: unknown,
+): Promise<readonly RaceAdoptionRecord[]> {
+  const useCase = 'getRaceAdoption';
+  const query = parseCommand(participantInvitationEditionQuerySchema, input, useCase);
+
+  try {
+    return await context.repositories.participantInvitations.adoption(query.editionId);
+  } catch (error) {
+    throw translate(error, useCase, 'adoption illisible');
   }
 }
 

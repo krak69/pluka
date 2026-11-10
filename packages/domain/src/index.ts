@@ -725,6 +725,7 @@ export {
 export {
   acceptParticipantInvitation,
   declineParticipantInvitation,
+  getRaceAdoption,
   isEditionParticipantsIncluded,
   listContactOptouts,
   listParticipantInvitations,

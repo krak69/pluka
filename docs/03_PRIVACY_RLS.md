@@ -1414,6 +1414,8 @@ Il ne contient pas :
 - liste Nutrition ;
 - Assistance individuelle.
 
+Décidé le 2026-11-10 (0080) : l'adoption est lue à la demande par `org_race_adoption`, par épreuve. Inscrits, invités et activés sont toujours rendus ; Plans, Nutrition et Assistance sont nuls sous 10 activés (§70). La table de snapshots reste pour une courbe d'évolution, plus tard.
+
 ---
 
 # 68. Race Intelligence
