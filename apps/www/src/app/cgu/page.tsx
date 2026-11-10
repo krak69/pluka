@@ -85,8 +85,9 @@ export default function TermsPage() {
         <h2>Vos contenus</h2>
         <p>
           Votre préparation vous appartient. Elle n’est jamais montrée à une organisation, même
-          lorsque celle-ci vous offre l’accès. Vous pouvez demander à tout moment sa suppression ou
-          son export (voir la <Link href="/confidentialite">politique de confidentialité</Link>).
+          lorsque celle-ci vous offre l’accès. Vous pouvez à tout moment l’exporter ou la supprimer
+          depuis votre profil (voir la{' '}
+          <Link href="/confidentialite">politique de confidentialité</Link>).
         </p>
 
         <h2>Usage attendu</h2>
@@ -107,7 +108,7 @@ export default function TermsPage() {
         <h2>Évolution et fin</h2>
         <p>
           Ces conditions peuvent évoluer ; la date de mise à jour figure en haut de la page. Vous
-          pouvez fermer votre compte à tout moment en écrivant à{' '}
+          pouvez supprimer votre compte à tout moment depuis votre profil, ou en écrivant à{' '}
           {email === null ? TODO : <a href={`mailto:${email}`}>{email}</a>}.
         </p>
 

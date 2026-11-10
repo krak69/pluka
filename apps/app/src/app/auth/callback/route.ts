@@ -1,3 +1,4 @@
+import { createAccountClosureRepositories } from '@pluka/db';
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { safeReturnTo } from '@/lib/return-to';
@@ -30,6 +31,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // log d'accès ou un referrer (03_PRIVACY_RLS §128, §130).
     console.error('exchangeCodeForSession a échoué', { code: error.code, status: error.status });
     return NextResponse.redirect(new URL('/connexion?etat=lien-invalide', origin));
+  }
+
+  // Se reconnecter annule une suppression de compte en attente (0078). La base
+  // le vérifie aussi avant d'effacer : ce geste-ci sert à le dire au coureur.
+  const cancelled = await createAccountClosureRepositories({ client: auth })
+    .accountClosure.cancelDeletion()
+    .catch(() => false);
+  if (cancelled) {
+    return NextResponse.redirect(new URL('/profil?suppression=annulee', origin));
   }
 
   // `returnTo` est un chemin interne validé : la base `origin` empêche toute

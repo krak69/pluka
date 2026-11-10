@@ -20,6 +20,8 @@ const MESSAGES: Readonly<Record<string, string>> = {
   'envoi-impossible': 'L’envoi a échoué. Réessayez dans un instant.',
   'lien-invalide': 'Ce lien de connexion est expiré ou déjà utilisé.',
   deconnecte: 'Vous êtes déconnecté.',
+  'compte-ferme':
+    'Votre compte est fermé. Vos données seront effacées dans 30 jours ; vous reconnecter d’ici là annule la suppression.',
 };
 
 function firstValue(value: string | string[] | undefined): string | undefined {

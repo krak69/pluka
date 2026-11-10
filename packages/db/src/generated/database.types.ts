@@ -394,7 +394,7 @@ export type Database = {
       }
       community_posts: {
         Row: {
-          author_user_id: string
+          author_user_id: string | null
           body: string
           created_at: string
           id: string
@@ -403,7 +403,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          author_user_id: string
+          author_user_id?: string | null
           body: string
           created_at?: string
           id?: string
@@ -412,7 +412,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          author_user_id?: string
+          author_user_id?: string | null
           body?: string
           created_at?: string
           id?: string
@@ -493,7 +493,7 @@ export type Database = {
           id: string
           post_id: string | null
           reason: Database["public"]["Enums"]["report_reason"]
-          reporter_user_id: string
+          reporter_user_id: string | null
           resolved_at: string | null
           status: Database["public"]["Enums"]["report_status"]
           thread_id: string | null
@@ -504,7 +504,7 @@ export type Database = {
           id?: string
           post_id?: string | null
           reason: Database["public"]["Enums"]["report_reason"]
-          reporter_user_id: string
+          reporter_user_id?: string | null
           resolved_at?: string | null
           status?: Database["public"]["Enums"]["report_status"]
           thread_id?: string | null
@@ -515,7 +515,7 @@ export type Database = {
           id?: string
           post_id?: string | null
           reason?: Database["public"]["Enums"]["report_reason"]
-          reporter_user_id?: string
+          reporter_user_id?: string | null
           resolved_at?: string | null
           status?: Database["public"]["Enums"]["report_status"]
           thread_id?: string | null
@@ -546,7 +546,7 @@ export type Database = {
       }
       community_threads: {
         Row: {
-          author_user_id: string
+          author_user_id: string | null
           body: string
           category: Database["public"]["Enums"]["community_category"]
           created_at: string
@@ -560,7 +560,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          author_user_id: string
+          author_user_id?: string | null
           body: string
           category: Database["public"]["Enums"]["community_category"]
           created_at?: string
@@ -574,7 +574,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          author_user_id?: string
+          author_user_id?: string | null
           body?: string
           category?: Database["public"]["Enums"]["community_category"]
           created_at?: string
@@ -6401,6 +6401,7 @@ export type Database = {
         Args: { p_product_id: string }
         Returns: undefined
       }
+      cancel_account_deletion: { Args: never; Returns: boolean }
       commit_participant_import: {
         Args: { p_import_id: string }
         Returns: Json
@@ -6479,6 +6480,7 @@ export type Database = {
         }[]
       }
       event_site_public: { Args: { p_slug: string }; Returns: Json }
+      export_my_data: { Args: never; Returns: Json }
       get_course_preprocessing_input: {
         Args: { p_race_id: string }
         Returns: Json
@@ -6719,6 +6721,7 @@ export type Database = {
         Args: { p_photo_id: string }
         Returns: undefined
       }
+      request_account_deletion: { Args: never; Returns: Json }
       restore_race_fact: {
         Args: { p_fact_id: string; p_note?: string }
         Returns: undefined

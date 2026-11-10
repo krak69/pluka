@@ -1849,7 +1849,7 @@ Architecture à prévoir :
 
 Ne pas implémenter des durées arbitraires sans validation juridique.
 
-Durées décidées le 2026-11-09 (usages de la CNIL, `docs/legal/RGPD_AUTO_EVALUATION.md`) et appliquées par `private.purge_expired_data` (0077, chaque nuit) : liste importée et données déclaratives 12 mois après l'édition, journal 1 an. Le compte inactif (3 ans) attend la suppression de compte de §94.
+Durées décidées le 2026-11-09 (usages de la CNIL, `docs/legal/RGPD_AUTO_EVALUATION.md`) et appliquées par `private.purge_expired_data` (0077, chaque nuit) : liste importée et données déclaratives 12 mois après l'édition, journal 1 an. Le compte inactif (3 ans) attend un e-mail de prévenance avant effacement.
 
 ---
 
@@ -1874,6 +1874,8 @@ Mais doit supprimer / anonymiser :
 - tokens.
 
 Le schéma doit être revu pour les `ON DELETE` pertinents.
+
+Implémenté en 0078 (décisions du 2026-11-09) : `request_account_deletion` ferme le compte, `private.purge_expired_data` l'efface 30 jours plus tard sauf reconnexion. Une participation venue d'une organisation est détachée (la ligne importée reste, sans préparation) ; fils, messages et signalements de communauté perdent leur auteur. Seul propriétaire d'une organisation, auteur d'une publication de faits et équipe PLUKA sont refusés. pgTAP 55 classe chaque clé vers `users` et `participant_races` : une table nouvelle doit être classée avant de passer. L'export est `export_my_data` (`/profil/donnees`).
 
 ---
 

@@ -166,8 +166,14 @@ export default function PrivacyPage() {
           Vous pouvez accéder à vos données, les corriger, les faire effacer, vous opposer à un
           traitement, en demander la limitation ou les recevoir dans un format lisible. Écrivez-nous
           à {email === null ? TODO : <a href={`mailto:${email}`}>{email}</a>} : nous répondons sous
-          un mois. Pendant la bêta, la suppression du compte et l’export se font sur demande à cette
-          adresse.
+          un mois.
+        </p>
+        <p>
+          Depuis votre profil, dans l’application, vous pouvez aussi télécharger toutes vos données
+          et supprimer votre compte. La suppression ferme le compte tout de suite ; les données sont
+          effacées 30 jours plus tard, et vous reconnecter d’ici là l’annule. Une course venue d’une
+          organisation lui reste, sans votre préparation, jusqu’à la fin de sa durée de conservation
+          ; ce que vous avez publié dans la communauté reste, sans votre nom.
         </p>
         <p>
           Si vous estimez que vos droits ne sont pas respectés, vous pouvez saisir la CNIL

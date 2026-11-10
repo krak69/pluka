@@ -318,6 +318,14 @@ export {
   type RepereCalibrationSampleRecord,
 } from './repositories/repere-calibration.js';
 export {
+  accountClosureRepository,
+  createAccountClosureRepositories,
+  type AccountClosureRepositories,
+  type AccountClosureRepository,
+  type AccountDeletionBlocker,
+  type AccountDeletionOutcome,
+} from './repositories/account-closure.js';
+export {
   betaAccessRepository,
   createBetaAccessRepositories,
   type BetaAccessGrantOutcome,
