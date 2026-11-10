@@ -942,6 +942,12 @@ Cela inclut selon la Product Spec :
 - dérive ;
 - rebalance.
 
+## 42.1 Exception : l'heure de départ déplacée par l'organisation
+
+Décision du 2026-11-10. Quand l'heure de départ d'un coureur change sans qu'il l'ait voulu (changement de vague, heure d'une vague, heure de l'épreuve), décaler son Plan sur la nouvelle heure est ouvert à **tous les accès, Free compris** : remettre le Plan à l'heure officielle n'est pas une personnalisation (§22 d'AGENTS : l'information officielle n'est jamais payante).
+
+Le décalage garde les durées, arrêts et verrous du coureur ; seuls les horaires suivent. Il n'est possible que si l'heure de départ du Plan diffère de l'heure de départ actuelle — le coureur ne fixant jamais la sienne, l'écart vient toujours de l'organisation. Sans écart, recalculer reste `plan.recalculate`. Commande : `shiftPlanToOfficialStart` (domaine).
+
 ---
 
 # 43. Ne pas dupliquer le moteur

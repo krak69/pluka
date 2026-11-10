@@ -57,6 +57,8 @@ export {
   type RaceStatusNotice,
 } from './templates/race-reinstated.js';
 
+export { renderStartChangedNotice, type StartChangedNotice } from './templates/start-changed.js';
+
 export {
   renderAccountInactivityNotice,
   type AccountInactivityNotice,
@@ -82,6 +84,9 @@ export {
   ACCOUNT_INACTIVITY_TEMPLATE_VERSION,
   sendAccountInactivityNotice,
   type AccountInactivityDelivery,
+  START_CHANGED_TEMPLATE_VERSION,
+  sendStartChangedNotice,
+  type StartChangedDelivery,
   INVITATION_TEMPLATE_VERSION,
   STAFF_INVITATION_TEMPLATE_VERSION,
   NOTIFICATION_ERROR_CODES,

@@ -205,7 +205,8 @@ select set_eq(
     'private.account_deletion_requests.user_id:c',
     'community_threads.author_user_id:n',
     'community_posts.author_user_id:n',
-    'community_reports.reporter_user_id:n'
+    'community_reports.reporter_user_id:n',
+    'participant_start_changes.participant_race_id:c'
   ],
   'DEL-21 — chaque clé vers un compte ou une participation a une règle décidée');
 

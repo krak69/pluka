@@ -328,6 +328,13 @@ export {
   type AccountDeletionOutcome,
 } from './repositories/account-closure.js';
 export {
+  createStartChangeRepositories,
+  startChangeRepository,
+  type StartChangeRecord,
+  type StartChangeRepositories,
+  type StartChangeRepository,
+} from './repositories/start-changes.js';
+export {
   betaAccessRepository,
   createBetaAccessRepositories,
   type BetaAccessGrantOutcome,

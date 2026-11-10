@@ -427,6 +427,8 @@ export {
   listPlanVersions,
   lockPlanWaypoint,
   preserveCurrentPlan,
+  getPlanStartDrift,
+  shiftPlanToOfficialStart,
   previewPlan,
   rebalancePlanToTarget,
   removePlanSegmentOverride,
@@ -723,9 +725,13 @@ export {
   type ParticipantImportContext,
 } from './participants/use-cases.js';
 export {
+  acknowledgeStartChanges,
   declareStartWave,
+  deleteStartWave,
+  listStartChanges,
   listStartWaves,
   updateStartWave,
+  type StartChangeContext,
 } from './participants/waves.js';
 export {
   acceptParticipantInvitation,

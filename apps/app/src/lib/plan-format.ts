@@ -83,3 +83,14 @@ export function formatClock(isoInstant: string, timeZone: string): string {
     timeZone,
   }).format(new Date(isoInstant));
 }
+
+/**
+ * « le 20 juin à 06 h 30 » — un départ, dans le fuseau de la course (0082).
+ */
+export function formatStartMoment(isoInstant: string, timeZone: string): string {
+  const date = new Date(isoInstant);
+  const day = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', timeZone }).format(
+    date,
+  );
+  return `le ${day} à ${formatClock(isoInstant, timeZone).replace(':', ' h ')}`;
+}

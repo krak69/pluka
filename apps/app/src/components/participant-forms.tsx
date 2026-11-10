@@ -8,6 +8,7 @@ import {
   correctParticipantAction,
   createImportAction,
   declareStartWaveAction,
+  deleteStartWaveAction,
   updateStartWaveAction,
   discardImportAction,
   sendParticipantInvitationsAction,
@@ -461,6 +462,45 @@ export function StartWaveForm({
         <div>
           <button type="submit" className="pk-btn pk-button-primary" disabled={pending}>
             {waveId === undefined ? 'Publier la vague' : 'Publier la modification'}
+          </button>
+        </div>
+        <ActionError state={state} />
+      </form>
+    </details>
+  );
+}
+
+/**
+ * Supprimer une vague — migration 0082. « Supprimer » a déjà ouvert ce panneau :
+ * ce bouton est la confirmation. Ses coureurs repartent à l'heure de l'épreuve.
+ */
+export function DeleteStartWaveForm({
+  scope,
+  waveId,
+  name,
+  participants,
+}: {
+  readonly scope: Scope;
+  readonly waveId: string;
+  readonly name: string;
+  readonly participants: number;
+}) {
+  const [state, action, pending] = useActionState(deleteStartWaveAction, INITIAL);
+
+  return (
+    <details className="st-details or-danger">
+      <summary>Supprimer</summary>
+      <form action={action} className="or-form">
+        <ScopeFields {...scope} />
+        <input type="hidden" name="waveId" value={waveId} />
+        <p className="pk-field-hint">
+          {participants === 0
+            ? `La vague ${name} disparaît pour vos coureurs.`
+            : `Ses ${String(participants)} inscrits repartent à l’heure de l’épreuve. Ceux qui sont sur PLUKA en sont prévenus par e-mail et dans leur compte.`}
+        </p>
+        <div>
+          <button type="submit" className="pk-btn pk-button-destructive" disabled={pending}>
+            Confirmer la suppression
           </button>
         </div>
         <ActionError state={state} />

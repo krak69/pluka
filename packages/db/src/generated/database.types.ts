@@ -3126,6 +3126,59 @@ export type Database = {
           },
         ]
       }
+      participant_start_changes: {
+        Row: {
+          created_at: string
+          id: string
+          new_start_at: string
+          new_wave_name: string | null
+          notice_attempts: number
+          notice_error: string | null
+          notice_sent_at: string | null
+          notice_status: string
+          participant_race_id: string
+          previous_start_at: string
+          previous_wave_name: string | null
+          seen_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          new_start_at: string
+          new_wave_name?: string | null
+          notice_attempts?: number
+          notice_error?: string | null
+          notice_sent_at?: string | null
+          notice_status?: string
+          participant_race_id: string
+          previous_start_at: string
+          previous_wave_name?: string | null
+          seen_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          new_start_at?: string
+          new_wave_name?: string | null
+          notice_attempts?: number
+          notice_error?: string | null
+          notice_sent_at?: string | null
+          notice_status?: string
+          participant_race_id?: string
+          previous_start_at?: string
+          previous_wave_name?: string | null
+          seen_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_start_changes_participant_race_id_fkey"
+            columns: ["participant_race_id"]
+            isOneToOne: false
+            referencedRelation: "participant_races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_cutoff_statuses: {
         Row: {
           calculated_at: string
@@ -6011,6 +6064,10 @@ export type Database = {
         Args: { p_token_hash: string }
         Returns: Database["public"]["Enums"]["staff_role"]
       }
+      acknowledge_start_changes: {
+        Args: { p_participant_race_id: string }
+        Returns: number
+      }
       add_edition_documents: {
         Args: { p_documents: Json; p_edition_id: string }
         Returns: number
@@ -6598,6 +6655,7 @@ export type Database = {
         Args: { p_name: string; p_race_id: string; p_start_datetime: string }
         Returns: string
       }
+      org_delete_start_wave: { Args: { p_wave_id: string }; Returns: undefined }
       org_invite_member: {
         Args: {
           p_email: string
@@ -7001,6 +7059,24 @@ export type Database = {
           staff_role: Database["public"]["Enums"]["staff_role"]
         }[]
       }
+      worker_claim_start_change: {
+        Args: { p_change_id: string }
+        Returns: {
+          attempt: number
+          event_name: string
+          first_name: string
+          has_plan: boolean
+          new_start_at: string
+          new_wave_name: string
+          participant_race_id: string
+          previous_start_at: string
+          previous_wave_name: string
+          race_name: string
+          recipient_email: string
+          sendable: boolean
+          timezone: string
+        }[]
+      }
       worker_complete_account_notice: {
         Args: { p_user: string }
         Returns: undefined
@@ -7060,6 +7136,10 @@ export type Database = {
         Args: { p_invitation_id: string }
         Returns: undefined
       }
+      worker_complete_start_change: {
+        Args: { p_change_id: string }
+        Returns: undefined
+      }
       worker_course_preprocessing_input: {
         Args: { p_race_id: string }
         Returns: Json
@@ -7104,6 +7184,10 @@ export type Database = {
       worker_fail_staff_invitation: {
         Args: { p_error: string; p_invitation_id: string }
         Returns: number
+      }
+      worker_fail_start_change: {
+        Args: { p_abandon: boolean; p_change_id: string; p_error: string }
+        Returns: undefined
       }
       worker_mark_source_failed: {
         Args: { p_source_id: string }

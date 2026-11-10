@@ -17,6 +17,7 @@ import { CourseFrame } from '@/components/course-frame';
 import {
   ColumnsForm,
   CommitImportForm,
+  DeleteStartWaveForm,
   DiscardImportForm,
   ImportFileForm,
   ParticipantCorrection,
@@ -565,16 +566,24 @@ export default async function ParticipantsPage({
                                   {`Départ le ${moment.day.split('-').reverse().join('/')} à ${moment.time} · ${plural(wave.participants, 'inscrit', 'inscrits')}`}
                                 </span>
                                 {canImport && wave.waveId !== null ? (
-                                  <StartWaveForm
-                                    scope={scope}
-                                    raceId={candidate.id}
-                                    waveId={wave.waveId}
-                                    timeZone={candidate.timezone}
-                                    name={wave.name}
-                                    day={moment.day}
-                                    time={moment.time}
-                                    participants={wave.participants}
-                                  />
+                                  <div className="cr-fact-actions">
+                                    <StartWaveForm
+                                      scope={scope}
+                                      raceId={candidate.id}
+                                      waveId={wave.waveId}
+                                      timeZone={candidate.timezone}
+                                      name={wave.name}
+                                      day={moment.day}
+                                      time={moment.time}
+                                      participants={wave.participants}
+                                    />
+                                    <DeleteStartWaveForm
+                                      scope={scope}
+                                      waveId={wave.waveId}
+                                      name={wave.name}
+                                      participants={wave.participants}
+                                    />
+                                  </div>
                                 ) : null}
                               </li>
                             );

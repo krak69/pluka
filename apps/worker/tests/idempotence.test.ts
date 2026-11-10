@@ -179,6 +179,13 @@ function createRecorder(): Recorder {
       complete: async (): Promise<void> => undefined,
       fail: async (): Promise<void> => undefined,
     },
+    startChanges: {
+      claim: async () => {
+        throw new Error('non employé dans ces tests');
+      },
+      complete: async (): Promise<void> => undefined,
+      fail: async (): Promise<void> => undefined,
+    },
     discoveries: {
       begin: async () => null,
       complete: async (): Promise<void> => undefined,

@@ -2197,3 +2197,19 @@ a.st-tab {
   padding: var(--space-3) 0;
   border-top: 1px solid var(--pk-hairline);
 }
+
+/* Alerte « ton heure de départ a changé » (0082) : Aube marque l'action qui attend. */
+.rp-start-alert {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-6);
+  padding: var(--space-4);
+  border-left: 3px solid var(--pk-dawn);
+  background: var(--pk-surface);
+}
+
+.rp-start-alert-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}

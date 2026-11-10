@@ -9,6 +9,7 @@ import {
   correctParticipant,
   createParticipantImport,
   declareStartWave,
+  deleteStartWave,
   discardParticipantImport,
   getOrganizerCourse,
   sendParticipantInvitations,
@@ -238,6 +239,23 @@ export async function declareStartWaveAction(
       day: text(form, 'day'),
       time: text(form, 'time'),
       timeZone: text(form, 'timeZone'),
+    });
+  } catch (error) {
+    return waveFailure(error);
+  }
+
+  revalidatePath(pagePath(form));
+  return {};
+}
+
+/** Supprimer une vague : ses coureurs repartent à l'heure de l'épreuve, prévenus (0082). */
+export async function deleteStartWaveAction(
+  _previous: ParticipantActionState,
+  form: FormData,
+): Promise<ParticipantActionState> {
+  try {
+    await deleteStartWave(participantImportContext(await requireSession(pagePath(form))), {
+      waveId: text(form, 'waveId'),
     });
   } catch (error) {
     return waveFailure(error);

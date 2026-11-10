@@ -1,6 +1,7 @@
 import type { PlukaClient } from '@pluka/db';
 
 import { createAccountNoticeStore } from './account-notices-store.js';
+import { createStartChangeStore } from './start-changes-store.js';
 import { createAI } from './ai/index.js';
 import { createDiscoveryStore } from './discoveries-store.js';
 import { createEmail } from './email/index.js';
@@ -75,6 +76,7 @@ export function createPorts(
     participantInvitations: createParticipantInvitationStore(client),
     siteContacts: createSiteContactStore(client),
     accountNotices: createAccountNoticeStore(client),
+    startChanges: createStartChangeStore(client),
     discoveries: createDiscoveryStore(client),
     email: createEmail(process.env),
     appUrl: config.appUrl,

@@ -249,6 +249,10 @@ export function createFakePlanRepositories(state: PlanState): PlanRepositories {
           targetDurationSeconds: input.summary.targetDurationSeconds,
           plannedFinishDatetime: input.summary.plannedFinishDatetime,
           inputHash: input.summary.inputHash,
+          startAt:
+            typeof input.summary.inputSnapshot['start_at'] === 'string'
+              ? input.summary.inputSnapshot['start_at']
+              : null,
         };
 
         state.plans.push({

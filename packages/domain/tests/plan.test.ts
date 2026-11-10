@@ -9,6 +9,8 @@ import {
   listPlanVersions,
   lockPlanWaypoint,
   preserveCurrentPlan,
+  getPlanStartDrift,
+  shiftPlanToOfficialStart,
   previewPlan,
   rebalancePlanToTarget,
   removePlanSegmentOverride,
@@ -681,5 +683,79 @@ describe('frontière moteur / domaine (§38, §45)', () => {
     await withInitialPlan();
 
     expect(activePlan(plan).record.engineVersion).toBe('plan-v1.0.0');
+  });
+});
+
+// ============================================================
+// Décaler sur l'heure officielle — décision du 2026-11-10
+// ============================================================
+
+describe('shiftPlanToOfficialStart', () => {
+  const WAVE = 'ffff0000-0000-4000-8000-000000000099';
+
+  /** L'organisation met le coureur dans une vague partant 30 minutes plus tard. */
+  function moveToLaterWave(): void {
+    const own = participation.participants.find((row) => row.id === ownParticipation);
+    if (own === undefined) throw new Error('participation absente');
+    const start = activePlan(plan).record.startAt;
+    if (start === null) throw new Error('le Plan devrait porter son départ');
+    plan.startWaves.set(WAVE, new Date(Date.parse(start) + 30 * 60 * 1000).toISOString());
+    participation.participants = participation.participants.map((row) =>
+      row.id === ownParticipation ? { ...row, startWaveId: WAVE } : row,
+    );
+  }
+
+  it('garde l’heure de départ sur laquelle le Plan a été calculé', async () => {
+    await withInitialPlan();
+
+    expect(activePlan(plan).record.startAt).not.toBeNull();
+    await expect(
+      getPlanStartDrift(contextFor(RUNNER_A), { participantRaceId: ownParticipation }),
+    ).resolves.toBeNull();
+  });
+
+  it('décale le Plan d’un coureur Free quand l’organisation a déplacé son départ', async () => {
+    await withInitialPlan();
+    entitlements.entitlements = [];
+    const before = activePlan(plan);
+    moveToLaterWave();
+
+    const drift = await getPlanStartDrift(contextFor(RUNNER_A), {
+      participantRaceId: ownParticipation,
+    });
+    expect(drift?.planStartAt).toBe(before.record.startAt);
+
+    await shiftPlanToOfficialStart(contextFor(RUNNER_A), { participantRaceId: ownParticipation });
+
+    const after = activePlan(plan);
+    expect(after.record.version).toBe(before.record.version + 1);
+    expect(after.record.startAt).toBe(drift?.officialStartAt);
+    // Les durées du coureur restent les siennes : seuls les horaires bougent.
+    expect(after.segments.map((segment) => segment.plannedDurationSeconds)).toEqual(
+      before.segments.map((segment) => segment.plannedDurationSeconds),
+    );
+    await expect(
+      getPlanStartDrift(contextFor(RUNNER_A), { participantRaceId: ownParticipation }),
+    ).resolves.toBeNull();
+  });
+
+  it('refuse sans écart : le recalcul ordinaire reste au Race Pass', async () => {
+    await withInitialPlan();
+    entitlements.entitlements = [];
+
+    await expectDomainError(
+      shiftPlanToOfficialStart(contextFor(RUNNER_A), { participantRaceId: ownParticipation }),
+      'invalid_state',
+    );
+  });
+
+  it('ne touche pas au Plan d’un autre coureur', async () => {
+    await withInitialPlan();
+    moveToLaterWave();
+
+    await expectDomainError(
+      shiftPlanToOfficialStart(contextFor(RUNNER_B), { participantRaceId: ownParticipation }),
+      'not_found',
+    );
   });
 });

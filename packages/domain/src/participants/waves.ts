@@ -1,4 +1,9 @@
-import { DbError, type StartWaveRecord } from '@pluka/db';
+import {
+  DbError,
+  type StartChangeRecord,
+  type StartChangeRepository,
+  type StartWaveRecord,
+} from '@pluka/db';
 import { z } from 'zod';
 
 import {
@@ -106,6 +111,54 @@ export async function updateStartWave(
       command.name,
       civilToInstant(command.day, command.time, command.timeZone),
     );
+  } catch (error) {
+    throw translate(error, useCase);
+  }
+}
+
+/** Supprimer une vague : ses coureurs repartent à l'heure de l'épreuve, prévenus (0082). */
+export async function deleteStartWave(
+  context: ParticipantImportContext,
+  input: unknown,
+): Promise<void> {
+  const useCase = 'deleteStartWave';
+  const { waveId } = parseCommand(z.object({ waveId: uuid }), input, useCase);
+
+  try {
+    await context.repositories.participantImports.deleteStartWave(waveId);
+  } catch (error) {
+    throw translate(error, useCase);
+  }
+}
+
+/** Les alertes d'heure de départ du coureur — 0082. Sa session, ses alertes. */
+export interface StartChangeContext {
+  readonly repositories: { readonly startChanges: StartChangeRepository };
+}
+
+export async function listStartChanges(
+  context: StartChangeContext,
+  input: unknown,
+): Promise<readonly StartChangeRecord[]> {
+  const useCase = 'listStartChanges';
+  const { participantRaceId } = parseCommand(z.object({ participantRaceId: uuid }), input, useCase);
+
+  try {
+    return await context.repositories.startChanges.listUnseen(participantRaceId);
+  } catch (error) {
+    throw translate(error, useCase);
+  }
+}
+
+export async function acknowledgeStartChanges(
+  context: StartChangeContext,
+  input: unknown,
+): Promise<void> {
+  const useCase = 'acknowledgeStartChanges';
+  const { participantRaceId } = parseCommand(z.object({ participantRaceId: uuid }), input, useCase);
+
+  try {
+    await context.repositories.startChanges.acknowledge(participantRaceId);
   } catch (error) {
     throw translate(error, useCase);
   }

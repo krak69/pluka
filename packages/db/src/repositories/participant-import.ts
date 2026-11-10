@@ -133,6 +133,8 @@ export interface ParticipantImportRepository {
   declareStartWave(raceId: string, name: string, startDatetime: string): Promise<string>;
   /** Publie une version de plus de son information officielle. */
   updateStartWave(waveId: string, name: string, startDatetime: string): Promise<void>;
+  /** Ses coureurs repartent à l'heure de l'épreuve, et en sont prévenus (0082). */
+  deleteStartWave(waveId: string): Promise<void>;
 }
 
 interface RpcCapableClient {
@@ -236,6 +238,10 @@ export const participantImportRepository = defineRepository<ParticipantImportRep
         });
       }
       return data;
+    },
+
+    async deleteStartWave(waveId) {
+      await call(context.client, 'org_delete_start_wave', { p_wave_id: waveId });
     },
 
     async updateStartWave(waveId, name, startDatetime) {

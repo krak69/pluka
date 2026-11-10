@@ -26,6 +26,7 @@ import {
   listPlanVersionsQuerySchema,
   lockPlanWaypointCommandSchema,
   preserveCurrentPlanCommandSchema,
+  shiftPlanToOfficialStartCommandSchema,
   previewPlanQuerySchema,
   rebalancePlanToTargetCommandSchema,
   removePlanSegmentOverrideCommandSchema,
@@ -479,6 +480,74 @@ export async function preserveCurrentPlan(
     command.participantRaceId,
     'preserve_manual_changes',
   );
+}
+
+/**
+ * L'heure de départ du Plan et l'heure de départ actuelle, quand elles
+ * diffèrent (0082). Nul quand le Plan est à l'heure, ou qu'il n'y a pas de Plan.
+ *
+ * Le coureur ne fixe pas son heure de départ : elle vient de sa vague, de
+ * l'épreuve, ou d'un départ personnel que seul le serveur écrit (PLAN_ENGINE
+ * §5.2). Un écart vient donc toujours de l'organisation.
+ */
+export async function getPlanStartDrift(
+  context: PlanContext,
+  input: unknown,
+): Promise<{ readonly planStartAt: string; readonly officialStartAt: string } | null> {
+  const useCase = 'getPlanStartDrift';
+  const { participantRaceId } = parseCommand(shiftPlanToOfficialStartCommandSchema, input, useCase);
+
+  const scope = await loadPlanScope(
+    context.repositories,
+    context.actor.userId,
+    participantRaceId,
+    useCase,
+  );
+  const plan = await context.repositories.racePlans.findActive(participantRaceId);
+  if (plan === null || plan.startAt === null) return null;
+
+  return Date.parse(plan.startAt) === Date.parse(scope.startAt)
+    ? null
+    : { planStartAt: plan.startAt, officialStartAt: scope.startAt };
+}
+
+/**
+ * Décaler le Plan sur l'heure de départ actuelle — décision du 2026-11-10.
+ *
+ * Les durées, arrêts et verrous restent ceux du coureur (« Conserver ce
+ * Plan », §22.1) ; seuls les horaires suivent le nouveau départ. Ouvert à tous,
+ * Free compris : quand l'organisation déplace le départ, remettre le Plan à
+ * l'heure officielle n'est pas une personnalisation (AGENTS §22). Le geste
+ * n'existe que s'il y a un écart ; sinon le recalcul reste au Race Pass
+ * (`plan.recalculate`, 04_ENTITLEMENTS §42).
+ */
+export async function shiftPlanToOfficialStart(
+  context: PlanContext,
+  input: unknown,
+): Promise<PlanCommandResult> {
+  const useCase = 'shiftPlanToOfficialStart';
+  const { participantRaceId } = parseCommand(shiftPlanToOfficialStartCommandSchema, input, useCase);
+
+  const scope = await loadPlanScope(
+    context.repositories,
+    context.actor.userId,
+    participantRaceId,
+    useCase,
+  );
+  const { plan, constraints } = await currentState(context, participantRaceId, useCase);
+
+  if (plan.startAt === null || Date.parse(plan.startAt) === Date.parse(scope.startAt)) {
+    throw invalidStateError(useCase, 'le Plan est déjà à l’heure de départ');
+  }
+
+  return run(context, {
+    useCase,
+    scope,
+    constraints,
+    mode: 'preserve_manual_changes',
+    initialTargetDurationSeconds: plan.initialTargetDurationSeconds,
+    persist: true,
+  });
 }
 
 /**

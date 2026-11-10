@@ -105,6 +105,11 @@ export interface RacePlanRecord {
   readonly targetDurationSeconds: number;
   readonly plannedFinishDatetime: string | null;
   readonly inputHash: string | null;
+  /**
+   * L'heure de départ sur laquelle ce Plan a été calculé (son snapshot,
+   * PLAN_ENGINE §5.2). Nulle pour un Plan dont le snapshot ne la porte pas.
+   */
+  readonly startAt: string | null;
 }
 
 /**
@@ -237,6 +242,7 @@ const RACE_PLAN_COLUMNS = [
   'target_duration_seconds',
   'planned_finish_datetime',
   'input_hash',
+  'input_snapshot',
 ] as const;
 const PLAN_WAYPOINT_COLUMNS = [
   'race_waypoint_id',
@@ -651,7 +657,9 @@ function toRacePlan(row: {
   target_duration_seconds: number;
   planned_finish_datetime: string | null;
   input_hash: string | null;
+  input_snapshot: unknown;
 }): RacePlanRecord {
+  const snapshot = row.input_snapshot as { start_at?: unknown } | null;
   return {
     id: row.id,
     participantRaceId: row.participant_race_id,
@@ -662,6 +670,7 @@ function toRacePlan(row: {
     targetDurationSeconds: row.target_duration_seconds,
     plannedFinishDatetime: row.planned_finish_datetime,
     inputHash: row.input_hash,
+    startAt: typeof snapshot?.start_at === 'string' ? snapshot.start_at : null,
   };
 }
 

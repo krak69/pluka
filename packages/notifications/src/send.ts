@@ -5,6 +5,7 @@ import {
   type AccountInactivityNotice,
 } from './templates/account-inactivity.js';
 import { renderChangeImpactNotice, type ChangeImpactNotice } from './templates/change-impact.js';
+import { renderStartChangedNotice, type StartChangedNotice } from './templates/start-changed.js';
 import {
   renderOrganizationInvitation,
   type OrganizationInvitationNotice,
@@ -54,6 +55,8 @@ export const PARTICIPANT_INVITATION_TEMPLATE_VERSION = 'participant-invitation-1
 export const EVENT_SITE_CONTACT_TEMPLATE_VERSION = 'event-site-contact-1.0.0';
 
 export const ACCOUNT_INACTIVITY_TEMPLATE_VERSION = 'account-inactivity-1.0.0';
+
+export const START_CHANGED_TEMPLATE_VERSION = 'start-changed-1.0.0';
 
 /**
  * Échecs d'envoi, dans un vocabulaire stable.
@@ -492,5 +495,46 @@ export async function sendAccountInactivityNotice(
     providerMessageId: result.providerMessageId,
     acceptedAt: result.acceptedAt,
     templateVersion: ACCOUNT_INACTIVITY_TEMPLATE_VERSION,
+  };
+}
+
+export interface StartChangedDelivery {
+  readonly idempotencyKey: string;
+  readonly notice: StartChangedNotice;
+}
+
+/** Prévient un coureur que son heure de départ change (0082). */
+export async function sendStartChangedNotice(
+  provider: EmailProvider,
+  delivery: StartChangedDelivery,
+): Promise<NotificationSent> {
+  const { notice } = delivery;
+
+  if (!isPlausibleAddress(notice.recipientEmail)) {
+    throw new NotificationError('RECIPIENT_INVALID', 'adresse destinataire inexploitable');
+  }
+
+  const rendered = renderStartChangedNotice(notice);
+  let result: EmailSendResult;
+  try {
+    result = await provider.send({
+      to: [
+        notice.recipientFirstName === null
+          ? { address: notice.recipientEmail }
+          : { address: notice.recipientEmail, name: notice.recipientFirstName },
+      ],
+      subject: rendered.subject,
+      textBody: rendered.textBody,
+      idempotencyKey: delivery.idempotencyKey,
+    });
+  } catch (error) {
+    throw providerFailure(error);
+  }
+
+  return {
+    provider: provider.name,
+    providerMessageId: result.providerMessageId,
+    acceptedAt: result.acceptedAt,
+    templateVersion: START_CHANGED_TEMPLATE_VERSION,
   };
 }

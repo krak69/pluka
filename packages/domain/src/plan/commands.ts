@@ -128,6 +128,8 @@ export type RebalancePlanToTargetCommand = z.infer<typeof rebalancePlanToTargetC
 export const preserveCurrentPlanCommandSchema = z.object({ participantRaceId: uuid }).strict();
 export type PreserveCurrentPlanCommand = z.infer<typeof preserveCurrentPlanCommandSchema>;
 
+export const shiftPlanToOfficialStartCommandSchema = z.object({ participantRaceId: uuid }).strict();
+
 /**
  * §21.6 — retour à la proposition PLUKA sur un périmètre choisi.
  *

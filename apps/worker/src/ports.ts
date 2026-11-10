@@ -422,6 +422,33 @@ export interface AccountNoticeClaim {
   readonly attempt: number;
 }
 
+/**
+ * Changement d'heure de départ d'un coureur — migration 0082.
+ *
+ * `claim` rend `sendable = false` si l'e-mail est déjà parti ou abandonné.
+ */
+export interface StartChangeClaim {
+  readonly sendable: boolean;
+  readonly recipientEmail: string | null;
+  readonly firstName: string | null;
+  readonly eventName: string | null;
+  readonly raceName: string | null;
+  readonly timezone: string | null;
+  readonly participantRaceId: string | null;
+  readonly previousWaveName: string | null;
+  readonly newWaveName: string | null;
+  readonly previousStartAt: string | null;
+  readonly newStartAt: string | null;
+  readonly hasPlan: boolean;
+  readonly attempt: number;
+}
+
+export interface StartChangeStore {
+  claim(changeId: string): Promise<StartChangeClaim>;
+  complete(changeId: string): Promise<void>;
+  fail(changeId: string, error: string, abandon: boolean): Promise<void>;
+}
+
 export interface AccountNoticeStore {
   claim(userId: string): Promise<AccountNoticeClaim>;
   complete(userId: string): Promise<void>;
@@ -464,6 +491,7 @@ export interface WorkerPorts {
   readonly participantInvitations: ParticipantInvitationStore;
   readonly siteContacts: EventSiteContactStore;
   readonly accountNotices: AccountNoticeStore;
+  readonly startChanges: StartChangeStore;
   readonly discoveries: DiscoveryStore;
   /**
    * Fournisseur email, ou son absence.

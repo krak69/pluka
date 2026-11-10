@@ -1,4 +1,5 @@
 import { handleAccountNoticeMessage, isAccountNoticeMessage } from './jobs/account-notice-send.js';
+import { handleStartChangeMessage, isStartChangeMessage } from './jobs/start-change-send.js';
 import { handleCourseWaypointsMessage, isCourseWaypointsMessage } from './jobs/course-waypoints.js';
 import {
   handleEventSiteContactMessage,
@@ -139,6 +140,7 @@ const CONSUMERS: readonly {
       }
       if (isEventSiteContactMessage(message)) return handleEventSiteContactMessage(ports, message);
       if (isAccountNoticeMessage(message)) return handleAccountNoticeMessage(ports, message);
+      if (isStartChangeMessage(message)) return handleStartChangeMessage(ports, message);
 
       return Promise.resolve({ kind: 'abandoned' as const });
     },
