@@ -696,8 +696,22 @@ Il contient uniquement la couche d'inscription / rattachement :
 - dossard ;
 - vague ;
 - départ personnel ;
+- date d'inscription vérifiée (`registered_on`) ;
 - état de préparation (`preparation_state`) ;
 - devenir de la participation (`status`).
+
+`registered_on` (0083) est un jour, pas un instant : celui qu'apporte un import
+organisateur. Il fonde l'éligibilité early bird (`00_PRODUCT_SPEC` §6.5.3). Nul, la date
+de référence est `created_at`, dite déclarative ; aucune colonne ne la recopie. Une fois
+posé, un fichier ne le déplace plus (§29.1) ; une participation sans date vérifiée prend
+celle du fichier. Comme le reste de la liste, la colonne n'est lue que côté serveur.
+
+La date de référence et son origine (`verified` / `declared`, jour lu dans le fuseau de
+l'épreuve) sont calculées en base par `private.registration_reference` (0084), pour que
+l'écran montre ce que le tarif utilisera. Elles sont visibles par l'organisation dans sa
+liste de participants, et par le support PLUKA sur la fiche d'un utilisateur et dans la
+liste d'une édition ; ces deux lectures du support sont journalisées (`03_PRIVACY_RLS`
+§104).
 
 Il ne contient pas le Plan, la Nutrition ou l'Assistance.
 

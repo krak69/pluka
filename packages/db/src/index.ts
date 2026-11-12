@@ -133,6 +133,7 @@ export type {
   AdminSourceRecord,
   AdminUserDetailRecord,
   AdminUserEntitlement,
+  AdminUserParticipationRecord,
   AdminUserRecord,
   ParticipantRaceEntry,
   PublishedFactSource,
@@ -284,6 +285,7 @@ export {
 export {
   participantImportRepository,
   type EditionParticipantRecord,
+  type RegistrationDayRecord,
   type EditionParticipants,
   type ParticipantImportRepository,
   type ParticipantImportResult,

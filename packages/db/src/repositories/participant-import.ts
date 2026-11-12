@@ -69,6 +69,17 @@ export interface EditionParticipantRecord {
   /** Le même dossard sur plusieurs lignes de cette épreuve. */
   readonly bibConflict: boolean;
   readonly activated: boolean;
+  /**
+   * La date d'inscription de référence du tarif early bird (0084) : `verified`
+   * si un import l'a apportée, `declared` sinon (jour de création, fuseau de l'épreuve).
+   */
+  readonly registration: RegistrationDayRecord;
+}
+
+export interface RegistrationDayRecord {
+  /** Jour civil, AAAA-MM-JJ. */
+  readonly day: string;
+  readonly origin: 'verified' | 'declared';
 }
 
 export interface WithdrawnParticipantRecord {

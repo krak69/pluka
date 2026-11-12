@@ -1710,21 +1710,29 @@ L’éligibilité est une **fonction pure côté serveur** :
 ```ts
 isEarlyBirdEligible(
   registration: {
-    registeredAt: Date
+    day: string          // jour civil AAAA-MM-JJ, dans le fuseau de la course
     origin: 'verified' | 'declared'
   },
-  raceStartsAt: Date,
-  now: Date
+  raceStartsAt: Instant | null,
+  timeZone: IanaTimeZone,
+  now: Instant
 ): boolean
 ```
 
 Règle :
 
 ```text
-now < registeredAt + 15 jours
+now < minuit (fuseau de la course) qui suit le jour (registration.day + 15 jours)
 AND
 raceStartsAt - now >= 60 jours
 ```
+
+Les jours se comptent en jours civils et le dernier compte en entier : inscrit le 1er mars,
+le tarif tient jusqu'au 16 mars 23:59, heure de la course (décision du 2026-11-12). Les
+exports d'inscription donnent un jour, pas un instant. Sans heure de départ connue, la
+seconde condition ne peut pas se vérifier : pas d'éligibilité.
+
+Implémentation : `packages/domain/src/billing/early-bird.ts`.
 
 Date d’inscription de référence :
 

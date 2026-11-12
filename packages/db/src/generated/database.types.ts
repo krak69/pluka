@@ -3053,6 +3053,7 @@ export type Database = {
           personal_start_datetime: string | null
           preparation_state: Database["public"]["Enums"]["preparation_state"]
           race_id: string
+          registered_on: string | null
           registration_source: Database["public"]["Enums"]["registration_source"]
           start_wave_id: string | null
           status: Database["public"]["Enums"]["participant_race_status"]
@@ -3074,6 +3075,7 @@ export type Database = {
           personal_start_datetime?: string | null
           preparation_state?: Database["public"]["Enums"]["preparation_state"]
           race_id: string
+          registered_on?: string | null
           registration_source?: Database["public"]["Enums"]["registration_source"]
           start_wave_id?: string | null
           status?: Database["public"]["Enums"]["participant_race_status"]
@@ -3095,6 +3097,7 @@ export type Database = {
           personal_start_datetime?: string | null
           preparation_state?: Database["public"]["Enums"]["preparation_state"]
           race_id?: string
+          registered_on?: string | null
           registration_source?: Database["public"]["Enums"]["registration_source"]
           start_wave_id?: string | null
           status?: Database["public"]["Enums"]["participant_race_status"]

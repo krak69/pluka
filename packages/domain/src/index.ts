@@ -316,6 +316,8 @@ export {
   getAdminOrganizationDependencies,
   ORGANIZATION_DELETION_EFFECTS,
   getAdminUser,
+  listAdminUserParticipations,
+  type AdminUserParticipation,
   listAdminAudit,
   listAdminFactCandidates,
   listAdminJobs,
@@ -785,3 +787,14 @@ export {
   splitEmails,
   type BetaAccessContext,
 } from './entitlements/beta-access.js';
+
+export {
+  EARLY_BIRD_DAYS_AFTER_REGISTRATION,
+  EARLY_BIRD_MIN_DAYS_BEFORE_START,
+  earlyBirdWindow,
+  isEarlyBirdEligible,
+  registrationReference,
+  type EarlyBirdWindow,
+  type RegistrationOrigin,
+  type RegistrationReference,
+} from './billing/early-bird.js';

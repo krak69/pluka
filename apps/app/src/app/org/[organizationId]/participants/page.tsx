@@ -159,6 +159,33 @@ function Cell({ label, value }: { readonly label: string; readonly value: string
   );
 }
 
+/** « 2026-03-01 » → « 01/03/2026 » : un jour civil, sans fuseau à appliquer. */
+function civilDay(day: string): string {
+  const [year, month, date] = day.split('-');
+  return `${date ?? ''}/${month ?? ''}/${year ?? ''}`;
+}
+
+/**
+ * La date qui fonde le tarif early bird (§6.5.3). Une date transmise par le
+ * fichier est la référence ; sans elle, PLUKA retient le jour d'arrivée du
+ * participant, et le dit.
+ */
+function RegistrationCell({
+  registration,
+}: {
+  readonly registration: { readonly day: string; readonly origin: 'verified' | 'declared' } | null;
+}) {
+  return (
+    <span className="pa-cell">
+      <span className="pa-cell-label">Inscrit le </span>
+      {registration === null ? '—' : civilDay(registration.day)}
+      {registration?.origin === 'declared' ? (
+        <span className="or-row-meta">non transmise</span>
+      ) : null}
+    </span>
+  );
+}
+
 export default async function ParticipantsPage({
   params,
   searchParams,
@@ -711,6 +738,7 @@ export default async function ParticipantsPage({
                     <span>Épreuve</span>
                     <span>Dossard</span>
                     <span>Vague</span>
+                    <span>Inscrit le</span>
                     <span>Statut</span>
                     <span />
                   </div>
@@ -724,6 +752,7 @@ export default async function ParticipantsPage({
                             <Cell label="Épreuve" value={participant.raceName} />
                             <Cell label="Dossard" value={participant.bib} />
                             <Cell label="Vague" value={null} />
+                            <RegistrationCell registration={null} />
                             <span className="pa-badges">
                               <StatusBadge tone="neutral">Retiré</StatusBadge>
                             </span>
@@ -765,6 +794,7 @@ export default async function ParticipantsPage({
                                     : `${participant.declaredWaveName} (à déclarer)`
                                 }
                               />
+                              <RegistrationCell registration={participant.registration} />
                               <span className="pa-badges">
                                 {participant.bibConflict ? (
                                   <StatusBadge tone="warning">À vérifier</StatusBadge>

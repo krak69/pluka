@@ -14,6 +14,7 @@ import type {
   AdminReportRecord,
   AdminSourceRecord,
   AdminUserDetailRecord,
+  AdminUserParticipationRecord,
   AdminUserRecord,
 } from './records.js';
 
@@ -121,6 +122,8 @@ export interface AdminConsoleRepository {
   searchUsers(query: string | null, limit: number): Promise<readonly AdminUserRecord[]>;
   /** Lecture personnelle : auditée, identifiant consulté. */
   getUser(userId: string): Promise<AdminUserDetailRecord | null>;
+  /** Lecture personnelle : auditée (0084). Aucune donnée de préparation. */
+  listUserParticipations(userId: string): Promise<readonly AdminUserParticipationRecord[]>;
   listJobs(limit: number): Promise<readonly AdminJobRecord[]>;
   listAudit(limit: number): Promise<readonly AdminAuditEntryRecord[]>;
   listFactCandidates(limit: number): Promise<readonly AdminFactCandidateRecord[]>;
@@ -335,6 +338,39 @@ export const adminConsoleRepository = defineRepository<AdminConsoleRepository>((
       racesCount: count(row, 'races_count'),
       createdAt: requiredText(row, 'created_at', operation),
     }));
+  },
+
+  async listUserParticipations(userId) {
+    const operation = 'admin_list_user_participations';
+    return rows(
+      unwrapRpc(await rpc(context.client).rpc(operation, { p_user_id: userId }), operation),
+      operation,
+    ).map((row) => {
+      const registration = row['registration'] as { day?: unknown; origin?: unknown } | null;
+      if (
+        registration === null ||
+        typeof registration.day !== 'string' ||
+        (registration.origin !== 'verified' && registration.origin !== 'declared')
+      ) {
+        throw new DbError({
+          code: 'unknown',
+          operation,
+          message: 'date d’inscription illisible',
+        });
+      }
+
+      return {
+        participantRaceId: requiredText(row, 'participant_race_id', operation),
+        eventName: requiredText(row, 'event_name', operation),
+        editionYear: count(row, 'edition_year'),
+        raceName: requiredText(row, 'race_name', operation),
+        raceStart: requiredText(row, 'race_start', operation),
+        raceTimeZone: requiredText(row, 'race_timezone', operation),
+        registration: { day: registration.day, origin: registration.origin },
+        registrationSource: requiredText(row, 'registration_source', operation),
+        status: requiredText(row, 'status', operation),
+      };
+    });
   },
 
   async getUser(userId) {

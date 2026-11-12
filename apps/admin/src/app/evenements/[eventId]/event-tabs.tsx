@@ -9,7 +9,7 @@ import Link from 'next/link';
  * aller : les propositions de matériel à relire, les documents en erreur.
  */
 
-export type EventTab = 'overview' | 'materiel' | 'documents';
+export type EventTab = 'overview' | 'materiel' | 'documents' | 'participants';
 
 export function EventTabs({
   eventId,
@@ -48,6 +48,13 @@ export function EventTabs({
       href: `${base}/documents${edition}`,
       badge: documentsDue ?? null,
       badgeLabel: 'documents en erreur',
+    },
+    {
+      key: 'participants',
+      label: 'Participants',
+      href: `${base}/participants${edition}`,
+      badge: null,
+      badgeLabel: '',
     },
   ];
 

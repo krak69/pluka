@@ -108,6 +108,8 @@ export const PARTICIPANT_FIELDS = [
   { key: 'wave', label: 'Vague', required: false, hints: ['vague', 'sas', 'wave'] },
   { key: 'sex', label: 'Sexe', required: false, hints: ['sexe', 'genre', 'sex', 'gender'] },
   { key: 'birthDate', label: 'Date de naissance', required: false, hints: ['naissance', 'date de naissance', 'birth', 'ddn'] },
+  // Toujours avec « date » : un numéro d'inscription ne doit pas passer pour une date.
+  { key: 'registeredOn', label: 'Date d’inscription', required: false, hints: ['date d inscription', "date d'inscription", 'date d’inscription', 'date inscription', 'inscrit le', 'registration date', 'registered at', 'registered on'] },
   { key: 'nationality', label: 'Nationalité', required: false, hints: ['nationalite', 'nationality', 'pays', 'nat'] },
   { key: 'itraIndex', label: 'Indice ITRA', required: false, hints: ['itra', 'indice itra', 'itra index'] },
   { key: 'utmbIndex', label: 'UTMB Index', required: false, hints: ['utmb', 'utmb index', 'indice utmb'] },
@@ -165,6 +167,15 @@ function birthDateOf(value: string): string | null {
   const date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   const parsed = new Date(`${date}T00:00:00Z`);
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(date) ? date : null;
+}
+
+/**
+ * Le jour d'inscription. Les exports y joignent souvent l'heure (« 01/03/2026
+ * 14:35 », « 2026-03-01T14:35:00 ») : seul le jour compte, tel qu'écrit, car
+ * l'éligibilité early bird se compte en jours civils (§6.5.2).
+ */
+function registrationDayOf(value: string): string | null {
+  return birthDateOf(value.replace(/[ T]\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?$/u, ''));
 }
 
 function sexOf(value: string): 'female' | 'male' | 'other' | null {
@@ -262,6 +273,13 @@ export function judgeRows(
       const birthDate = birthDateOf(rawBirth);
       if (birthDate === null) return refuse(`Date de naissance illisible : ${rawBirth}.`);
       mapped['birthDate'] = birthDate;
+    }
+
+    const rawRegistered = read('registeredOn');
+    if (rawRegistered !== '') {
+      const registeredOn = registrationDayOf(rawRegistered);
+      if (registeredOn === null) return refuse(`Date d’inscription illisible : ${rawRegistered}.`);
+      mapped['registeredOn'] = registeredOn;
     }
 
     for (const key of ['itraIndex', 'utmbIndex'] as const) {

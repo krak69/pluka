@@ -27,6 +27,12 @@ export function dateTime(isoInstant: string | null): string {
   return Number.isNaN(parsed.getTime()) ? isoInstant : DATE_TIME.format(parsed);
 }
 
+/** Un jour civil « 2026-03-01 » → « 01/03/2026 » : aucun fuseau à appliquer. */
+export function civilDay(day: string): string {
+  const [year, month, date] = day.split('-');
+  return `${date ?? ''}/${month ?? ''}/${year ?? ''}`;
+}
+
 /** Date seule — pour une création d'organisation, où la minute ne dit rien. */
 export function day(isoInstant: string | null): string {
   if (isoInstant === null) return '—';

@@ -1,9 +1,9 @@
-import { getAdminUser } from '@pluka/domain';
+import { getAdminUser, listAdminUserParticipations } from '@pluka/domain';
 import { DataValue, Divider, EmptyState, SectionHeader, Table } from '@pluka/ui';
 import Link from 'next/link';
 
 import { entitlementLabel, platformRoleLabel } from '@/components/admin-status';
-import { day, personName } from '@/lib/format';
+import { civilDay, day, personName } from '@/lib/format';
 import { redirectOnReadError, requireAdminConsoleContext } from '@/lib/admin';
 
 /**
@@ -30,6 +30,12 @@ export default async function UserPage({
   const context = await requireAdminConsoleContext(`/utilisateurs/${userId}`);
 
   const user = await getAdminUser(context, { userId }).catch(redirectOnReadError);
+  // L'heure du serveur, passée au domaine : le tarif se juge à cet instant (AGENTS §35).
+  const participations = await listAdminUserParticipations(
+    context,
+    { userId },
+    new Date().toISOString(),
+  ).catch(redirectOnReadError);
 
   return (
     <main className="ad-page">
@@ -89,6 +95,51 @@ export default async function UserPage({
               status: entitlement.status,
               starts: day(entitlement.startsAt),
               ends: entitlement.endsAt === null ? 'sans terme' : day(entitlement.endsAt),
+            },
+          }))}
+        />
+      )}
+
+      <Divider spaced />
+
+      <h2 className="pk-h2 ad-section-title">Courses</h2>
+
+      <p className="pk-body ad-measure">
+        La date d’inscription fonde le tarif early bird (00_PRODUCT_SPEC §6.5.3) : vérifiée quand
+        l’organisation l’a transmise par son fichier, déclarée sinon (jour d’arrivée sur PLUKA).
+      </p>
+
+      {participations.length === 0 ? (
+        <EmptyState
+          label="Courses"
+          title="Aucune course."
+          detail="Ce compte n’est inscrit à aucune course."
+        >
+          <p>Une course ajoutée ou une invitation acceptée créerait une ligne ici.</p>
+        </EmptyState>
+      ) : (
+        <Table
+          caption={`${String(participations.length)} course${participations.length > 1 ? 's' : ''}`}
+          columns={[
+            { key: 'race', label: 'Course' },
+            { key: 'start', label: 'Départ' },
+            { key: 'registered', label: 'Inscrit le' },
+            { key: 'earlyBird', label: 'Tarif inscrit' },
+            { key: 'status', label: 'État' },
+          ]}
+          rows={participations.map((participation) => ({
+            key: participation.participantRaceId,
+            cells: {
+              race: `${participation.eventName} ${String(participation.editionYear)} · ${participation.raceName}`,
+              start: day(participation.raceStart),
+              registered: `${civilDay(participation.registration.day)} · ${
+                participation.registration.origin === 'verified' ? 'vérifiée' : 'déclarée'
+              }`,
+              earlyBird:
+                participation.earlyBird.lastDay === null
+                  ? 'non calculable'
+                  : `${participation.earlyBird.openNow ? 'ouvert' : 'fermé'} · jusqu’au ${civilDay(participation.earlyBird.lastDay)}`,
+              status: participation.status,
             },
           }))}
         />

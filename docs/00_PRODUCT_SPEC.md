@@ -440,6 +440,8 @@ Le Race Pass est vendu au tarif early bird si les deux conditions sont réunies 
 
 Sinon, le Race Pass est vendu au tarif standard de 14,90 €.
 
+Les 15 jours se comptent en jours civils, dans le fuseau de la course, et le dernier compte en entier : inscrit le 1er mars, le tarif tient jusqu’au 16 mars inclus.
+
 La seconde condition limite l’effet d’aubaine lorsque la date d’inscription est seulement déclarée par le coureur : l’early bird récompense un engagement précoce, pas un achat de dernière minute.
 
 L’UI affiche la date de fin du tarif early bird de façon factuelle, par exemple :

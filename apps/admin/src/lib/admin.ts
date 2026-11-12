@@ -13,6 +13,7 @@ import {
   createParticipantInvitationRepositories,
   createRepereCalibrationRepositories,
   createStaffTeamRepositories,
+  participantImportRepository,
   type DbErrorCode,
 } from '@pluka/db';
 import {
@@ -30,6 +31,7 @@ import {
   type GpxImportContext,
   type NutritionCatalogueContext,
   type OrganizationTeamContext,
+  type ParticipantImportContext,
   type ParticipantInvitationContext,
   type RepereCalibrationContext,
   type StaffTeamContext,
@@ -57,6 +59,20 @@ export function repereCalibrationContext(session: Session): RepereCalibrationCon
     }),
     actor: { userId: session.userId },
     now: () => new Date(),
+  };
+}
+
+/**
+ * La liste des participants d'une édition, lue par le support : la base
+ * l'autorise à un admin PLUKA et inscrit la lecture au journal (0084).
+ */
+export function participantListContext(session: Session): ParticipantImportContext {
+  return {
+    repositories: {
+      participantImports: participantImportRepository({
+        client: createDataClient(session.accessToken),
+      }),
+    },
   };
 }
 

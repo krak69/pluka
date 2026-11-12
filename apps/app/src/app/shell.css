@@ -1253,7 +1253,7 @@ select.pk-input {
   .pa-head,
   .pa-row {
     grid-template-columns:
-      minmax(0, 1.7fr) minmax(0, 1fr) 5rem minmax(0, 1fr) 11rem 5.5rem;
+      minmax(0, 1.7fr) minmax(0, 1fr) 5rem minmax(0, 1fr) 7rem 11rem 5.5rem;
   }
 
   .pa-head {

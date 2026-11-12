@@ -14,10 +14,12 @@ import type {
   AdminReportRecord,
   AdminSourceRecord,
   AdminUserDetailRecord,
+  AdminUserParticipationRecord,
   AdminUserRecord,
 } from '@pluka/db';
 
 import type { Actor } from '../authorization/organization-role.js';
+import { earlyBirdWindow, isEarlyBirdEligible } from '../billing/early-bird.js';
 import { notFoundError, parseCommand } from '../errors.js';
 
 /**
@@ -315,4 +317,53 @@ export async function listAdminFactCandidates(
   const query = parseCommand(listAdminFactCandidatesQuerySchema, input, 'listAdminFactCandidates');
 
   return context.repositories.adminConsole.listFactCandidates(query.limit);
+}
+
+export interface AdminUserParticipation extends AdminUserParticipationRecord {
+  /**
+   * Le tarif early bird de cette course, tel que le serveur le calculerait à
+   * `now` (§72.1). `lastDay` nul : pas de fenêtre calculable.
+   */
+  readonly earlyBird: { readonly lastDay: string | null; readonly openNow: boolean };
+}
+
+/**
+ * Les courses d'un coureur, pour le support — 0084, lecture auditée.
+ *
+ * Répond à « pourquoi n'ai-je pas eu le tarif inscrit ? » : la date retenue,
+ * son origine, et la fin du tarif. Rien de la préparation (§104). L'horloge
+ * est passée par l'appelant (AGENTS §35).
+ */
+export async function listAdminUserParticipations(
+  context: AdminConsoleContext,
+  input: unknown,
+  now: string,
+): Promise<readonly AdminUserParticipation[]> {
+  const useCase = 'listAdminUserParticipations';
+  const query = parseCommand(getAdminUserQuerySchema, input, useCase);
+
+  const participations = await context.repositories.adminConsole.listUserParticipations(
+    query.userId,
+  );
+
+  return participations.map((participation) => {
+    const window = earlyBirdWindow(
+      participation.registration,
+      participation.raceStart,
+      participation.raceTimeZone,
+    );
+
+    return {
+      ...participation,
+      earlyBird: {
+        lastDay: window?.lastDay ?? null,
+        openNow: isEarlyBirdEligible(
+          participation.registration,
+          participation.raceStart,
+          participation.raceTimeZone,
+          now,
+        ),
+      },
+    };
+  });
 }

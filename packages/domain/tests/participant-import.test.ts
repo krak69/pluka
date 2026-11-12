@@ -158,4 +158,48 @@ describe('juger les lignes', () => {
 
     expect(judged?.status).toBe('error');
   });
+
+  it('lit la date d’inscription, et ne garde que le jour quand l’heure est jointe', () => {
+    const columns = { ...COLUMNS, registeredOn: 'Inscrit le' };
+    const judged = judgeRows(
+      [
+        row({ 'Inscrit le': '01/03/2026' }, 1),
+        row({ 'Inscrit le': '02/03/2026 14:35', Course: 'Les 5 clochers' }, 2),
+        row({ 'Inscrit le': '2026-03-03T23:10:00+01:00', Email: 'autre@test.pluka' }, 3),
+      ],
+      columns,
+      [RACE, OTHER],
+    );
+
+    expect(judged.map((item) => item.mapped?.['registeredOn'])).toEqual([
+      '2026-03-01',
+      '2026-03-02',
+      '2026-03-03',
+    ]);
+  });
+
+  it('refuse une date d’inscription illisible plutôt que de la deviner', () => {
+    const [judged] = judgeRows(
+      [row({ 'Inscrit le': 'mars 2026' })],
+      { ...COLUMNS, registeredOn: 'Inscrit le' },
+      [RACE, OTHER],
+    );
+
+    expect(judged).toMatchObject({
+      status: 'error',
+      error: 'Date d’inscription illisible : mars 2026.',
+    });
+  });
+});
+
+describe('proposer la colonne de date d’inscription', () => {
+  it('reconnaît la date d’inscription sans la confondre avec la naissance', () => {
+    expect(
+      suggestColumns(['Prénom', 'Nom', 'Email', 'Date de naissance', "Date d'inscription"]),
+    ).toMatchObject({ birthDate: 'Date de naissance', registeredOn: "Date d'inscription" });
+  });
+
+  it('ne prend pas un numéro d’inscription pour une date', () => {
+    expect(suggestColumns(['Prénom', 'Nom', 'Email', 'N° inscription']).registeredOn).toBeUndefined();
+  });
 });

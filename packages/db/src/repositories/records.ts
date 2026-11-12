@@ -688,6 +688,22 @@ export interface AdminUserDetailRecord extends AdminUserRecord {
 }
 
 /**
+ * Une course d'un coureur, vue par le support (0084) : où, quand, et la date
+ * d'inscription qui fonde son tarif. Rien de sa préparation (§104).
+ */
+export interface AdminUserParticipationRecord {
+  readonly participantRaceId: string;
+  readonly eventName: string;
+  readonly editionYear: number;
+  readonly raceName: string;
+  readonly raceStart: string;
+  readonly raceTimeZone: string;
+  readonly registration: { readonly day: string; readonly origin: 'verified' | 'declared' };
+  readonly registrationSource: string;
+  readonly status: string;
+}
+
+/**
  * Un traitement de la file d'ingestion.
  *
  * `idempotencyKey` est rendue : c'est une clé technique, et c'est elle qui
