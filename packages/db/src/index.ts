@@ -285,6 +285,7 @@ export {
 export {
   participantImportRepository,
   type EditionParticipantRecord,
+  type PartnerSaleStatus,
   type RegistrationDayRecord,
   type EditionParticipants,
   type ParticipantImportRepository,

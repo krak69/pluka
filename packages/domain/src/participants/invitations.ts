@@ -47,6 +47,10 @@ export const setEditionParticipantsIncludedCommandSchema = z
   .object({ editionId: uuid, included: z.boolean() })
   .strict();
 
+export const setEditionPartnerSalesCommandSchema = z
+  .object({ editionId: uuid, enabled: z.boolean() })
+  .strict();
+
 export const participantInvitationTokenSchema = z.object({ token }).strict();
 
 function translate(error: unknown, useCase: string, refusal: string): unknown {
@@ -127,6 +131,45 @@ export async function setEditionParticipantsIncluded(
   }
 }
 
+/** Le canal B est-il ouvert sur l'édition (0086) ? Faux si elle est illisible. */
+export async function isEditionPartnerSalesOpen(
+  context: ParticipantInvitationContext,
+  input: unknown,
+): Promise<boolean> {
+  const query = parseCommand(
+    participantInvitationEditionQuerySchema,
+    input,
+    'isEditionPartnerSalesOpen',
+  );
+
+  return (
+    (await context.repositories.participantInvitations.editionPartnerSales(query.editionId)) ===
+    true
+  );
+}
+
+/**
+ * Réservé à PLUKA : le canal B s'ouvre à la signature du contrat, qui fixe le
+ * prix de cession (00_PRODUCT_SPEC §6.5.5). Il exclut l'accès inclus : la base
+ * refuse les deux à la fois.
+ */
+export async function setEditionPartnerSales(
+  context: ParticipantInvitationContext,
+  input: unknown,
+): Promise<void> {
+  const useCase = 'setEditionPartnerSales';
+  const command = parseCommand(setEditionPartnerSalesCommandSchema, input, useCase);
+
+  try {
+    await context.repositories.participantInvitations.setEditionPartnerSales(
+      command.editionId,
+      command.enabled,
+    );
+  } catch (error) {
+    throw translate(error, useCase, 'l’accès inclus est ouvert sur cette édition');
+  }
+}
+
 /** Un jeton mal formé est un lien inconnu, pas une erreur : la page n'a qu'une chose à dire. */
 export async function previewParticipantInvitation(
   context: ParticipantInvitationContext,
@@ -144,6 +187,7 @@ export async function previewParticipantInvitation(
       organizationName: null,
       maskedEmail: null,
       included: false,
+      prepaid: false,
     };
   }
 

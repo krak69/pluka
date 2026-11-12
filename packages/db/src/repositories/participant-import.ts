@@ -35,6 +35,11 @@ export interface ParticipantImportView {
     readonly kept: number;
     readonly withdrawn: number;
   };
+  /**
+   * Canal B (0086) : lignes du fichier avec l'option PLUKA, et références encore
+   * inconnues de l'organisation. Canal fermé : la colonne est lue, rien n'en sort.
+   */
+  readonly partnerSales: { readonly open: boolean; readonly rows: number; readonly new: number };
   /** Vagues du fichier sans vague de ce nom sur l'épreuve : `shown` s'arrête à 20. */
   readonly unknownWaves: {
     readonly rows: number;
@@ -74,7 +79,11 @@ export interface EditionParticipantRecord {
    * si un import l'a apportée, `declared` sinon (jour de création, fuseau de l'épreuve).
    */
   readonly registration: RegistrationDayRecord;
+  /** L'option PLUKA achetée à l'inscription (canal B, 0086) ; nul sans vente. */
+  readonly partnerSale: PartnerSaleStatus | null;
 }
+
+export type PartnerSaleStatus = 'pending' | 'granted' | 'conflict';
 
 export interface RegistrationDayRecord {
   /** Jour civil, AAAA-MM-JJ. */
@@ -96,6 +105,8 @@ export interface ParticipantImportResult {
   readonly skipped: number;
   readonly kept: number;
   readonly withdrawn: number;
+  /** Ventes nouvelles enregistrées par cet import (canal B, 0086). */
+  readonly partnerSales: number;
 }
 
 export interface EditionParticipants {
@@ -104,6 +115,16 @@ export interface EditionParticipants {
   readonly toCheck: { readonly bibs: number };
   /** Participants dont la vague attend d'être déclarée : une mention, pas une alerte. */
   readonly pendingWaves: number;
+  /**
+   * Canal B (0086) : ouvert ou non, et ses ventes par état. `granted` est la
+   * base de la facturation de l'organisation au prix de cession.
+   */
+  readonly partnerSales: {
+    readonly open: boolean;
+    readonly pending: number;
+    readonly granted: number;
+    readonly conflict: number;
+  };
   readonly waveOptions: readonly ParticipantWaveOption[];
   readonly participants: readonly EditionParticipantRecord[];
   readonly withdrawn: readonly WithdrawnParticipantRecord[];

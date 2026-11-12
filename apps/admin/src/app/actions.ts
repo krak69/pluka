@@ -13,6 +13,7 @@ import {
   DomainError,
   publishFactCandidate,
   setEditionParticipantsIncluded,
+  setEditionPartnerSales,
   setRaceVisibility,
   updateRace,
 } from '@pluka/domain';
@@ -238,6 +239,26 @@ export async function setEditionParticipantsIncludedAction(
     await setEditionParticipantsIncluded(participantInvitationContext(session), {
       editionId: text(form, 'editionId'),
       included: text(form, 'included') === 'true',
+    });
+  } catch (error) {
+    return actionFailure(error);
+  }
+
+  revalidatePath(`/evenements/${text(form, 'eventId')}`);
+  return {};
+}
+
+/** Canal B (0086) : la base refuse l'ouverture si l'accès est inclus sur l'édition. */
+export async function setEditionPartnerSalesAction(
+  _previous: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const session = await requireSession('/');
+
+  try {
+    await setEditionPartnerSales(participantInvitationContext(session), {
+      editionId: text(form, 'editionId'),
+      enabled: text(form, 'enabled') === 'true',
     });
   } catch (error) {
     return actionFailure(error);

@@ -98,6 +98,17 @@ export default async function EventParticipantsPage({
 
       <p className="pk-body ad-notice">Cette consultation est inscrite au journal d’audit.</p>
 
+      {list.partnerSales.pending + list.partnerSales.granted + list.partnerSales.conflict ===
+      0 ? null : (
+        <p className="pk-body ad-measure">
+          Option PLUKA vendue à l’inscription : {String(list.partnerSales.granted)} Race Pass
+          accordé{list.partnerSales.granted > 1 ? 's' : ''}, à facturer à l’organisation au prix de
+          cession · {String(list.partnerSales.pending)} en attente d’activation ·{' '}
+          {String(list.partnerSales.conflict)} en conflit (déjà couverts, à rembourser par
+          l’organisation).
+        </p>
+      )}
+
       {byYear.length > 1 ? (
         <nav aria-label="Éditions" className="ad-event-edition-links">
           {byYear.map((candidate) => (

@@ -74,6 +74,7 @@ export async function handleParticipantInvitationMessage(
         raceStart: claim.raceStart,
         raceTimezone: claim.raceTimezone,
         included: claim.included,
+        prepaid: claim.prepaid,
         acceptUrl: `${ports.appUrl}/invitation/${token}`,
         declineUrl: `${ports.appUrl}/invitation/${token}?refus=1`,
         privacyUrl: `${ports.siteUrl}/confidentialite`,

@@ -810,6 +810,7 @@ export type Database = {
           event_id: string
           id: string
           participants_included: boolean
+          partner_sales_enabled: boolean
           registration_url: string | null
           slug: string
           start_date: string
@@ -823,6 +824,7 @@ export type Database = {
           event_id: string
           id?: string
           participants_included?: boolean
+          partner_sales_enabled?: boolean
           registration_url?: string | null
           slug: string
           start_date: string
@@ -836,6 +838,7 @@ export type Database = {
           event_id?: string
           id?: string
           participants_included?: boolean
+          partner_sales_enabled?: boolean
           registration_url?: string | null
           slug?: string
           start_date?: string
@@ -3175,6 +3178,87 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "participant_start_changes_participant_race_id_fkey"
+            columns: ["participant_race_id"]
+            isOneToOne: false
+            referencedRelation: "participant_races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_sale_lines: {
+        Row: {
+          conflict_at: string | null
+          created_at: string
+          edition_id: string
+          entitlement_id: string | null
+          external_reference: string
+          granted_at: string | null
+          id: string
+          import_id: string | null
+          organization_id: string
+          participant_race_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          conflict_at?: string | null
+          created_at?: string
+          edition_id: string
+          entitlement_id?: string | null
+          external_reference: string
+          granted_at?: string | null
+          id?: string
+          import_id?: string | null
+          organization_id: string
+          participant_race_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          conflict_at?: string | null
+          created_at?: string
+          edition_id?: string
+          entitlement_id?: string | null
+          external_reference?: string
+          granted_at?: string | null
+          id?: string
+          import_id?: string | null
+          organization_id?: string
+          participant_race_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_sale_lines_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "editions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_sale_lines_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "entitlements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_sale_lines_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "participant_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_sale_lines_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_sale_lines_participant_race_id_fkey"
             columns: ["participant_race_id"]
             isOneToOne: false
             referencedRelation: "participant_races"
@@ -6386,6 +6470,20 @@ export type Database = {
           url: string
         }[]
       }
+      admin_list_user_participations: {
+        Args: { p_user_id: string }
+        Returns: {
+          edition_year: number
+          event_name: string
+          participant_race_id: string
+          race_name: string
+          race_start: string
+          race_timezone: string
+          registration: Json
+          registration_source: string
+          status: string
+        }[]
+      }
       admin_platform_counters: {
         Args: never
         Returns: {
@@ -6445,6 +6543,10 @@ export type Database = {
       }
       admin_set_edition_participants_included: {
         Args: { p_edition_id: string; p_included: boolean }
+        Returns: undefined
+      }
+      admin_set_edition_partner_sales: {
+        Args: { p_edition_id: string; p_enabled: boolean }
         Returns: undefined
       }
       admin_update_organization: {
@@ -6775,6 +6877,7 @@ export type Database = {
           included: boolean
           masked_email: string
           organization_name: string
+          prepaid: boolean
           race_name: string
           race_start: string
           race_timezone: string
@@ -7045,6 +7148,7 @@ export type Database = {
           first_name: string
           included: boolean
           organization_name: string
+          prepaid: boolean
           race_name: string
           race_start: string
           race_timezone: string
@@ -7469,6 +7573,7 @@ export type Database = {
         | "support"
         | "migration"
         | "promotion"
+        | "partner_sale"
       entitlement_status: "active" | "expired" | "revoked" | "pending"
       equipment_category:
         | "mandatory_safety"
@@ -7858,6 +7963,7 @@ export const Constants = {
         "support",
         "migration",
         "promotion",
+        "partner_sale",
       ],
       entitlement_status: ["active", "expired", "revoked", "pending"],
       equipment_category: [

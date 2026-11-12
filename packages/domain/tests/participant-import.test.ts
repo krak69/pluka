@@ -192,6 +192,57 @@ describe('juger les lignes', () => {
   });
 });
 
+describe('option PLUKA vendue à l’inscription (canal B)', () => {
+  const columns = { ...COLUMNS, partnerSale: 'Option', externalReference: 'Commande' };
+
+  it('lit l’option et sa référence', () => {
+    const judged = judgeRows(
+      [
+        row({ Option: 'Oui', Commande: 'CMD-001' }, 1),
+        row({ Option: 'non', Commande: 'CMD-002', Email: 'b@test.pluka' }, 2),
+      ],
+      columns,
+      [RACE, OTHER],
+    );
+
+    expect(judged[0]?.mapped).toMatchObject({ partnerSale: 'yes', externalReference: 'CMD-001' });
+    expect(judged[1]?.mapped?.['partnerSale']).toBeUndefined();
+    expect(judged[1]?.mapped?.['externalReference']).toBe('CMD-002');
+  });
+
+  it('refuse une option achetée sans référence : le rejeu ne pourrait pas se dédoublonner', () => {
+    const [judged] = judgeRows([row({ Option: 'x', Commande: '' })], columns, [RACE, OTHER]);
+
+    expect(judged).toMatchObject({
+      status: 'error',
+      error: 'Référence manquante pour l’option PLUKA.',
+    });
+  });
+
+  it('refuse une valeur d’option qu’il faudrait deviner', () => {
+    const [judged] = judgeRows([row({ Option: 'peut-être', Commande: 'C1' })], columns, [
+      RACE,
+      OTHER,
+    ]);
+
+    expect(judged?.error).toBe('Option PLUKA non reconnue : peut-être.');
+  });
+
+  it('propose les colonnes, sans prendre un numéro de commande pour un dossard', () => {
+    expect(
+      suggestColumns(['Prénom', 'Nom', 'Email', 'Numéro de commande', 'Option PLUKA', 'Dossard']),
+    ).toMatchObject({
+      externalReference: 'Numéro de commande',
+      partnerSale: 'Option PLUKA',
+      bib: 'Dossard',
+    });
+  });
+
+  it('ne prend pas une date de commande pour une référence', () => {
+    expect(suggestColumns(['Prénom', 'Nom', 'Email', 'Date de commande']).externalReference).toBeUndefined();
+  });
+});
+
 describe('proposer la colonne de date d’inscription', () => {
   it('reconnaît la date d’inscription sans la confondre avec la naissance', () => {
     expect(

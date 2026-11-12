@@ -740,11 +740,13 @@ export {
   declineParticipantInvitation,
   getRaceAdoption,
   isEditionParticipantsIncluded,
+  isEditionPartnerSalesOpen,
   listContactOptouts,
   listParticipantInvitations,
   previewParticipantInvitation,
   sendParticipantInvitations,
   setEditionParticipantsIncluded,
+  setEditionPartnerSales,
   type ParticipantInvitationContext,
 } from './participants/invitations.js';
 export {

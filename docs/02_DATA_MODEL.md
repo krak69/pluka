@@ -861,6 +861,30 @@ Il conserve notamment :
 
 Le moteur d'autorisation ne dépend jamais du prix payé.
 
+## 10.3.1 `partner_sale_lines` — canal B
+
+Une vente de l'option « Prépa PLUKA » encaissée par l'organisation dans son formulaire
+d'inscription (`00_PRODUCT_SPEC` §6.5.5, 0086). C'est la trace commerciale d'un Race Pass
+`partner_sale`, qui n'a pas de `purchase` (`04_ENTITLEMENTS` §71), et la base de la
+facturation de l'organisation au prix de cession, fixé par contrat hors de cette base.
+
+- une ligne par référence d'export dans l'organisation (`unique (organization_id,
+  external_reference)`) : un fichier rejoué ne crée rien (E46) ;
+- `status` : `pending` tant que la participation n'a pas de coureur, `granted` quand le Race
+  Pass est né (`entitlement_id`), `conflict` quand la participation avait déjà un Race Pass
+  actif (E47) ; l'organisation rembourse ;
+- `participant_race_id` passe à nul si la participation disparaît : la vente, elle, a eu lieu ;
+- lue et écrite uniquement par les fonctions de 0086 ; aucune policy.
+
+Le Race Pass naît à l'import si la participation a déjà un coureur, sinon à l'activation de
+l'invitation, qui reporte la ligne sur la participation du coureur en cas de fusion. Il porte
+`source = partner_sale`, l'organisation et la référence (contrainte
+`entitlements_partner_sale_traced`, §69).
+
+`editions.partner_sales_enabled` ouvre le canal, par PLUKA seul (trigger), et exclut
+`participants_included` (contrainte) : un coureur ne paie pas ce que son organisation lui
+offre. Fermé, les colonnes Option PLUKA et Référence du fichier sont lues mais rien n'en sort.
+
 ## 10.4 `entitlement_usage`
 
 Ledger idempotent des usages consommant un quota.

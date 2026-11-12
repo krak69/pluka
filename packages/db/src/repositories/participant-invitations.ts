@@ -50,6 +50,8 @@ export interface ParticipantInvitationPreviewRecord {
   /** `c***@exemple.fr` : de quoi savoir avec quel compte se connecter. */
   readonly maskedEmail: string | null;
   readonly included: boolean;
+  /** L'option PLUKA a été achetée à l'inscription (canal B, 0086) : rien à payer. */
+  readonly prepaid: boolean;
 }
 
 export interface ParticipantInvitationRepository {
@@ -59,6 +61,9 @@ export interface ParticipantInvitationRepository {
   /** Nul quand l'édition n'est pas lisible par l'acteur. */
   editionIncluded(editionId: string): Promise<boolean | null>;
   setEditionIncluded(editionId: string, included: boolean): Promise<void>;
+  /** Canal B ouvert (0086). Nul quand l'édition n'est pas lisible par l'acteur. */
+  editionPartnerSales(editionId: string): Promise<boolean | null>;
+  setEditionPartnerSales(editionId: string, enabled: boolean): Promise<void>;
   preview(tokenHash: string): Promise<ParticipantInvitationPreviewRecord>;
   /** Rend la participation à ouvrir. */
   accept(tokenHash: string): Promise<string>;
@@ -128,6 +133,7 @@ const UNKNOWN_PREVIEW: ParticipantInvitationPreviewRecord = {
   organizationName: null,
   maskedEmail: null,
   included: false,
+  prepaid: false,
 };
 
 export const participantInvitationRepository = defineRepository<ParticipantInvitationRepository>(
@@ -180,6 +186,26 @@ export const participantInvitationRepository = defineRepository<ParticipantInvit
       });
     },
 
+    async editionPartnerSales(editionId) {
+      const row = unwrapMaybe(
+        await context.client
+          .from('editions')
+          .select('partner_sales_enabled')
+          .eq('id', editionId)
+          .maybeSingle(),
+        'editions.partnerSalesEnabled',
+      );
+
+      return row === null ? null : row.partner_sales_enabled;
+    },
+
+    async setEditionPartnerSales(editionId, enabled) {
+      await invoke(context.client, 'admin_set_edition_partner_sales', {
+        p_edition_id: editionId,
+        p_enabled: enabled,
+      });
+    },
+
     async preview(tokenHash) {
       const operation = 'preview_participant_invitation';
       const row = rows(
@@ -201,6 +227,7 @@ export const participantInvitationRepository = defineRepository<ParticipantInvit
         organizationName: text(row, 'organization_name'),
         maskedEmail: text(row, 'masked_email'),
         included: row['included'] === true,
+        prepaid: row['prepaid'] === true,
       };
     },
 

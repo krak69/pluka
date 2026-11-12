@@ -2255,12 +2255,13 @@ purchases.product_key
 purchases.channel            (app | organizer_link)
 purchases.organization_id    (attribution canal A)
 organization_referral_codes  (organisation + race / edition, statut)
-participant_races.registered_at
-participant_races.registered_at_origin  (verified | declared)
-partner_sale_import_lines    (canal B, external_reference unique)
+participant_races.registered_on        (date vérifiée ; nulle = déclarative, created_at)
+partner_sale_lines           (canal B, external_reference unique par organisation)
+editions.partner_sales_enabled
 ```
 
-Les noms exacts doivent rester alignés avec `02_DATA_MODEL.md`.
+Les noms exacts doivent rester alignés avec `02_DATA_MODEL.md`. Implémentés : date
+d'inscription (0083, 0084) et canal B (0085, 0086).
 
 ---
 

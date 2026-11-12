@@ -20,6 +20,7 @@ const NOTICE: ParticipantInvitationNotice = {
   raceStart: '2027-05-16T06:30:00Z',
   raceTimezone: 'Europe/Paris',
   included: true,
+  prepaid: false,
   acceptUrl: 'https://app.pluka.test/invitation/jeton',
   declineUrl: 'https://app.pluka.test/invitation/jeton?refus=1',
   privacyUrl: 'https://pluka.test/confidentialite',
@@ -61,6 +62,14 @@ describe('l’invitation d’un participant', () => {
     expect(renderParticipantInvitation({ ...NOTICE, included: false }).textBody).not.toContain(
       'offert',
     );
+  });
+
+  it('dit l’option PLUKA déjà réglée, sans aucun prix (canal B, E48)', () => {
+    const { textBody } = renderParticipantInvitation({ ...NOTICE, included: false, prepaid: true });
+
+    expect(textBody).toContain('Ta Prépa PLUKA, prise avec ton inscription, est déjà réglée');
+    expect(textBody).not.toContain('offert');
+    expect(textBody).not.toMatch(/€|\d+,\d{2}/u);
   });
 
   it('nomme l’événement quand aucune organisation n’invite', () => {

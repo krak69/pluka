@@ -10,6 +10,7 @@ import {
   getRaceGpxImport,
   getRaceWaypoints,
   isEditionParticipantsIncluded,
+  isEditionPartnerSalesOpen,
   isRaceVisibleToRunners,
   listAdminOrganizations,
   listEditionDocuments,
@@ -27,6 +28,7 @@ import {
   changeEditionStatusAction,
   changeEventStatusAction,
   setEditionParticipantsIncludedAction,
+  setEditionPartnerSalesAction,
 } from '@/app/actions';
 import {
   CreateEditionForm,
@@ -193,6 +195,20 @@ export default async function EventPage({
           [
             edition.id,
             await isEditionParticipantsIncluded(participantInvitationContext(session), {
+              editionId: edition.id,
+            }).catch(() => false),
+          ] as const,
+      ),
+    ),
+  );
+
+  const partnerSales = new Map(
+    await Promise.all(
+      editionsWithRaces.map(
+        async ({ edition }) =>
+          [
+            edition.id,
+            await isEditionPartnerSalesOpen(participantInvitationContext(session), {
               editionId: edition.id,
             }).catch(() => false),
           ] as const,
@@ -650,6 +666,41 @@ export default async function EventPage({
                       : {
                           confirm:
                             'L’organisation finance l’accès premium de ses participants : ceux déjà sur PLUKA le reçoivent tout de suite, les suivants à l’activation.',
+                        })}
+                  />
+                </div>
+
+                <div className="ad-event-status" id={`edition-${edition.id}-option`}>
+                  <h4 className="ad-org-subtitle">
+                    Option PLUKA vendue à l’inscription —{' '}
+                    {partnerSales.get(edition.id) === true ? 'ouverte' : 'fermée'}
+                  </h4>
+                  <p className="ad-org-panel-lede">
+                    Canal B : l’organisation vend l’option dans son formulaire d’inscription et
+                    transmet ses acheteurs dans son fichier (colonnes Option PLUKA et Référence).
+                    Chaque acheteur reçoit un Race Pass, facturé à l’organisation au prix de cession
+                    du contrat. À ouvrir à la signature ; incompatible avec l’accès inclus.
+                  </p>
+                  <ConsoleAction
+                    action={setEditionPartnerSalesAction}
+                    fields={{
+                      editionId: edition.id,
+                      eventId: event.id,
+                      enabled: String(partnerSales.get(edition.id) !== true),
+                    }}
+                    label={
+                      partnerSales.get(edition.id) === true
+                        ? 'Fermer la vente de l’option'
+                        : 'Ouvrir la vente de l’option'
+                    }
+                    {...(partnerSales.get(edition.id) === true
+                      ? {
+                          confirm:
+                            'Les ventes déjà importées restent et leurs Race Pass aussi ; les prochains fichiers n’en créeront plus.',
+                        }
+                      : {
+                          confirm:
+                            'Le contrat de l’organisation fixe-t-il le prix de cession ? Les acheteurs importés recevront un Race Pass.',
                         })}
                   />
                 </div>

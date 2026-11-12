@@ -8,6 +8,7 @@ import {
   hashInvitationToken,
   previewParticipantInvitation,
   sendParticipantInvitations,
+  setEditionPartnerSales,
   type ParticipantInvitationContext,
 } from '../src/index.js';
 
@@ -41,6 +42,14 @@ function contextWith(overrides: Partial<ParticipantInvitationRepository>) {
       'setEditionIncluded',
       undefined,
     ) as ParticipantInvitationRepository['setEditionIncluded'],
+    editionPartnerSales: record(
+      'editionPartnerSales',
+      false,
+    ) as ParticipantInvitationRepository['editionPartnerSales'],
+    setEditionPartnerSales: record(
+      'setEditionPartnerSales',
+      undefined,
+    ) as ParticipantInvitationRepository['setEditionPartnerSales'],
     preview: record('preview', { state: 'valid' }) as ParticipantInvitationRepository['preview'],
     accept: record('accept', 'participation') as ParticipantInvitationRepository['accept'],
     decline: record('decline', 'declined') as ParticipantInvitationRepository['decline'],
@@ -138,5 +147,37 @@ describe('le lien', () => {
     await expect(acceptParticipantInvitation(context, { token: TOKEN })).rejects.toMatchObject({
       code: 'invalid_state',
     });
+  });
+});
+
+describe('canal B : la vente de l’option à l’inscription', () => {
+  it('transmet l’ouverture à la base, qui la réserve à PLUKA', async () => {
+    const { context, calls } = contextWith({});
+
+    await setEditionPartnerSales(context, { editionId: EDITION, enabled: true });
+
+    expect(calls[0]).toEqual({ method: 'setEditionPartnerSales', args: [EDITION, true] });
+  });
+
+  it('dit pourquoi la base refuse : l’accès est déjà inclus', async () => {
+    const { context } = contextWith({
+      setEditionPartnerSales: () =>
+        Promise.reject(
+          new DbError({ code: 'invalid_state', operation: 'set', message: 'inclus' }),
+        ),
+    });
+
+    await expect(
+      setEditionPartnerSales(context, { editionId: EDITION, enabled: true }),
+    ).rejects.toMatchObject({ code: 'invalid_state' });
+  });
+
+  it('refuse une commande mal formée avant tout appel', async () => {
+    const { context, calls } = contextWith({});
+
+    await expect(
+      setEditionPartnerSales(context, { editionId: EDITION, enabled: 'oui' }),
+    ).rejects.toBeInstanceOf(DomainError);
+    expect(calls).toEqual([]);
   });
 });

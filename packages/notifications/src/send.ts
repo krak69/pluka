@@ -50,7 +50,7 @@ export const INVITATION_TEMPLATE_VERSION = 'organization-invitation-1.0.0';
 
 export const STAFF_INVITATION_TEMPLATE_VERSION = 'staff-invitation-1.0.0';
 
-export const PARTICIPANT_INVITATION_TEMPLATE_VERSION = 'participant-invitation-1.0.0';
+export const PARTICIPANT_INVITATION_TEMPLATE_VERSION = 'participant-invitation-1.1.0';
 
 export const EVENT_SITE_CONTACT_TEMPLATE_VERSION = 'event-site-contact-1.0.0';
 

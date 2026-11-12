@@ -103,6 +103,7 @@ const NOT_SENDABLE: ParticipantInvitationSendClaim = {
   raceStart: null,
   raceTimezone: null,
   included: false,
+  prepaid: false,
   attempt: 0,
 };
 
@@ -133,6 +134,7 @@ export function createParticipantInvitationStore(client: PlukaClient): Participa
         raceStart: text(row['race_start']),
         raceTimezone: text(row['race_timezone']),
         included: row['included'] === true,
+        prepaid: row['prepaid'] === true,
         attempt: typeof row['attempt'] === 'number' ? row['attempt'] : 1,
       };
     },

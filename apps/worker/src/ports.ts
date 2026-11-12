@@ -356,6 +356,8 @@ export interface ParticipantInvitationSendClaim {
   readonly raceStart: string | null;
   readonly raceTimezone: string | null;
   readonly included: boolean;
+  /** L'option PLUKA achetée à l'inscription (canal B, 0086). */
+  readonly prepaid: boolean;
   readonly attempt: number;
 }
 

@@ -204,7 +204,9 @@ export default async function ParticipantInvitationPage({
         Ton espace est déjà prérempli avec les informations officielles de la course.
         {preview.included
           ? ' L’accès complet à la préparation de cette course t’est offert par l’organisation.'
-          : ''}
+          : preview.prepaid
+            ? ' Ta Prépa PLUKA, prise avec ton inscription, est déjà réglée : l’accès complet s’ouvre dès que tu actives ton espace.'
+            : ''}
       </p>
 
       {session === null ? (

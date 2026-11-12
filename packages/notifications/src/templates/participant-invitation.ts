@@ -21,6 +21,11 @@ export interface ParticipantInvitationNotice {
   readonly raceTimezone: string;
   /** L'organisation offre l'accès premium à la course. */
   readonly included: boolean;
+  /**
+   * L'option PLUKA a été achetée avec l'inscription (canal B) : la préparation
+   * est déjà réglée, et le message ne parle d'aucun prix.
+   */
+  readonly prepaid: boolean;
   readonly acceptUrl: string;
   /** La page où refuser d'être contacté, sans compte (0075). */
   readonly declineUrl: string;
@@ -58,7 +63,9 @@ export function renderParticipantInvitation(
     'Ton espace est déjà prêt avec les informations officielles de ta course : il te reste à choisir ton objectif pour obtenir ton Plan.',
     ...(notice.included
       ? ['', "L'accès complet à la préparation de cette course t'est offert par l'organisation."]
-      : []),
+      : notice.prepaid
+        ? ['', "Ta Prépa PLUKA, prise avec ton inscription, est déjà réglée : l'accès complet s'ouvre dès que tu actives ton espace."]
+        : []),
     '',
     `Activer mon espace : ${notice.acceptUrl}`,
     '',

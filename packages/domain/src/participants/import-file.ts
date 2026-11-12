@@ -104,6 +104,10 @@ export const PARTICIPANT_FIELDS = [
   { key: 'lastName', label: 'Nom', required: true, hints: ['nom', 'lastname', 'last name', 'nom de famille'] },
   { key: 'email', label: 'E-mail', required: true, hints: ['email', 'e-mail', 'mail', 'courriel'] },
   { key: 'race', label: 'Épreuve', required: false, hints: ['epreuve', 'course', 'distance', 'race'] },
+  // Avant le dossard : « Numéro de commande » ne doit pas passer pour un dossard.
+  // Jamais « commande » seul : « Date de commande » n'est pas une référence.
+  { key: 'externalReference', label: 'Référence', required: false, hints: ['reference', 'ref', 'n° commande', 'no commande', 'numero de commande', 'numero commande', 'id commande', 'order id', 'order number', 'n° inscription', 'numero d inscription', 'numero inscription', 'id inscription', 'n° dossier'] },
+  { key: 'partnerSale', label: 'Option PLUKA', required: false, hints: ['option pluka', 'prepa pluka', 'pluka', 'option prepa'] },
   { key: 'bib', label: 'Dossard', required: false, hints: ['dossard', 'bib', 'numero'] },
   { key: 'wave', label: 'Vague', required: false, hints: ['vague', 'sas', 'wave'] },
   { key: 'sex', label: 'Sexe', required: false, hints: ['sexe', 'genre', 'sex', 'gender'] },
@@ -176,6 +180,14 @@ function birthDateOf(value: string): string | null {
  */
 function registrationDayOf(value: string): string | null {
   return birthDateOf(value.replace(/[ T]\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?$/u, ''));
+}
+
+/** L'option « Prépa PLUKA » achetée à l'inscription : oui, non, ou illisible. */
+function partnerSaleOf(value: string): boolean | null {
+  const normalized = normalize(value);
+  if (['oui', 'o', 'yes', 'y', '1', 'x', 'true', 'vrai'].includes(normalized)) return true;
+  if (['non', 'n', 'no', '0', 'false', 'faux', '-'].includes(normalized)) return false;
+  return null;
 }
 
 function sexOf(value: string): 'female' | 'male' | 'other' | null {
@@ -273,6 +285,19 @@ export function judgeRows(
       const birthDate = birthDateOf(rawBirth);
       if (birthDate === null) return refuse(`Date de naissance illisible : ${rawBirth}.`);
       mapped['birthDate'] = birthDate;
+    }
+
+    const reference = read('externalReference').slice(0, 120);
+    if (reference !== '') mapped['externalReference'] = reference;
+
+    // Canal B (§6.5.5) : une option achetée sans référence ne pourrait pas se
+    // dédoublonner au rejeu du fichier — la ligne est refusée plutôt que devinée.
+    const rawPartnerSale = read('partnerSale');
+    if (rawPartnerSale !== '') {
+      const bought = partnerSaleOf(rawPartnerSale);
+      if (bought === null) return refuse(`Option PLUKA non reconnue : ${rawPartnerSale}.`);
+      if (bought && reference === '') return refuse('Référence manquante pour l’option PLUKA.');
+      if (bought) mapped['partnerSale'] = 'yes';
     }
 
     const rawRegistered = read('registeredOn');

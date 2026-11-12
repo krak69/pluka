@@ -159,6 +159,13 @@ function Cell({ label, value }: { readonly label: string; readonly value: string
   );
 }
 
+/** L'option achetée à l'inscription (canal B), dite à l'organisation qui l'a vendue. */
+const PARTNER_SALE_LABELS: Readonly<Record<'pending' | 'granted' | 'conflict', string>> = {
+  pending: 'Option PLUKA · à activer',
+  granted: 'Option PLUKA · activée',
+  conflict: 'Option PLUKA · en conflit',
+};
+
 /** « 2026-03-01 » → « 01/03/2026 » : un jour civil, sans fuseau à appliquer. */
 function civilDay(day: string): string {
   const [year, month, date] = day.split('-');
@@ -216,6 +223,7 @@ export default async function ParticipantsPage({
           total: 0,
           toCheck: { bibs: 0 },
           pendingWaves: 0,
+          partnerSales: { open: false, pending: 0, granted: 0, conflict: 0 },
           waveOptions: [],
           participants: [],
           withdrawn: [],
@@ -431,6 +439,23 @@ export default async function ParticipantsPage({
                 <li>{plural(effects.withdrawn, 'retiré, non rétabli', 'retirés, non rétablis')}</li>
               )}
             </ul>
+          )}
+          {current.partnerSales.rows === 0 ? null : current.partnerSales.open ? (
+            <p className="pk-body">
+              {plural(current.partnerSales.rows, 'option PLUKA achetée', 'options PLUKA achetées')}
+              {current.partnerSales.new === current.partnerSales.rows
+                ? ''
+                : ` dont ${String(current.partnerSales.new)} nouvelle${
+                    current.partnerSales.new > 1 ? 's' : ''
+                  } — une référence déjà importée n’est pas comptée deux fois`}
+              . Chaque acheteur reçoit son Race Pass en activant son espace, ou tout de suite s’il
+              est déjà sur PLUKA.
+            </p>
+          ) : (
+            <p className="pk-field-hint">
+              La colonne Option PLUKA est ignorée : la vente de l’option à l’inscription n’est pas
+              ouverte pour cette édition. Écrivez à PLUKA pour l’ouvrir.
+            </p>
           )}
           {current.exceptions.length === 0 ? null : (
             <ul className="cr-facts">
@@ -708,6 +733,22 @@ export default async function ParticipantsPage({
                 </p>
               ) : null}
 
+              {panel === 'tous' &&
+              list.partnerSales.pending + list.partnerSales.granted + list.partnerSales.conflict >
+                0 ? (
+                <p className="pk-field-hint">
+                  Option PLUKA :{' '}
+                  {plural(list.partnerSales.granted, 'Race Pass activé', 'Race Pass activés')}
+                  {list.partnerSales.pending === 0
+                    ? ''
+                    : `, ${String(list.partnerSales.pending)} en attente d’activation`}
+                  {list.partnerSales.conflict === 0
+                    ? ''
+                    : `, ${String(list.partnerSales.conflict)} en conflit : le participant avait déjà acheté son Race Pass, l’option est à lui rembourser`}
+                  .
+                </p>
+              ) : null}
+
               {panel === 'tous' && pendingWaves > 0 ? (
                 <p className="pk-field-hint">
                   {plural(
@@ -799,6 +840,19 @@ export default async function ParticipantsPage({
                                 {participant.bibConflict ? (
                                   <StatusBadge tone="warning">À vérifier</StatusBadge>
                                 ) : null}
+                                {participant.partnerSale === null ? null : (
+                                  <StatusBadge
+                                    tone={
+                                      participant.partnerSale === 'granted'
+                                        ? 'success'
+                                        : participant.partnerSale === 'conflict'
+                                          ? 'warning'
+                                          : 'neutral'
+                                    }
+                                  >
+                                    {PARTNER_SALE_LABELS[participant.partnerSale]}
+                                  </StatusBadge>
+                                )}
                                 {(() => {
                                   const invitation = participant.activated
                                     ? undefined

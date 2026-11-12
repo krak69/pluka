@@ -26,6 +26,7 @@ const CLAIM: ParticipantInvitationSendClaim = {
   raceStart: '2027-05-16T06:30:00Z',
   raceTimezone: 'Europe/Paris',
   included: false,
+  prepaid: false,
   attempt: 2,
 };
 
