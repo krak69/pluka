@@ -13,11 +13,11 @@
  */
 export const LEGAL = {
   /** Nom de l'éditeur, personne physique tant qu'aucune société n'existe. */
-  editorName: null as string | null,
+  editorName: 'Clément Lacour' as string | null,
   /** Adresse dédiée aux demandes sur les données personnelles. */
-  privacyEmail: null as string | null,
+  privacyEmail: 'hello@pluka.run' as string | null,
   /** Date de la dernière mise à jour, affichée en tête de page. */
-  updatedOn: '2026-11-09',
+  updatedOn: '2026-11-12',
 } as const;
 
 export function legalComplete(): boolean {
