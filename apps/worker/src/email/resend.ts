@@ -44,6 +44,20 @@ function formatRecipient(recipient: EmailMessage['to'][number]): string {
     : `${recipient.name} <${recipient.address}>`;
 }
 
+/**
+ * Domaines réservés par les RFC 2606 et 6761 : aucun serveur n'y reçoit de
+ * courrier, nulle part. Les soumettre au fournisseur ne produit que des
+ * rebonds, et les rebonds dégradent la réputation du domaine d'expédition —
+ * celui qui porte aussi les vrais envois. Les jeux de démonstration et les
+ * imports de test en sont pleins.
+ */
+const RESERVED_DOMAIN =
+  /@(?:[^@\s]+\.)?(?:example\.(?:com|net|org)|example|test|invalid|localhost)$/iu;
+
+export function isUndeliverableAddress(address: string): boolean {
+  return RESERVED_DOMAIN.test(address.trim());
+}
+
 export function createResendProvider(options: ResendOptions): EmailProvider {
   const call = options.fetch ?? globalThis.fetch;
   const url = options.baseUrl ?? RESEND_URL;
@@ -52,6 +66,11 @@ export function createResendProvider(options: ResendOptions): EmailProvider {
     name: 'resend',
 
     async send(message: EmailMessage): Promise<EmailSendResult> {
+      // Définitif : l'adresse ne deviendra pas livrable au prochain essai.
+      if (message.to.some((recipient) => isUndeliverableAddress(recipient.address))) {
+        throw permanent('EMAIL_RECIPIENT_RESERVED', 'domaine destinataire réservé, jamais livrable');
+      }
+
       let response: Response;
 
       try {

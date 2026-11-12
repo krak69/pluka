@@ -2,6 +2,7 @@ import type { EmailMessage } from '@pluka/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { createEmail, createResendProvider } from '../src/email/index.js';
+import { isUndeliverableAddress } from '../src/email/resend.js';
 
 /**
  * L'adapter email concret, hors du paquet pur.
@@ -42,7 +43,7 @@ function stub(reply: unknown, status = 200): { fetch: typeof globalThis.fetch; s
 }
 
 const MESSAGE: EmailMessage = {
-  to: [{ address: 'coureur@example.test', name: 'Camille' }],
+  to: [{ address: 'coureur@trail.fr', name: 'Camille' }],
   subject: 'Changement important — Grand Parcours',
   textBody: 'Bonjour Camille,',
   idempotencyKey: 'race_change_impact:chg-1:part-1',
@@ -81,7 +82,7 @@ describe('adapter email', () => {
 
     await createResendProvider({ apiKey: 'k', from: 'a@b.test', fetch }).send(MESSAGE);
 
-    expect(sent[0]?.body.to).toEqual(['Camille <coureur@example.test>']);
+    expect(sent[0]?.body.to).toEqual(['Camille <coureur@trail.fr>']);
     expect(sent[0]?.body.cc).toBeUndefined();
     expect(sent[0]?.body.bcc).toBeUndefined();
   });
@@ -125,6 +126,34 @@ describe('adapter email', () => {
     await createResendProvider({ apiKey: 'secret-abc', from: 'a@b.test', fetch }).send(MESSAGE);
 
     expect(JSON.stringify(sent[0]?.body)).not.toContain('secret-abc');
+  });
+
+  it('refuse définitivement un domaine réservé, sans appeler le fournisseur', async () => {
+    // Un rebond par adresse de démonstration dégraderait la réputation du
+    // domaine d'expédition ; ces domaines ne reçoivent jamais de courrier.
+    for (const address of [
+      'coureur@example.com',
+      'coureur@mail.example.org',
+      'coureur@example.test',
+      'coureur@nulle-part.invalid',
+      'coureur@machine.localhost',
+    ]) {
+      const { fetch, sent } = stub({ id: 'msg-1' });
+
+      const error = await createResendProvider({ apiKey: 'k', from: 'a@b.test', fetch })
+        .send({ ...MESSAGE, to: [{ address }] })
+        .catch((thrown: unknown) => thrown);
+
+      expect((error as { kind: string }).kind, address).toBe('permanent');
+      expect((error as { code: string }).code, address).toBe('EMAIL_RECIPIENT_RESERVED');
+      expect(sent, address).toEqual([]);
+    }
+  });
+
+  it('laisse passer un domaine qui ressemble seulement à un domaine réservé', async () => {
+    for (const address of ['coureur@example.fr', 'coureur@testeur.com', 'test@pluka.run']) {
+      expect(isUndeliverableAddress(address), address).toBe(false);
+    }
   });
 });
 
