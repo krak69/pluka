@@ -800,3 +800,12 @@ export {
   type RegistrationOrigin,
   type RegistrationReference,
 } from './billing/early-bird.js';
+
+export {
+  REFERRAL_CODE_PATTERN,
+  getEditionReferralCode,
+  normalizeReferralCode,
+  resolveReferralCode,
+  setEditionReferralCodeActive,
+  type ReferralCodeContext,
+} from './billing/referral.js';

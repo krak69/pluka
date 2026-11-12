@@ -112,6 +112,12 @@ Deux écrans de l'entonnoir restent globaux, et c'est cohérent avec la même r�
 - `/profil` — le profil trailer est une donnée d'utilisateur, pas de participation. `trail_profiles` est unique par personne, et le prototype le dit lui-même : « Il a servi à préparer tes courses précédentes. » Un seul profil sert toutes les courses.
 - `/offre` — le choix d'offre n'est pas un écran de participation. Un Race Pass a une portée `participant_race`, un PLUKA+ une portée `global` ; cette distinction appartient à `04_ENTITLEMENTS.md` §7 et ne change pas la forme de la route. L'entonnoir y entre en portant la participation comme contexte.
 
+La validation passe par `attach_participant_race` (0087) : la base pose elle-même le coureur de la session, la date d'arrivée et l'attribution du canal A. Aucun client n'écrit une participation directement.
+
+### 1.7.1 Le lien de l'organisation — `/r/[code]` (canal A)
+
+L'organisation colle `/r/{code}` dans sa confirmation d'inscription (`00_PRODUCT_SPEC` §6.5.4). La page, publique et non indexée, montre l'édition et ses épreuves publiées ; chaque épreuve mène à sa fiche avec `?code=`. Le code suit le coureur dans l'adresse — fiche, connexion (`returnTo`), validation — jamais dans un cookie, puis se pose sur sa participation (`participant_races.referral_code_id`). Un code inconnu, coupé ou d'une autre édition est ignoré : la course s'ajoute sans attribution, et l'anomalie est journalisée. Un lien coupé affiche « Ce lien n'est plus actif ». L'organisation trouve son lien et un texte prêt à coller dans Participants.
+
 ## 1.8 La page publique de course vit dans `apps/app`, en route publique hors authentification
 
 Il n'y a **qu'une** fiche épreuve, pas deux. Elle est servie par `apps/app`, sans session, et c'est la même page que celle de l'entonnoir : `screen: 'race'` du prototype.

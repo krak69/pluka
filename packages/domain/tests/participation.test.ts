@@ -29,6 +29,7 @@ import {
   RUNNER_A,
   RUNNER_B,
   seedParticipation,
+  SERVER_NOW,
   UNLISTED_RACE,
   type ParticipationState,
 } from './fixtures/participation-repositories.js';
@@ -53,7 +54,7 @@ let state: ParticipationState;
 
 function contextFor(userId: string): ParticipationContext {
   return {
-    repositories: createFakeParticipationRepositories(state),
+    repositories: createFakeParticipationRepositories(state, userId),
     actor: { userId },
     now: () => FIXED_NOW,
   };
@@ -256,10 +257,25 @@ describe('createParticipantRace', () => {
     expect(created.preparationState).toBe('to_prepare');
   });
 
-  it('date le rattachement avec l’horloge injectée', async () => {
+  it('date le rattachement à l’heure du serveur, que la base pose (0087)', async () => {
     const created = await createParticipantRace(contextFor(RUNNER_A), { raceId: PUBLIC_RACE });
 
-    expect(created.joinedAt).toBe(FIXED_NOW.toISOString());
+    expect(created.joinedAt).toBe(SERVER_NOW);
+  });
+
+  it('transmet le code de l’organisation à la base, qui en décide (canal A)', async () => {
+    await createParticipantRace(contextFor(RUNNER_A), {
+      raceId: PUBLIC_RACE,
+      referralCode: 'LES9CLOCHERS27',
+    });
+
+    expect(state.calls).toContain(`participantRaces.attach:${PUBLIC_RACE}:LES9CLOCHERS27`);
+  });
+
+  it('sans code, la course s’ajoute sans attribution', async () => {
+    await createParticipantRace(contextFor(RUNNER_A), { raceId: PUBLIC_RACE });
+
+    expect(state.calls).toContain(`participantRaces.attach:${PUBLIC_RACE}:-`);
   });
 
   it('ne recopie pas le nom du compte dans la participation', async () => {

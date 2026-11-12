@@ -128,8 +128,16 @@ function nextId(): string {
   return `eeeeeeee-0000-4000-8000-${String(sequence).padStart(12, '0')}`;
 }
 
+/** L'heure du serveur, que la base pose à l'ajout d'une course (0087). */
+export const SERVER_NOW = '2026-11-12T10:00:00.000Z';
+
+/**
+ * `sessionUserId` : le coureur dont la session porte les écritures faites
+ * « au nom de l'appelant » (`auth.uid()` en base).
+ */
 export function createFakeParticipationRepositories(
   state: ParticipationState,
+  sessionUserId: string | null = null,
 ): ParticipationRepositories {
   const course = createFakeRepositories(state.course);
 
@@ -189,25 +197,27 @@ export function createFakeParticipationRepositories(
           }));
       },
 
-      insert: async (input) => {
+      // Comme `attach_participant_race` (0087) : le coureur est celui de la
+      // session, jamais un identifiant reçu ; la date d'arrivée vient du serveur.
+      attach: async (raceId, referralCode) => {
+        state.calls.push(`participantRaces.attach:${raceId}:${referralCode ?? '-'}`);
+        if (sessionUserId === null) throw new Error('connexion requise');
+
         // `ux_participant_race_user` : le fake refuse ce que la base refuse.
         const duplicate = state.participants.some(
-          (row) => row.raceId === input.race_id && row.userId === (input.user_id ?? null),
+          (row) => row.raceId === raceId && row.userId === sessionUserId,
         );
-        if (duplicate && input.user_id != null) {
+        if (duplicate) {
           throw new Error('ux_participant_race_user : participation déjà présente');
         }
 
         const record: ParticipantRaceRecord = {
           ...emptyParticipation(),
           id: nextId(),
-          raceId: input.race_id,
-          userId: input.user_id ?? null,
-          firstNameSnapshot: input.first_name_snapshot ?? null,
-          lastNameSnapshot: input.last_name_snapshot ?? null,
-          registrationSource: input.registration_source ?? 'direct',
-          bibNumber: input.bib_number ?? null,
-          joinedAt: input.joined_at ?? null,
+          raceId,
+          userId: sessionUserId,
+          registrationSource: 'direct',
+          joinedAt: SERVER_NOW,
         };
 
         state.participants.push(record);

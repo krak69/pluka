@@ -30,7 +30,15 @@ const uuid = z.uuid();
  */
 export const MAX_TARGET_DURATION_SECONDS = 2_147_483_647;
 
-export const createParticipantRaceCommandSchema = z.object({ raceId: uuid });
+/**
+ * `referralCode` : le code de l'organisation, venu du lien de sa confirmation
+ * d'inscription (canal A, 0087). Un code mal formé n'empêche pas d'ajouter la
+ * course : l'appelant le laisse tomber, la base ignore un code inconnu.
+ */
+export const createParticipantRaceCommandSchema = z.object({
+  raceId: uuid,
+  referralCode: z.string().regex(/^[A-Za-z0-9]{4,24}$/u).optional(),
+});
 export type CreateParticipantRaceCommand = z.infer<typeof createParticipantRaceCommandSchema>;
 
 /**

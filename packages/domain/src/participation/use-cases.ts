@@ -172,12 +172,9 @@ export async function createParticipantRace(
     throw conflictError(useCase, 'cette épreuve est déjà rattachée à ce coureur');
   }
 
-  return context.repositories.participantRaces.insert({
-    race_id: command.raceId,
-    user_id: context.actor.userId,
-    registration_source: 'direct',
-    joined_at: context.now().toISOString(),
-  });
+  // Le coureur et la date d'arrivée sont posés par la base, sous la session :
+  // un client ne s'inscrit ni pour un autre, ni ne s'attribue un code (0087).
+  return context.repositories.participantRaces.attach(command.raceId, command.referralCode ?? null);
 }
 
 /**

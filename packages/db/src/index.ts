@@ -295,6 +295,13 @@ export {
   type StartWaveRecord,
 } from './repositories/participant-import.js';
 export {
+  referralCodeRepository,
+  type EditionReferralCodeRecord,
+  type ReferralCodeRepository,
+  type ReferralRaceRecord,
+  type ResolvedReferralCodeRecord,
+} from './repositories/referral-codes.js';
+export {
   createParticipantInvitationRepositories,
   participantInvitationRepository,
   type ParticipantInvitationPreviewRecord,

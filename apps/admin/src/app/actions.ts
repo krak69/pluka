@@ -14,6 +14,7 @@ import {
   publishFactCandidate,
   setEditionParticipantsIncluded,
   setEditionPartnerSales,
+  setEditionReferralCodeActive,
   setRaceVisibility,
   updateRace,
 } from '@pluka/domain';
@@ -26,6 +27,7 @@ import {
   factReviewContext,
   gpxImportContext,
   participantInvitationContext,
+  referralCodeContext,
 } from '@/lib/admin';
 import { publicEnv } from '@/lib/env';
 import {
@@ -245,6 +247,26 @@ export async function setEditionParticipantsIncludedAction(
   }
 
   revalidatePath(`/evenements/${text(form, 'eventId')}`);
+  return {};
+}
+
+/** Canal A (0087) : couper ou rouvrir le lien d'une édition. */
+export async function setEditionReferralCodeActiveAction(
+  _previous: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const session = await requireSession('/');
+
+  try {
+    await setEditionReferralCodeActive(referralCodeContext(session), {
+      editionId: text(form, 'editionId'),
+      active: text(form, 'active') === 'true',
+    });
+  } catch (error) {
+    return actionFailure(error);
+  }
+
+  revalidatePath('/evenements/' + text(form, 'eventId'));
   return {};
 }
 

@@ -2359,6 +2359,51 @@ export type Database = {
           },
         ]
       }
+      organization_referral_codes: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          edition_id: string
+          id: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          edition_id: string
+          id?: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          edition_id?: string
+          id?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_referral_codes_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: true
+            referencedRelation: "editions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_referral_codes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           contact_email: string | null
@@ -3056,6 +3101,7 @@ export type Database = {
           personal_start_datetime: string | null
           preparation_state: Database["public"]["Enums"]["preparation_state"]
           race_id: string
+          referral_code_id: string | null
           registered_on: string | null
           registration_source: Database["public"]["Enums"]["registration_source"]
           start_wave_id: string | null
@@ -3078,6 +3124,7 @@ export type Database = {
           personal_start_datetime?: string | null
           preparation_state?: Database["public"]["Enums"]["preparation_state"]
           race_id: string
+          referral_code_id?: string | null
           registered_on?: string | null
           registration_source?: Database["public"]["Enums"]["registration_source"]
           start_wave_id?: string | null
@@ -3100,6 +3147,7 @@ export type Database = {
           personal_start_datetime?: string | null
           preparation_state?: Database["public"]["Enums"]["preparation_state"]
           race_id?: string
+          referral_code_id?: string | null
           registered_on?: string | null
           registration_source?: Database["public"]["Enums"]["registration_source"]
           start_wave_id?: string | null
@@ -3114,6 +3162,13 @@ export type Database = {
             columns: ["race_id"]
             isOneToOne: false
             referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participant_races_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "organization_referral_codes"
             referencedColumns: ["id"]
           },
           {
@@ -6549,6 +6604,10 @@ export type Database = {
         Args: { p_edition_id: string; p_enabled: boolean }
         Returns: undefined
       }
+      admin_set_referral_code_active: {
+        Args: { p_active: boolean; p_edition_id: string }
+        Returns: undefined
+      }
       admin_update_organization: {
         Args: {
           p_contact_email: string
@@ -6562,6 +6621,10 @@ export type Database = {
       admin_validate_nutrition_product: {
         Args: { p_product_id: string }
         Returns: undefined
+      }
+      attach_participant_race: {
+        Args: { p_race_id: string; p_referral_code?: string }
+        Returns: string
       }
       cancel_account_deletion: { Args: never; Returns: boolean }
       commit_participant_import: {
@@ -6761,6 +6824,13 @@ export type Database = {
         Returns: string
       }
       org_delete_start_wave: { Args: { p_wave_id: string }; Returns: undefined }
+      org_get_referral_code: {
+        Args: { p_edition_id: string }
+        Returns: {
+          active: boolean
+          code: string
+        }[]
+      }
       org_invite_member: {
         Args: {
           p_email: string
@@ -6916,6 +6986,17 @@ export type Database = {
         Returns: undefined
       }
       request_account_deletion: { Args: never; Returns: Json }
+      resolve_referral_code: {
+        Args: { p_code: string }
+        Returns: {
+          code: string
+          edition_slug: string
+          edition_year: number
+          event_name: string
+          event_slug: string
+          races: Json
+        }[]
+      }
       restore_race_fact: {
         Args: { p_fact_id: string; p_note?: string }
         Returns: undefined

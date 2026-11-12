@@ -10,6 +10,7 @@ import {
   getRaceGpxImport,
   getRaceWaypoints,
   isEditionParticipantsIncluded,
+  getEditionReferralCode,
   isEditionPartnerSalesOpen,
   isRaceVisibleToRunners,
   listAdminOrganizations,
@@ -29,6 +30,7 @@ import {
   changeEventStatusAction,
   setEditionParticipantsIncludedAction,
   setEditionPartnerSalesAction,
+  setEditionReferralCodeActiveAction,
 } from '@/app/actions';
 import {
   CreateEditionForm,
@@ -52,6 +54,7 @@ import {
   factEditingContext,
   gpxImportContext,
   participantInvitationContext,
+  referralCodeContext,
   redirectOnDomainError,
   requireAdminContext,
   staffTeamContext,
@@ -214,6 +217,20 @@ export default async function EventPage({
           ] as const,
       ),
     ),
+  );
+
+  // Canal A (0087) : le code de chaque édition ; absent pour une édition sans organisation.
+  const referralCodes = new Map(
+    (
+      await Promise.all(
+        editionsWithRaces.map(async ({ edition }) => {
+          const code = await getEditionReferralCode(referralCodeContext(session), {
+            editionId: edition.id,
+          }).catch(() => null);
+          return code === null ? null : ([edition.id, code] as const);
+        }),
+      )
+    ).filter((entry) => entry !== null),
   );
 
   // Lectures d'appoint : `null` plutôt qu'un écran d'erreur.
@@ -704,6 +721,34 @@ export default async function EventPage({
                         })}
                   />
                 </div>
+
+                {referralCodes.get(edition.id) === undefined ? null : (
+                  <div className="ad-event-status" id={`edition-${edition.id}-lien`}>
+                    <h4 className="ad-org-subtitle">
+                      Lien de l’organisation — {referralCodes.get(edition.id)?.code} ·{' '}
+                      {referralCodes.get(edition.id)?.active === true ? 'actif' : 'coupé'}
+                    </h4>
+                    <p className="ad-org-panel-lede">
+                      Canal A : l’organisation colle ce lien dans sa confirmation d’inscription. Le
+                      code se pose sur la participation du coureur qui valide sa course par ce lien ;
+                      un achat lui sera attribué. Couper le lien ne retire rien de ce qui est déjà
+                      attribué.
+                    </p>
+                    <ConsoleAction
+                      action={setEditionReferralCodeActiveAction}
+                      fields={{
+                        editionId: edition.id,
+                        eventId: event.id,
+                        active: String(referralCodes.get(edition.id)?.active !== true),
+                      }}
+                      label={
+                        referralCodes.get(edition.id)?.active === true
+                          ? 'Couper le lien'
+                          : 'Rouvrir le lien'
+                      }
+                    />
+                  </div>
+                )}
               </section>
             ))
           )}

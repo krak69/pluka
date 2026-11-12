@@ -22,10 +22,13 @@ export function AttachToRace({
   raceId,
   returnTo,
   raceName,
+  referralCode,
 }: {
   readonly raceId: string;
   readonly returnTo: string;
   readonly raceName: string;
+  /** Le code de l'organisation venu du lien (canal A) ; nul sans lien. */
+  readonly referralCode: string | null;
 }) {
   const [state, attach] = useActionState(attachToRaceAction, INITIAL);
 
@@ -45,6 +48,9 @@ export function AttachToRace({
       <form action={attach} className="rp-attach-form">
         <input type="hidden" name="raceId" value={raceId} />
         <input type="hidden" name="returnTo" value={returnTo} />
+        {referralCode === null ? null : (
+          <input type="hidden" name="referralCode" value={referralCode} />
+        )}
 
         <Button type="submit" variant="primary">
           Je prépare cette course

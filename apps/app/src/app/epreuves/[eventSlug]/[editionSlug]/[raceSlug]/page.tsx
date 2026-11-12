@@ -1,4 +1,9 @@
-import { DomainError, findRaceBySlugs, listRaceInformation } from '@pluka/domain';
+import {
+  DomainError,
+  findRaceBySlugs,
+  listRaceInformation,
+  normalizeReferralCode,
+} from '@pluka/domain';
 import { Divider, MicroLabel, SectionHeader } from '@pluka/ui';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -67,14 +72,25 @@ export async function generateMetadata({
   };
 }
 
-export default async function RacePage({ params }: { readonly params: Promise<Params> }) {
+export default async function RacePage({
+  params,
+  searchParams,
+}: {
+  readonly params: Promise<Params>;
+  readonly searchParams: Promise<{ readonly code?: string | string[] }>;
+}) {
   const resolved = await params;
+  // Canal A : le code de l'organisation suit le coureur dans l'adresse, jusqu'à
+  // la validation de sa course et à travers la connexion (décision du 2026-11-12).
+  const referralCode = normalizeReferralCode((await searchParams).code);
   const found = await load(resolved);
   const context = await raceContext();
 
   const information = await listRaceInformation(context, { raceId: found.race.id });
 
-  const returnTo = `/epreuves/${resolved.eventSlug}/${resolved.editionSlug}/${resolved.raceSlug}`;
+  const returnTo = `/epreuves/${resolved.eventSlug}/${resolved.editionSlug}/${resolved.raceSlug}${
+    referralCode === null ? '' : `?code=${referralCode}`
+  }`;
 
   return (
     <main className="rp-page">
@@ -99,7 +115,12 @@ export default async function RacePage({ params }: { readonly params: Promise<Pa
 
       <Divider spaced />
 
-      <AttachToRace raceId={found.race.id} returnTo={returnTo} raceName={found.race.name} />
+      <AttachToRace
+        raceId={found.race.id}
+        returnTo={returnTo}
+        raceName={found.race.name}
+        referralCode={referralCode}
+      />
 
       <Divider spaced />
 

@@ -1,5 +1,6 @@
 import {
   civilMoment,
+  getEditionReferralCode,
   getOrganizerCourse,
   getParticipantImport,
   getRaceAdoption,
@@ -31,6 +32,7 @@ import {
   participantInvitationsEnabled,
   sessionParticipantInvitationContext,
 } from '@/lib/participant-invitations';
+import { referralContext, referralLink } from '@/lib/referral';
 import { requireSession } from '@/lib/session';
 
 /**
@@ -231,6 +233,13 @@ export default async function ParticipantsPage({
       : await listEditionParticipants(context, { editionId: edition.id });
   // Owner et admin importent ; le même rang que la base (0060).
   const canImport = permissions.canPublish;
+  // Canal A (0087) : le lien de l'édition. Illisible, le bloc ne s'affiche pas.
+  const referral =
+    edition === null
+      ? null
+      : await getEditionReferralCode(referralContext(session), { editionId: edition.id }).catch(
+          () => null,
+        );
   const current =
     importId === undefined || !canImport ? null : await getParticipantImport(context, { importId });
 
@@ -693,6 +702,39 @@ export default async function ParticipantsPage({
                     <summary className="pk-btn pk-button-secondary">Importer des inscrits</summary>
                     <ImportFileForm scope={scope} editionId={edition.id} />
                   </details>
+                  {referral === null || !referral.active ? null : (
+                    <details className="st-details or-add">
+                      <summary className="pk-btn pk-button-secondary">
+                        Lien pour votre confirmation d’inscription
+                      </summary>
+                      <p className="pk-body">
+                        Ajoutez ce lien à l’e-mail ou à la page de confirmation de votre
+                        inscription. Vos inscrits y retrouvent leur épreuve et préparent leur course
+                        avec PLUKA ; les Race Pass achetés par ce lien vous sont attribués. Le prix
+                        est le même pour eux.
+                      </p>
+                      <label className="pk-field-label" htmlFor="referral-link">
+                        Votre lien
+                      </label>
+                      <input
+                        id="referral-link"
+                        className="pk-input"
+                        readOnly
+                        value={referralLink(referral.code)}
+                      />
+                      <label className="pk-field-label" htmlFor="referral-text">
+                        Texte prêt à coller
+                      </label>
+                      <textarea
+                        id="referral-text"
+                        className="pk-input"
+                        readOnly
+                        rows={4}
+                        value={`Préparez votre course avec PLUKA : temps de passage, barrières horaires, ravitos, nutrition et assistance, construits sur le parcours officiel de ${event?.name ?? 'notre course'}. ${referralLink(referral.code)}`}
+                      />
+                      <p className="pk-field-hint">Code de l’édition : {referral.code}</p>
+                    </details>
+                  )}
                   {inviting && list.total > 0 ? (
                     <details className="st-details or-add">
                       <summary className="pk-btn pk-button-secondary">

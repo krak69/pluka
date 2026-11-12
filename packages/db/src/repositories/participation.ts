@@ -1,7 +1,7 @@
+import { mapPostgrestError, type PostgrestLikeError } from '../errors.js';
 import { selectColumns } from '../columns.js';
 import { defineRepository, type RepositoryContext } from '../repository.js';
 import { unwrap, unwrapMaybe } from '../results.js';
-import type { InsertRow } from '../types.js';
 import {
   editionRepository,
   eventRepository,
@@ -198,7 +198,12 @@ export interface ParticipantRaceRepository {
    * n'en a pas besoin, et §28 comme §29 invitent à ne pas les promener.
    */
   listForUser(userId: string): Promise<readonly ParticipantRaceEntry[]>;
-  insert(input: InsertRow<'participant_races'>): Promise<ParticipantRaceRecord>;
+  /**
+   * Le coureur connecté valide sa course (05_ROUTES_FLOWS §1.7, 0087). La base
+   * pose elle-même le coureur et l'attribution : un code inconnu, désactivé ou
+   * d'une autre édition est ignoré et journalisé, jamais une erreur.
+   */
+  attach(raceId: string, referralCode: string | null): Promise<ParticipantRaceRecord>;
   /*
    * Deux écritures, deux axes — 02_DATA_MODEL §9.3.
    *
@@ -289,15 +294,24 @@ export const participantRaceRepository = defineRepository<ParticipantRaceReposit
     return rows.map(toOwnParticipation);
   },
 
-  async insert(input) {
+  async attach(raceId, referralCode) {
+    const operation = 'attach_participant_race';
+    const created = await (context.client as unknown as {
+      rpc(name: string, args: Record<string, unknown>): Promise<{ data: unknown; error: unknown }>;
+    }).rpc(operation, { p_race_id: raceId, p_referral_code: referralCode });
+
+    if (created.error !== null && created.error !== undefined) {
+      throw mapPostgrestError(created.error as PostgrestLikeError, operation);
+    }
+
     return toParticipantRace(
       unwrap(
         await context.client
           .from('participant_races')
-          .insert(input)
           .select(selectColumns('participant_races', PARTICIPANT_RACE_COLUMNS))
+          .eq('id', created.data as string)
           .single(),
-        'participant_races.insert',
+        'participant_races.attach',
       ),
     );
   },

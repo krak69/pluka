@@ -885,6 +885,20 @@ l'invitation, qui reporte la ligne sur la participation du coureur en cas de fus
 `participants_included` (contrainte) : un coureur ne paie pas ce que son organisation lui
 offre. Fermé, les colonnes Option PLUKA et Référence du fichier sont lues mais rien n'en sort.
 
+## 10.3.2 `organization_referral_codes` — canal A
+
+Le code d'une édition, porté par le lien que l'organisation met dans sa confirmation
+d'inscription (`00_PRODUCT_SPEC` §6.5.4, 0087). Un par édition (`edition_id` unique), créé
+avec elle par trigger, et pour les éditions d'un événement rattaché plus tard à une
+organisation. Lisible (`LES9CLOCHERS27`), unique, `^[A-Z0-9]{4,24}$`. `active` : PLUKA seul
+le coupe ; couper ne retire rien de ce qui est déjà attribué. Aucune policy : lu et écrit
+par les fonctions de 0087.
+
+`participant_races.referral_code_id` porte l'attribution : posée une fois, par
+`attach_participant_race`, quand le coureur valide sa course avec un code valide de
+l'édition ; jamais exposée au client. L'achat la reportera sur le `purchase`
+(`04_ENTITLEMENTS` §73.1) ; la commission se calcule dans Billing, hors de cette base.
+
 ## 10.4 `entitlement_usage`
 
 Ledger idempotent des usages consommant un quota.

@@ -1781,6 +1781,11 @@ Recommandation UX : le serveur indique au client le produit applicable (`race_pa
 
 # 73.1 Attribution organisateur — canal A (lien + code)
 
+Implémenté (0087, décisions du 2026-11-12) : un code par édition, créé automatiquement ; il
+suit le coureur dans l'adresse, sans cookie, et se pose sur la participation à la validation
+de la course (`participant_races.referral_code_id`). Le report sur le purchase attend le
+checkout.
+
 Un code organisateur est rattaché à :
 
 - une organisation ;

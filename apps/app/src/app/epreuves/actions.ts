@@ -1,6 +1,6 @@
 'use server';
 
-import { createParticipantRace, DomainError } from '@pluka/domain';
+import { createParticipantRace, DomainError, normalizeReferralCode } from '@pluka/domain';
 import { redirect } from 'next/navigation';
 
 import { participationContext } from '@/lib/participations';
@@ -45,7 +45,12 @@ export async function attachToRaceAction(
   let participantRaceId: string;
 
   try {
-    const created = await createParticipantRace(participationContext(session), { raceId });
+    // Un code mal formé est laissé de côté : il n'empêche jamais d'ajouter la course.
+    const referralCode = normalizeReferralCode(form.get('referralCode'));
+    const created = await createParticipantRace(participationContext(session), {
+      raceId,
+      ...(referralCode === null ? {} : { referralCode }),
+    });
     participantRaceId = created.id;
   } catch (error) {
     if (error instanceof DomainError && error.code === 'conflict') {

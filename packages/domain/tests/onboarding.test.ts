@@ -49,7 +49,7 @@ let profiles: Map<string, TrailProfileRecord>;
 function onboardingContext(userId: string): OnboardingContext {
   return {
     repositories: {
-      ...createFakeParticipationRepositories(participation),
+      ...createFakeParticipationRepositories(participation, userId),
       ...createFakeProfileRepositories(profiles),
     },
     actor: { userId },
@@ -66,7 +66,7 @@ function profileContext(userId: string): ProfileContext {
 
 function participationContext(userId: string): ParticipationContext {
   return {
-    repositories: createFakeParticipationRepositories(participation),
+    repositories: createFakeParticipationRepositories(participation, userId),
     actor: { userId },
     now: () => FIXED_NOW,
   };

@@ -14,6 +14,7 @@ import {
   createRepereCalibrationRepositories,
   createStaffTeamRepositories,
   participantImportRepository,
+  referralCodeRepository,
   type DbErrorCode,
 } from '@pluka/db';
 import {
@@ -32,6 +33,7 @@ import {
   type NutritionCatalogueContext,
   type OrganizationTeamContext,
   type ParticipantImportContext,
+  type ReferralCodeContext,
   type ParticipantInvitationContext,
   type RepereCalibrationContext,
   type StaffTeamContext,
@@ -72,6 +74,15 @@ export function participantListContext(session: Session): ParticipantImportConte
       participantImports: participantImportRepository({
         client: createDataClient(session.accessToken),
       }),
+    },
+  };
+}
+
+/** Canal A (0087) : lire et couper le lien d'une édition. La garde est en base. */
+export function referralCodeContext(session: Session): ReferralCodeContext {
+  return {
+    repositories: {
+      referralCodes: referralCodeRepository({ client: createDataClient(session.accessToken) }),
     },
   };
 }
