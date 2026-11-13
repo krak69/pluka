@@ -10,7 +10,14 @@ import {
 const INITIAL: EquipmentActionState = {};
 
 /** Ajout d'une pièce personnelle — prototype, « Ajouter un élément à mon matériel… ». */
-export function AddEquipmentForm({ participantRaceId }: { readonly participantRaceId: string }) {
+export function AddEquipmentForm({
+  participantRaceId,
+  savesToLibrary,
+}: {
+  readonly participantRaceId: string;
+  /** Avec PLUKA+ : une case décide si la pièce rejoint aussi « Mon matériel ». */
+  readonly savesToLibrary: boolean;
+}) {
   const [state, add, pending] = useActionState(addPersonalEquipmentAction, INITIAL);
   const form = useRef<HTMLFormElement>(null);
 
@@ -37,6 +44,12 @@ export function AddEquipmentForm({ participantRaceId }: { readonly participantRa
       <button type="submit" className="pk-btn pk-button-primary eq-add-button" disabled={pending}>
         + Ajouter
       </button>
+      {savesToLibrary ? (
+        <label className="eq-add-save">
+          <input type="checkbox" name="saveToLibrary" defaultChecked />
+          <span>Garder dans mon matériel, pour mes prochaines courses</span>
+        </label>
+      ) : null}
       {state.error === undefined ? null : (
         <p id="eq-add-error" className="pk-field-error eq-add-error" role="alert">
           {state.error}

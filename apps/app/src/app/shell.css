@@ -4425,3 +4425,187 @@ a.st-tab {
   line-height: 1.55;
   color: var(--pk-text-secondary);
 }
+
+/* ══ Bibliothèque · Matériel — prototype, `tab: 'biblio'` ═════════════════ */
+
+.lb-page {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.lb-intro {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.lb-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(24px, 2.6vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.lb-sub {
+  margin: 0;
+  max-width: 64ch;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--pk-text-secondary);
+}
+
+.lb-empty {
+  margin: 0;
+  padding: var(--space-5);
+  background: var(--pk-surface);
+  box-shadow: 0 0 0 1px var(--pk-hairline);
+  font-size: 14.5px;
+  color: var(--pk-text-secondary);
+}
+
+.lb-form {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.lb-form .pk-btn {
+  justify-self: start;
+  min-height: 44px;
+  padding: 8px 18px;
+  font-size: 15px;
+}
+
+.lb-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  font-family: var(--font-body);
+  font-size: 15px;
+}
+
+.lb-textarea {
+  min-height: 9rem;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.lb-input:focus-visible {
+  outline: 2px solid var(--pk-focus-light);
+  outline-offset: 1px;
+}
+
+.lb-saved {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--pk-success);
+}
+
+/* « Depuis mon matériel » : la bibliothèque à portée de clic dans la Préparation. */
+.eq-from-library {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border-left: 3px solid var(--pk-glacier);
+  background: var(--pk-surface);
+  box-shadow: 0 0 0 1px var(--pk-hairline);
+}
+
+.eq-from-library-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.eq-from-library-head .eq-heading {
+  margin: 0;
+}
+
+.eq-from-library form {
+  margin: 0;
+}
+
+.eq-add-all {
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 1.5px solid var(--pk-forest);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--pk-forest);
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.eq-add-all:hover {
+  background: var(--pk-glacier-bg);
+}
+
+.eq-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.eq-chips button {
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-limestone);
+  color: var(--pk-text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.eq-chips button:hover {
+  border-color: var(--pk-forest);
+  background: var(--pk-glacier-bg);
+}
+
+.eq-library-note {
+  margin: var(--space-2) 0 0;
+  font-size: 13px;
+  color: var(--pk-text-muted);
+}
+
+.lb-inventory .eq-heading {
+  margin-bottom: var(--space-3);
+}
+
+.lb-inventory .eq-label {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  font-size: 15px;
+}
+
+.eq-add-save {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  font-size: 14px;
+  color: var(--pk-text-secondary);
+  cursor: pointer;
+}
+
+.eq-add-save input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--pk-forest);
+}

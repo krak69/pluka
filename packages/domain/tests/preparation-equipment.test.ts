@@ -1,4 +1,6 @@
 import type {
+  LibraryRepository,
+  UserEquipmentItemRecord,
   EquipmentReadiness,
   ParticipantEquipmentRecord,
   PreparationRepository,
@@ -9,11 +11,16 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   addPersonalEquipment,
+  addPersonalEquipmentFromLibrary,
+  addToMyEquipment,
   EntitlementError,
   getEquipmentChecklist,
+  listMyEquipment,
+  removeFromMyEquipment,
   removePersonalEquipment,
   setOfficialEquipmentReady,
   setPersonalEquipmentReady,
+  type LibraryContext,
   type PreparationContext,
 } from '../src/index.js';
 import {
@@ -79,6 +86,34 @@ const FACTS: readonly PublishedRaceFactRecord[] = [
 ];
 
 let entitlements: EntitlementState;
+let library: (UserEquipmentItemRecord & { readonly userId: string })[];
+
+function fakeLibrary(userId: string): LibraryRepository {
+  // Comme la RLS (0092) : on ne voit et ne touche que son propre matériel ;
+  // comme l'index unique, un doublon à la casse près est ignoré.
+  return {
+    listEquipment: async () =>
+      library.filter((item) => item.userId === userId).map(({ id, label }) => ({ id, label })),
+    addEquipment: async (owner, labels) => {
+      for (const label of labels) {
+        const exists = library.some(
+          (item) => item.userId === owner && item.label.toLowerCase() === label.toLowerCase(),
+        );
+        if (!exists) {
+          library.push({
+            id: `0c000000-0000-4000-8000-${String((sequence += 1)).padStart(12, '0')}`,
+            userId: owner,
+            label,
+          });
+        }
+      }
+    },
+    removeEquipment: async (itemId) => {
+      library = library.filter((item) => !(item.id === itemId && item.userId === userId));
+    },
+  };
+}
+
 let rows: (ParticipantEquipmentRecord & { readonly participantRaceId: string })[];
 let own: string;
 let foreign: string;
@@ -112,6 +147,18 @@ function fakePreparation(): PreparationRepository {
         ready: false,
       });
     },
+    addPersonalEquipmentMany: async (participantRaceId, labels) => {
+      for (const label of labels) {
+        rows.push({
+          id: `0b000000-0000-4000-8000-${String((sequence += 1)).padStart(12, '0')}`,
+          participantRaceId,
+          raceFactId: null,
+          customLabel: label,
+          origin: 'personal',
+          ready: false,
+        });
+      }
+    },
     setPersonalEquipment: async (participantRaceId, equipmentId, readiness) => {
       rows = rows.map((row) =>
         row.id === equipmentId && row.participantRaceId === participantRaceId
@@ -137,6 +184,7 @@ function context(userId: string = RUNNER_A): PreparationContext {
       ...createFakeEntitlementRepositories(entitlements),
       preparation: fakePreparation(),
       publishedFacts,
+      library: fakeLibrary(userId),
     },
     actor: { userId },
     now: () => NOW,
@@ -149,6 +197,7 @@ beforeEach(() => {
   foreign = seedParticipation(participation, { userId: RUNNER_B, raceId: PUBLIC_RACE }).id;
   entitlements = entitlementBaseState(participation);
   rows = [];
+  library = [];
 });
 
 describe('la checklist', () => {
@@ -306,5 +355,156 @@ describe('le matériel personnel demande le Race Pass', () => {
     await expect(
       addPersonalEquipment(context(), { participantRaceId: other, label: 'Bâtons' }),
     ).rejects.toBeInstanceOf(EntitlementError);
+  });
+});
+
+function libraryContext(userId: string = RUNNER_A): LibraryContext {
+  return {
+    repositories: {
+      ...createFakeEntitlementRepositories(entitlements),
+      library: fakeLibrary(userId),
+    },
+    actor: { userId },
+    now: () => NOW,
+  };
+}
+
+function grantPlus(userId: string = RUNNER_A): void {
+  grantEntitlement(entitlements, { kind: 'plus', userId });
+}
+
+function grantRacePass(): void {
+  grantEntitlement(entitlements, { kind: 'race_pass', userId: RUNNER_A, participantRaceId: own });
+}
+
+describe('« Mon matériel » (§20)', () => {
+  it('s’enrichit avec PLUKA+, une pièce par ligne, sans vides ni doublons', async () => {
+    grantPlus();
+    await addToMyEquipment(libraryContext(), {
+      labels: ['Lunettes', ' ', 'lunettes', 'Batterie  externe'],
+    });
+
+    const mine = await listMyEquipment(libraryContext());
+    expect(mine.canEdit).toBe(true);
+    expect(mine.items.map((item) => item.label)).toEqual(['Lunettes', 'Batterie externe']);
+  });
+
+  it('ne s’écrit pas avec un Race Pass seul (§58)', async () => {
+    grantRacePass();
+    await expect(
+      addToMyEquipment(libraryContext(), { labels: ['Lunettes'] }),
+    ).rejects.toBeInstanceOf(EntitlementError);
+    expect((await listMyEquipment(libraryContext())).canEdit).toBe(false);
+  });
+
+  it('se lit gratuitement : un PLUKA+ expiré garde son matériel', async () => {
+    library.push({ id: '0c000000-0000-4000-8000-000000000099', userId: RUNNER_A, label: 'Bâtons' });
+    const mine = await listMyEquipment(libraryContext());
+    expect(mine.items.map((item) => item.label)).toEqual(['Bâtons']);
+    expect(mine.canEdit).toBe(false);
+  });
+
+  it('ne retire jamais la pièce d’un autre coureur', async () => {
+    grantPlus();
+    grantPlus(RUNNER_B);
+    await addToMyEquipment(libraryContext(RUNNER_B), { labels: ['Veste de Runner B'] });
+    const foreignId = library[0]?.id ?? '';
+
+    await removeFromMyEquipment(libraryContext(), { itemId: foreignId });
+    expect(library).toHaveLength(1);
+  });
+});
+
+describe('ajouter depuis « Mon matériel »', () => {
+  beforeEach(() => {
+    for (const label of ['frontale', 'Lunettes', 'Crème solaire', 'Batterie']) {
+      library.push({
+        id: `0c000000-0000-4000-8000-${String((sequence += 1)).padStart(12, '0')}`,
+        userId: RUNNER_A,
+        label,
+      });
+    }
+  });
+
+  it('propose ce qui n’est pas encore dans la course', async () => {
+    grantRacePass();
+    await addPersonalEquipment(context(), { participantRaceId: own, label: 'lunettes' });
+
+    const checklist = await getEquipmentChecklist(context(), { participantRaceId: own });
+    // « frontale » est déjà du matériel de l'organisation, « lunettes » déjà le sien.
+    expect(checklist.fromLibrary.map((item) => item.label)).toEqual(['Crème solaire', 'Batterie']);
+  });
+
+  it('ajoute les pièces choisies d’un clic, sans doublon', async () => {
+    grantRacePass();
+    const ids = library.map((item) => item.id);
+
+    const added = await addPersonalEquipmentFromLibrary(context(), {
+      participantRaceId: own,
+      itemIds: ids,
+    });
+
+    expect(added).toBe(3);
+    const checklist = await getEquipmentChecklist(context(), { participantRaceId: own });
+    expect(checklist.personal.map((item) => item.label)).toEqual([
+      'Lunettes',
+      'Crème solaire',
+      'Batterie',
+    ]);
+    expect(checklist.fromLibrary).toEqual([]);
+  });
+
+  it('ignore une pièce qui n’est pas la sienne', async () => {
+    grantRacePass();
+    library.push({ id: '0c000000-0000-4000-8000-000000000098', userId: RUNNER_B, label: 'Intrus' });
+
+    const added = await addPersonalEquipmentFromLibrary(context(), {
+      participantRaceId: own,
+      itemIds: ['0c000000-0000-4000-8000-000000000098'],
+    });
+    expect(added).toBe(0);
+  });
+
+  it('demande le droit au matériel personnel de la course', async () => {
+    const ids = library.map((item) => item.id);
+    await expect(
+      addPersonalEquipmentFromLibrary(context(), { participantRaceId: own, itemIds: ids }),
+    ).rejects.toBeInstanceOf(EntitlementError);
+  });
+});
+
+describe('une pièce saisie dans une course rejoint « Mon matériel »', () => {
+  it('avec PLUKA+, automatiquement', async () => {
+    grantPlus();
+    await addPersonalEquipment(context(), { participantRaceId: own, label: 'Gants fins' });
+
+    const checklist = await getEquipmentChecklist(context(), { participantRaceId: own });
+    expect(checklist.savesToLibrary).toBe(true);
+    expect((await listMyEquipment(libraryContext())).items.map((item) => item.label)).toEqual([
+      'Gants fins',
+    ]);
+  });
+
+  it('pas si le coureur décoche « Garder dans mon matériel »', async () => {
+    grantPlus();
+    await addPersonalEquipment(context(), {
+      participantRaceId: own,
+      label: 'Gants fins',
+      saveToLibrary: false,
+    });
+
+    const checklist = await getEquipmentChecklist(context(), { participantRaceId: own });
+    expect(checklist.personal.map((item) => item.label)).toEqual(['Gants fins']);
+    expect(library).toEqual([]);
+  });
+
+  it('avec un Race Pass seul, elle reste à la course', async () => {
+    grantRacePass();
+    await addPersonalEquipment(context(), { participantRaceId: own, label: 'Gants fins' });
+
+    const checklist = await getEquipmentChecklist(context(), { participantRaceId: own });
+    expect(checklist.savesToLibrary).toBe(false);
+    expect(checklist.personal.map((item) => item.label)).toEqual(['Gants fins']);
+    expect(library).toEqual([]);
   });
 });

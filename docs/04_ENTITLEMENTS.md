@@ -1064,6 +1064,13 @@ PLUKA+ donne accès à la Bibliothèque personnelle complète :
 
 Race Pass peut utiliser les produits nécessaires à la course courante sans nécessairement bénéficier de toute l’expérience Bibliothèque annuelle.
 
+**« Mon matériel » (décisions produit du 2026-11-13).** L'inventaire de matériel se lit avec
+`library.read` (Free : un PLUKA+ expiré garde son matériel) et s'écrit avec `library.edit`
+(PLUKA+). Ajouter à une course des pièces de son inventaire relève du matériel personnel
+(`preparation.edit_advanced`, Race Pass). Une pièce saisie dans la Préparation rejoint
+l'inventaire si le coureur a `library.edit` et laisse cochée « Garder dans mon matériel »
+(cochée par défaut) ; sans ce droit, la case n'est pas proposée.
+
 Le détail UX est défini par Product Spec.
 
 ---

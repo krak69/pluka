@@ -1,5 +1,6 @@
 import {
   createEntitlementRepositories,
+  createLibraryRepositories,
   createPreparationRepositories,
   createRaceInformationRepositories,
 } from '@pluka/db';
@@ -21,6 +22,7 @@ export function preparationContext(session: Session): PreparationContext {
   return {
     repositories: {
       ...createPreparationRepositories({ client }),
+      ...createLibraryRepositories({ client }),
       ...createEntitlementRepositories({ client }),
       publishedFacts: createRaceInformationRepositories({ client }).publishedFacts,
     },

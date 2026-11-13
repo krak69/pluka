@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type {
   EntitlementRepositories,
   EquipmentRequirement,
+  LibraryRepositories,
   ParticipantEquipmentRecord,
   PreparationRepositories,
   PublishedFactRepository,
@@ -15,6 +16,7 @@ import { can } from '../entitlements/resolver.js';
 import { authorizeCapability, resolveEntitlements } from '../entitlements/use-cases.js';
 import { notFoundError, parseCommand } from '../errors.js';
 import { equipmentValueOf } from '../facts/equipment.js';
+import { cleanLabels, labelKey } from '../library/equipment-library.js';
 
 /**
  * Checklist de matériel — 00_PRODUCT_SPEC §14.1, §14.2 ; 04_ENTITLEMENTS §45,
@@ -39,6 +41,7 @@ import { equipmentValueOf } from '../facts/equipment.js';
 
 export interface PreparationContext {
   readonly repositories: PreparationRepositories &
+    LibraryRepositories &
     EntitlementRepositories & { readonly publishedFacts: PublishedFactRepository };
   readonly actor: Actor;
   /** Horloge serveur, transmise au service de droits (04_ENTITLEMENTS §22). */
@@ -70,6 +73,13 @@ export interface EquipmentChecklist {
   readonly mandatory: { readonly ready: number; readonly total: number };
   /** Peut ajouter, cocher et retirer du matériel personnel (Race Pass). */
   readonly canEditPersonal: boolean;
+  /**
+   * « Mon matériel » qui n'est pas encore dans cette course, à ajouter d'un
+   * clic. Gratuit à lire : un PLUKA+ expiré garde son matériel.
+   */
+  readonly fromLibrary: readonly { readonly id: string; readonly label: string }[];
+  /** Une pièce saisie ici rejoint aussi « Mon matériel » (PLUKA+, `library.edit`). */
+  readonly savesToLibrary: boolean;
 }
 
 const participation = z.object({ participantRaceId: z.uuid() }).strict();
@@ -79,11 +89,20 @@ const setOfficialCommand = z
   .strict();
 
 const addPersonalCommand = z
-  .object({ participantRaceId: z.uuid(), label: z.string().trim().min(1).max(120) })
+  .object({
+    participantRaceId: z.uuid(),
+    label: z.string().trim().min(1).max(120),
+    // Le coureur choisit de garder la pièce dans « Mon matériel » (coché par défaut).
+    saveToLibrary: z.boolean().default(true),
+  })
   .strict();
 
 const setPersonalCommand = z
   .object({ participantRaceId: z.uuid(), equipmentId: z.uuid(), ready: z.boolean() })
+  .strict();
+
+const addFromLibraryCommand = z
+  .object({ participantRaceId: z.uuid(), itemIds: z.array(z.uuid()).min(1).max(100) })
   .strict();
 
 const removePersonalCommand = z
@@ -171,25 +190,30 @@ export async function getEquipmentChecklist(
   await authorize(context, 'course.mandatory_equipment.read', participantRaceId);
 
   const raceId = await raceIdOf(context, participantRaceId, useCase);
-  const [facts, rows, entitlements] = await Promise.all([
+  const [facts, rows, entitlements, library] = await Promise.all([
     context.repositories.publishedFacts.listPublishedByRace(raceId),
     context.repositories.preparation.listEquipment(participantRaceId),
     resolveEntitlements(serviceContext(context), { participantRaceId }),
+    context.repositories.library.listEquipment(context.actor.userId),
   ]);
 
   const official = officialItems(facts, rows);
   const mandatory = official.filter((item) => item.requirement === 'mandatory');
+  const personal = rows
+    .filter((row) => row.origin === 'personal' && row.customLabel !== null)
+    .map((row) => ({ id: row.id, label: row.customLabel as string, ready: row.ready }));
+  const taken = new Set([...official, ...personal].map((item) => labelKey(item.label)));
 
   return {
     official,
-    personal: rows
-      .filter((row) => row.origin === 'personal' && row.customLabel !== null)
-      .map((row) => ({ id: row.id, label: row.customLabel as string, ready: row.ready })),
+    personal,
     mandatory: {
       ready: mandatory.filter((item) => item.ready).length,
       total: mandatory.length,
     },
     canEditPersonal: can(entitlements, 'preparation.edit_advanced').allowed,
+    fromLibrary: library.filter((item) => !taken.has(labelKey(item.label))),
+    savesToLibrary: can(entitlements, 'library.edit').allowed,
   };
 }
 
@@ -219,7 +243,7 @@ export async function setOfficialEquipmentReady(
   );
 }
 
-/** Ajoute une pièce personnelle. Race Pass. */
+/** Ajoute une pièce personnelle. Race Pass ; avec PLUKA+, elle rejoint aussi « Mon matériel ». */
 export async function addPersonalEquipment(
   context: PreparationContext,
   input: unknown,
@@ -230,6 +254,17 @@ export async function addPersonalEquipment(
     command.participantRaceId,
     command.label,
   );
+
+  // Avec PLUKA+, la pièce rejoint aussi « Mon matériel » si le coureur le
+  // laisse coché : on ne la retapera plus (décisions produit du 2026-11-13).
+  // Sans ce droit, elle reste à la course.
+  if (!command.saveToLibrary) return;
+  const entitlements = await resolveEntitlements(serviceContext(context), {
+    participantRaceId: command.participantRaceId,
+  });
+  if (can(entitlements, 'library.edit').allowed) {
+    await context.repositories.library.addEquipment(context.actor.userId, [command.label]);
+  }
 }
 
 /** Coche ou décoche une pièce personnelle. Race Pass. */
@@ -257,4 +292,57 @@ export async function removePersonalEquipment(
     command.participantRaceId,
     command.equipmentId,
   );
+}
+
+/** Les intitulés déjà présents dans la checklist, pour ne pas les dupliquer (§14.3). */
+async function takenLabels(
+  context: PreparationContext,
+  participantRaceId: string,
+  raceId: string,
+): Promise<ReadonlySet<string>> {
+  const [facts, rows] = await Promise.all([
+    context.repositories.publishedFacts.listPublishedByRace(raceId),
+    context.repositories.preparation.listEquipment(participantRaceId),
+  ]);
+  return new Set(
+    [
+      ...facts
+        .filter((fact) => fact.category === 'equipment' && fact.valueText !== null)
+        .map((fact) => fact.valueText as string),
+      ...rows
+        .filter((row) => row.origin === 'personal' && row.customLabel !== null)
+        .map((row) => row.customLabel as string),
+    ].map(labelKey),
+  );
+}
+
+/**
+ * Ajoute à la course des pièces de « Mon matériel », d'un clic — sans rien
+ * retaper (décision produit du 2026-11-13). Une copie : retirer la pièce de la
+ * course ne la retire pas de la bibliothèque. Les pièces déjà présentes sont
+ * ignorées. Rend le nombre de pièces ajoutées.
+ *
+ * Lire sa bibliothèque est gratuit, ajouter du matériel personnel est Race
+ * Pass : un coureur qui a eu PLUKA+ garde son matériel et peut s'en servir.
+ */
+export async function addPersonalEquipmentFromLibrary(
+  context: PreparationContext,
+  input: unknown,
+): Promise<number> {
+  const useCase = 'addPersonalEquipmentFromLibrary';
+  const command = parseCommand(addFromLibraryCommand, input, useCase);
+  await authorize(context, 'preparation.edit_advanced', command.participantRaceId);
+
+  // La RLS ne rend que son propre matériel : un identifiant étranger est ignoré.
+  const library = await context.repositories.library.listEquipment(context.actor.userId);
+  const wanted = new Set(command.itemIds);
+  const raceId = await raceIdOf(context, command.participantRaceId, useCase);
+  const taken = await takenLabels(context, command.participantRaceId, raceId);
+
+  const added = cleanLabels(
+    library.filter((item) => wanted.has(item.id)).map((item) => item.label),
+  ).filter((label) => !taken.has(labelKey(label)));
+
+  await context.repositories.preparation.addPersonalEquipmentMany(command.participantRaceId, added);
+  return added.length;
 }

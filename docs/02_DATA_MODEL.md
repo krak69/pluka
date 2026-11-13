@@ -1296,6 +1296,20 @@ Le catalogue de produits personnels reste dans `user_nutrition_products`.
 
 La Bibliothèque ne doit pas devenir un système de documents arbitraires.
 
+## 17.2 `user_equipment_items` — « Mon matériel »
+
+**Migration 0092 (décisions produit du 2026-11-13).** L'inventaire du matériel que le coureur
+possède, une pièce par ligne (`label`, 1 à 120 caractères), unique par coureur à la casse près
+(`ux_user_equipment_items_label` sur `lower(btrim(label))`). Il sert à ajouter une pièce à la
+Préparation d'une course d'un clic, sans la retaper : l'ajout est une copie dans
+`participant_equipment`, retirer la pièce de la course ne la retire pas de l'inventaire.
+
+Une pièce saisie dans une course rejoint aussi l'inventaire quand le coureur a `library.edit`
+(PLUKA+) et laisse cochée « Garder dans mon matériel ». Propriétaire strict, aucune policy
+organisation ; supprimé avec le compte et inclus dans `export_my_data` (`equipmentLibrary`).
+Une table plutôt qu'un modèle dans `library_templates` : on ajoute et retire une pièce, et le
+doublon se refuse en base.
+
 ---
 
 # 18. Conditions météo

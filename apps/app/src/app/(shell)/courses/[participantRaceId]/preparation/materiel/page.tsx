@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import {
+  addFromLibraryAction,
   removePersonalEquipmentAction,
   setOfficialEquipmentAction,
   setPersonalEquipmentAction,
@@ -176,7 +177,41 @@ export default async function EquipmentPage({
                 ))}
               </ul>
             )}
-            <AddEquipmentForm participantRaceId={participantRaceId} />
+            <AddEquipmentForm
+              participantRaceId={participantRaceId}
+              savesToLibrary={checklist.savesToLibrary}
+            />
+
+            {/* « Mon matériel » pas encore dans cette course : un clic par pièce. */}
+            {checklist.fromLibrary.length === 0 ? null : (
+              <div className="eq-from-library">
+                <div className="eq-from-library-head">
+                  <h3 className="eq-heading">Depuis mon matériel</h3>
+                  <form action={addFromLibraryAction}>
+                    <input type="hidden" name="participantRaceId" value={participantRaceId} />
+                    {checklist.fromLibrary.map((item) => (
+                      <input key={item.id} type="hidden" name="itemId" value={item.id} />
+                    ))}
+                    <button type="submit" className="eq-add-all">
+                      Tout ajouter ({checklist.fromLibrary.length})
+                    </button>
+                  </form>
+                </div>
+                <ul className="eq-chips">
+                  {checklist.fromLibrary.map((item) => (
+                    <li key={item.id}>
+                      <form action={addFromLibraryAction}>
+                        <input type="hidden" name="participantRaceId" value={participantRaceId} />
+                        <input type="hidden" name="itemId" value={item.id} />
+                        <button type="submit" aria-label={`Ajouter ${item.label} à cette course`}>
+                          + {item.label}
+                        </button>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </>
         ) : (
           <div className="eq-locked">

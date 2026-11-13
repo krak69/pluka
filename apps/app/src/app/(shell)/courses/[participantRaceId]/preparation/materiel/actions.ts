@@ -2,6 +2,7 @@
 
 import {
   addPersonalEquipment,
+  addPersonalEquipmentFromLibrary,
   DomainError,
   EntitlementError,
   removePersonalEquipment,
@@ -92,10 +93,25 @@ export async function addPersonalEquipmentAction(
     await addPersonalEquipment(preparationContext(session), {
       participantRaceId,
       label: field(form, 'label'),
+      // Case absente (sans PLUKA+) ou décochée : rien ne rejoint la bibliothèque.
+      saveToLibrary: form.get('saveToLibrary') === 'on',
     });
   } catch (error) {
     return { error: messageOf(error) };
   }
   revalidatePath(pathOf(participantRaceId));
   return {};
+}
+
+/** Ajoute d'un clic une ou plusieurs pièces de « Mon matériel » à la course. */
+export async function addFromLibraryAction(form: FormData): Promise<void> {
+  const participantRaceId = field(form, 'participantRaceId');
+  const session = await requireSession(pathOf(participantRaceId));
+  await addPersonalEquipmentFromLibrary(preparationContext(session), {
+    participantRaceId,
+    itemIds: form.getAll('itemId').map(String),
+  }).catch((error: unknown) => {
+    messageOf(error);
+  });
+  revalidatePath(pathOf(participantRaceId));
 }

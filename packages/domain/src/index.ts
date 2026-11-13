@@ -837,6 +837,7 @@ export type {
 
 export {
   addPersonalEquipment,
+  addPersonalEquipmentFromLibrary,
   getEquipmentChecklist,
   removePersonalEquipment,
   setOfficialEquipmentReady,
@@ -846,3 +847,13 @@ export {
   type PersonalEquipmentItem,
   type PreparationContext,
 } from './preparation/equipment.js';
+
+export {
+  addToMyEquipment,
+  cleanLabels,
+  labelKey,
+  listMyEquipment,
+  removeFromMyEquipment,
+  type LibraryContext,
+  type MyEquipment,
+} from './library/equipment-library.js';

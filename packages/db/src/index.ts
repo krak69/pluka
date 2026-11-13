@@ -321,6 +321,13 @@ export {
   type RepereRepositories,
 } from './repositories/repere.js';
 export {
+  createLibraryRepositories,
+  libraryRepository,
+  type UserEquipmentItemRecord,
+  type LibraryRepositories,
+  type LibraryRepository,
+} from './repositories/library.js';
+export {
   createPreparationRepositories,
   preparationRepository,
   type EquipmentReadiness,

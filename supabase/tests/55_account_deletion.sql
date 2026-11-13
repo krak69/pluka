@@ -208,7 +208,9 @@ select set_eq(
     'community_reports.reporter_user_id:n',
     'participant_start_changes.participant_race_id:c',
     -- Une vente a eu lieu même si la participation disparaît : elle reste, détachée (0086).
-    'partner_sale_lines.participant_race_id:n'
+    'partner_sale_lines.participant_race_id:n',
+    -- « Mon matériel » part avec le compte (0092).
+    'user_equipment_items.user_id:c'
   ],
   'DEL-21 — chaque clé vers un compte ou une participation a une règle décidée');
 

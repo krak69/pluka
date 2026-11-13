@@ -33,6 +33,8 @@ export interface PreparationRepository {
     readiness: EquipmentReadiness,
   ): Promise<void>;
   addPersonalEquipment(participantRaceId: string, label: string): Promise<void>;
+  /** Plusieurs pièces d'un coup — l'application d'un modèle de la bibliothèque. */
+  addPersonalEquipmentMany(participantRaceId: string, labels: readonly string[]): Promise<void>;
   setPersonalEquipment(
     participantRaceId: string,
     equipmentId: string,
@@ -90,6 +92,21 @@ export const preparationRepository = defineRepository<PreparationRepository>((co
         status: 'planned',
       }),
       'participant_equipment.addPersonal',
+    );
+  },
+
+  async addPersonalEquipmentMany(participantRaceId, labels) {
+    if (labels.length === 0) return;
+    unwrapMaybe(
+      await context.client.from('participant_equipment').insert(
+        labels.map((label) => ({
+          participant_race_id: participantRaceId,
+          custom_label: label,
+          origin: 'personal' as const,
+          status: 'planned' as const,
+        })),
+      ),
+      'participant_equipment.addPersonalMany',
     );
   },
 
