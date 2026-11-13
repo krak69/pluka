@@ -1009,6 +1009,12 @@ comprend notamment :
 
 Le matériel obligatoire de la Race reste consultable en Free.
 
+**Cocher le matériel de l'organisation est Free (décision produit du 2026-11-13).** La
+checklist du matériel publié par l'organisation — obligatoire, conditionnel, recommandé — se
+coche avec `course.mandatory_equipment.read` : c'est de la sécurité, et §14.1 de la spec
+produit dit que le coureur peut le cocher. Seul le matériel personnel (ajouter, cocher,
+retirer) demande `preparation.edit_advanced`. La jauge « prêts » ne compte que l'obligatoire.
+
 ---
 
 # 46. Assistance

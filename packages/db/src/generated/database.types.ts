@@ -2838,6 +2838,7 @@ export type Database = {
           notes: string | null
           origin: Database["public"]["Enums"]["equipment_origin"]
           participant_race_id: string
+          race_fact_id: string | null
           source_requirement_id: string | null
           status: Database["public"]["Enums"]["equipment_status"]
           updated_at: string
@@ -2850,6 +2851,7 @@ export type Database = {
           notes?: string | null
           origin?: Database["public"]["Enums"]["equipment_origin"]
           participant_race_id: string
+          race_fact_id?: string | null
           source_requirement_id?: string | null
           status?: Database["public"]["Enums"]["equipment_status"]
           updated_at?: string
@@ -2862,6 +2864,7 @@ export type Database = {
           notes?: string | null
           origin?: Database["public"]["Enums"]["equipment_origin"]
           participant_race_id?: string
+          race_fact_id?: string | null
           source_requirement_id?: string | null
           status?: Database["public"]["Enums"]["equipment_status"]
           updated_at?: string
@@ -2879,6 +2882,13 @@ export type Database = {
             columns: ["participant_race_id"]
             isOneToOne: false
             referencedRelation: "participant_races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participant_equipment_race_fact_id_fkey"
+            columns: ["race_fact_id"]
+            isOneToOne: false
+            referencedRelation: "race_facts"
             referencedColumns: ["id"]
           },
           {
@@ -6815,6 +6825,14 @@ export type Database = {
         }[]
       }
       get_participant_import: { Args: { p_import_id: string }; Returns: Json }
+      get_plus_offer: {
+        Args: never
+        Returns: {
+          active: boolean
+          amount_minor: number
+          currency: string
+        }[]
+      }
       get_race_gpx_import: { Args: { p_race_id: string }; Returns: Json }
       get_race_pass_offer: {
         Args: { p_participant_race_id: string }

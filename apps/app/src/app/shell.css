@@ -4193,3 +4193,235 @@ a.st-tab {
     display: none;
   }
 }
+
+/* ══ Préparation · Matériel — prototype, `tab: 'prep'` ════════════════════ */
+
+.eq-page {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.eq-summary {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.eq-gauge {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(24px, 2.6vw, 30px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.eq-bar {
+  width: min(320px, 100%);
+  height: 4px;
+  background: var(--pk-hairline);
+}
+
+.eq-bar span {
+  display: block;
+  height: 100%;
+  background: var(--pk-lichen);
+}
+
+.eq-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--pk-glacier-bg);
+  font-size: 14.5px;
+}
+
+.eq-notice-done svg {
+  color: var(--pk-forest);
+}
+
+.eq-heading {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pk-text-muted);
+}
+
+.eq-empty {
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+  background: var(--pk-surface);
+  box-shadow: 0 0 0 1px var(--pk-hairline);
+  font-size: 14.5px;
+  color: var(--pk-text-secondary);
+}
+
+.eq-list {
+  margin: 0;
+  padding: 0 var(--space-5);
+  list-style: none;
+  background: var(--pk-surface);
+  box-shadow: 0 0 0 1px var(--pk-hairline);
+}
+
+.eq-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.eq-row:last-child {
+  border-bottom: 0;
+}
+
+.eq-toggle,
+.eq-remove {
+  margin: 0;
+}
+
+.eq-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pk-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.eq-box {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--pk-forest);
+  border-radius: 2px;
+  background: var(--pk-surface);
+}
+
+.eq-box-on {
+  background: var(--pk-forest);
+  color: var(--pk-lichen);
+}
+
+.eq-label-done {
+  color: var(--pk-text-muted);
+}
+
+.eq-meta {
+  grid-column: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding-left: calc(18px + var(--space-3));
+  font-size: 12.5px;
+  color: var(--pk-text-secondary);
+}
+
+.eq-tag {
+  padding: 1px 7px;
+  border-radius: 2px;
+  background: var(--pk-sand);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pk-text);
+}
+
+.eq-tag-mandatory {
+  background: var(--pk-ink);
+  color: var(--pk-lichen);
+}
+
+.eq-condition {
+  font-style: italic;
+}
+
+.eq-source {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  font-size: 13px;
+  color: var(--pk-forest);
+}
+
+.eq-remove {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.eq-remove button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--pk-error);
+  cursor: pointer;
+}
+
+.eq-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.eq-add-input {
+  flex: 1 1 16rem;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  font-family: var(--font-body);
+  font-size: 15px;
+}
+
+.eq-add-input:focus-visible {
+  outline: 2px solid var(--pk-focus-light);
+  outline-offset: 1px;
+}
+
+.eq-add-button {
+  min-height: 48px;
+}
+
+.eq-add-error {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.eq-locked {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  padding: var(--space-5);
+  border-left: 3px solid var(--pk-lichen);
+  background: var(--pk-surface);
+  box-shadow: 0 0 0 1px var(--pk-hairline);
+}
+
+.eq-locked p {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--pk-text-secondary);
+}

@@ -1053,6 +1053,15 @@ Une ligne peut provenir :
 
 Le `origin` est important : une suggestion ne doit jamais devenir matériel obligatoire.
 
+**Checklist (migration 0091).** Une ligne officielle référence le `race_fact` de catégorie
+`equipment` de sa course (`race_fact_id`, stable d'une version à l'autre : corriger l'intitulé
+ne décoche rien), avec l'origine `official_requirement` ; une ligne personnelle porte un
+`custom_label` (1 à 120 caractères) et l'origine `personal`. Exactement un sujet par ligne,
+une seule ligne par pièce officielle et par participation. Un trigger refuse un fact d'une
+autre course ou qui n'est pas du matériel. L'application n'utilise que deux états : `packed`
+(« prêt ») et `planned`. `equipment_item_id` et `source_requirement_id` (0001) restent pour
+l'historique et ne sont plus écrits.
+
 ## 13.3 `bags` / `bag_items`
 
 Sacs de départ, drop bag, Assistance, arrivée.

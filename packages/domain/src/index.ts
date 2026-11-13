@@ -834,3 +834,15 @@ export type {
   BillingWebhookDelivery,
   VerifiedBillingEvent,
 } from '@pluka/contracts';
+
+export {
+  addPersonalEquipment,
+  getEquipmentChecklist,
+  removePersonalEquipment,
+  setOfficialEquipmentReady,
+  setPersonalEquipmentReady,
+  type EquipmentChecklist,
+  type OfficialEquipmentItem,
+  type PersonalEquipmentItem,
+  type PreparationContext,
+} from './preparation/equipment.js';
