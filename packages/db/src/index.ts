@@ -323,6 +323,8 @@ export {
 export {
   createLibraryRepositories,
   libraryRepository,
+  type GearCategoryValue,
+  type NewEquipmentItem,
   type UserEquipmentItemRecord,
   type LibraryRepositories,
   type LibraryRepository,

@@ -4609,3 +4609,170 @@ a.st-tab {
   margin: 0;
   accent-color: var(--pk-forest);
 }
+
+/* « Mon matériel » : filtres par catégorie et par tag (0093). */
+.lb-filters {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.lb-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lb-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  color: var(--pk-text);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.lb-filter:hover {
+  border-color: var(--pk-forest);
+}
+
+.lb-filter[aria-current='true'] {
+  border-color: var(--pk-forest);
+  background: var(--pk-forest);
+  color: var(--pk-text-on-dark);
+}
+
+.lb-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--pk-text-muted);
+}
+
+.lb-filter[aria-current='true'] .lb-count {
+  color: var(--pk-lichen);
+}
+
+.lb-tag-filter {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--pk-forest);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.lb-tag-filter:hover {
+  background: var(--pk-glacier-bg);
+}
+
+.lb-tag-filter[aria-current='true'] {
+  background: var(--pk-glacier-bg);
+  box-shadow: inset 0 0 0 1px var(--pk-forest);
+}
+
+.lb-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.lb-row:last-child {
+  border-bottom: 0;
+}
+
+.lb-row-main {
+  display: flex;
+  flex: 1 1 14rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  min-height: 40px;
+}
+
+.lb-row-label {
+  font-size: 15px;
+}
+
+.lb-row-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.lb-tag {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--pk-glacier-bg);
+  color: var(--pk-forest);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.lb-classify > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  cursor: pointer;
+  font-family: var(--font-heading);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--pk-forest);
+}
+
+.lb-classify[open] {
+  flex-basis: 100%;
+  order: 3;
+}
+
+.lb-classify-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-3) 0 var(--space-2);
+}
+
+.lb-field {
+  display: grid;
+  flex: 1 1 14rem;
+  gap: 4px;
+}
+
+.lb-classify-form .pk-btn {
+  min-height: 44px;
+  padding: 8px 18px;
+  font-size: 15px;
+}
+
+.lb-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pk-text-muted);
+}
+
+/* Préparation : les pastilles « Depuis mon matériel », par catégorie. */
+.eq-chip-group {
+  display: grid;
+  gap: 6px;
+}
+
+.eq-chip-group-title {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pk-text-secondary);
+}

@@ -10,6 +10,7 @@ import type {
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  updateMyEquipmentItem,
   addPersonalEquipment,
   addPersonalEquipmentFromLibrary,
   addToMyEquipment,
@@ -93,9 +94,11 @@ function fakeLibrary(userId: string): LibraryRepository {
   // comme l'index unique, un doublon à la casse près est ignoré.
   return {
     listEquipment: async () =>
-      library.filter((item) => item.userId === userId).map(({ id, label }) => ({ id, label })),
-    addEquipment: async (owner, labels) => {
-      for (const label of labels) {
+      library
+        .filter((item) => item.userId === userId)
+        .map(({ id, label, category, tags }) => ({ id, label, category, tags })),
+    addEquipment: async (owner, items) => {
+      for (const { label, category } of items) {
         const exists = library.some(
           (item) => item.userId === owner && item.label.toLowerCase() === label.toLowerCase(),
         );
@@ -104,9 +107,18 @@ function fakeLibrary(userId: string): LibraryRepository {
             id: `0c000000-0000-4000-8000-${String((sequence += 1)).padStart(12, '0')}`,
             userId: owner,
             label,
+            category,
+            tags: [],
           });
         }
       }
+    },
+    updateEquipment: async (itemId, category, tags) => {
+      library = library.map((item) =>
+        item.id === itemId && item.userId === userId
+          ? { ...item, category, tags: [...tags] }
+          : item,
+      );
     },
     removeEquipment: async (itemId) => {
       library = library.filter((item) => !(item.id === itemId && item.userId === userId));
@@ -398,7 +410,13 @@ describe('« Mon matériel » (§20)', () => {
   });
 
   it('se lit gratuitement : un PLUKA+ expiré garde son matériel', async () => {
-    library.push({ id: '0c000000-0000-4000-8000-000000000099', userId: RUNNER_A, label: 'Bâtons' });
+    library.push({
+      id: '0c000000-0000-4000-8000-000000000099',
+      userId: RUNNER_A,
+      label: 'Bâtons',
+      category: 'other',
+      tags: [],
+    });
     const mine = await listMyEquipment(libraryContext());
     expect(mine.items.map((item) => item.label)).toEqual(['Bâtons']);
     expect(mine.canEdit).toBe(false);
@@ -422,6 +440,8 @@ describe('ajouter depuis « Mon matériel »', () => {
         id: `0c000000-0000-4000-8000-${String((sequence += 1)).padStart(12, '0')}`,
         userId: RUNNER_A,
         label,
+        category: 'other',
+        tags: [],
       });
     }
   });
@@ -456,7 +476,13 @@ describe('ajouter depuis « Mon matériel »', () => {
 
   it('ignore une pièce qui n’est pas la sienne', async () => {
     grantRacePass();
-    library.push({ id: '0c000000-0000-4000-8000-000000000098', userId: RUNNER_B, label: 'Intrus' });
+    library.push({
+      id: '0c000000-0000-4000-8000-000000000098',
+      userId: RUNNER_B,
+      label: 'Intrus',
+      category: 'other',
+      tags: [],
+    });
 
     const added = await addPersonalEquipmentFromLibrary(context(), {
       participantRaceId: own,
@@ -506,5 +532,82 @@ describe('une pièce saisie dans une course rejoint « Mon matériel »', () => 
     expect(checklist.savesToLibrary).toBe(false);
     expect(checklist.personal.map((item) => item.label)).toEqual(['Gants fins']);
     expect(library).toEqual([]);
+  });
+});
+
+describe('classer « Mon matériel » (0093)', () => {
+  beforeEach(async () => {
+    grantPlus();
+    await addToMyEquipment(libraryContext(), {
+      labels: ['Lampe frontale', 'Veste imperméable', 'Gants fins', 'Porte-bonheur'],
+    });
+  });
+
+  it('devine la catégorie à l’ajout, et trie par catégorie', async () => {
+    const mine = await listMyEquipment(libraryContext());
+    expect(mine.items.map((item) => [item.label, item.category])).toEqual([
+      ['Gants fins', 'clothing'],
+      ['Veste imperméable', 'clothing'],
+      ['Lampe frontale', 'lighting'],
+      ['Porte-bonheur', 'other'],
+    ]);
+    expect(mine.categoryCounts).toEqual({ clothing: 2, lighting: 1, other: 1 });
+  });
+
+  it('reclasse une pièce et lui donne des tags propres', async () => {
+    const charm = library.find((item) => item.label === 'Porte-bonheur')?.id ?? '';
+    await updateMyEquipmentItem(libraryContext(), {
+      itemId: charm,
+      category: 'carrying',
+      tags: [' Ultra ', '#nuit', 'ultra'],
+    });
+
+    const mine = await listMyEquipment(libraryContext());
+    expect(mine.items.find((item) => item.id === charm)).toMatchObject({
+      category: 'carrying',
+      tags: ['ultra', 'nuit'],
+    });
+    expect(mine.tags).toEqual(['nuit', 'ultra']);
+  });
+
+  it('filtre par catégorie et par tag', async () => {
+    const gants = library.find((item) => item.label === 'Gants fins')?.id ?? '';
+    await updateMyEquipmentItem(libraryContext(), {
+      itemId: gants,
+      category: 'clothing',
+      tags: ['hiver'],
+    });
+
+    const clothing = await listMyEquipment(libraryContext(), { category: 'clothing' });
+    expect(clothing.items.map((item) => item.label)).toEqual(['Gants fins', 'Veste imperméable']);
+    expect(clothing.total).toBe(4);
+
+    const winter = await listMyEquipment(libraryContext(), { tag: 'Hiver' });
+    expect(winter.items.map((item) => item.label)).toEqual(['Gants fins']);
+  });
+
+  it('refuse une catégorie inconnue', async () => {
+    const charm = library.find((item) => item.label === 'Porte-bonheur')?.id ?? '';
+    await expect(
+      updateMyEquipmentItem(libraryContext(), { itemId: charm, category: 'magie', tags: [] }),
+    ).rejects.toMatchObject({ code: 'validation' });
+  });
+
+  it('ne reclasse jamais la pièce d’un autre coureur', async () => {
+    grantPlus(RUNNER_B);
+    await addToMyEquipment(libraryContext(RUNNER_B), { labels: ['Veste de Runner B'] });
+    const foreign = library.find((item) => item.userId === RUNNER_B)?.id ?? '';
+
+    await expect(
+      updateMyEquipmentItem(libraryContext(), { itemId: foreign, category: 'other', tags: [] }),
+    ).rejects.toMatchObject({ code: 'not_found' });
+  });
+
+  it('ne se reclasse pas sans PLUKA+', async () => {
+    entitlements.entitlements = [];
+    const charm = library.find((item) => item.label === 'Porte-bonheur')?.id ?? '';
+    await expect(
+      updateMyEquipmentItem(libraryContext(), { itemId: charm, category: 'other', tags: [] }),
+    ).rejects.toBeInstanceOf(EntitlementError);
   });
 });

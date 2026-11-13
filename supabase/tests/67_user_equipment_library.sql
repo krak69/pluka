@@ -9,7 +9,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(9);
+select plan(14);
 
 \ir _personas.psql
 
@@ -45,6 +45,41 @@ select lives_ok(
 
 insert into public.user_equipment_items (id, user_id, label)
 values ('eeeeeeee-0000-4000-8000-000000000c02', '11111111-1111-4111-8111-111111111111', 'Bâtons');
+
+-- ============================================================
+-- Catégorie et tags (0093)
+-- ============================================================
+
+select is(
+  (select category::text from public.user_equipment_items where id = 'eeeeeeee-0000-4000-8000-000000000c02'),
+  'other',
+  'une pièce sans catégorie est « Divers »'
+);
+
+select lives_ok(
+  $$ update public.user_equipment_items set category = 'carrying', tags = array['ultra', 'hiver']
+     where id = 'eeeeeeee-0000-4000-8000-000000000c02' $$,
+  'le coureur classe et tague une pièce'
+);
+
+select throws_ok(
+  $$ update public.user_equipment_items set tags = array['Hiver']
+     where id = 'eeeeeeee-0000-4000-8000-000000000c02' $$,
+  '23514', null, 'un tag hors minuscules est refusé'
+);
+
+select throws_ok(
+  $$ update public.user_equipment_items set tags = array['nuit', 'nuit']
+     where id = 'eeeeeeee-0000-4000-8000-000000000c02' $$,
+  '23514', null, 'un tag en double est refusé'
+);
+
+select throws_ok(
+  $$ update public.user_equipment_items
+     set tags = array['a','b','c','d','e','f','g','h','i','j','k']
+     where id = 'eeeeeeee-0000-4000-8000-000000000c02' $$,
+  '23514', null, 'plus de 10 tags sont refusés'
+);
 
 -- ============================================================
 -- 3. Export

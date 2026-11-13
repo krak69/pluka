@@ -854,6 +854,14 @@ export {
   labelKey,
   listMyEquipment,
   removeFromMyEquipment,
+  updateMyEquipmentItem,
   type LibraryContext,
   type MyEquipment,
+  type MyEquipmentItem,
 } from './library/equipment-library.js';
+export {
+  cleanTags,
+  GEAR_CATEGORIES,
+  guessGearCategory,
+  type GearCategory,
+} from './library/gear-categories.js';

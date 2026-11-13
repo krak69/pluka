@@ -16,7 +16,8 @@ import { can } from '../entitlements/resolver.js';
 import { authorizeCapability, resolveEntitlements } from '../entitlements/use-cases.js';
 import { notFoundError, parseCommand } from '../errors.js';
 import { equipmentValueOf } from '../facts/equipment.js';
-import { cleanLabels, labelKey } from '../library/equipment-library.js';
+import { cleanLabels, labelKey, newItems } from '../library/equipment-library.js';
+import type { GearCategory } from '../library/gear-categories.js';
 
 /**
  * Checklist de matériel — 00_PRODUCT_SPEC §14.1, §14.2 ; 04_ENTITLEMENTS §45,
@@ -77,7 +78,11 @@ export interface EquipmentChecklist {
    * « Mon matériel » qui n'est pas encore dans cette course, à ajouter d'un
    * clic. Gratuit à lire : un PLUKA+ expiré garde son matériel.
    */
-  readonly fromLibrary: readonly { readonly id: string; readonly label: string }[];
+  readonly fromLibrary: readonly {
+    readonly id: string;
+    readonly label: string;
+    readonly category: GearCategory;
+  }[];
   /** Une pièce saisie ici rejoint aussi « Mon matériel » (PLUKA+, `library.edit`). */
   readonly savesToLibrary: boolean;
 }
@@ -212,7 +217,9 @@ export async function getEquipmentChecklist(
       total: mandatory.length,
     },
     canEditPersonal: can(entitlements, 'preparation.edit_advanced').allowed,
-    fromLibrary: library.filter((item) => !taken.has(labelKey(item.label))),
+    fromLibrary: library
+      .filter((item) => !taken.has(labelKey(item.label)))
+      .map(({ id, label, category }) => ({ id, label, category })),
     savesToLibrary: can(entitlements, 'library.edit').allowed,
   };
 }
@@ -263,7 +270,10 @@ export async function addPersonalEquipment(
     participantRaceId: command.participantRaceId,
   });
   if (can(entitlements, 'library.edit').allowed) {
-    await context.repositories.library.addEquipment(context.actor.userId, [command.label]);
+    await context.repositories.library.addEquipment(
+      context.actor.userId,
+      newItems([command.label]),
+    );
   }
 }
 

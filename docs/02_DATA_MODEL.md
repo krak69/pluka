@@ -1310,6 +1310,14 @@ organisation ; supprimé avec le compte et inclus dans `export_my_data` (`equipm
 Une table plutôt qu'un modèle dans `library_templates` : on ajoute et retire une pièce, et le
 doublon se refuse en base.
 
+**Catégories et tags (migration 0093).** Chaque pièce porte une catégorie de la liste fixe
+`gear_category` — vêtements et accessoires, éclairage, sécurité, hydratation, nutrition,
+portage, électronique, soins, divers — devinée à l'ajout par mots-clés dans le domaine
+(`guessGearCategory`, pas d'IA) et corrigeable, et 0 à 10 tags libres (`tags text[]`,
+minuscules, 1 à 30 caractères, sans doublon, vérifiés par trigger). La bibliothèque se filtre
+par catégorie et par tag. `gear_category` et non `equipment_category` (0001), qui appartient au
+catalogue `equipment_items` inutilisé.
+
 ---
 
 # 18. Conditions météo

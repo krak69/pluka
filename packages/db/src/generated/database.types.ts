@@ -5964,23 +5964,29 @@ export type Database = {
       }
       user_equipment_items: {
         Row: {
+          category: Database["public"]["Enums"]["gear_category"]
           created_at: string
           id: string
           label: string
+          tags: string[]
           updated_at: string
           user_id: string
         }
         Insert: {
+          category?: Database["public"]["Enums"]["gear_category"]
           created_at?: string
           id?: string
           label: string
+          tags?: string[]
           updated_at?: string
           user_id: string
         }
         Update: {
+          category?: Database["public"]["Enums"]["gear_category"]
           created_at?: string
           id?: string
           label?: string
+          tags?: string[]
           updated_at?: string
           user_id?: string
         }
@@ -7874,6 +7880,16 @@ export type Database = {
         | "rejected"
         | "superseded"
       feedback_rating: "worked" | "partial" | "failed" | "not_used"
+      gear_category:
+        | "clothing"
+        | "lighting"
+        | "safety"
+        | "hydration"
+        | "nutrition"
+        | "carrying"
+        | "electronics"
+        | "care"
+        | "other"
       import_row_status: "pending" | "valid" | "error" | "imported" | "skipped"
       import_status:
         | "uploaded"
@@ -8269,6 +8285,17 @@ export const Constants = {
         "superseded",
       ],
       feedback_rating: ["worked", "partial", "failed", "not_used"],
+      gear_category: [
+        "clothing",
+        "lighting",
+        "safety",
+        "hydration",
+        "nutrition",
+        "carrying",
+        "electronics",
+        "care",
+        "other",
+      ],
       import_row_status: ["pending", "valid", "error", "imported", "skipped"],
       import_status: [
         "uploaded",

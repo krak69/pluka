@@ -1,4 +1,9 @@
-import { DomainError, getEquipmentChecklist, type OfficialEquipmentItem } from '@pluka/domain';
+import {
+  DomainError,
+  GEAR_CATEGORIES,
+  getEquipmentChecklist,
+  type OfficialEquipmentItem,
+} from '@pluka/domain';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -10,6 +15,7 @@ import {
 } from '@/app/(shell)/courses/[participantRaceId]/preparation/materiel/actions';
 import { AddEquipmentForm } from '@/app/(shell)/courses/[participantRaceId]/preparation/materiel/add-equipment-form';
 import { Icon } from '@/components/icon';
+import { GEAR_CATEGORY_LABELS } from '@/lib/gear-categories';
 import { preparationContext } from '@/lib/preparation';
 import { requireSession } from '@/lib/session';
 
@@ -197,19 +203,35 @@ export default async function EquipmentPage({
                     </button>
                   </form>
                 </div>
-                <ul className="eq-chips">
-                  {checklist.fromLibrary.map((item) => (
-                    <li key={item.id}>
-                      <form action={addFromLibraryAction}>
-                        <input type="hidden" name="participantRaceId" value={participantRaceId} />
-                        <input type="hidden" name="itemId" value={item.id} />
-                        <button type="submit" aria-label={`Ajouter ${item.label} à cette course`}>
-                          + {item.label}
-                        </button>
-                      </form>
-                    </li>
-                  ))}
-                </ul>
+                {GEAR_CATEGORIES.map((category) => {
+                  const items = checklist.fromLibrary.filter((item) => item.category === category);
+                  if (items.length === 0) return null;
+                  return (
+                    <div key={category} className="eq-chip-group">
+                      <p className="eq-chip-group-title">{GEAR_CATEGORY_LABELS[category]}</p>
+                      <ul className="eq-chips">
+                        {items.map((item) => (
+                          <li key={item.id}>
+                            <form action={addFromLibraryAction}>
+                              <input
+                                type="hidden"
+                                name="participantRaceId"
+                                value={participantRaceId}
+                              />
+                              <input type="hidden" name="itemId" value={item.id} />
+                              <button
+                                type="submit"
+                                aria-label={`Ajouter ${item.label} à cette course`}
+                              >
+                                + {item.label}
+                              </button>
+                            </form>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </>

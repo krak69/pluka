@@ -5,6 +5,7 @@ import {
   DomainError,
   EntitlementError,
   removeFromMyEquipment,
+  updateMyEquipmentItem,
 } from '@pluka/domain';
 import { revalidatePath } from 'next/cache';
 
@@ -56,6 +57,19 @@ export async function removeFromMyEquipmentAction(form: FormData): Promise<void>
   const session = await requireSession(PATH);
   await removeFromMyEquipment(libraryContext(session), {
     itemId: String(form.get('itemId') ?? ''),
+  }).catch((error: unknown) => {
+    messageOf(error);
+  });
+  revalidatePath(PATH);
+}
+
+/** Reclasse une pièce : sa catégorie, et ses tags séparés par des virgules. */
+export async function updateMyEquipmentAction(form: FormData): Promise<void> {
+  const session = await requireSession(PATH);
+  await updateMyEquipmentItem(libraryContext(session), {
+    itemId: String(form.get('itemId') ?? ''),
+    category: String(form.get('category') ?? 'other'),
+    tags: String(form.get('tags') ?? '').split(','),
   }).catch((error: unknown) => {
     messageOf(error);
   });
