@@ -1,5 +1,3 @@
-import { EmptyState } from '@pluka/ui';
-
 /**
  * État vide unique des onglets non branchés.
  *
@@ -28,13 +26,17 @@ export interface NotWiredProps {
 }
 
 export function NotWired({ area, purpose, detail }: NotWiredProps) {
+  // Habillage du prototype : une annonce sobre, pas un message d'erreur. Le
+  // contenu reste le même — ce que l'écran fera, et ce qui manque encore.
   return (
-    <EmptyState label={area} title="Cette partie n’est pas encore branchée." detail={detail}>
-      <p>{purpose}</p>
-      <p>
-        Rien n’est affiché ici tant que le service ne le fournit pas : PLUKA préfère un écran vide à
-        des valeurs de démonstration.
+    <section className="nw" aria-label={`${area} — bientôt`}>
+      <p className="nw-tag">Bientôt dans PLUKA</p>
+      <p className="nw-purpose">{purpose}</p>
+      <p className="nw-detail">{detail}</p>
+      <p className="nw-note">
+        Cet espace s’ouvrira avec tes vraies données : PLUKA n’affiche jamais de valeurs de
+        démonstration.
       </p>
-    </EmptyState>
+    </section>
   );
 }

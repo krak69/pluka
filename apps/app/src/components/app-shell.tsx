@@ -32,10 +32,18 @@ import {
  * la première participation par date de départ. C'est la course qu'on prépare.
  */
 
+/**
+ * La formule qui couvre une course, pour l'encart du bas de la barre latérale.
+ * `unknown` : la lecture a échoué, l'encart ne dit rien plutôt qu'une erreur.
+ */
+export type ShellPlan = 'free' | 'race_pass' | 'organizer_included' | 'plus' | 'beta' | 'unknown';
+
 export interface AppShellProps {
   readonly races: readonly OwnParticipationSummary[];
   /** Nul pour qui n'est membre d'aucune organisation : le lien n'existe pas. */
   readonly organizerHref: string | null;
+  /** La formule de chaque course, par participation. */
+  readonly plans: Readonly<Record<string, ShellPlan>>;
   readonly children: ReactNode;
 }
 
@@ -58,13 +66,64 @@ function countdownLabel(startsAt: string): string | null {
   return days === 1 ? 'Demain' : `Dans ${String(days)} jours`;
 }
 
-export function AppShell({ races, organizerHref, children }: AppShellProps) {
+function raceYear(startsAt: string): string | null {
+  const start = new Date(startsAt);
+  return Number.isNaN(start.getTime()) ? null : String(start.getFullYear());
+}
+
+/** Les écrans hors navigation principale, pour le titre de l'en-tête. */
+const OTHER_TITLES: readonly (readonly [string, string])[] = [
+  ['/offre', 'Mon offre'],
+  ['/profil', 'Profil trailer'],
+  ['/recherche', 'Trouver ma course'],
+  ['/produits', 'Produits'],
+];
+
+/** Les sous-écrans de la course, plus précis que l'onglet qui les porte. */
+const RACE_SUBTITLES: readonly (readonly [string, string])[] = [
+  ['/plan/conditions', 'Conditions'],
+  ['/nutrition', 'Nutrition'],
+  ['/objectif', 'Mon objectif'],
+  ['/apres-course', 'Après-course'],
+];
+
+/** Le nom de l'écran en cours, tel que l'en-tête et la barre mobile le disent. */
+function screenTitle(pathname: string): string {
+  if (isRaceZone(pathname)) {
+    const sub = RACE_SUBTITLES.find(([suffix]) => pathname.includes(suffix));
+    if (sub !== undefined) return sub[1];
+    const tab = RACE_NAV.find((destination) =>
+      new RegExp(`^/courses/[^/]+/${destination.segment}(/|$)`).test(pathname),
+    );
+    return tab?.label ?? 'Ma course';
+  }
+  const global = GLOBAL_NAV.find((destination) => isCurrent(pathname, destination.href));
+  if (global !== undefined) return global.label;
+  return OTHER_TITLES.find(([prefix]) => isCurrent(pathname, prefix))?.[1] ?? 'Mon espace';
+}
+
+const PLAN_LABELS: Readonly<
+  Record<Exclude<ShellPlan, 'unknown'>, { readonly title: string; readonly line: string }>
+> = {
+  free: { title: 'PLUKA Free', line: 'Voir les formules' },
+  race_pass: { title: 'Race Pass', line: 'Préparation complète de cette course' },
+  organizer_included: { title: 'Offert par l’organisation', line: 'Préparation complète incluse' },
+  plus: { title: 'PLUKA+', line: 'Toute ta saison avec toi' },
+  beta: { title: 'Accès bêta', line: 'Tout PLUKA est ouvert' },
+};
+
+export function AppShell({ races, organizerHref, plans, children }: AppShellProps) {
   const pathname = usePathname();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
 
   const fromPath = participantRaceIdFromPath(pathname);
   const current = races.find((race) => race.participantRaceId === fromPath) ?? races[0] ?? null;
+  const plan: ShellPlan =
+    current === null ? 'unknown' : (plans[current.participantRaceId] ?? 'unknown');
+  const title = screenTitle(pathname);
+  const countdown = current === null ? null : countdownLabel(current.startsAt);
+  const year = current === null ? null : raceYear(current.startsAt);
 
   const raceNav =
     current === null
@@ -94,11 +153,12 @@ export function AppShell({ races, organizerHref, children }: AppShellProps) {
         Aller au contenu
       </a>
 
+      {/* Barre latérale sombre, motif topo — prototype, `#pk-side`. */}
       <aside className="ap-sidebar">
         <div className="ap-brand">
-          {/* Le logo nomme le lien : pas décoratif. Fond blanc → `primary`. */}
+          {/* Le logo nomme le lien : pas décoratif. Fond sombre → `inverse`. */}
           <Link href="/" className="ap-logo">
-            <Logo height={24} />
+            <Logo height={26} tone="inverse" />
           </Link>
         </div>
 
@@ -108,93 +168,133 @@ export function AppShell({ races, organizerHref, children }: AppShellProps) {
           open={pickerOpen}
           onToggle={() => setPickerOpen((value) => !value)}
           onPick={() => setPickerOpen(false)}
+          onDark
         />
 
-        <button type="button" className="ap-ask" onClick={() => setAskOpen(true)}>
-          <Icon name="Sparkle" size={18} />
-          Demander à PLUKA
-        </button>
-
-        <Link href="/recherche" className="ap-find">
-          <Icon name="MagnifyingGlass" size={17} />
-          Trouver ma course
-        </Link>
-
         <div className="ap-nav-groups">
-          <NavList label="Ma saison">
+          <NavList label="Mon espace">
             {GLOBAL_NAV.map((destination) => (
               <NavItem
                 key={destination.href}
                 href={destination.href}
                 icon={<Icon name={destination.icon} size={18} />}
                 current={isCurrent(pathname, destination.href)}
+                onDark
               >
                 {destination.label}
               </NavItem>
             ))}
           </NavList>
 
-          {raceNav === null ? null : (
-            <NavList label={current === null ? 'Ma course' : current.name}>
+          {raceNav === null || current === null ? null : (
+            <NavList label={year === null ? current.name : `${current.name} · ${year}`}>
               {raceNav.map((destination) => (
                 <NavItem
                   key={destination.href}
                   href={destination.href}
                   icon={<Icon name={destination.icon} size={18} />}
                   current={isCurrent(pathname, destination.href)}
+                  onDark
                 >
                   {destination.label}
                 </NavItem>
               ))}
             </NavList>
           )}
+
+          <Link href="/recherche" className="ap-find">
+            <Icon name="MagnifyingGlass" size={17} />
+            Trouver une autre course
+          </Link>
         </div>
 
         <div className="ap-sidebar-foot">
-          <Link href="/profil" className="ap-sidebar-link">
-            Profil trailer
-          </Link>
-          <Link href="/offre" className="ap-sidebar-link">
-            Mon offre
-          </Link>
-          {organizerHref === null ? null : (
-            <Link href={organizerHref} className="ap-sidebar-link">
-              Espace organisateur
+          {plan === 'unknown' ? null : (
+            <Link
+              href={current === null ? '/offre' : `/offre?course=${current.participantRaceId}`}
+              className="ap-plan"
+            >
+              <Icon name="Sparkle" size={16} />
+              <span className="ap-plan-text">
+                <span className="ap-plan-title">
+                  {PLAN_LABELS[plan].title}
+                  {plan === 'race_pass' && current !== null ? ` · ${current.name}` : ''}
+                </span>
+                <span className="ap-plan-line">{PLAN_LABELS[plan].line}</span>
+              </span>
             </Link>
           )}
+          <nav aria-label="Compte" className="ap-sidebar-links">
+            <Link href="/profil" className="ap-sidebar-link">
+              Profil trailer
+            </Link>
+            {organizerHref === null ? null : (
+              <Link href={organizerHref} className="ap-sidebar-link">
+                Espace organisateur
+              </Link>
+            )}
+          </nav>
         </div>
       </aside>
 
       <div className="ap-frame">
-        <header className="ap-topbar">
-          {/*
-            Barre mobile sur fond Ardoise, et place comptée : le symbole seul,
-            en Lichen — c'est le couple de marque sur fond sombre, et c'est ce
-            que le prototype y place (`#pk-mark`).
-          */}
-          <Link href="/" className="ap-topbar-logo" aria-label="Accueil PLUKA">
-            <Logo variant="mark" tone="lichen" height={24} decorative />
-          </Link>
-
-          <div className="ap-topbar-race">
-            <RacePicker
-              races={races}
-              current={current}
-              open={pickerOpen}
-              onToggle={() => setPickerOpen((value) => !value)}
-              onPick={() => setPickerOpen(false)}
-              onDark
-            />
+        {/* En-tête de l'écran, desktop — prototype, barre au-dessus du contenu. */}
+        <header className="ap-header">
+          <div className="ap-header-title">
+            <span className="pk-label">
+              {isRaceZone(pathname) && current !== null ? current.name : 'Espace participant'}
+            </span>
+            <span className="ap-header-name">{title}</span>
           </div>
-
-          <button
-            type="button"
-            className="ap-topbar-ask"
-            aria-label="Demander à PLUKA"
-            onClick={() => setAskOpen(true)}
-          >
-            <Icon name="Sparkle" size={19} />
+          {current === null || countdown === null ? null : (
+            <span className="ap-header-race">
+              {current.name}
+              {year === null ? '' : ` · ${year}`}
+              <span className="ap-header-countdown">{countdown}</span>
+            </span>
+          )}
+          <button type="button" className="ap-ask" onClick={() => setAskOpen(true)}>
+            <Icon name="Sparkle" size={18} />
+            Demander à PLUKA
           </button>
+        </header>
+
+        <header className="ap-topbar">
+          <div className="ap-topbar-row">
+            {/*
+              Barre mobile sur fond Ardoise, et place comptée : le symbole seul,
+              en Lichen — c'est le couple de marque sur fond sombre, et c'est ce
+              que le prototype y place (`#pk-mark`).
+            */}
+            <Link href="/" className="ap-topbar-logo" aria-label="Accueil PLUKA">
+              <Logo variant="mark" tone="lichen" height={24} decorative />
+            </Link>
+
+            <div className="ap-topbar-race">
+              <RacePicker
+                races={races}
+                current={current}
+                open={pickerOpen}
+                onToggle={() => setPickerOpen((value) => !value)}
+                onPick={() => setPickerOpen(false)}
+                onDark
+                compact
+              />
+            </div>
+
+            <button
+              type="button"
+              className="ap-topbar-ask"
+              aria-label="Demander à PLUKA"
+              onClick={() => setAskOpen(true)}
+            >
+              <Icon name="Sparkle" size={19} />
+            </button>
+          </div>
+          <div className="ap-topbar-sub">
+            <span className="pk-label">{title}</span>
+            {countdown === null ? null : <span className="ap-topbar-countdown">{countdown}</span>}
+          </div>
         </header>
 
         <main id="contenu" className="ap-content">
@@ -235,6 +335,7 @@ function RacePicker({
   onToggle,
   onPick,
   onDark = false,
+  compact = false,
 }: {
   readonly races: readonly OwnParticipationSummary[];
   readonly current: OwnParticipationSummary | null;
@@ -242,6 +343,8 @@ function RacePicker({
   readonly onToggle: () => void;
   readonly onPick: () => void;
   readonly onDark?: boolean;
+  /** Barre mobile : le nom seul, le compte à rebours vit sur la ligne du dessous. */
+  readonly compact?: boolean;
 }) {
   if (current === null) {
     return (
@@ -257,12 +360,22 @@ function RacePicker({
     <div className="ap-picker">
       <button
         type="button"
-        className={onDark ? 'ap-picker-button ap-picker-button-on-dark' : 'ap-picker-button'}
+        className={[
+          'ap-picker-button',
+          onDark ? 'ap-picker-button-on-dark' : '',
+          compact ? 'ap-picker-button-compact' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
         aria-expanded={open}
         onClick={onToggle}
       >
-        <span className="ap-picker-name">{current.name}</span>
-        {countdown === null ? null : <span className="ap-picker-countdown">{countdown}</span>}
+        <span className="ap-picker-text">
+          <span className="ap-picker-name">{current.name}</span>
+          {countdown === null || compact ? null : (
+            <span className="ap-picker-countdown">{countdown}</span>
+          )}
+        </span>
         <Icon name="CaretUpDown" size={14} />
       </button>
 

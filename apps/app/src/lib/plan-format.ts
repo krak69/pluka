@@ -94,3 +94,22 @@ export function formatStartMoment(isoInstant: string, timeZone: string): string 
   );
   return `le ${day} à ${formatClock(isoInstant, timeZone).replace(':', ' h ')}`;
 }
+
+/**
+ * Durée en clair, comme la bannière du Plan et l'accueil l'écrivent :
+ * « 12 h 30 », « 45 min ». Même source que `formatElapsed`, autre lecture.
+ */
+export function formatDuration(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds / 60));
+  const hours = Math.floor(total / 60);
+  const minutes = total % 60;
+  if (hours === 0) return `${String(minutes)} min`;
+  return `${String(hours)} h ${String(minutes).padStart(2, '0')}`;
+}
+
+/** Le total des arrêts prévus, en clair — la bannière du Plan l'affiche. */
+export function formatTotalStops(
+  points: readonly { readonly stopDurationSeconds: number }[],
+): string {
+  return formatDuration(points.reduce((sum, point) => sum + point.stopDurationSeconds, 0));
+}
