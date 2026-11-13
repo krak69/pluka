@@ -2686,7 +2686,9 @@ a.st-tab {
  */
 
 .ap-sidebar {
-  position: relative;
+  /* Pas de « position » ici : le desktop la veut sticky, et c'est elle qui
+     garde la barre à l'écran pendant le défilement. */
+  box-sizing: border-box;
   gap: var(--space-5);
   width: 248px;
   padding: var(--space-6) 0 var(--space-4);
@@ -2696,14 +2698,14 @@ a.st-tab {
   isolation: isolate;
 }
 
-/* Le relief, discret, ne se dessine qu'au pied de la barre. */
+/* Le relief couvre toute la barre, en filigrane. */
 .ap-sidebar::before {
   content: '';
   position: absolute;
-  inset: 45% 0 0;
+  inset: 0;
   z-index: -1;
-  background: var(--topo-dark) center bottom / 700px auto no-repeat;
-  opacity: 0.35;
+  background: var(--topo-dark) center / cover no-repeat;
+  opacity: 0.4;
   pointer-events: none;
 }
 
@@ -3911,4 +3913,30 @@ a.st-tab {
 .pl-chip-lock {
   justify-self: start;
   margin: 0;
+}
+
+.ap-signout {
+  display: contents;
+}
+
+.ap-signout button {
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--pk-text-on-dark) 70%, transparent);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.ap-signout button:hover {
+  color: var(--pk-text-on-dark);
+}
+
+/* Sur desktop, la barre latérale porte « Se déconnecter » : l'accueil ne le répète pas. */
+@media (width >= 1000px) {
+  .hm-signout {
+    display: none;
+  }
 }

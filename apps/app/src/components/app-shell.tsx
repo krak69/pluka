@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 
+import { signOut } from '@/app/actions';
 import { Icon } from '@/components/icon';
 import {
   GLOBAL_NAV,
@@ -74,7 +75,7 @@ function raceYear(startsAt: string): string | null {
 /** Les écrans hors navigation principale, pour le titre de l'en-tête. */
 const OTHER_TITLES: readonly (readonly [string, string])[] = [
   ['/offre', 'Mon offre'],
-  ['/profil', 'Profil trailer'],
+  ['/profil', 'Mon profil'],
   ['/recherche', 'Trouver ma course'],
   ['/produits', 'Produits'],
 ];
@@ -226,13 +227,16 @@ export function AppShell({ races, organizerHref, plans, children }: AppShellProp
           )}
           <nav aria-label="Compte" className="ap-sidebar-links">
             <Link href="/profil" className="ap-sidebar-link">
-              Profil trailer
+              Mon profil
             </Link>
             {organizerHref === null ? null : (
               <Link href={organizerHref} className="ap-sidebar-link">
                 Espace organisateur
               </Link>
             )}
+            <form action={signOut} className="ap-signout">
+              <button type="submit">Se déconnecter</button>
+            </form>
           </nav>
         </div>
       </aside>

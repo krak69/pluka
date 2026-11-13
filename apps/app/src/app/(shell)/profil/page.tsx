@@ -26,7 +26,7 @@ import { requireSession } from '@/lib/session';
  * dit s'il est complet, il ne l'exige pas.
  */
 
-export const metadata = { title: 'Profil trailer' };
+export const metadata = { title: 'Mon profil' };
 
 export default async function ProfilePage({
   searchParams,
@@ -42,7 +42,7 @@ export default async function ProfilePage({
     <div className="ap-page">
       <SectionHeader
         eyebrow="Mon compte"
-        title="Profil trailer"
+        title="Mon profil"
         aside={
           view.complete ? (
             <Badge tone="success">Signal d’allure exploitable</Badge>

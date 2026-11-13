@@ -41,7 +41,7 @@ export default async function RepereCalibrationPage() {
   return (
     <div className="ap-page">
       <Link href="/profil" className="pk-link">
-        Profil trailer
+        Mon profil
       </Link>
 
       <SectionHeader eyebrow="Repère PLUKA · Bêta" title="Aider à calibrer le Repère" />
