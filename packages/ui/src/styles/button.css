@@ -23,6 +23,11 @@
     border-color var(--motion-interaction) var(--motion-ease);
 }
 
+/* Un lien qui prend la forme d'un bouton n'en garde pas le soulignement. */
+a.pk-btn {
+  text-decoration: none;
+}
+
 /*
  * §25 : un seul CTA Lichen dominant par écran ou zone décisionnelle. Le
  * composant ne peut pas faire respecter cette règle — elle appartient à

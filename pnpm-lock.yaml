@@ -142,6 +142,9 @@ importers:
       '@pluka/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@pluka/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@pluka/gpx':
         specifier: workspace:*
         version: link:../../packages/gpx

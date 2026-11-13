@@ -1755,6 +1755,11 @@ L’horloge est injectée (§122).
 
 # 73. Checkout
 
+Implémenté pour le Race Pass (0088, 0089), derrière `BillingProvider`, sans prestataire réel
+choisi : la base décide du produit à son heure (`start_race_pass_purchase`), le webhook est
+déposé par l'application et appliqué par le worker après vérification de la signature. Le
+client n'envoie que la participation. PLUKA+ n'est pas encore en vente.
+
 Le checkout reçoit :
 
 ```text

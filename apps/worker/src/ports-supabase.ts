@@ -1,6 +1,8 @@
-import type { PlukaClient } from '@pluka/db';
+import { billingWebhookRepository, type PlukaClient } from '@pluka/db';
 
 import { createAccountNoticeStore } from './account-notices-store.js';
+import { createBilling } from './billing/index.js';
+import { createBillingInboxStore } from './billing-store.js';
 import { createStartChangeStore } from './start-changes-store.js';
 import { createAI } from './ai/index.js';
 import { createDiscoveryStore } from './discoveries-store.js';
@@ -77,6 +79,11 @@ export function createPorts(
     siteContacts: createSiteContactStore(client),
     accountNotices: createAccountNoticeStore(client),
     startChanges: createStartChangeStore(client),
+    billing: {
+      provider: createBilling(process.env),
+      inbox: createBillingInboxStore(client),
+      webhook: billingWebhookRepository({ client }),
+    },
     discoveries: createDiscoveryStore(client),
     email: createEmail(process.env),
     appUrl: config.appUrl,

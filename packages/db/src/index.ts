@@ -353,3 +353,18 @@ export {
   type BetaAccessRepository,
   type BetaAccessStatus,
 } from './repositories/beta-access.js';
+export {
+  billingRepository,
+  billingWebhookRepository,
+  billingInboxRepository,
+  type BillingInboxRepository,
+  type BillingRepository,
+  type BillingWebhookRepository,
+  type CheckoutEventInput,
+  type CheckoutEventResult,
+  type PurchaseStatusRecord,
+  type RacePassCoverage,
+  type PlusOfferRecord,
+  type RacePassOfferRecord,
+  type StartedPurchaseRecord,
+} from './repositories/billing.js';

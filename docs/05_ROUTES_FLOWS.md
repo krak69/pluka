@@ -732,6 +732,15 @@ Les deux lectures ne donnent pas la même arborescence. Et si une conversation d
 
 La forme de la route de paiement dépend du contrat du prestataire retenu : page hébergée avec retour sur une URL de succès, ou formulaire embarqué. Aucun prestataire n'est configuré, et `04_ENTITLEMENTS.md` §25 et §26 décrivent le webhook sans fixer le parcours.
 
+**Parcours retenu en attendant le prestataire (0088, 0089) :** page hébergée, le modèle commun à Stripe, Paddle et Lemon Squeezy.
+
+1. `/offre?course={participantRaceId}` (ou `/offre` quand le coureur n'a qu'une course ; sinon l'écran lui demande laquelle) : les trois formules du prototype côte à côte. Free mène au plan, le Race Pass s'affiche au prix que la base appliquera — tarif inscrit en grand, prix standard barré et « tarif inscrit jusqu'au … » —, PLUKA+ se montre à son prix du catalogue (0090) avec « Bientôt disponible », sans achat. « Choisir Race Pass » envoie la participation seule.
+2. Le serveur crée l'achat, ouvre la session du prestataire et redirige vers sa page.
+3. Le prestataire renvoie sur `/offre/merci?achat={id}` (succès) ou `/offre?course=…` (abandon). L'écran de retour lit l'état en base, jamais l'adresse : tant que le webhook n'est pas arrivé, il dit « Confirmation en cours ».
+4. Le webhook arrive sur `/api/billing/webhook`, est déposé tel quel, puis vérifié et appliqué par le worker.
+
+En développement, `BILLING_PROVIDER=test` remplace la page hébergée par `/paiement-test/{session}` : aucun débit, et un webhook signé envoyé au même point d'entrée que le vrai. Ce prestataire est refusé en production.
+
 ## 12.9 Pages marketing secondaires
 
 Les pieds de page des deux landings annoncent Blog, FAQ, Courses, Préparation trail, À propos, Contact, Confidentialité et CGU. Le prototype les pointe vers des ancres de la même page, faute de destination.

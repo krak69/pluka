@@ -14,6 +14,7 @@
     "@pluka/config": "workspace:*",
     "@pluka/contracts": "workspace:*",
     "@pluka/db": "workspace:*",
+    "@pluka/domain": "workspace:*",
     "@pluka/gpx": "workspace:*",
     "@pluka/notifications": "workspace:*",
     "@pluka/plan-engine": "workspace:*",

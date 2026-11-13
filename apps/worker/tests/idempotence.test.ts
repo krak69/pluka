@@ -179,6 +179,22 @@ function createRecorder(): Recorder {
       complete: async (): Promise<void> => undefined,
       fail: async (): Promise<void> => undefined,
     },
+    billing: {
+      provider: null,
+      inbox: {
+        claim: async () => {
+          throw new Error('non employé dans ces tests');
+        },
+        settle: async () => {
+          throw new Error('non employé dans ces tests');
+        },
+      },
+      webhook: {
+        recordCheckoutEvent: async () => {
+          throw new Error('non employé dans ces tests');
+        },
+      },
+    },
     startChanges: {
       claim: async () => {
         throw new Error('non employé dans ces tests');
@@ -397,6 +413,7 @@ describe('boucle', () => {
     //
     // `pluka_plan` s'y ajoute avec l'Impact Analyzer de §44 : un changement
     // publié descend vers les Plans, la Préparation et l'Assistance.
+    // `pluka_billing` porte le webhook de paiement, vérifié ici (0089).
     const order: string[] = [];
 
     recorder.ports.queue.read = async (queue) => {
@@ -405,7 +422,13 @@ describe('boucle', () => {
     };
 
     return tick(recorder.ports).then(() => {
-      expect(order).toEqual(['pluka_geo', 'pluka_sources', 'pluka_plan', 'pluka_email']);
+      expect(order).toEqual([
+        'pluka_geo',
+        'pluka_sources',
+        'pluka_plan',
+        'pluka_email',
+        'pluka_billing',
+      ]);
     });
   });
 });

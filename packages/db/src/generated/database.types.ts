@@ -392,6 +392,39 @@ export type Database = {
           },
         ]
       }
+      billing_products: {
+        Row: {
+          active: boolean
+          amount_minor: number
+          created_at: string
+          currency: string
+          kind: Database["public"]["Enums"]["entitlement_kind"]
+          label: string
+          product_key: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          amount_minor: number
+          created_at?: string
+          currency?: string
+          kind: Database["public"]["Enums"]["entitlement_kind"]
+          label: string
+          product_key: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          amount_minor?: number
+          created_at?: string
+          currency?: string
+          kind?: Database["public"]["Enums"]["entitlement_kind"]
+          label?: string
+          product_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       community_posts: {
         Row: {
           author_user_id: string | null
@@ -3867,11 +3900,13 @@ export type Database = {
       purchases: {
         Row: {
           amount_minor: number | null
+          channel: string
           created_at: string
           currency: string | null
           entitlement_id: string | null
           id: string
           metadata: Json
+          organization_id: string | null
           paid_at: string | null
           participant_race_id: string | null
           product_key: string
@@ -3879,6 +3914,7 @@ export type Database = {
           provider_checkout_reference: string | null
           provider_customer_reference: string | null
           provider_payment_reference: string | null
+          referral_code_id: string | null
           refunded_at: string | null
           status: Database["public"]["Enums"]["purchase_status"]
           updated_at: string
@@ -3886,11 +3922,13 @@ export type Database = {
         }
         Insert: {
           amount_minor?: number | null
+          channel?: string
           created_at?: string
           currency?: string | null
           entitlement_id?: string | null
           id?: string
           metadata?: Json
+          organization_id?: string | null
           paid_at?: string | null
           participant_race_id?: string | null
           product_key: string
@@ -3898,6 +3936,7 @@ export type Database = {
           provider_checkout_reference?: string | null
           provider_customer_reference?: string | null
           provider_payment_reference?: string | null
+          referral_code_id?: string | null
           refunded_at?: string | null
           status?: Database["public"]["Enums"]["purchase_status"]
           updated_at?: string
@@ -3905,11 +3944,13 @@ export type Database = {
         }
         Update: {
           amount_minor?: number | null
+          channel?: string
           created_at?: string
           currency?: string | null
           entitlement_id?: string | null
           id?: string
           metadata?: Json
+          organization_id?: string | null
           paid_at?: string | null
           participant_race_id?: string | null
           product_key?: string
@@ -3917,6 +3958,7 @@ export type Database = {
           provider_checkout_reference?: string | null
           provider_customer_reference?: string | null
           provider_payment_reference?: string | null
+          referral_code_id?: string | null
           refunded_at?: string | null
           status?: Database["public"]["Enums"]["purchase_status"]
           updated_at?: string
@@ -3931,10 +3973,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "purchases_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "purchases_participant_race_id_fkey"
             columns: ["participant_race_id"]
             isOneToOne: false
             referencedRelation: "participant_races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchases_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "organization_referral_codes"
             referencedColumns: ["id"]
           },
           {
@@ -6626,6 +6682,23 @@ export type Database = {
         Args: { p_race_id: string; p_referral_code?: string }
         Returns: string
       }
+      billing_receive_webhook: {
+        Args: { p_provider: string; p_raw_body: string; p_signature: string }
+        Returns: string
+      }
+      billing_record_checkout_event: {
+        Args: {
+          p_checkout_reference: string
+          p_event_id: string
+          p_event_type: string
+          p_occurred_at: string
+          p_outcome: string
+          p_payload_hash: string
+          p_payment_reference: string
+          p_provider: string
+        }
+        Returns: string
+      }
       cancel_account_deletion: { Args: never; Returns: boolean }
       commit_participant_import: {
         Args: { p_import_id: string }
@@ -6728,8 +6801,35 @@ export type Database = {
           value_text: string
         }[]
       }
+      get_my_purchase: {
+        Args: { p_purchase_id: string }
+        Returns: {
+          amount_minor: number
+          conflict: boolean
+          currency: string
+          participant_race_id: string
+          product_key: string
+          provider: string
+          provider_checkout_reference: string
+          status: string
+        }[]
+      }
       get_participant_import: { Args: { p_import_id: string }; Returns: Json }
       get_race_gpx_import: { Args: { p_race_id: string }; Returns: Json }
+      get_race_pass_offer: {
+        Args: { p_participant_race_id: string }
+        Returns: {
+          coverage: string
+          currency: string
+          early_amount_minor: number
+          pending_purchase_id: string
+          race_start: string
+          race_timezone: string
+          registration_day: string
+          registration_origin: string
+          standard_amount_minor: number
+        }[]
+      }
       list_edition_documents: { Args: { p_edition_id: string }; Returns: Json }
       list_edition_participants: {
         Args: { p_edition_id: string; p_limit?: number }
@@ -7067,6 +7167,10 @@ export type Database = {
         Args: { p_participant_race_id: string; p_withdrawn: boolean }
         Returns: undefined
       }
+      set_purchase_checkout_reference: {
+        Args: { p_purchase_id: string; p_reference: string }
+        Returns: undefined
+      }
       set_race_waypoints: {
         Args: { p_race_id: string; p_waypoints: Json }
         Returns: Json
@@ -7118,6 +7222,16 @@ export type Database = {
         Args: { p_invitation_id: string }
         Returns: undefined
       }
+      start_race_pass_purchase: {
+        Args: { p_participant_race_id: string; p_provider: string }
+        Returns: {
+          amount_minor: number
+          currency: string
+          product_key: string
+          purchase_id: string
+          reused: boolean
+        }[]
+      }
       submit_event_site_contact: {
         Args: {
           p_body: string
@@ -7165,6 +7279,14 @@ export type Database = {
           purge_after: string
           recipient_email: string
           sendable: boolean
+        }[]
+      }
+      worker_claim_billing_webhook: {
+        Args: { p_id: string }
+        Returns: {
+          provider: string
+          raw_body: string
+          signature: string
         }[]
       }
       worker_claim_event_site_contact: {
@@ -7551,6 +7673,10 @@ export type Database = {
           created: boolean
           snapshot_id: string
         }[]
+      }
+      worker_settle_billing_webhook: {
+        Args: { p_id: string; p_result: string; p_status: string }
+        Returns: undefined
       }
       worker_source_content_hashes: {
         Args: { p_source_id: string }

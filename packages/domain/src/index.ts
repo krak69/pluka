@@ -809,3 +809,28 @@ export {
   setEditionReferralCodeActive,
   type ReferralCodeContext,
 } from './billing/referral.js';
+
+export {
+  getMyPurchase,
+  getPlusOffer,
+  getRacePassOffer,
+  handleBillingWebhook,
+  receiveBillingWebhook,
+  type BillingInboxContext,
+  startRacePassCheckout,
+  type BillingContext,
+  type BillingWebhookContext,
+  type BillingWebhookResult,
+  type PlusOffer,
+  type RacePassOffer,
+} from './billing/checkout.js';
+
+// Le contrat du prestataire de paiement, pour les adaptateurs des applications
+// (01_ARCHITECTURE §28) : elles n'importent pas `@pluka/contracts` directement.
+export type {
+  BillingCheckoutRequest,
+  BillingCheckoutSession,
+  BillingProvider,
+  BillingWebhookDelivery,
+  VerifiedBillingEvent,
+} from '@pluka/contracts';

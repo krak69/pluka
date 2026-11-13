@@ -5,6 +5,7 @@ import {
   handleEventSiteContactMessage,
   isEventSiteContactMessage,
 } from './jobs/event-site-contact-send.js';
+import { handleBillingWebhookMessage, isBillingWebhookMessage } from './jobs/billing-webhook.js';
 import { GPX_QUEUE, handleGpxMessage } from './jobs/gpx-process.js';
 import { IMPACT_QUEUE, handleImpactMessage, isImpactMessage } from './jobs/change-impact.js';
 import {
@@ -144,6 +145,14 @@ const CONSUMERS: readonly {
 
       return Promise.resolve({ kind: 'abandoned' as const });
     },
+  },
+  // §28.1 : le webhook de paiement, vérifié puis appliqué ici, où vit la clé (0089).
+  {
+    queue: 'pluka_billing',
+    handle: (ports, message) =>
+      isBillingWebhookMessage(message)
+        ? handleBillingWebhookMessage(ports, message)
+        : Promise.resolve({ kind: 'abandoned' as const }),
   },
 ];
 

@@ -1,4 +1,5 @@
-import type { AIProvider, EmailProvider } from '@pluka/contracts';
+import type { AIProvider, BillingProvider, EmailProvider } from '@pluka/contracts';
+import type { BillingWebhookRepository } from '@pluka/db';
 import type { ProcessedTrack } from '@pluka/gpx';
 import type { DeclaredWaypoint, PlanMicroSegment, PlanRaceSegmentInput } from '@pluka/plan-engine';
 import type { Capture, ExtractedCandidate, ParsedBlock, ParsedChunk } from '@pluka/sources';
@@ -477,6 +478,27 @@ export interface DiscoveryStore {
   fail(discoveryId: string, errorCode: string): Promise<void>;
 }
 
+/** Une livraison brute du webhook de paiement, déposée par l'application (0089). */
+export interface BillingWebhookDeliveryRecord {
+  readonly provider: string;
+  readonly rawBody: string;
+  readonly signature: string;
+}
+
+export interface BillingInboxStore {
+  /** Nul : livraison inconnue, ou déjà traitée. */
+  claim(id: string): Promise<BillingWebhookDeliveryRecord | null>;
+  settle(id: string, status: 'processed' | 'rejected', result: string): Promise<void>;
+}
+
+/** Le paiement : vérifier un webhook et le confirmer en base (0088, 0089). */
+export interface BillingPorts {
+  /** Nul sans prestataire configuré : les livraisons attendent (§35). */
+  readonly provider: BillingProvider | null;
+  readonly inbox: BillingInboxStore;
+  readonly webhook: BillingWebhookRepository;
+}
+
 export interface WorkerPorts {
   readonly queue: Queue;
   readonly jobs: JobStore;
@@ -494,6 +516,7 @@ export interface WorkerPorts {
   readonly siteContacts: EventSiteContactStore;
   readonly accountNotices: AccountNoticeStore;
   readonly startChanges: StartChangeStore;
+  readonly billing: BillingPorts;
   readonly discoveries: DiscoveryStore;
   /**
    * Fournisseur email, ou son absence.

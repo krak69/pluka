@@ -861,6 +861,34 @@ Il conserve notamment :
 
 Le moteur d'autorisation ne dépend jamais du prix payé.
 
+Depuis 0088 : `channel` (`app` ou `organizer_link`), `organization_id` et `referral_code_id`
+portent l'attribution du canal A, recopiée de la participation à la création de l'achat. Un
+seul achat `pending` par participation (`ux_purchases_pending_race_pass`) : un second clic
+reprend le premier. Un paiement confirmé alors que la course est déjà couverte reste `paid`,
+sans droit, avec `metadata.conflict = true` : à rembourser.
+
+Le produit (`race_pass` ou `race_pass_early`) et le montant sont décidés en base, à l'heure
+de la base, par `start_race_pass_purchase` ; le client ne transmet ni prix, ni date, ni
+éligibilité (`04_ENTITLEMENTS` §72.1). Le droit naît dans `billing_record_checkout_event`,
+idempotent par `(provider, provider_event_id)` dans `private.billing_webhook_events`.
+
+**Point ouvert :** `purchases.user_id` est en `on delete cascade` depuis 0001 : supprimer un
+compte supprime ses achats, alors que les pièces comptables se conservent en principe dix ans.
+À trancher avant d'encaisser.
+
+## 10.3.0 `billing_products` — le catalogue
+
+Prix TTC en centimes par clé produit (0088) : `race_pass` 1 490, `race_pass_early` 990,
+`plus_annual` 4 490. Le domaine ne connaît que les clés (§72). Lu par les fonctions de 0088. `get_plus_offer()` (0090) en lit le prix de PLUKA+ pour l'écran d'offre, avec le PLUKA+ déjà actif du coureur de la session ; lecture seule, le catalogue reste fermé au client.
+
+## 10.3.0.1 `private.billing_webhook_inbox` — les livraisons du webhook
+
+Le Route Handler de l'application dépose le corps brut et la signature (0089) ; il n'a pas la
+clé de service et ne décide rien. Le worker vérifie la signature avec l'adaptateur du
+prestataire, puis applique. `status` : `received`, `processed`, `rejected` ; `result` garde
+la réponse de la base ou le motif du rejet. Le dépôt passe par l'outbox
+(`billing.webhook_received` → file `pluka_billing`).
+
 ## 10.3.1 `partner_sale_lines` — canal B
 
 Une vente de l'option « Prépa PLUKA » encaissée par l'organisation dans son formulaire
