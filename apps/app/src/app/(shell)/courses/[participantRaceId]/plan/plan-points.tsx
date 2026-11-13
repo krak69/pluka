@@ -1,16 +1,7 @@
 'use client';
 
-import type { PlanOverview, PlanPointView } from '@pluka/domain';
-import {
-  Badge,
-  Button,
-  DataValue,
-  Divider,
-  Input,
-  MicroLabel,
-  StatusBadge,
-  Table,
-} from '@pluka/ui';
+import type { PlanCutoffView, PlanOverview, PlanPointView } from '@pluka/domain';
+import { Button, Input, StatusBadge } from '@pluka/ui';
 import { useActionState } from 'react';
 
 import {
@@ -33,12 +24,13 @@ import {
 } from '@/lib/plan-format';
 
 /**
- * Points du parcours et édition du Plan — PLAN_ENGINE §64, §65 ;
- * 06_DESIGN_SYSTEM.md §53.
+ * Frise des passages et réglages du Plan — PLAN_ENGINE §64, §65 ;
+ * 06_DESIGN_SYSTEM.md §53 ; prototype, `tab: 'plan'`.
  *
- * §64 énumère ce qui doit être affichable, et la table le porte : durée de
- * chaque section, ETA de chaque waypoint, temps écoulé, arrêt, état
- * verrouillé, marge à la barrière.
+ * L'heure prévue à gauche, une carte par point, et entre deux points la
+ * section qui les relie. §64 énumère ce qui doit être affichable — durée de
+ * chaque section, ETA de chaque point, temps écoulé, arrêt, verrou, marge à la
+ * barrière — et tout y est.
  *
  * RIEN N'EST CALCULÉ ICI
  *
@@ -47,9 +39,8 @@ import {
  * moteur veut un résultat déterministe côté serveur, et un recalcul dans le
  * navigateur en produirait un second, forcément divergent un jour.
  *
- * §65 fixe le vocabulaire : « passage estimé », « heure prévue », « arrêt »,
- * « section », « marge », « à surveiller », « rééquilibrer », « conserver ce
- * Plan ». Rien qui promette un chrono.
+ * Les réglages d'un point se replient dans sa carte : la frise reste lisible,
+ * et chaque geste reste à un clic, nommé, à côté de ce qu'il change (§24).
  */
 
 const INITIAL: ActionState = {};
@@ -69,6 +60,12 @@ const MARGIN_TONE: Readonly<Record<string, 'success' | 'warning' | 'error' | 'ne
   beyond: 'error',
 };
 
+/** « Départ », « Arrivée » — sauf quand le point porte déjà ce nom. */
+function kindOf(name: string, index: number, lastIndex: number): string | null {
+  const kind = index === 0 ? 'Départ' : index === lastIndex ? 'Arrivée' : null;
+  return kind !== null && name.trim().toLowerCase() === kind.toLowerCase() ? null : kind;
+}
+
 export interface PlanPointsProps {
   readonly participantRaceId: string;
   readonly overview: PlanOverview;
@@ -79,189 +76,171 @@ export function PlanPoints({ participantRaceId, overview, timezone }: PlanPoints
   const marginByWaypoint = new Map(
     overview.cutoffs.map((cutoff) => [cutoff.raceWaypointId, cutoff]),
   );
-
-  const rows = overview.points.map((point) => {
-    const cutoff = marginByWaypoint.get(point.raceWaypointId);
-
-    return {
-      key: point.raceWaypointId,
-      // §7.2 : Aube marque la prochaine échéance. Le point le plus serré est
-      // celui qui mérite l'attention du coureur.
-      emphasis: overview.tightestCutoff?.raceWaypointId === point.raceWaypointId,
-      cells: {
-        name: (
-          <span>
-            {point.name}
-            {point.isLocked ? (
-              <>
-                {' '}
-                <Badge tone="neutral">Heure verrouillée</Badge>
-              </>
-            ) : null}
-          </span>
-        ),
-        distance: formatDistance(point.distanceKm),
-        elapsed: formatElapsed(point.plannedElapsedSeconds),
-        clock: formatClock(point.plannedArrivalAt, timezone),
-        section:
-          point.incomingSegment === null
-            ? '—'
-            : formatElapsed(point.incomingSegment.plannedDurationSeconds),
-        pace:
-          point.incomingSegment === null ? '—' : formatPace(point.incomingSegment.paceSecondsPerKm),
-        stop: point.stopDurationSeconds === 0 ? '—' : formatElapsed(point.stopDurationSeconds),
-        margin:
-          cutoff === undefined ? (
-            '—'
-          ) : (
-            <StatusBadge tone={MARGIN_TONE[cutoff.status] ?? 'neutral'}>
-              {formatSigned(cutoff.marginSeconds)} · {MARGIN_LABEL[cutoff.status] ?? cutoff.status}
-            </StatusBadge>
-          ),
-      },
-    };
-  });
+  const lastIndex = overview.points.length - 1;
 
   return (
     <>
-      <PlanSummary participantRaceId={participantRaceId} overview={overview} timezone={timezone} />
+      <DriftDecision participantRaceId={participantRaceId} overview={overview} />
 
-      <Divider spaced />
+      <section aria-labelledby="pl-points-title" className="pl-timeline-wrap">
+        <h2 id="pl-points-title" className="pk-visually-hidden">
+          Points du parcours
+        </h2>
+        <ol className="pl-timeline">
+          {overview.points.map((point, index) => (
+            <TimelineItem
+              key={point.raceWaypointId}
+              participantRaceId={participantRaceId}
+              point={point}
+              timezone={timezone}
+              cutoff={marginByWaypoint.get(point.raceWaypointId)}
+              tightest={overview.tightestCutoff?.raceWaypointId === point.raceWaypointId}
+              kind={kindOf(point.name, index, lastIndex)}
+            />
+          ))}
+        </ol>
+      </section>
 
-      <Table
-        caption="Points du parcours"
-        stickyHeader
-        columns={[
-          { key: 'name', label: 'Point' },
-          { key: 'distance', label: 'Distance', align: 'numeric', unit: 'km' },
-          { key: 'section', label: 'Section', align: 'numeric' },
-          { key: 'pace', label: 'Allure', align: 'numeric', unit: '/km' },
-          { key: 'elapsed', label: 'Temps écoulé', align: 'numeric' },
-          { key: 'clock', label: 'Heure prévue', align: 'numeric' },
-          { key: 'stop', label: 'Arrêt', align: 'numeric' },
-          { key: 'margin', label: 'Marge' },
-        ]}
-        rows={rows}
-      />
-
-      <Divider spaced />
-
-      <MicroLabel>Ajuster le Plan</MicroLabel>
-      <div style={{ display: 'grid', gap: 'var(--space-6)', marginTop: 'var(--space-3)' }}>
-        {overview.points.map((point) => (
-          <PointEditor
-            key={point.raceWaypointId}
-            participantRaceId={participantRaceId}
-            point={point}
-          />
-        ))}
-
-        <ResetPlan participantRaceId={participantRaceId} />
-      </div>
+      <section id="reglages" aria-labelledby="pl-settings-title" className="pl-settings">
+        <h2 id="pl-settings-title" className="pl-settings-title">
+          Réglages du plan
+        </h2>
+        <div className="pl-settings-grid">
+          <TargetForm participantRaceId={participantRaceId} overview={overview} />
+          <ResetPlan participantRaceId={participantRaceId} />
+        </div>
+      </section>
     </>
   );
 }
 
 /**
- * Objectif, arrivée, dérive, et les deux modes de §22.
- *
- * §27 admet explicitement un Plan dont l'arrivée diverge de l'objectif : la
- * dérive est affichée telle quelle, sans être présentée comme une anomalie.
- * Les deux boutons qui la résolvent sont deux décisions distinctes, et §65 en
- * donne les mots.
+ * Un Plan dont l'arrivée diverge de l'objectif — §27 l'admet, et les deux
+ * boutons qui la résolvent sont deux décisions distinctes (§22, §65).
  */
-function PlanSummary({
+function DriftDecision({
   participantRaceId,
   overview,
-  timezone,
 }: {
   readonly participantRaceId: string;
   readonly overview: PlanOverview;
-  readonly timezone: string;
 }) {
-  const [targetState, changeTarget] = useActionState(changePlanTargetAction, INITIAL);
   const [rebalanceState, rebalance] = useActionState(rebalancePlanAction, INITIAL);
   const [preserveState, preserve] = useActionState(preservePlanAction, INITIAL);
 
-  const finishAt = overview.points[overview.points.length - 1]?.plannedArrivalAt;
+  if (overview.driftSeconds === 0) return null;
 
   return (
-    <section>
-      <div style={{ display: 'flex', gap: 'var(--space-10)', flexWrap: 'wrap' }}>
-        <DataValue
-          label="Objectif"
-          value={formatElapsed(overview.targetDurationSeconds)}
-          emphasis="strong"
-        />
-        <DataValue
-          label="Arrivée du Plan"
-          value={formatElapsed(overview.finishElapsedSeconds)}
-          emphasis="strong"
-        />
-        {finishAt === undefined ? null : (
-          <DataValue label="Heure prévue" value={formatClock(finishAt, timezone)} />
-        )}
-        {overview.driftSeconds === 0 ? null : (
-          <DataValue label="Écart à l’objectif" value={formatSigned(overview.driftSeconds)} />
-        )}
-      </div>
-
-      {overview.tightestCutoff === null ? null : (
-        <p className="pk-body" style={{ marginTop: 'var(--space-4)' }}>
-          Marge la plus faible : {overview.tightestCutoff.waypointName},{' '}
-          {formatSigned(overview.tightestCutoff.marginSeconds)}.
+    <section className="pl-drift" aria-labelledby="pl-drift-title">
+      <div>
+        <h2 id="pl-drift-title" className="pl-drift-title">
+          Ton plan arrive {formatSigned(overview.driftSeconds)} par rapport à ton objectif.
+        </h2>
+        <p className="pl-drift-text">
+          Tes ajustements ont déplacé l’arrivée. À toi de choisir : rééquilibrer le reste du
+          parcours, ou garder ce plan tel quel.
         </p>
-      )}
-
-      <form action={changeTarget} style={{ marginTop: 'var(--space-5)' }}>
-        <input type="hidden" name="participantRaceId" value={participantRaceId} />
-        <Input
-          id="plan-target"
-          name="target"
-          label="Nouvel objectif"
-          hint="Format HH:MM. L’objectif reste votre décision."
-          defaultValue={formatElapsed(overview.targetDurationSeconds)}
-          {...(targetState.error === undefined ? {} : { error: targetState.error })}
-        />
-        <Button type="submit" variant="secondary">
-          Changer l’objectif
-        </Button>
-      </form>
-
-      {overview.driftSeconds === 0 ? null : (
-        <div
-          style={{
-            display: 'flex',
-            gap: 'var(--space-3)',
-            flexWrap: 'wrap',
-            marginTop: 'var(--space-5)',
-          }}
-        >
-          {/* §22.2 puis §22.1 — deux formulaires, deux décisions. */}
-          <form action={rebalance}>
-            <input type="hidden" name="participantRaceId" value={participantRaceId} />
-            <Button type="submit">
-              Rééquilibrer pour finir en {formatElapsed(overview.targetDurationSeconds)}
-            </Button>
-          </form>
-
-          <form action={preserve}>
-            <input type="hidden" name="participantRaceId" value={participantRaceId} />
-            <Button type="submit" variant="secondary">
-              Conserver ce Plan
-            </Button>
-          </form>
-        </div>
-      )}
-
+      </div>
+      <div className="pl-drift-actions">
+        <form action={rebalance}>
+          <input type="hidden" name="participantRaceId" value={participantRaceId} />
+          <Button type="submit">
+            Rééquilibrer pour finir en {formatElapsed(overview.targetDurationSeconds)}
+          </Button>
+        </form>
+        <form action={preserve}>
+          <input type="hidden" name="participantRaceId" value={participantRaceId} />
+          <Button type="submit" variant="secondary">
+            Conserver ce Plan
+          </Button>
+        </form>
+      </div>
       <ActionError state={rebalanceState} />
       <ActionError state={preserveState} />
     </section>
   );
 }
 
+function TimelineItem({
+  participantRaceId,
+  point,
+  timezone,
+  cutoff,
+  tightest,
+  kind,
+}: {
+  readonly participantRaceId: string;
+  readonly point: PlanPointView;
+  readonly timezone: string;
+  readonly cutoff: PlanCutoffView | undefined;
+  readonly tightest: boolean;
+  readonly kind: string | null;
+}) {
+  const segment = point.incomingSegment;
+
+  return (
+    <li className="pl-item">
+      {segment === null ? null : (
+        <p className="pl-segment">
+          <span>{formatDistance(segment.distanceKm)} km</span>
+          <span>{formatPace(segment.paceSecondsPerKm)} /km</span>
+          <strong className="pl-segment-duration">
+            {formatElapsed(segment.plannedDurationSeconds)}
+          </strong>
+          {segment.manualOverride ? <span className="pl-chip">Durée imposée</span> : null}
+        </p>
+      )}
+
+      <div className="pl-row">
+        <div className="pl-time">
+          <span className="pl-clock">{formatClock(point.plannedArrivalAt, timezone)}</span>
+          <span className="pl-elapsed">{formatElapsed(point.plannedElapsedSeconds)}</span>
+          <span
+            className={
+              cutoff !== undefined
+                ? 'pl-dot pl-dot-cutoff'
+                : kind !== null
+                  ? 'pl-dot pl-dot-end'
+                  : 'pl-dot'
+            }
+            aria-hidden="true"
+          />
+        </div>
+
+        <article className={tightest ? 'pl-card pl-card-tight' : 'pl-card'}>
+          <header className="pl-card-head">
+            <h3 className="pl-name">
+              {point.name}
+              {kind === null ? null : <span className="pl-kind">{kind}</span>}
+            </h3>
+            {cutoff === undefined ? null : (
+              <StatusBadge tone={MARGIN_TONE[cutoff.status] ?? 'neutral'}>
+                Marge {formatSigned(cutoff.marginSeconds)} ·{' '}
+                {MARGIN_LABEL[cutoff.status] ?? cutoff.status}
+              </StatusBadge>
+            )}
+          </header>
+          <p className="pl-facts">
+            km <span>{formatDistance(point.distanceKm)}</span>
+            {point.altitudeM === null ? '' : ` · ${String(Math.round(point.altitudeM))} m`}
+            {point.stopDurationSeconds === 0
+              ? ''
+              : ` · arrêt ${formatMinutes(point.stopDurationSeconds)} min`}
+          </p>
+          {point.isLocked ? <p className="pl-chip pl-chip-lock">Heure verrouillée</p> : null}
+
+          <details className="pl-adjust">
+            <summary>Ajuster ce point</summary>
+            <PointEditor participantRaceId={participantRaceId} point={point} />
+          </details>
+        </article>
+      </div>
+    </li>
+  );
+}
+
 /**
- * Édition d'un point : durée de la section qui y mène, et arrêt.
+ * Édition d'un point : durée de la section qui y mène, arrêt, verrou.
  *
  * §24 gouverne les libellés autant que le code : une durée imposée reste
  * imposée jusqu'à ce que l'utilisateur la retire, et le bouton qui la retire
@@ -280,60 +259,45 @@ function PointEditor({
   const [lockState, lockWaypoint] = useActionState(lockWaypointAction, INITIAL);
 
   return (
-    <section
-      style={{
-        borderTop: '1px solid var(--pk-hairline)',
-        paddingTop: 'var(--space-4)',
-      }}
-    >
-      <h3 className="pk-h2" style={{ margin: '0 0 var(--space-3)' }}>
-        {point.name}
-      </h3>
-
+    <div className="pl-editor">
       {point.incomingSegment === null ? null : (
-        <div style={{ display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
-          <form action={updateSegment}>
-            <input type="hidden" name="participantRaceId" value={participantRaceId} />
-            <input type="hidden" name="raceSegmentId" value={point.incomingSegment.raceSegmentId} />
-            <Input
-              id={`section-${point.raceWaypointId}`}
-              name="duration"
-              label="Durée de la section"
-              hint="Format HH:MM. Cette durée ne sera plus recalculée."
-              defaultValue={formatElapsed(point.incomingSegment.plannedDurationSeconds)}
-              {...(segmentState.error === undefined ? {} : { error: segmentState.error })}
-            />
-            <Button type="submit" variant="secondary">
-              Imposer cette durée
-            </Button>
-          </form>
-
-          {point.incomingSegment.manualOverride ? (
-            <form action={removeOverride} style={{ alignSelf: 'end' }}>
-              <input type="hidden" name="participantRaceId" value={participantRaceId} />
-              <input
-                type="hidden"
-                name="raceSegmentId"
-                value={point.incomingSegment.raceSegmentId}
-              />
-              <Button type="submit" variant="secondary">
-                Revenir à la proposition PLUKA
-              </Button>
-              <ActionError state={removeState} />
-            </form>
-          ) : null}
-        </div>
+        <form action={updateSegment} className="pl-editor-form">
+          <input type="hidden" name="participantRaceId" value={participantRaceId} />
+          <input type="hidden" name="raceSegmentId" value={point.incomingSegment.raceSegmentId} />
+          <Input
+            id={`section-${point.raceWaypointId}`}
+            name="duration"
+            label="Durée de la section"
+            hint="HH:MM. Elle ne sera plus recalculée."
+            defaultValue={formatElapsed(point.incomingSegment.plannedDurationSeconds)}
+            {...(segmentState.error === undefined ? {} : { error: segmentState.error })}
+          />
+          <Button type="submit" variant="secondary">
+            Imposer cette durée
+          </Button>
+        </form>
       )}
 
-      <form action={updateStop} style={{ marginTop: 'var(--space-4)' }}>
+      {point.incomingSegment?.manualOverride === true ? (
+        <form action={removeOverride} className="pl-editor-form">
+          <input type="hidden" name="participantRaceId" value={participantRaceId} />
+          <input type="hidden" name="raceSegmentId" value={point.incomingSegment.raceSegmentId} />
+          <Button type="submit" variant="secondary">
+            Revenir à la proposition PLUKA
+          </Button>
+          <ActionError state={removeState} />
+        </form>
+      ) : null}
+
+      <form action={updateStop} className="pl-editor-form">
         <input type="hidden" name="participantRaceId" value={participantRaceId} />
         <input type="hidden" name="raceWaypointId" value={point.raceWaypointId} />
         <Input
           id={`stop-${point.raceWaypointId}`}
           name="minutes"
           type="number"
-          label="Arrêt"
-          hint="En minutes. Zéro retire l’arrêt."
+          label="Arrêt (min)"
+          hint="Zéro retire l’arrêt."
           defaultValue={formatMinutes(point.stopDurationSeconds)}
           {...(stopState.error === undefined ? {} : { error: stopState.error })}
         />
@@ -343,65 +307,79 @@ function PointEditor({
       </form>
 
       {/*
-        Verrou de passage — PLAN_ENGINE §26.
-
-        Le verrou s'exprime en temps écoulé depuis le départ, comme le reste du
-        Plan : une heure d'horloge dépendrait du fuseau et de l'heure de départ
-        réelle, que le coureur ne maîtrise pas.
-
-        Un champ vidé déverrouille. C'est le même geste, donc le même
-        formulaire, et §24 veut que le bouton qui retire une contrainte soit
-        présent et nommé.
+        Verrou de passage — PLAN_ENGINE §26. Il s'exprime en temps écoulé
+        depuis le départ, comme le reste du Plan. Un champ vidé déverrouille :
+        c'est le même geste, donc le même formulaire.
       */}
-      <form action={lockWaypoint} style={{ marginTop: 'var(--space-4)' }}>
+      <form action={lockWaypoint} className="pl-editor-form">
         <input type="hidden" name="participantRaceId" value={participantRaceId} />
         <input type="hidden" name="raceWaypointId" value={point.raceWaypointId} />
         <Input
           id={`lock-${point.raceWaypointId}`}
           name="elapsed"
           label="Passage verrouillé"
-          hint="Format HH:MM depuis le départ. Vide, le passage redevient estimé."
+          hint="HH:MM depuis le départ. Vide : estimé."
           defaultValue={
             point.lockedElapsedSeconds === null ? '' : formatElapsed(point.lockedElapsedSeconds)
           }
           {...(lockState.error === undefined ? {} : { error: lockState.error })}
         />
         <Button type="submit" variant="secondary">
-          {point.isLocked ? 'Mettre à jour le verrou' : 'Verrouiller ce passage'}
+          {point.isLocked ? 'Mettre à jour' : 'Verrouiller'}
         </Button>
       </form>
-    </section>
+    </div>
+  );
+}
+
+function TargetForm({
+  participantRaceId,
+  overview,
+}: {
+  readonly participantRaceId: string;
+  readonly overview: PlanOverview;
+}) {
+  const [state, changeTarget] = useActionState(changePlanTargetAction, INITIAL);
+
+  return (
+    <form action={changeTarget} className="pl-setting">
+      <h3 className="pl-setting-title">Mon objectif</h3>
+      <input type="hidden" name="participantRaceId" value={participantRaceId} />
+      <Input
+        id="plan-target"
+        name="target"
+        label="Nouvel objectif"
+        hint="Format HH:MM. L’objectif reste ta décision."
+        defaultValue={formatElapsed(overview.targetDurationSeconds)}
+        {...(state.error === undefined ? {} : { error: state.error })}
+      />
+      <Button type="submit" variant="secondary">
+        Changer l’objectif
+      </Button>
+    </form>
   );
 }
 
 /**
- * Remise à zéro — PLAN_ENGINE §28.
- *
- * Effacer arrêts, durées imposées et verrous d'un coup, puis rééquilibrer sur
- * l'objectif. Le bouton est volontairement isolé et secondaire : §28 du Design
+ * Remise à zéro — PLAN_ENGINE §28. Volontairement secondaire : §28 du Design
  * System refuse qu'une action destructive prenne le Lichen d'un CTA.
  */
 function ResetPlan({ participantRaceId }: { readonly participantRaceId: string }) {
   const [state, reset] = useActionState(resetPlanAction, INITIAL);
 
   return (
-    <section style={{ borderTop: '1px solid var(--pk-hairline)', paddingTop: 'var(--space-4)' }}>
-      <MicroLabel>Repartir de zéro</MicroLabel>
-
-      <p className="pk-body" style={{ color: 'var(--pk-text-muted)', maxWidth: '62ch' }}>
+    <form action={reset} className="pl-setting">
+      <h3 className="pl-setting-title">Repartir de zéro</h3>
+      <input type="hidden" name="participantRaceId" value={participantRaceId} />
+      <p className="pl-setting-text">
         Retire tous tes ajustements — arrêts, durées imposées et passages verrouillés — et
         reconstruit le Plan sur ton objectif.
       </p>
-
-      <form action={reset} style={{ marginTop: 'var(--space-3)' }}>
-        <input type="hidden" name="participantRaceId" value={participantRaceId} />
-        <Button type="submit" variant="secondary">
-          Effacer mes ajustements
-        </Button>
-      </form>
-
+      <Button type="submit" variant="secondary">
+        Effacer mes ajustements
+      </Button>
       <ActionError state={state} />
-    </section>
+    </form>
   );
 }
 
@@ -409,7 +387,7 @@ function ActionError({ state }: { readonly state: ActionState }) {
   if (state.error === undefined) return null;
 
   return (
-    <p className="pk-field-error" role="alert" style={{ marginTop: 'var(--space-2)' }}>
+    <p className="pk-field-error" role="alert">
       {state.error}
     </p>
   );

@@ -250,8 +250,14 @@ describe('points du parcours', () => {
     ).not.toContain('Revenir à la proposition PLUKA');
   });
 
-  it('nomme la table pour qui ne voit pas la mise en page', () => {
-    expect(points()).toContain('<caption');
+  it('nomme la liste des points pour qui ne voit pas la mise en page', () => {
+    // La table est devenue une frise (prototype) : une liste ordonnée, nommée
+    // par un titre que les lecteurs d'écran annoncent — même garantie que la
+    // légende de table qu'elle remplace.
+    const html = points();
+    expect(html).toContain('aria-labelledby="pl-points-title"');
+    expect(html).toMatch(/id="pl-points-title"[^>]*>Points du parcours</);
+    expect(html).toContain('<ol');
   });
 });
 

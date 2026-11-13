@@ -1,10 +1,10 @@
 import { DomainError, getParticipation, listRaceInformation } from '@pluka/domain';
-import { Divider, SectionHeader } from '@pluka/ui';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { RaceFacts } from '@/components/race-facts';
 import { participationContext } from '@/lib/participations';
+import { formatClock, formatDistance } from '@/lib/plan-format';
 import { sessionRaceContext } from '@/lib/race-information';
 import { requireSession } from '@/lib/session';
 
@@ -51,32 +51,69 @@ export default async function RaceInformationPage({
 
   const publicPath = `/epreuves/${information.event.slug}/${information.edition.slug}/${information.race.slug}`;
 
+  const race = information.race;
+  const startDay = new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: race.timezone,
+  }).format(new Date(race.startDatetime));
+  const thousands = (value: number) => new Intl.NumberFormat('fr-FR').format(value);
+
+  // Le résumé de l'épreuve — prototype, carte « Informations générales ».
+  const lead = (
+    <section className="rf-card rf-lead" aria-labelledby="rf-lead-title">
+      <p className="pk-label">
+        {information.event.name} · {String(information.edition.year)}
+      </p>
+      <h1 id="rf-lead-title" className="rf-lead-title">
+        {race.name}
+      </h1>
+      <ul className="rf-lead-facts">
+        <li>
+          {formatDistance(race.distanceKm)} km
+          {race.elevationGainM === null ? '' : `, ${thousands(race.elevationGainM)} m D+`}
+          {race.elevationLossM === null ? '' : `, ${thousands(race.elevationLossM)} m D-`}
+        </li>
+        <li>
+          {startDay.charAt(0).toUpperCase() + startDay.slice(1)}, départ{' '}
+          {formatClock(race.startDatetime, race.timezone)}
+        </li>
+        {race.startLocationName === null ? null : (
+          <li>
+            {race.startLocationName}
+            {race.finishLocationName === null || race.finishLocationName === race.startLocationName
+              ? ''
+              : ` → ${race.finishLocationName}`}
+          </li>
+        )}
+      </ul>
+      <p className="rf-lead-note">
+        Chaque information porte sa provenance : une règle qui compte renvoie toujours à son
+        document, sa page et son article.
+        {race.publicVisibility === 'public' ? (
+          <>
+            {' '}
+            <Link href={publicPath} className="pk-link">
+              Page publique de l’épreuve
+            </Link>{' '}
+            — pratique à envoyer à ton accompagnant.
+          </>
+        ) : null}
+      </p>
+    </section>
+  );
+
   return (
     <div className="ap-page">
-      <SectionHeader
-        eyebrow={`${information.event.name} · ${String(information.edition.year)}`}
-        title="La course"
-      />
-
-      <p className="pk-body rp-measure">
-        Tout ce que PLUKA sait de ton épreuve, avec la provenance de chaque information. Une règle
-        qui compte porte toujours son document, sa page et son article.
-      </p>
-
-      {information.race.publicVisibility === 'public' ? (
-        <p className="rp-hint">
-          Cette épreuve a une <Link href={publicPath}>page publique</Link> — pratique à envoyer à
-          ton accompagnant.
-        </p>
-      ) : null}
-
-      <Divider spaced />
-
       <RaceFacts
         facts={information.facts}
         cutoffs={information.cutoffs}
         waypoints={information.waypoints}
-        timezone={information.race.timezone}
+        timezone={race.timezone}
+        indexed
+        lead={lead}
       />
     </div>
   );

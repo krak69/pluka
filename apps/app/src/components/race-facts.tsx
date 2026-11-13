@@ -1,5 +1,6 @@
 import type { PublishedRaceFactRecord, RaceCutoffRecord, RaceWaypointRecord } from '@pluka/db';
 import { equipmentValueOf } from '@pluka/domain';
+import type { ReactNode } from 'react';
 import { Divider, EmptyState, MicroLabel, SourceDrawer, TrustBadge } from '@pluka/ui';
 
 /**
@@ -162,7 +163,9 @@ function FactRow({ fact }: { readonly fact: PublishedRaceFactRecord }) {
     <div className="rp-fact-row">
       <div className="rp-fact-row-head">
         {/* Un matériel se nomme par son nom, pas par sa clé technique. */}
-        <span className="rp-fact-row-key">{equipment ? 'Matériel' : wave ? 'Vague de départ' : fact.factKey}</span>
+        <span className="rp-fact-row-key">
+          {equipment ? 'Matériel' : wave ? 'Vague de départ' : fact.factKey}
+        </span>
         <TrustBadge level={fact.trustLevel} />
       </div>
 
@@ -200,15 +203,142 @@ export interface RaceFactsProps {
   readonly cutoffs: readonly RaceCutoffRecord[];
   readonly waypoints: readonly RaceWaypointRecord[];
   readonly timezone: string;
+  /**
+   * Mise en page du prototype (`tab: 'course'`) : un sommaire des rubriques à
+   * gauche, une carte par rubrique à droite. Ce qui précède les rubriques —
+   * un résumé de l'épreuve — arrive par `lead`.
+   */
+  readonly indexed?: boolean;
+  readonly lead?: ReactNode;
 }
 
-export function RaceFacts({ facts, cutoffs, waypoints, timezone }: RaceFactsProps) {
+export function RaceFacts({
+  facts,
+  cutoffs,
+  waypoints,
+  timezone,
+  indexed = false,
+  lead,
+}: RaceFactsProps) {
   const byWaypointId = new Map(waypoints.map((waypoint) => [waypoint.id, waypoint]));
 
   const grouped = CATEGORY_ORDER.map((category) => ({
     category,
     entries: facts.filter((fact) => fact.category === category),
   })).filter((group) => group.entries.length > 0);
+
+  if (indexed) {
+    const sections = [
+      { id: 'rf-points', label: 'Points de passage' },
+      { id: 'rf-barrieres', label: 'Barrières horaires' },
+      ...grouped.map((group) => ({
+        id: `rf-${group.category}`,
+        label: CATEGORY_LABELS[group.category],
+      })),
+    ];
+
+    return (
+      <div className="rf-layout">
+        <nav className="rf-index" aria-label="Rubriques de la course">
+          <ul>
+            {sections.map((section) => (
+              <li key={section.id}>
+                <a href={`#${section.id}`}>{section.label}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className="rf-sections">
+          {lead}
+
+          <section id="rf-points" className="rf-card" aria-labelledby="rf-points-title">
+            <h2 id="rf-points-title" className="rf-card-title">
+              Points de passage
+            </h2>
+            {waypoints.length === 0 ? (
+              <p className="rf-empty">
+                Le parcours de cette épreuve n’a pas encore été importé ni saisi par l’organisation.
+              </p>
+            ) : (
+              <ol className="rp-waypoints">
+                {waypoints.map((waypoint) => (
+                  <li key={waypoint.id} className="rp-waypoint">
+                    <span className="rp-waypoint-km">{waypoint.distanceKm.toFixed(1)} km</span>
+                    <span className="rp-waypoint-name">{waypoint.name}</span>
+                    <span className="rp-waypoint-type">
+                      {WAYPOINT_LABELS[waypoint.waypointType]}
+                    </span>
+                    <span className="rp-waypoint-alt">
+                      {waypoint.altitudeM === null ? '—' : `${String(waypoint.altitudeM)} m`}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+
+          <section id="rf-barrieres" className="rf-card" aria-labelledby="rf-barrieres-title">
+            <h2 id="rf-barrieres-title" className="rf-card-title">
+              Barrières horaires
+            </h2>
+            {cutoffs.length === 0 ? (
+              <p className="rf-empty">
+                Les barrières de cette épreuve n’ont pas encore été validées par l’organisation.
+              </p>
+            ) : (
+              <ul className="rp-cutoffs">
+                {cutoffs.map((cutoff) => {
+                  const waypoint = byWaypointId.get(cutoff.raceWaypointId);
+                  return (
+                    <li key={cutoff.id} className="rp-cutoff">
+                      <span className="rp-cutoff-where">{waypoint?.name ?? 'Point inconnu'}</span>
+                      <span className="rp-cutoff-when">
+                        {new Intl.DateTimeFormat('fr-FR', {
+                          dateStyle: 'short',
+                          timeStyle: 'short',
+                          timeZone: timezone,
+                        }).format(new Date(cutoff.cutoffDatetime))}
+                      </span>
+                      <span className="rp-cutoff-type">{CUTOFF_LABELS[cutoff.cutoffType]}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+
+          {grouped.length === 0 ? (
+            <section className="rf-card">
+              <h2 className="rf-card-title">Informations officielles</h2>
+              <p className="rf-empty">
+                Les documents de cette épreuve n’ont pas encore été analysés, ou leurs informations
+                attendent la validation de l’organisation.
+              </p>
+            </section>
+          ) : (
+            grouped.map((group) => (
+              <section
+                key={group.category}
+                id={`rf-${group.category}`}
+                className="rf-card"
+                aria-labelledby={`rf-${group.category}-title`}
+              >
+                <h2 id={`rf-${group.category}-title`} className="rf-card-title">
+                  {CATEGORY_LABELS[group.category]}
+                </h2>
+                <div className="rp-fact-list">
+                  {group.entries.map((fact) => (
+                    <FactRow key={fact.factId} fact={fact} />
+                  ))}
+                </div>
+              </section>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rp-information">

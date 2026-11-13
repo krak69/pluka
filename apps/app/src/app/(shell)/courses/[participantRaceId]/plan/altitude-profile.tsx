@@ -65,9 +65,25 @@ export interface AltitudeProfileProps {
   readonly timezone: string;
   /** Faux quand aucune altitude officielle n'ancre la courbe (§54, point 8). */
   readonly anchored: boolean;
+  /**
+   * `dark` : dans la bannière du Plan (prototype) — tracé Lichen sur Ardoise,
+   * noms des points sous la courbe, et la liste des passages gardée pour les
+   * lecteurs d'écran seulement, la frise du Plan la montrant déjà à tous.
+   */
+  readonly variant?: 'light' | 'dark';
+  /** Les points porteurs d'une barrière, marqués en Aube (§49). */
+  readonly cutoffWaypointIds?: readonly string[];
 }
 
-export function AltitudeProfile({ profile, points, timezone, anchored }: AltitudeProfileProps) {
+export function AltitudeProfile({
+  profile,
+  points,
+  timezone,
+  anchored,
+  variant = 'light',
+  cutoffWaypointIds = [],
+}: AltitudeProfileProps) {
+  const dark = variant === 'dark';
   const passages = points.map((point) => ({
     name: point.name,
     clock: formatClock(point.plannedArrivalAt, timezone),
@@ -77,7 +93,11 @@ export function AltitudeProfile({ profile, points, timezone, anchored }: Altitud
     // Sans parcours prétraité, pas de courbe — mais les passages restent
     // lisibles. §51 : le texte n'est pas un repli, c'est la source.
     return (
-      <PassageList passages={passages} note="Le profil du parcours n’est pas encore disponible." />
+      <PassageList
+        passages={passages}
+        note="Le profil du parcours n’est pas encore disponible."
+        dark={dark}
+      />
     );
   }
 
@@ -99,18 +119,28 @@ export function AltitudeProfile({ profile, points, timezone, anchored }: Altitud
     isFinish: index === points.length - 1,
   }));
 
+  // Noms sous la courbe : départ, arrivée et barrières, sans chevauchement.
+  const labels = dark ? profileLabels(markers, cutoffWaypointIds) : [];
+
   return (
-    <section>
-      <MicroLabel>Profil du parcours</MicroLabel>
+    <section className={dark ? 'pl-profile pl-profile-dark' : 'pl-profile'}>
+      <MicroLabel className={dark ? 'pl-label-dark' : undefined}>Profil du parcours</MicroLabel>
 
       <svg
         viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
+        preserveAspectRatio={dark ? 'none' : 'xMidYMid meet'}
         role="img"
         aria-label={`Profil du parcours, ${formatDistance(box.totalDistanceKm)} kilomètres`}
-        style={{ width: '100%', height: 'auto', display: 'block', marginTop: 'var(--space-3)' }}
+        className="pl-profile-svg"
       >
-        <path d={area} fill="var(--pk-glacier-bg)" />
-        <path d={line} fill="none" stroke="var(--pk-forest)" strokeWidth={2} />
+        <path d={area} fill={dark ? 'rgb(198 242 78 / 0.13)' : 'var(--pk-glacier-bg)'} />
+        <path
+          d={line}
+          fill="none"
+          stroke={dark ? 'var(--pk-lichen)' : 'var(--pk-forest)'}
+          strokeWidth={2}
+          vectorEffect="non-scaling-stroke"
+        />
 
         {markers.map(({ point, position, isFinish }) =>
           isFinish ? (
@@ -127,16 +157,46 @@ export function AltitudeProfile({ profile, points, timezone, anchored }: Altitud
               cx={position.x}
               cy={position.y}
               r={4}
-              fill="var(--pk-surface)"
-              stroke="var(--pk-forest)"
+              fill={
+                cutoffWaypointIds.includes(point.raceWaypointId)
+                  ? 'var(--pk-dawn)'
+                  : dark
+                    ? 'var(--pk-ink)'
+                    : 'var(--pk-surface)'
+              }
+              stroke={dark ? 'var(--pk-limestone)' : 'var(--pk-forest)'}
               strokeWidth={2}
+              vectorEffect="non-scaling-stroke"
             />
           ),
         )}
       </svg>
 
+      {labels.length === 0 ? null : (
+        <div className="pl-profile-labels" aria-hidden="true">
+          {labels.map((label) => (
+            <span
+              key={label.key}
+              className="pl-profile-label"
+              style={{ left: `${label.left.toFixed(2)}%`, transform: label.shift }}
+            >
+              {label.name}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {dark ? (
+        <p className="pl-profile-legend" aria-hidden="true">
+          <span className="pl-legend-dot pl-legend-cutoff" /> Barrière horaire
+          <span className="pl-legend-dot pl-legend-point" /> Point de passage
+          <span className="pl-legend-tri" /> Arrivée
+        </p>
+      ) : null}
+
       <PassageList
         passages={passages}
+        dark={dark}
         {...(anchored
           ? {}
           : {
@@ -145,6 +205,36 @@ export function AltitudeProfile({ profile, points, timezone, anchored }: Altitud
       />
     </section>
   );
+}
+
+/** Les noms placés sous la courbe, en pourcentage de sa largeur. */
+function profileLabels(
+  markers: readonly {
+    readonly point: PlanPointView;
+    readonly position: { readonly x: number };
+    readonly isFinish: boolean;
+  }[],
+  cutoffWaypointIds: readonly string[],
+): readonly { key: string; name: string; left: number; shift: string }[] {
+  const keep: { key: string; name: string; left: number; shift: string }[] = [];
+  const MIN_GAP = 9;
+  markers.forEach(({ point, position, isFinish }, index) => {
+    const first = index === 0;
+    if (!first && !isFinish && !cutoffWaypointIds.includes(point.raceWaypointId)) return;
+    const left = (position.x / VIEW_WIDTH) * 100;
+    const previous = keep[keep.length - 1];
+    if (previous !== undefined && left - previous.left < MIN_GAP) {
+      if (!isFinish) return;
+      keep.pop();
+    }
+    keep.push({
+      key: point.raceWaypointId,
+      name: point.name,
+      left,
+      shift: first ? 'none' : isFinish ? 'translateX(-100%)' : 'translateX(-50%)',
+    });
+  });
+  return keep;
 }
 
 /**
@@ -160,32 +250,26 @@ export function AltitudeProfile({ profile, points, timezone, anchored }: Altitud
 function PassageList({
   passages,
   note,
+  dark = false,
 }: {
   readonly passages: readonly { readonly name: string; readonly clock: string }[];
   readonly note?: string;
+  readonly dark?: boolean;
 }) {
   return (
-    <div style={{ marginTop: 'var(--space-3)' }}>
-      <MicroLabel>Passages estimés</MicroLabel>
-      <ul
-        className="pk-body"
-        style={{ listStyle: 'none', padding: 0, margin: 'var(--space-2) 0 0' }}
-      >
-        {passages.map((passage) => (
-          <li key={`${passage.name}-${passage.clock}`}>
-            {passage.name} — {passage.clock}
-          </li>
-        ))}
-      </ul>
+    <div className="pl-passages">
+      <div className={dark ? 'pk-visually-hidden' : undefined}>
+        <MicroLabel>Passages estimés</MicroLabel>
+        <ul className="pk-body pl-passage-list">
+          {passages.map((passage) => (
+            <li key={`${passage.name}-${passage.clock}`}>
+              {passage.name} — {passage.clock}
+            </li>
+          ))}
+        </ul>
+      </div>
 
-      {note === undefined ? null : (
-        <p
-          className="pk-body"
-          style={{ color: 'var(--pk-text-muted)', marginTop: 'var(--space-2)' }}
-        >
-          {note}
-        </p>
-      )}
+      {note === undefined ? null : <p className="pl-profile-note">{note}</p>}
     </div>
   );
 }
