@@ -1,9 +1,11 @@
 import { DomainError, getMyOrganization } from '@pluka/domain';
+import { Logo } from '@pluka/ui';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-import { SubTabs } from '@/components/sub-tabs';
+import { Icon } from '@/components/icon';
+import { OrgSideNav } from '@/components/org-side-nav';
 import { requireSession } from '@/lib/session';
 import { sessionTeamContext } from '@/lib/team';
 
@@ -14,9 +16,10 @@ import { sessionTeamContext } from '@/lib/team';
  * l'organisation existe (03_PRIVACY_RLS §120). Un identifiant qui n'est pas un
  * UUID est traité de même.
  *
- * Les onglets ne nomment que ce qui a un écran : Analyse arrivera avec le sien. Un menu de liens morts serait pire
- * qu'un menu court. Site et Équipe sont des réglages (06_DESIGN_SYSTEM §68) : ils
- * restent atteignables d'un clic, à part de la navigation principale.
+ * Habillage du prototype (`screen: 'org'`) : une colonne claire sur toute la
+ * hauteur — l'organisation, la navigation canonique (Accueil, Ma course,
+ * Analyse, Participants), les paramètres à part (06_DESIGN_SYSTEM §68) — et un
+ * en-tête au-dessus d'un contenu en pleine largeur.
  */
 export default async function OrganizationLayout({
   children,
@@ -40,38 +43,63 @@ export default async function OrganizationLayout({
     throw error;
   });
 
+  const base = `/org/${organizationId}`;
+
   return (
-    <div className="or-shell">
-      <aside className="or-side">
-        <div className="or-side-inner">
-          <nav aria-label="Fil d’Ariane" className="or-side-org">
-            <Link href="/org">Mes organisations</Link>
-            <span aria-current="page">{organization.organizationName}</span>
-          </nav>
-          <SubTabs
-            label="Organisation"
-            tabs={[
-              { href: `/org/${organizationId}`, label: 'Accueil' },
-              {
-                href: `/org/${organizationId}/course/informations`,
-                label: 'Ma course',
-                match: `/org/${organizationId}/course`,
-              },
-              { href: `/org/${organizationId}/participants`, label: 'Participants' },
+    <div className="os-shell">
+      <aside className="os-side">
+        <div className="os-org">
+          <Link href="/org" className="os-org-back">
+            Mes organisations
+          </Link>
+          <p className="os-org-name">{organization.organizationName}</p>
+          <p className="os-org-sub">Espace organisateur</p>
+          <p className="os-powered">
+            powered by <Logo variant="mark" tone="foret" height={16} />
+          </p>
+        </div>
+
+        <OrgSideNav
+          label="Organisation"
+          items={[
+            { href: base, label: 'Accueil', icon: 'House', exact: true },
+            {
+              href: `${base}/course/informations`,
+              label: 'Ma course',
+              icon: 'BookOpenText',
+              match: `${base}/course`,
+            },
+            { href: `${base}/analyse`, label: 'Analyse', icon: 'ChartLineUp' },
+            { href: `${base}/participants`, label: 'Participants', icon: 'UsersThree' },
+          ]}
+        />
+
+        <div className="os-side-group">
+          <p className="pk-label os-side-label">Paramètres</p>
+          <OrgSideNav
+            label="Paramètres"
+            items={[
+              { href: `${base}/parametres/site`, label: 'Site', icon: 'GlobeSimple' },
+              { href: `${base}/parametres/equipe`, label: 'Équipe', icon: 'UserList' },
             ]}
           />
-          <div className="or-side-end">
-            <SubTabs
-              label="Réglages"
-              tabs={[
-                { href: `/org/${organizationId}/parametres/site`, label: 'Site' },
-                { href: `/org/${organizationId}/parametres/equipe`, label: 'Équipe' },
-              ]}
-            />
-          </div>
+        </div>
+
+        <div className="os-side-foot">
+          <Link href="/" className="os-side-back">
+            <Icon name="ArrowLeft" size={16} />
+            Espace coureur
+          </Link>
         </div>
       </aside>
-      <main className="or-main">{children}</main>
+
+      <div className="os-frame">
+        <header className="os-header">
+          <span className="os-header-title">Espace organisateur</span>
+          <span className="os-header-org">{organization.organizationName}</span>
+        </header>
+        <main className="or-main os-main">{children}</main>
+      </div>
     </div>
   );
 }

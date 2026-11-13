@@ -1,17 +1,21 @@
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import {
+  ArrowLeftIcon,
   BookOpenTextIcon,
   BooksIcon,
   CalendarDotsIcon,
+  ChartLineUpIcon,
   CaretUpDownIcon,
   CheckIcon,
   ChatsCircleIcon,
+  GlobeSimpleIcon,
   HouseIcon,
   ListChecksIcon,
   MagnifyingGlassIcon,
   MountainsIcon,
   PathIcon,
   SparkleIcon,
+  UserListIcon,
   UsersThreeIcon,
   XIcon,
 } from '@phosphor-icons/react/ssr';
@@ -28,18 +32,22 @@ import {
  */
 
 const ICONS = {
+  ArrowLeft: ArrowLeftIcon,
   BookOpenText: BookOpenTextIcon,
   Books: BooksIcon,
   CalendarDots: CalendarDotsIcon,
+  ChartLineUp: ChartLineUpIcon,
   CaretUpDown: CaretUpDownIcon,
   Check: CheckIcon,
   ChatsCircle: ChatsCircleIcon,
+  GlobeSimple: GlobeSimpleIcon,
   House: HouseIcon,
   ListChecks: ListChecksIcon,
   MagnifyingGlass: MagnifyingGlassIcon,
   Mountains: MountainsIcon,
   Path: PathIcon,
   Sparkle: SparkleIcon,
+  UserList: UserListIcon,
   UsersThree: UsersThreeIcon,
   X: XIcon,
 } as const satisfies Readonly<Record<string, PhosphorIcon>>;

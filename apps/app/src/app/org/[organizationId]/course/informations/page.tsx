@@ -1,5 +1,9 @@
 import type { EditableFactRecord, FactCandidateReviewRecord } from '@pluka/db';
-import { getOrganizerCourse, listCandidatesForReview, listRaceFactsForEditing } from '@pluka/domain';
+import {
+  getOrganizerCourse,
+  listCandidatesForReview,
+  listRaceFactsForEditing,
+} from '@pluka/domain';
 import { NavTabs, TrustBadge } from '@pluka/ui';
 import Link from 'next/link';
 

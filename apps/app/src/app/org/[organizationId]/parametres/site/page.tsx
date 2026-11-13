@@ -111,7 +111,10 @@ export default async function SitePage({
   }));
 
   const address = event === null ? '' : siteUrl(event.slug, publicEnv().NEXT_PUBLIC_APP_URL);
-  const status = STATUS[site?.status ?? 'draft'] ?? { label: 'Brouillon', tone: 'neutral' as const };
+  const status = STATUS[site?.status ?? 'draft'] ?? {
+    label: 'Brouillon',
+    tone: 'neutral' as const,
+  };
   const isLive = site?.status === 'published' && editor.blockers.length === 0;
   const canToggle = permissions.canPublish && site !== null && site.status !== 'suspended';
 
@@ -173,7 +176,12 @@ export default async function SitePage({
             }
             primaryAction={
               isLive ? (
-                <a href={address} className="pk-btn pk-button-primary" target="_blank" rel="noopener">
+                <a
+                  href={address}
+                  className="pk-btn pk-button-primary"
+                  target="_blank"
+                  rel="noopener"
+                >
                   Voir le site ↗
                 </a>
               ) : canToggle && site.status === 'draft' ? (
@@ -219,7 +227,9 @@ export default async function SitePage({
             </p>
           )}
           {site === null && permissions.canPublish ? (
-            <p className="pk-field-hint">Enregistrez le site une première fois pour le mettre en ligne.</p>
+            <p className="pk-field-hint">
+              Enregistrez le site une première fois pour le mettre en ligne.
+            </p>
           ) : null}
           {permissions.canEdit && !permissions.canPublish ? (
             <p className="pk-field-hint">
@@ -299,8 +309,8 @@ export default async function SitePage({
                   Galerie
                 </h2>
                 <p className="pk-body">
-                  Douze photos au plus, ajoutées une par une. Elles s’affichent dans l’ordre de dépôt,
-                  et leur position GPS est retirée.
+                  Douze photos au plus, ajoutées une par une. Elles s’affichent dans l’ordre de
+                  dépôt, et leur position GPS est retirée.
                 </p>
                 {editor.gallery.length === 0 ? null : (
                   <ul className="st-gallery">
@@ -340,8 +350,8 @@ export default async function SitePage({
                   Documents
                 </h2>
                 <p className="pk-body">
-                  Un document de l’édition n’apparaît sur le site que si vous le diffusez. Diffuser un
-                  fichier le rend téléchargeable par tous.
+                  Un document de l’édition n’apparaît sur le site que si vous le diffusez. Diffuser
+                  un fichier le rend téléchargeable par tous.
                 </p>
                 {editor.documents.length === 0 ? (
                   <p className="pk-field-hint">Aucun document dans cette édition.</p>
@@ -352,9 +362,15 @@ export default async function SitePage({
                         <div className="or-line-main">
                           <span className="cr-fact-value">{document.title}</span>
                           <span className="or-row-meta">
-                            {document.hasFile ? 'Fichier' : document.url === null ? 'Saisie' : 'Lien'}
+                            {document.hasFile
+                              ? 'Fichier'
+                              : document.url === null
+                                ? 'Saisie'
+                                : 'Lien'}
                             {' · '}
-                            {document.publicDownloadAt === null ? 'Non diffusé' : 'Diffusé sur le site'}
+                            {document.publicDownloadAt === null
+                              ? 'Non diffusé'
+                              : 'Diffusé sur le site'}
                           </span>
                         </div>
                         {permissions.canPublish && (document.hasFile || document.url !== null) ? (

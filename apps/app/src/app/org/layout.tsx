@@ -1,5 +1,3 @@
-import { Logo } from '@pluka/ui';
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { requireSession } from '@/lib/session';
@@ -12,25 +10,14 @@ import { requireSession } from '@/lib/session';
  * `/org/[organizationId]/layout.tsx`.
  *
  * Le shell coureur n'enveloppe pas cet espace : le prototype présente
- * l'organisateur dans son propre cadre (`screen: 'org'`).
+ * l'organisateur dans son propre cadre (`screen: 'org'`). Ce cadre appartient
+ * aux pages : « Mes organisations » porte sa bande, et chaque organisation sa
+ * colonne.
  */
 export const metadata = { title: { default: 'Organisateur', template: '%s · Organisateur' } };
 
 export default async function OrganizerLayout({ children }: { readonly children: ReactNode }) {
   await requireSession('/org');
 
-  return (
-    <>
-      <header className="or-band">
-        <Link href="/org" className="or-band-title">
-          <Logo variant="mark" tone="lichen" height={22} decorative />
-          Espace organisateur
-        </Link>
-        <Link href="/" className="pk-link pk-link-on-dark">
-          Espace coureur
-        </Link>
-      </header>
-      {children}
-    </>
-  );
+  return children;
 }

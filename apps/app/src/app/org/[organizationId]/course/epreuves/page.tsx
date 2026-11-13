@@ -174,7 +174,8 @@ export default async function CourseRacesPage({
           permissions.canEdit ? getRaceWaypoints(courseContext(session), { raceId: race.id }) : [],
           listRaceEquipment(factEditingContext(session), { raceId: race.id }),
         ]);
-  const raceScope = race === null ? null : { organizationId, selection: raceSelection, raceId: race.id };
+  const raceScope =
+    race === null ? null : { organizationId, selection: raceSelection, raceId: race.id };
   const raceStart = race === null ? null : civilMoment(race.startDatetime, race.timezone);
   const analysing = trace?.stage === 'queued' || trace?.stage === 'running';
   const activeGear = equipment.filter((item) => !item.retired).length;
@@ -474,9 +475,9 @@ export default async function CourseRacesPage({
           <details className="st-details">
             <summary id="next-edition">Préparer l’édition {next.year}</summary>
             <p className="pk-body">
-              PLUKA reprend les épreuves de {next.sourceYear} avec leurs distances, en brouillon. Les
-              informations publiées, les traces et les liens d’inscription ne suivent pas : ils sont
-              à redonner pour la nouvelle édition.
+              PLUKA reprend les épreuves de {next.sourceYear} avec leurs distances, en brouillon.
+              Les informations publiées, les traces et les liens d’inscription ne suivent pas : ils
+              sont à redonner pour la nouvelle édition.
             </p>
             <DuplicateEditionForm
               scope={editionScope}

@@ -133,7 +133,9 @@ export default async function CourseSourcesPage({
 
       {edition === null || documentScope === null ? (
         <section className="or-card">
-          <p className="pk-body">Les documents se rattachent à une édition : il n’y en a pas encore.</p>
+          <p className="pk-body">
+            Les documents se rattachent à une édition : il n’y en a pas encore.
+          </p>
         </section>
       ) : (
         <>
