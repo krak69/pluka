@@ -3118,7 +3118,7 @@ a.ad-card:hover {
   place-items: center;
   width: 44px;
   height: 44px;
-  margin: 4px 0;
+  margin: var(--space-1) 0;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -3561,7 +3561,7 @@ a.ad-card:hover {
   min-width: 20px;
   height: 20px;
   padding: 0 6px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--pk-dawn);
   color: var(--pk-ink);
   font-family: var(--font-mono);

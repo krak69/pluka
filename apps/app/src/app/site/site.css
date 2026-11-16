@@ -212,7 +212,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgb(14 26 23 / 0.82) 0%, rgb(14 26 23 / 0.45) 100%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--pk-ink) 82%, transparent) 0%, color-mix(in srgb, var(--pk-ink) 45%, transparent) 100%);
 }
 
 .es-hero-inner {
@@ -280,7 +280,7 @@
 }
 
 .es-notice-tag {
-  padding: 4px 10px;
+  padding: var(--space-1) 10px;
   border-radius: var(--radius-sm);
   background: var(--pk-dawn);
   color: var(--pk-dawn-ink, var(--pk-ink));
@@ -405,7 +405,7 @@
 .es-race-facts div,
 .es-stats div {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .es-race-facts dt,
@@ -536,7 +536,7 @@
 }
 
 .es-wrap.es-page-head {
-  padding-top: 64px;
+  padding-top: var(--space-16);
   padding-bottom: var(--space-8);
 }
 
@@ -564,7 +564,7 @@
 .es-wrap.es-gallery-page {
   display: grid;
   gap: var(--space-8);
-  padding-bottom: 64px;
+  padding-bottom: var(--space-16);
 }
 
 .es-gallery {
@@ -841,7 +841,7 @@
 .es-stats {
   padding-top: var(--space-5);
   padding-bottom: var(--space-6);
-  border-top: 1px solid rgb(242 240 233 / 0.18);
+  border-top: 1px solid color-mix(in srgb, var(--pk-limestone) 18%, transparent);
 }
 
 .es-stats dt {
@@ -985,7 +985,7 @@
 
   .es-hero-inner {
     padding-top: 56px;
-    padding-bottom: 48px;
+    padding-bottom: var(--space-12);
   }
 
   .es-section {
@@ -1103,7 +1103,7 @@
   margin: 0;
   font-size: 13px;
   font-weight: 500;
-  color: var(--pk-error, #a3261b);
+  color: var(--pk-error);
 }
 
 .es-contact-done {

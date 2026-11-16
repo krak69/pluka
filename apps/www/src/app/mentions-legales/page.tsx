@@ -45,7 +45,7 @@ export default function LegalNoticePage() {
 
         <h2>Hébergement</h2>
         <p>
-          Le site et l’application sont hébergés par Vercel Inc., 440 N Barranca Ave #4133, Covina,
+          Le site et l’application sont hébergés par Vercel Inc., 440 N Barranca Ave &#35;4133, Covina,
           CA 91723, États-Unis (vercel.com). Les données sont stockées par Supabase Inc.
           (supabase.com).
         </p>

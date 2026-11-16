@@ -133,7 +133,7 @@ export function AltitudeProfile({
         aria-label={`Profil du parcours, ${formatDistance(box.totalDistanceKm)} kilomètres`}
         className="pl-profile-svg"
       >
-        <path d={area} fill={dark ? 'rgb(198 242 78 / 0.13)' : 'var(--pk-glacier-bg)'} />
+        <path d={area} fill={dark ? 'color-mix(in srgb, var(--pk-lichen) 13%, transparent)' : 'var(--pk-glacier-bg)'} />
         <path
           d={line}
           fill="none"

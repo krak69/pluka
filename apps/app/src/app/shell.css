@@ -907,7 +907,7 @@ select.pk-input {
 .or-main .pk-btn {
   box-sizing: border-box;
   min-height: 44px;
-  padding: 8px 16px;
+  padding: var(--space-2) var(--space-4);
   font-size: 14.5px;
   text-decoration: none;
 }
@@ -1978,7 +1978,7 @@ a.st-tab {
   min-height: 44px;
   padding: 0 var(--space-5);
   border-radius: var(--radius-sm);
-  color: #fff;
+  color: var(--pk-surface);
   font-weight: 700;
 }
 
@@ -2281,7 +2281,7 @@ a.st-tab {
 .of-tag {
   justify-self: start;
   margin: 0 0 var(--space-1);
-  padding: 4px 10px;
+  padding: var(--space-1) 10px;
   border-radius: var(--radius-sm);
   background: var(--pk-glacier-bg);
   font-size: 12.5px;
@@ -2305,7 +2305,7 @@ a.st-tab {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 10px;
+  gap: var(--space-1) 10px;
   margin: var(--space-1) 0 0;
 }
 
@@ -2586,7 +2586,7 @@ a.st-tab {
 .sd-scrim {
   position: absolute;
   inset: 0;
-  background: rgb(14 26 23 / 0.55);
+  background: color-mix(in srgb, var(--pk-ink) 55%, transparent);
   animation: sd-fade var(--motion-panel) var(--motion-ease) both;
 }
 
@@ -2639,7 +2639,7 @@ a.st-tab {
     height: 100%;
     padding: var(--space-8) var(--space-8) var(--space-10);
     border-radius: 0;
-    box-shadow: -12px 0 40px rgb(14 26 23 / 0.18);
+    box-shadow: -12px 0 40px color-mix(in srgb, var(--pk-ink) 18%, transparent);
     animation-name: sd-slide;
   }
 
@@ -3236,7 +3236,7 @@ a.st-tab {
 .nw-tag {
   justify-self: start;
   margin: 0;
-  padding: 4px 10px;
+  padding: var(--space-1) 10px;
   border-radius: var(--radius-sm);
   background: var(--pk-ink);
   color: var(--pk-lichen);
@@ -3570,7 +3570,7 @@ a.st-tab {
 }
 
 .pl-chip {
-  padding: 2px 8px;
+  padding: 2px var(--space-2);
   border-radius: var(--radius-sm);
   background: var(--pk-sand);
   font-family: var(--font-body);
@@ -3710,7 +3710,7 @@ a.st-tab {
 .pl-editor-form .pk-btn {
   justify-self: start;
   min-height: 44px;
-  padding: 8px 16px;
+  padding: var(--space-2) var(--space-4);
   font-size: 14.5px;
 }
 
@@ -4472,7 +4472,7 @@ a.st-tab {
 .lb-form .pk-btn {
   justify-self: start;
   min-height: 44px;
-  padding: 8px 18px;
+  padding: var(--space-2) 18px;
   font-size: 15px;
 }
 
@@ -4709,7 +4709,7 @@ a.st-tab {
 .lb-row-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .lb-tag {
@@ -4749,12 +4749,12 @@ a.st-tab {
 .lb-field {
   display: grid;
   flex: 1 1 14rem;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .lb-classify-form .pk-btn {
   min-height: 44px;
-  padding: 8px 18px;
+  padding: var(--space-2) 18px;
   font-size: 15px;
 }
 
