@@ -22,6 +22,15 @@ describe('loadPublicEnv', () => {
     expect(withDsn.NEXT_PUBLIC_SENTRY_DSN).toBe('https://exemple.test/42');
   });
 
+  it('laisse l’identifiant Umami facultatif', () => {
+    expect(loadPublicEnv(publicEnvFixture()).NEXT_PUBLIC_UMAMI_WEBSITE_ID).toBeUndefined();
+
+    const withId = loadPublicEnv(
+      publicEnvFixture({ NEXT_PUBLIC_UMAMI_WEBSITE_ID: '00000000-0000-4000-8000-000000000000' }),
+    );
+    expect(withId.NEXT_PUBLIC_UMAMI_WEBSITE_ID).toBe('00000000-0000-4000-8000-000000000000');
+  });
+
   it('ignore les variables hors schéma', () => {
     const env = loadPublicEnv(
       publicEnvFixture({ PATH: '/usr/bin', SUPABASE_SERVICE_ROLE_KEY: 'x' }),

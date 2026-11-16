@@ -189,6 +189,11 @@ export default function PrivacyPage() {
           PLUKA n’utilise que les cookies nécessaires à votre connexion. Aucun cookie de mesure
           d’audience ni de publicité.
         </p>
+        <p>
+          Le site public mesure sa fréquentation avec Umami, un outil sans cookie ni identifiant
+          persistant : seules des statistiques agrégées sont conservées (pages vues, site d’origine,
+          type d’appareil, pays). L’application, une fois connecté, n’envoie rien à cet outil.
+        </p>
 
         <h2>Sécurité</h2>
         <p>

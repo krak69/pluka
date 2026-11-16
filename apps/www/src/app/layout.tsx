@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Archivo, Hanken_Grotesk, Martian_Mono } from 'next/font/google';
+import Script from 'next/script';
 import type { ReactNode } from 'react';
 
 import '@pluka/ui/styles.css';
@@ -66,10 +67,29 @@ export const metadata: Metadata = {
   },
 };
 
+/*
+ * Mesure d'audience Umami Cloud : sans cookie, statistiques agrégées. Le site
+ * public seulement — `apps/app` porte des données privées et des liens à jeton
+ * qui ne doivent jamais partir chez un tiers (AGENTS §63, §64). Sans
+ * identifiant configuré (local, recette), aucun script n'est chargé.
+ */
+const UMAMI_SCRIPT_URL = 'https://cloud.umami.is/script.js';
+
 export default function RootLayout({ children }: { readonly children: ReactNode }) {
+  const umamiWebsiteId = publicEnv().NEXT_PUBLIC_UMAMI_WEBSITE_ID;
+
   return (
     <html lang="fr" className={fontVariables}>
-      <body>{children}</body>
+      <body>
+        {children}
+        {umamiWebsiteId === undefined ? null : (
+          <Script
+            src={UMAMI_SCRIPT_URL}
+            data-website-id={umamiWebsiteId}
+            strategy="afterInteractive"
+          />
+        )}
+      </body>
     </html>
   );
 }

@@ -17,6 +17,8 @@ export const publicEnvSchema = z.object({
   NEXT_PUBLIC_APP_URL: httpUrl('NEXT_PUBLIC_APP_URL'),
   NEXT_PUBLIC_ADMIN_URL: httpUrl('NEXT_PUBLIC_ADMIN_URL'),
   NEXT_PUBLIC_SENTRY_DSN: optionalText(),
+  // Mesure d'audience du site public seulement : absente, aucun script n'est chargé.
+  NEXT_PUBLIC_UMAMI_WEBSITE_ID: optionalText(),
 });
 
 export type PublicEnv = z.infer<typeof publicEnvSchema>;
