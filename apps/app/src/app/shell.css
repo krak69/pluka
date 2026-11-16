@@ -673,6 +673,11 @@ select.pk-input {
   font-size: 13px;
 }
 
+.rp-waypoint-drop-bag {
+  color: var(--pk-text);
+  font-weight: 600;
+}
+
 @media (width <= 620px) {
   .rp-waypoint {
     grid-template-columns: 84px 1fr;
@@ -1128,7 +1133,7 @@ select.pk-input {
 /* 1240 px : le menu latéral retire 15 rem à la ligne. */
 @media (min-width: 1240px) {
   .wp-row {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr) 6rem minmax(0, 1.2fr) 6.5rem auto;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr) 6rem minmax(0, 1.2fr) 6.5rem 6.5rem auto;
   }
 }
 
@@ -1145,6 +1150,23 @@ select.pk-input {
 
 .wp-row > .pk-btn {
   align-self: end;
+}
+
+/* Drop bag (0094) : une case à la hauteur des champs voisins. */
+.wp-drop-bag-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.wp-drop-bag-toggle input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--pk-forest);
 }
 
 .pa-columns {

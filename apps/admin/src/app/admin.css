@@ -3807,6 +3807,24 @@ a.ad-card:hover {
   min-width: 0;
 }
 
+/* Drop bag (0094) : sous le type, sur les points intermédiaires seulement. */
+.ad-wp-drop-bag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  font-size: 13px;
+  color: var(--pk-text-secondary);
+  cursor: pointer;
+}
+
+.ad-wp-drop-bag input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--pk-forest);
+}
+
 .ad-wp-name {
   font-weight: 600;
 }

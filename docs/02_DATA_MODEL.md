@@ -375,6 +375,13 @@ Points structurants du parcours :
 
 Ils sont partagés par tous les participants.
 
+**Drop bag (migration 0094).** `drop_bag_allowed` dit que l'organisation accepte un drop bag à
+ce point. Un drop bag n'est pas offert à chaque ravitaillement : sur un ultra, souvent à un ou
+deux points, une base vie. La case s'écrit avec la chaîne, par `set_race_waypoints` (clé
+`dropBagAllowed`, absente = faux) ; elle n'entre pas dans l'empreinte qui relance le
+prétraitement. Une contrainte l'interdit au départ et à l'arrivée : un sac qu'on y laisse est
+un sac de départ ou d'arrivée (décision produit du 2026-11-16).
+
 ## 6.7 `race_segments`
 
 Segments déterministes entre waypoints.

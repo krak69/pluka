@@ -399,6 +399,7 @@ export default async function CourseRacesPage({
                                   86_400_000,
                               ),
                         cutoffTime: cutoff?.time ?? null,
+                        dropBagAllowed: waypoint.dropBagAllowed,
                       };
                     })}
                   />

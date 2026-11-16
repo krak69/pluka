@@ -28,6 +28,7 @@ function waypoint(overrides: Partial<RaceWaypointView> = {}): RaceWaypointView {
     sortOrder: 1,
     altitudeM: null,
     cutoffAt: null,
+    dropBagAllowed: false,
     ...overrides,
   } as RaceWaypointView;
 }
@@ -41,6 +42,7 @@ const SAVED: readonly RaceWaypointView[] = [
     distanceKm: 18.5,
     sortOrder: 2,
     cutoffAt: '2026-06-20T11:00:00Z',
+    dropBagAllowed: true,
   }),
   waypoint({
     id: 'dddddddd-0000-4000-8000-000000000003',
@@ -191,6 +193,7 @@ describe('transmission jusqu’à la Server Action', () => {
           waypointType: 'start',
           distanceKm: 0,
           cutoffAt: null,
+          dropBagAllowed: false,
         },
         {
           id: SAVED[1]?.id,
@@ -200,6 +203,8 @@ describe('transmission jusqu’à la Server Action', () => {
           // L'heure murale repart dans le fuseau de la course : même instant
           // qu'enregistré, sans dérive au réenregistrement.
           cutoffAt: '2026-06-20T13:00:00+02:00',
+          // Relu en base, renvoyé tel quel : réenregistrer ne décoche rien.
+          dropBagAllowed: true,
         },
         {
           id: SAVED[2]?.id,
@@ -207,6 +212,7 @@ describe('transmission jusqu’à la Server Action', () => {
           waypointType: 'finish',
           distanceKm: 70,
           cutoffAt: null,
+          dropBagAllowed: false,
         },
       ],
     });

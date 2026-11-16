@@ -903,6 +903,11 @@ La Préparation gère au minimum :
 
 La Nutrition et l’Assistance peuvent alimenter les besoins de ces sacs.
 
+**Drop bags autorisés (décision produit du 2026-11-16).** L’organisation indique, point par
+point, où elle accepte un drop bag : n’importe quel point intermédiaire, jamais le départ ni
+l’arrivée. Le coureur le voit dans la Course, sur la liste des points de passage, et ne peut
+rattacher un drop bag qu’à l’un de ces points.
+
 ## 14.5 TODO
 
 PLUKA peut générer des tâches de préparation et le coureur peut ajouter ses propres tâches.

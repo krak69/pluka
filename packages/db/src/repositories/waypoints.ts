@@ -24,6 +24,7 @@ const WAYPOINT_COLUMNS = [
   'distance_km',
   'sort_order',
   'altitude_m',
+  'drop_bag_allowed',
 ] as const;
 
 const CUTOFF_COLUMNS = [
@@ -43,6 +44,7 @@ type WaypointRow = {
   distance_km: number;
   sort_order: number;
   altitude_m: number | null;
+  drop_bag_allowed: boolean;
 };
 
 type CutoffRow = {
@@ -54,7 +56,18 @@ type CutoffRow = {
   basis: RaceCutoffRecord['basis'];
 };
 
-function toWaypoint(row: WaypointRow): RaceWaypointRecord {
+/**
+ * Un point du référentiel tel que la Course le montre.
+ *
+ * Le drop bag n'est pas dans `RaceWaypointRecord` : le moteur Plan n'en a que
+ * faire, et son snapshot ne doit pas changer pour une case cochée.
+ */
+export interface CourseWaypointRecord extends RaceWaypointRecord {
+  /** L'organisation accepte un drop bag à ce point (migration 0094). */
+  readonly dropBagAllowed: boolean;
+}
+
+function toWaypoint(row: WaypointRow): CourseWaypointRecord {
   return {
     id: row.id,
     raceId: row.race_id,
@@ -63,6 +76,7 @@ function toWaypoint(row: WaypointRow): RaceWaypointRecord {
     distanceKm: row.distance_km,
     sortOrder: row.sort_order,
     altitudeM: row.altitude_m,
+    dropBagAllowed: row.drop_bag_allowed,
   };
 }
 
@@ -86,6 +100,8 @@ export interface RaceWaypointInput {
   readonly distanceKm: number;
   /** Barrière horaire, ou son absence. */
   readonly cutoffAt?: string | null | undefined;
+  /** Drop bag accepté à ce point. Absent, il ne l'est pas. */
+  readonly dropBagAllowed?: boolean | undefined;
 }
 
 /** Ce que la réécriture rend : de quoi dire à l'écran ce qui a été demandé. */
@@ -98,7 +114,7 @@ export interface SetRaceWaypointsResult {
 }
 
 export interface RaceWaypointRepository {
-  listByRace(raceId: string): Promise<readonly RaceWaypointRecord[]>;
+  listByRace(raceId: string): Promise<readonly CourseWaypointRecord[]>;
   listCutoffsByRace(raceId: string): Promise<readonly RaceCutoffRecord[]>;
   replace(raceId: string, waypoints: readonly RaceWaypointInput[]): Promise<SetRaceWaypointsResult>;
 }
@@ -141,6 +157,7 @@ export const raceWaypointRepository = defineRepository<RaceWaypointRepository>((
           waypointType: waypoint.waypointType,
           distanceKm: waypoint.distanceKm,
           cutoffAt: waypoint.cutoffAt ?? null,
+          dropBagAllowed: waypoint.dropBagAllowed ?? false,
         })),
       }),
       'set_race_waypoints',

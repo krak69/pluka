@@ -41,6 +41,7 @@ export {
 } from './repositories/course.js';
 export {
   raceWaypointRepository,
+  type CourseWaypointRecord,
   type RaceWaypointInput,
   type RaceWaypointRepository,
   type SetRaceWaypointsResult,

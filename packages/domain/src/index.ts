@@ -73,6 +73,7 @@ export {
 export {
   AUTHORED_WAYPOINT_TYPES,
   checkWaypointChain,
+  dropBagOnEndpoint,
   getRaceWaypoints,
   getRaceWaypointsQuerySchema,
   setRaceWaypoints,

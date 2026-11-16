@@ -7,7 +7,7 @@ import type {
   RaceCutoffRecord,
   RaceInformationRepositories,
   RaceRecord,
-  RaceWaypointRecord,
+  CourseWaypointRecord,
 } from '@pluka/db';
 
 import type { Actor } from '../authorization/organization-role.js';
@@ -166,7 +166,7 @@ export interface RaceInformation {
   readonly edition: EditionRecord;
   readonly event: EventRecord;
   readonly facts: readonly PublishedRaceFactRecord[];
-  readonly waypoints: readonly RaceWaypointRecord[];
+  readonly waypoints: readonly CourseWaypointRecord[];
   readonly cutoffs: readonly RaceCutoffRecord[];
 }
 

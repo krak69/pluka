@@ -1,4 +1,4 @@
-import type { RaceCutoffRecord, RaceWaypointRecord, SetRaceWaypointsResult } from '@pluka/db';
+import type { CourseWaypointRecord, RaceCutoffRecord, SetRaceWaypointsResult } from '@pluka/db';
 import { z } from 'zod';
 
 import { assertOrganizationRole } from '../authorization/organization-role.js';
@@ -56,6 +56,11 @@ const waypointSchema = z.object({
   distanceKm: z.number().min(0).max(1000),
   /** Barrière horaire, quand l'épreuve en pose une à ce point. */
   cutoffAt: z.iso.datetime({ offset: true }).nullable().default(null),
+  /**
+   * L'organisation accepte un drop bag à ce point — 00_PRODUCT_SPEC §14.4.
+   * Jamais au départ ni à l'arrivée : voir `dropBagOnEndpoint`.
+   */
+  dropBagAllowed: z.boolean().default(false),
 });
 
 export type RaceWaypointCommandEntry = z.infer<typeof waypointSchema>;
@@ -136,7 +141,7 @@ export function checkWaypointChain(
   return { ok: true };
 }
 
-export interface RaceWaypointView extends RaceWaypointRecord {
+export interface RaceWaypointView extends CourseWaypointRecord {
   /** Barrière posée à ce point, quand il y en a une. */
   readonly cutoffAt: string | null;
 }
@@ -199,7 +204,34 @@ export async function setRaceWaypoints(
     throw validationError(useCase, chainMessage(verdict), chainDetails(verdict));
   }
 
+  const endpoint = dropBagOnEndpoint(command.waypoints);
+  if (endpoint !== null) {
+    throw validationError(useCase, DROP_BAG_ENDPOINT_MESSAGE, {
+      [`waypoints.${endpoint}.dropBagAllowed`]: DROP_BAG_ENDPOINT_MESSAGE,
+    });
+  }
+
   return context.repositories.waypoints.replace(command.raceId, command.waypoints);
+}
+
+const DROP_BAG_ENDPOINT_MESSAGE = 'un drop bag se dépose à un point intermédiaire';
+
+/**
+ * Rang du premier départ ou arrivée marqué « drop bag », ou `null`.
+ *
+ * Un sac laissé au départ ou à l'arrivée est un sac de départ ou d'arrivée :
+ * décision produit du 2026-11-16, que la base garde aussi par une contrainte.
+ */
+export function dropBagOnEndpoint(
+  waypoints: readonly { readonly waypointType: string; readonly dropBagAllowed: boolean }[],
+): number | null {
+  const index = waypoints.findIndex(
+    (waypoint) =>
+      waypoint.dropBagAllowed &&
+      (waypoint.waypointType === 'start' || waypoint.waypointType === 'finish'),
+  );
+
+  return index < 0 ? null : index;
 }
 
 function cutoffAt(cutoffs: readonly RaceCutoffRecord[], waypointId: string): string | null {

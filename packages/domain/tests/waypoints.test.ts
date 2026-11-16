@@ -376,3 +376,57 @@ describe('réécriture de la chaîne', () => {
     expect(saved[1]?.cutoffAt).toBeNull();
   });
 });
+
+describe('drop bag — 00_PRODUCT_SPEC §14.4', () => {
+  it('porte le drop bag jusqu’au point, et le relit', async () => {
+    await setRaceWaypoints(
+      contextFor(EDITOR_A),
+      chain([
+        { name: 'Départ', waypointType: 'start', distanceKm: 0 },
+        { name: 'Ravito 1', waypointType: 'aid_station', distanceKm: 18.5 },
+        { name: 'Base de vie', waypointType: 'assistance', distanceKm: 42, dropBagAllowed: true },
+        { name: 'Arrivée', waypointType: 'finish', distanceKm: 70 },
+      ]),
+    );
+
+    const waypoints = await getRaceWaypoints(contextFor(EDITOR_A), { raceId: RACE_ID });
+
+    expect(waypoints.map((waypoint) => [waypoint.name, waypoint.dropBagAllowed])).toEqual([
+      ['Départ', false],
+      ['Ravito 1', false],
+      ['Base de vie', true],
+      ['Arrivée', false],
+    ]);
+  });
+
+  it('vaut faux quand l’écran ne le transmet pas', async () => {
+    await setRaceWaypoints(contextFor(EDITOR_A), chain());
+
+    const waypoints = await getRaceWaypoints(contextFor(EDITOR_A), { raceId: RACE_ID });
+
+    expect(waypoints.every((waypoint) => !waypoint.dropBagAllowed)).toBe(true);
+  });
+
+  it.each([
+    ['départ', 0],
+    ['arrivée', 2],
+  ])('refuse un drop bag à l’%s, contre la ligne fautive', async (_label, index) => {
+    const waypoints = [
+      { name: 'Départ', waypointType: 'start', distanceKm: 0 },
+      { name: 'Ravito', waypointType: 'aid_station', distanceKm: 20 },
+      { name: 'Arrivée', waypointType: 'finish', distanceKm: 70 },
+    ].map((waypoint, position) =>
+      position === index ? { ...waypoint, dropBagAllowed: true } : waypoint,
+    );
+
+    const error = await expectDomainError(
+      setRaceWaypoints(contextFor(EDITOR_A), chain(waypoints)),
+      'validation',
+    );
+
+    expect(error.details).toEqual({
+      [`waypoints.${String(index)}.dropBagAllowed`]:
+        'un drop bag se dépose à un point intermédiaire',
+    });
+  });
+});

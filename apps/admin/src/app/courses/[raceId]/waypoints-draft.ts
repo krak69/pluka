@@ -24,6 +24,13 @@ export interface WaypointRow {
   readonly cutoffDay: string;
   /** « HH:MM », vide sans barrière. */
   readonly cutoffTime: string;
+  /** Drop bag accepté à ce point (0094) ; jamais au départ ni à l'arrivée. */
+  readonly dropBagAllowed: boolean;
+}
+
+/** Un drop bag se dépose à un point intermédiaire. */
+export function acceptsDropBag(waypointType: string): boolean {
+  return waypointType !== 'start' && waypointType !== 'finish';
 }
 
 /** Le départ, à l'heure murale de la ligne de départ. */
@@ -75,8 +82,26 @@ export function rowsOf(
 ): WaypointRow[] {
   if (waypoints.length === 0) {
     return [
-      { key: 'new-0', id: '', name: 'Départ', waypointType: 'start', distanceKm: '0', cutoffDay: '', cutoffTime: '' },
-      { key: 'new-1', id: '', name: 'Arrivée', waypointType: 'finish', distanceKm: '', cutoffDay: '', cutoffTime: '' },
+      {
+        key: 'new-0',
+        id: '',
+        name: 'Départ',
+        waypointType: 'start',
+        distanceKm: '0',
+        cutoffDay: '',
+        cutoffTime: '',
+        dropBagAllowed: false,
+      },
+      {
+        key: 'new-1',
+        id: '',
+        name: 'Arrivée',
+        waypointType: 'finish',
+        distanceKm: '',
+        cutoffDay: '',
+        cutoffTime: '',
+        dropBagAllowed: false,
+      },
     ];
   }
 
@@ -95,6 +120,7 @@ export function rowsOf(
       distanceKm: String(waypoint.distanceKm).replace('.', ','),
       cutoffDay: day === null || startDay === null ? '' : String(day - startDay),
       cutoffTime: parts?.time ?? '',
+      dropBagAllowed: waypoint.dropBagAllowed,
     };
   });
 }
@@ -164,6 +190,7 @@ export function fingerprint(rows: readonly WaypointRow[], start: LocalStart | nu
       row.waypointType,
       parseKm(row.distanceKm),
       cutoffValue(row, start),
+      row.dropBagAllowed,
     ]),
   );
 }

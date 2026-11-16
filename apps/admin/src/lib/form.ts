@@ -110,7 +110,7 @@ export function createRaceCommand(form: FormData): Record<string, unknown> {
 /**
  * Commande de réécriture du référentiel de parcours.
  *
- * Les quatre colonnes sont lues en parallèle : chaque `fieldset` du formulaire
+ * Les colonnes sont lues en parallèle : chaque `fieldset` du formulaire
  * en pose une valeur, donc les tableaux ont la même longueur et le même ordre.
  * Rien n'est validé ici — `setRaceWaypoints` a un schéma, et les invariants de
  * chaîne sont dans le domaine.
@@ -124,6 +124,7 @@ export function raceWaypointsCommand(
   const types = texts(form, 'waypointType');
   const distances = texts(form, 'distanceKm');
   const cutoffs = texts(form, 'cutoffAt');
+  const dropBags = texts(form, 'dropBagAllowed');
 
   return {
     raceId: text(form, 'raceId'),
@@ -134,6 +135,7 @@ export function raceWaypointsCommand(
       waypointType: types[index],
       distanceKm: toNumber(distances[index]),
       cutoffAt: toInstant(cutoffs[index], timezone),
+      dropBagAllowed: dropBags[index] === 'true',
     })),
   };
 }

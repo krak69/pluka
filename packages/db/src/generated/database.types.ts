@@ -5342,6 +5342,7 @@ export type Database = {
           altitude_m: number | null
           created_at: string
           distance_km: number
+          drop_bag_allowed: boolean
           elevation_gain_cumulative_m: number | null
           elevation_loss_cumulative_m: number | null
           fact_id: string | null
@@ -5359,6 +5360,7 @@ export type Database = {
           altitude_m?: number | null
           created_at?: string
           distance_km: number
+          drop_bag_allowed?: boolean
           elevation_gain_cumulative_m?: number | null
           elevation_loss_cumulative_m?: number | null
           fact_id?: string | null
@@ -5376,6 +5378,7 @@ export type Database = {
           altitude_m?: number | null
           created_at?: string
           distance_km?: number
+          drop_bag_allowed?: boolean
           elevation_gain_cumulative_m?: number | null
           elevation_loss_cumulative_m?: number | null
           fact_id?: string | null

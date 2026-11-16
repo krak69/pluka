@@ -5,6 +5,7 @@ import { useActionState, useEffect, useRef, useState } from 'react';
 
 import { setRaceWaypointsAction, type ActionState } from '@/app/actions';
 import {
+  acceptsDropBag,
   cutoffValue,
   dayLabel,
   elapsedMinutes,
@@ -131,7 +132,10 @@ export function WaypointsForm({
   // ici : l'état local la suit, sinon l'écran retomberait sur la chaîne
   // d'ouverture et l'enregistrement semblerait perdu.
   const saved = waypoints
-    .map((waypoint) => `${waypoint.id}:${waypoint.distanceKm}:${waypoint.cutoffAt ?? ''}:${waypoint.name}`)
+    .map(
+      (waypoint) =>
+        `${waypoint.id}:${waypoint.distanceKm}:${waypoint.cutoffAt ?? ''}:${String(waypoint.dropBagAllowed)}:${waypoint.name}`,
+    )
     .join('|');
   const [seen, setSeen] = useState(saved);
   if (seen !== saved) {
@@ -166,6 +170,7 @@ export function WaypointsForm({
         distanceKm: '',
         cutoffDay: '',
         cutoffTime: '',
+        dropBagAllowed: false,
       },
       ...current.slice(index + 1),
     ]);
@@ -227,11 +232,14 @@ export function WaypointsForm({
           const nameError = state.fieldErrors?.[`waypoints.${index}.name`];
           const kmError = state.fieldErrors?.[`waypoints.${index}.distanceKm`];
           const cutoffError = state.fieldErrors?.[`waypoints.${index}.cutoffAt`];
+          const dropBagError = state.fieldErrors?.[`waypoints.${index}.dropBagAllowed`];
 
           return (
             <div key={row.key} className="ad-wp-row" role="row" data-type={row.waypointType}>
               <input type="hidden" name="waypointId" value={row.id} />
               <input type="hidden" name="cutoffAt" value={cutoffValue(row, start)} />
+              {/* Une case décochée ne poste rien : la valeur part toujours, rang pour rang. */}
+              <input type="hidden" name="dropBagAllowed" value={String(row.dropBagAllowed)} />
 
               <div className="ad-wp-point" role="cell">
                 <span className="ad-wp-icon" aria-hidden="true">
@@ -260,7 +268,12 @@ export function WaypointsForm({
                     name="waypointType"
                     className="ad-wp-type"
                     value={row.waypointType}
-                    onChange={(event) => update(row.key, { waypointType: event.target.value })}
+                    onChange={(event) =>
+                      update(row.key, {
+                        waypointType: event.target.value,
+                        dropBagAllowed: acceptsDropBag(event.target.value) && row.dropBagAllowed,
+                      })
+                    }
                   >
                     {AUTHORED_WAYPOINT_TYPES.map((value) => (
                       <option key={value} value={value}>
@@ -268,7 +281,22 @@ export function WaypointsForm({
                       </option>
                     ))}
                   </select>
+                  {acceptsDropBag(row.waypointType) ? (
+                    <label className="ad-wp-drop-bag">
+                      <input
+                        type="checkbox"
+                        checked={row.dropBagAllowed}
+                        onChange={(event) =>
+                          update(row.key, { dropBagAllowed: event.target.checked })
+                        }
+                      />
+                      <span>Drop bag accepté</span>
+                    </label>
+                  ) : null}
                   {nameError === undefined ? null : <p className="pk-field-error">{nameError}</p>}
+                  {dropBagError === undefined ? null : (
+                    <p className="pk-field-error">{dropBagError}</p>
+                  )}
                 </div>
               </div>
 

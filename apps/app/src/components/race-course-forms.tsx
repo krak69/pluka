@@ -105,6 +105,8 @@ export interface WaypointInput {
   /** Jour de course de la barrière (0 = jour du départ) et heure locale. */
   readonly cutoffDay: number | null;
   readonly cutoffTime: string | null;
+  /** L'organisation accepte un drop bag à ce point (0094). */
+  readonly dropBagAllowed: boolean;
 }
 
 interface Row {
@@ -115,13 +117,37 @@ interface Row {
   readonly distanceKm: string;
   readonly cutoffDay: string;
   readonly cutoffTime: string;
+  readonly dropBagAllowed: boolean;
+}
+
+/** Un drop bag se dépose à un point intermédiaire, jamais au départ ni à l'arrivée. */
+function acceptsDropBag(waypointType: string): boolean {
+  return waypointType !== 'start' && waypointType !== 'finish';
 }
 
 function rowsOf(waypoints: readonly WaypointInput[]): readonly Row[] {
   if (waypoints.length === 0) {
     return [
-      { key: 'new-0', id: '', name: 'Départ', waypointType: 'start', distanceKm: '0', cutoffDay: '', cutoffTime: '' },
-      { key: 'new-1', id: '', name: 'Arrivée', waypointType: 'finish', distanceKm: '', cutoffDay: '', cutoffTime: '' },
+      {
+        key: 'new-0',
+        id: '',
+        name: 'Départ',
+        waypointType: 'start',
+        distanceKm: '0',
+        cutoffDay: '',
+        cutoffTime: '',
+        dropBagAllowed: false,
+      },
+      {
+        key: 'new-1',
+        id: '',
+        name: 'Arrivée',
+        waypointType: 'finish',
+        distanceKm: '',
+        cutoffDay: '',
+        cutoffTime: '',
+        dropBagAllowed: false,
+      },
     ];
   }
 
@@ -133,6 +159,7 @@ function rowsOf(waypoints: readonly WaypointInput[]): readonly Row[] {
     distanceKm: String(waypoint.distanceKm).replace('.', ','),
     cutoffDay: waypoint.cutoffDay === null ? '' : String(waypoint.cutoffDay),
     cutoffTime: waypoint.cutoffTime ?? '',
+    dropBagAllowed: waypoint.dropBagAllowed,
   }));
 }
 
@@ -190,7 +217,16 @@ export function WaypointsForm({
     const key = `added-${String(counter.current)}`;
     setRows((current) => [
       ...current.slice(0, -1),
-      { key, id: '', name: '', waypointType: 'aid_station', distanceKm: '', cutoffDay: '', cutoffTime: '' },
+      {
+        key,
+        id: '',
+        name: '',
+        waypointType: 'aid_station',
+        distanceKm: '',
+        cutoffDay: '',
+        cutoffTime: '',
+        dropBagAllowed: false,
+      },
       ...current.slice(-1),
     ]);
     requestAnimationFrame(() => document.getElementById(`wp-name-${key}`)?.focus());
@@ -203,6 +239,8 @@ export function WaypointsForm({
         {rows.map((row, index) => (
           <li key={row.key} className="wp-row">
             <input type="hidden" name="waypointId" value={row.id} />
+            {/* Une case décochée ne poste rien : la valeur part toujours, rang pour rang. */}
+            <input type="hidden" name="dropBagAllowed" value={String(row.dropBagAllowed)} />
             <input
               type="hidden"
               name="cutoffAt"
@@ -237,7 +275,12 @@ export function WaypointsForm({
                 name="waypointType"
                 className="pk-input"
                 value={row.waypointType}
-                onChange={(event) => update(row.key, { waypointType: event.target.value })}
+                onChange={(event) =>
+                  update(row.key, {
+                    waypointType: event.target.value,
+                    dropBagAllowed: acceptsDropBag(event.target.value) && row.dropBagAllowed,
+                  })
+                }
               >
                 {AUTHORED_WAYPOINT_TYPES.map((value) => (
                   <option key={value} value={value}>
@@ -301,6 +344,32 @@ export function WaypointsForm({
                 onChange={(event) => update(row.key, { cutoffTime: event.target.value })}
               />
             </div>
+            <div className="pk-field wp-drop-bag">
+              {acceptsDropBag(row.waypointType) ? (
+                <>
+                  <span className="pk-field-label" aria-hidden="true">
+                    Drop bag
+                  </span>
+                  <label className="wp-drop-bag-toggle">
+                    <input
+                      type="checkbox"
+                      checked={row.dropBagAllowed}
+                      onChange={(event) =>
+                        update(row.key, { dropBagAllowed: event.target.checked })
+                      }
+                    />
+                    <span>
+                      Accepté<span className="pk-visually-hidden"> : drop bag à ce point</span>
+                    </span>
+                  </label>
+                  {errors[`waypoints.${String(index)}.dropBagAllowed`] === undefined ? null : (
+                    <p className="pk-field-error">
+                      {errors[`waypoints.${String(index)}.dropBagAllowed`]}
+                    </p>
+                  )}
+                </>
+              ) : null}
+            </div>
             <button
               type="button"
               className="pk-btn pk-button-ghost"
@@ -324,7 +393,7 @@ export function WaypointsForm({
       </div>
       <p className="pk-field-hint">
         Les kilomètres du règlement. La trace mesurée peut en différer : l’écart est signalé, jamais
-        corrigé.
+        corrigé. Cochez « Drop bag » aux points où le coureur peut faire déposer un sac.
       </p>
       <ActionError state={state} />
     </form>

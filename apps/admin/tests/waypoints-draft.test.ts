@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  acceptsDropBag,
   cutoffValue,
   dayLabel,
   elapsedMinutes,
+  fingerprint,
   formatDuration,
   gapsOf,
   sortByKm,
@@ -26,6 +28,7 @@ function row(overrides: Partial<WaypointRow>): WaypointRow {
     distanceKm: '',
     cutoffDay: '',
     cutoffTime: '',
+    dropBagAllowed: false,
     ...overrides,
   };
 }
@@ -77,5 +80,20 @@ describe('la chaîne, au kilomètre', () => {
     ];
 
     expect(gapsOf(rows)).toEqual([null, null, 18.5, 11.5]);
+  });
+});
+
+describe('drop bag', () => {
+  it('ne l’accepte qu’aux points intermédiaires', () => {
+    expect(acceptsDropBag('aid_station')).toBe(true);
+    expect(acceptsDropBag('assistance')).toBe(true);
+    expect(acceptsDropBag('start')).toBe(false);
+    expect(acceptsDropBag('finish')).toBe(false);
+  });
+
+  it('compte comme une modification de la saisie', () => {
+    expect(fingerprint([row({ dropBagAllowed: true })], START)).not.toBe(
+      fingerprint([row({ dropBagAllowed: false })], START),
+    );
   });
 });

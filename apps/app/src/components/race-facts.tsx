@@ -1,4 +1,9 @@
-import type { PublishedRaceFactRecord, RaceCutoffRecord, RaceWaypointRecord } from '@pluka/db';
+import type {
+  CourseWaypointRecord,
+  PublishedRaceFactRecord,
+  RaceCutoffRecord,
+  RaceWaypointRecord,
+} from '@pluka/db';
 import { equipmentValueOf } from '@pluka/domain';
 import type { ReactNode } from 'react';
 import { Divider, EmptyState, MicroLabel, SourceDrawer, TrustBadge } from '@pluka/ui';
@@ -198,10 +203,20 @@ function FactRow({ fact }: { readonly fact: PublishedRaceFactRecord }) {
   );
 }
 
+/** Le type du point, et le drop bag quand l'organisation en accepte un (0094). */
+function WaypointType({ waypoint }: { readonly waypoint: CourseWaypointRecord }) {
+  return (
+    <>
+      {WAYPOINT_LABELS[waypoint.waypointType]}
+      {waypoint.dropBagAllowed ? <span className="rp-waypoint-drop-bag"> · Drop bag</span> : null}
+    </>
+  );
+}
+
 export interface RaceFactsProps {
   readonly facts: readonly PublishedRaceFactRecord[];
   readonly cutoffs: readonly RaceCutoffRecord[];
-  readonly waypoints: readonly RaceWaypointRecord[];
+  readonly waypoints: readonly CourseWaypointRecord[];
   readonly timezone: string;
   /**
    * Mise en page du prototype (`tab: 'course'`) : un sommaire des rubriques à
@@ -267,7 +282,7 @@ export function RaceFacts({
                     <span className="rp-waypoint-km">{waypoint.distanceKm.toFixed(1)} km</span>
                     <span className="rp-waypoint-name">{waypoint.name}</span>
                     <span className="rp-waypoint-type">
-                      {WAYPOINT_LABELS[waypoint.waypointType]}
+                      <WaypointType waypoint={waypoint} />
                     </span>
                     <span className="rp-waypoint-alt">
                       {waypoint.altitudeM === null ? '—' : `${String(waypoint.altitudeM)} m`}
@@ -361,7 +376,9 @@ export function RaceFacts({
               <li key={waypoint.id} className="rp-waypoint">
                 <span className="rp-waypoint-km">{waypoint.distanceKm.toFixed(1)} km</span>
                 <span className="rp-waypoint-name">{waypoint.name}</span>
-                <span className="rp-waypoint-type">{WAYPOINT_LABELS[waypoint.waypointType]}</span>
+                <span className="rp-waypoint-type">
+                  <WaypointType waypoint={waypoint} />
+                </span>
                 <span className="rp-waypoint-alt">
                   {waypoint.altitudeM === null ? '—' : `${String(waypoint.altitudeM)} m`}
                 </span>

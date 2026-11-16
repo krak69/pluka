@@ -412,6 +412,7 @@ export async function saveWaypointsAction(
   const types = texts(form, 'waypointType');
   const distances = texts(form, 'distanceKm');
   const cutoffs = texts(form, 'cutoffAt');
+  const dropBags = texts(form, 'dropBagAllowed');
   const raceId = text(form, 'raceId');
 
   try {
@@ -433,6 +434,7 @@ export async function saveWaypointsAction(
             day === undefined || day === '' || time === undefined
               ? null
               : civilToInstant(day, time, race.timezone),
+          dropBagAllowed: dropBags[index] === 'true',
         };
       }),
     });

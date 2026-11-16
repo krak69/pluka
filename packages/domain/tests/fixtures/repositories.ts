@@ -2,7 +2,7 @@ import { raceGpxStoragePath } from '@pluka/db';
 import type {
   CourseRepositories,
   RaceCutoffRecord,
-  RaceWaypointRecord,
+  CourseWaypointRecord,
   SetRaceWaypointsResult,
   GpxRepositories,
   RaceGpxImportRecord,
@@ -39,7 +39,7 @@ export interface FakeState {
   events: EventRecord[];
   editions: EditionRecord[];
   races: RaceRecord[];
-  waypoints: RaceWaypointRecord[];
+  waypoints: CourseWaypointRecord[];
   cutoffs: RaceCutoffRecord[];
   transitions: RaceStatusTransitionRecord[];
   eventTransitions: EventStatusTransitionRecord[];
@@ -392,7 +392,7 @@ export function createFakeRepositories(state: FakeState): CourseRepositories {
 
         wanted.forEach((entry, index) => {
           const id = entry.id ?? nextId('cafe0000-0000-4000-8000-');
-          const record: RaceWaypointRecord = {
+          const record: CourseWaypointRecord = {
             id,
             raceId,
             name: entry.name,
@@ -400,6 +400,7 @@ export function createFakeRepositories(state: FakeState): CourseRepositories {
             distanceKm: entry.distanceKm,
             sortOrder: index + 1,
             altitudeM: null,
+            dropBagAllowed: entry.dropBagAllowed ?? false,
           };
 
           const existing = state.waypoints.findIndex((waypoint) => waypoint.id === id);
