@@ -4798,3 +4798,201 @@ a.st-tab {
   font-weight: 600;
   color: var(--pk-text-secondary);
 }
+
+/* ══ Préparation · Sacs — prototype, `prepTab: 'sacs'` (0095) ═════════════ */
+
+.bg-bags {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.bg-bag {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  background: var(--pk-surface);
+  box-shadow: 0 0 0 1px var(--pk-hairline);
+}
+
+.bg-bag-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.bg-bag-name {
+  flex: 1 1 12rem;
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.bg-bag-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--pk-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.bg-bag-point {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pk-text-secondary);
+}
+
+.bg-issue {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--pk-dawn);
+  background: var(--pk-warning-bg);
+  font-size: 13.5px;
+}
+
+.bg-bar {
+  width: 100%;
+}
+
+.bg-empty {
+  margin: 0;
+  font-size: 14px;
+  color: var(--pk-text-secondary);
+}
+
+.bg-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bg-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.bg-item:last-child {
+  border-bottom: 0;
+}
+
+.bg-item .eq-toggle {
+  flex: 1;
+  min-width: 0;
+}
+
+.bg-check {
+  width: 100%;
+  min-height: 44px;
+}
+
+.bg-qty-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--pk-text-secondary);
+}
+
+.bg-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.bg-qty {
+  flex: 0 0 5rem;
+}
+
+.bg-add-button {
+  min-height: 48px;
+}
+
+.bg-form-error {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.bg-picks {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.bg-edit summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  color: var(--pk-forest);
+  cursor: pointer;
+}
+
+.bg-edit-body {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+}
+
+.bg-edit-body form {
+  margin: 0;
+}
+
+.bg-delete {
+  color: var(--pk-error);
+}
+
+.bg-note {
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.bg-suggestion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.bg-suggestion:last-child {
+  border-bottom: 0;
+}
+
+.bg-suggestion form {
+  margin: 0;
+}
+
+.bg-suggestion-text {
+  display: grid;
+  flex: 1 1 14rem;
+  gap: 2px;
+}
+
+.bg-suggestion-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.bg-restore {
+  margin: var(--space-3) 0 0;
+}
+
+.bg-new {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--pk-surface);
+  box-shadow: 0 0 0 1px var(--pk-hairline);
+}
+
+.bg-new .pk-field {
+  flex: 1 1 12rem;
+  margin: 0;
+}
+
+.bg-new .pk-input {
+  box-sizing: border-box;
+  min-height: 48px;
+}

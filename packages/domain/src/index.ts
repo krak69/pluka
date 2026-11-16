@@ -848,6 +848,28 @@ export {
   type PersonalEquipmentItem,
   type PreparationContext,
 } from './preparation/equipment.js';
+export {
+  addBagItems,
+  createBag,
+  deleteBag,
+  dismissBagSuggestion,
+  getBags,
+  removeBagItem,
+  renameBag,
+  restoreBagSuggestions,
+  setBagItemChecked,
+  suggestBags,
+  suggestionKey,
+  type BagItemView,
+  type BagPoint,
+  type BagsContext,
+  type BagsOverview,
+  type BagSuggestion,
+  type BagView,
+  type OfficialBagNote,
+  type SuggestBagsInput,
+  type SuggestedBagType,
+} from './preparation/bags.js';
 
 export {
   addToMyEquipment,

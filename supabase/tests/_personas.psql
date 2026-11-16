@@ -222,9 +222,11 @@ insert into public.participant_equipment (id, participant_race_id, custom_label,
   ('aaaaaaaa-0000-4000-8000-000000000102', 'aaaaaaaa-0000-4000-8000-000000000031',
    'Gants chauds', 'personal');
 
+-- Un sac « autre » : un drop bag demanderait un point qui l'accepte (0095),
+-- et ce sac n'est là que pour prouver qu'il reste privé.
 insert into public.bags (id, participant_race_id, bag_type, name) values
   ('aaaaaaaa-0000-4000-8000-000000000103', 'aaaaaaaa-0000-4000-8000-000000000031',
-   'drop_bag', 'Sac Col du Test');
+   'other', 'Sac Col du Test');
 
 insert into public.bag_items (id, bag_id, item_type, label) values
   ('aaaaaaaa-0000-4000-8000-000000000104', 'aaaaaaaa-0000-4000-8000-000000000103',

@@ -264,6 +264,32 @@ export type Database = {
           },
         ]
       }
+      bag_suggestion_dismissals: {
+        Row: {
+          created_at: string
+          participant_race_id: string
+          suggestion_key: string
+        }
+        Insert: {
+          created_at?: string
+          participant_race_id: string
+          suggestion_key: string
+        }
+        Update: {
+          created_at?: string
+          participant_race_id?: string
+          suggestion_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bag_suggestion_dismissals_participant_race_id_fkey"
+            columns: ["participant_race_id"]
+            isOneToOne: false
+            referencedRelation: "participant_races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bags: {
         Row: {
           assigned_assistant_id: string | null

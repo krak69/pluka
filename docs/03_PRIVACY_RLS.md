@@ -912,7 +912,7 @@ Même une suggestion Conditions reste privée.
 
 # 38. Bags
 
-`bags` et `bag_items` sont privés.
+`bags` et `bag_items` sont privés. `bag_suggestion_dismissals` (0095) l'est aussi.
 
 Aucun accès organisation.
 

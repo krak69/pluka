@@ -135,6 +135,7 @@ select set_eq(
     'trail_profiles.user_id:c',
     'organization_members.user_id:c',
     'bags.participant_race_id:c',
+    'bag_suggestion_dismissals.participant_race_id:c',
     'sources.created_by_user_id:n',
     'race_fact_versions.created_by_user_id:n',
     'race_fact_versions.validated_by_user_id:n',

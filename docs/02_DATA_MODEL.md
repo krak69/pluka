@@ -1079,6 +1079,21 @@ Les contenus peuvent référencer :
 - produit Nutrition utilisateur ;
 - texte libre.
 
+**Sacs (migrations 0095, 0096).** Un sac de départ et un sac d'arrivée par participation, un
+drop bag et un sac d'assistance par point (index uniques : accepter deux fois une suggestion ne
+crée qu'un sac) ; les sacs `other` sont libres. Un trigger vérifie le point : de la course de la
+participation, `drop_bag_allowed` pour un drop bag (0094), de type `assistance` pour un sac
+d'assistance, aucun pour départ, arrivée et `other`. Un point retiré met `race_waypoint_id` à
+nul sans faire échouer la réécriture du parcours ; l'écran signale le sac détaché.
+
+Les éléments repris de la checklist ou de « Mon matériel » sont **copiés** par leur intitulé
+(`item_type = 'free_text'`), sans lien : les coches d'un sac sont indépendantes de la checklist
+(décision produit du 2026-11-16). `equipment_item_id` reste pour l'historique.
+
+`bag_suggestion_dismissals` (participation, clé) retient les suggestions écartées (« Pas
+besoin ») : `start`, `finish`, `drop_bag:<point>`, `assistance:<point>`. Effacée avec la
+préparation d'une participation détachée, incluse dans l'export (0096).
+
 ---
 
 # 14. Sorties personnelles
