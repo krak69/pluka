@@ -1000,6 +1000,13 @@ La page doit être mobile-first et centrée sur :
 
 Pas de live tracking dans le MVP.
 
+**Mise en œuvre (migration 0100, décisions du 2026-11-17).**
+- **Un lien par personne.** Il s'affiche en clair une seule fois, au moment de sa création, puisque PLUKA n'en garde que l'empreinte. S'il est perdu, « Nouveau lien » en crée un autre et éteint l'ancien.
+- **Droits.** Créer un lien demande le Race Pass. Le révoquer reste toujours possible.
+- **Durée.** Le lien est valable jusqu'à 3 jours après la course : le plus tard du départ, de l'arrivée prévue au Plan et de la dernière barrière. Cette fin est recalculée à chaque ouverture, donc elle suit la course si elle bouge.
+- **Contenu de la page.** Le prochain rendez-vous (le premier dont la fenêtre n'est pas passée), son passage estimé et sa fenêtre, le lieu, ce qu'il faut apporter, les consignes, puis les rendez-vous suivants, et la date de mise à jour du Plan. Elle n'affiche ni l'objectif, ni le Plan complet, ni la Nutrition, ni le téléphone de quiconque.
+- **Pas encore repris.** Les Conditions compactes et l'accès / parking côté organisation.
+
 ## 15.5 Contact d’urgence
 
 Un contact d’urgence éventuel est distinct du rôle d’assistant et nécessite un consentement explicite.

@@ -6764,6 +6764,7 @@ export type Database = {
         Args: { p_product_id: string }
         Returns: undefined
       }
+      assistant_link_view: { Args: { p_token_hash: string }; Returns: Json }
       attach_participant_race: {
         Args: { p_race_id: string; p_referral_code?: string }
         Returns: string
@@ -6792,6 +6793,10 @@ export type Database = {
       }
       correct_participant_registration: {
         Args: { p_bib: string; p_participant_race_id: string; p_wave: string }
+        Returns: undefined
+      }
+      create_assistant_link: {
+        Args: { p_assistant_id: string; p_token_hash: string }
         Returns: undefined
       }
       create_participant_import: {
@@ -6922,6 +6927,14 @@ export type Database = {
           registration_day: string
           registration_origin: string
           standard_amount_minor: number
+        }[]
+      }
+      list_assistant_links: {
+        Args: { p_participant_race_id: string }
+        Returns: {
+          assistant_id: string
+          created_at: string
+          last_used_at: string
         }[]
       }
       list_edition_documents: { Args: { p_edition_id: string }; Returns: Json }
@@ -7221,6 +7234,10 @@ export type Database = {
           p_value_text: string
         }
         Returns: string
+      }
+      revoke_assistant_link: {
+        Args: { p_assistant_id: string }
+        Returns: undefined
       }
       save_edition_equipment: {
         Args: {

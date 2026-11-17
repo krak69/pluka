@@ -5610,3 +5610,190 @@ a.st-tab {
   flex-basis: 100%;
   margin: 0;
 }
+
+/* ══ Page de l'accompagnant — `/a/[token]` (06_DESIGN_SYSTEM §124) ════════ */
+/* Mobile d'abord, sans navigation PLUKA : le prochain rendez-vous en tête. */
+
+.ax-page {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-10);
+  background: var(--pk-limestone);
+  color: var(--pk-text);
+}
+
+.ax-head,
+.ax-closed {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-5);
+  background: var(--pk-ink);
+  color: var(--pk-text-on-dark);
+}
+
+.ax-eyebrow {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pk-text-secondary);
+}
+
+.ax-head .ax-eyebrow,
+.ax-closed .ax-eyebrow {
+  color: var(--pk-lichen);
+}
+
+/* Aube marque ce qui attend l'accompagnant : le prochain rendez-vous (AGENTS §43). */
+.ax-eyebrow-next {
+  color: var(--pk-dawn-ink);
+}
+
+.ax-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(26px, 7vw, 34px);
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.ax-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.ax-head .ax-text,
+.ax-closed .ax-text {
+  color: color-mix(in srgb, var(--pk-text-on-dark) 82%, transparent);
+}
+
+.ax-card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+}
+
+.ax-card-next {
+  border-top: 2px solid var(--pk-dawn);
+}
+
+.ax-point {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.ax-km {
+  margin: calc(-1 * var(--space-2)) 0 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--pk-text-secondary);
+}
+
+.ax-times {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.ax-times div {
+  display: grid;
+  gap: 4px;
+}
+
+.ax-times dt {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pk-text-secondary);
+}
+
+.ax-times dd {
+  margin: 0;
+}
+
+.ax-time {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ax-day {
+  font-size: 13px;
+  color: var(--pk-text-secondary);
+}
+
+.ax-sub {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pk-text-secondary);
+}
+
+.ax-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ax-items li {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  border-bottom: 1px solid var(--pk-hairline);
+  font-size: 16px;
+}
+
+.ax-instructions {
+  white-space: pre-line;
+}
+
+.ax-others {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.ax-foot {
+  margin-top: var(--space-4);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pk-text-secondary);
+}
+
+.ax-foot p {
+  margin: 0;
+}
+
+/* Lien privé d'une personne (0100) : discret, sous son nom. */
+.as-link {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-left: 2px solid var(--pk-glacier);
+  background: var(--pk-glacier-bg);
+}
+
+.as-link-fresh {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.as-link-url {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}

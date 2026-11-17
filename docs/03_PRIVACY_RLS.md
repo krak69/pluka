@@ -1088,6 +1088,14 @@ le lien est invalide.
 
 Aucun cache public ne doit continuer à servir le payload après révocation.
 
+**Mise en œuvre (0100, 2026-11-17).**
+- **Expiration.** `expires_at` reste vide. La fin de validité se calcule à chaque lecture : le plus tard du départ, de l'arrivée prévue au Plan et de la dernière barrière, plus 3 jours.
+- **Personne ou participation sorties.** Une personne inactive ou une participation archivée éteignent aussi le lien.
+- **Lecture anonyme.** `assistant_link_view` reçoit l'empreinte, vérifie le lien et renvoie l'état seul s'il n'est pas valable.
+- **Côté coureur.** `create_assistant_link`, `revoke_assistant_link` et `list_assistant_links` vérifient la propriété ; aucune ne renvoie d'empreinte.
+- **Page `/a/[token]`.** Elle est rendue à chaque demande (`no-store`), sans indexation ni referrer.
+- **Limite de débit.** Elle est en mémoire par instance pour l'instant, et doit être remplacée par une limite partagée avant la production.
+
 ---
 
 # 48. Emergency contacts

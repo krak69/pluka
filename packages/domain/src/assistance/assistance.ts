@@ -1,8 +1,11 @@
+import { createHash, randomBytes } from 'node:crypto';
 import { z } from 'zod';
 
 import type {
   AssistanceAssignmentRecord,
   AssistanceRepositories,
+  AssistantLinkRecord,
+  AssistantLinkViewRepository,
   AssistantRecord,
   CourseWaypointRecord,
   EntitlementRepositories,
@@ -75,6 +78,8 @@ export interface AssistantView {
   readonly lastName: string | null;
   readonly phone: string | null;
   readonly rendezvous: readonly RendezvousView[];
+  /** Le lien privé actif de cette personne (0100) ; nul s'il n'y en a pas. */
+  readonly link: { readonly createdAt: string; readonly lastUsedAt: string | null } | null;
 }
 
 export interface AssistanceOverview {
@@ -86,6 +91,8 @@ export interface AssistanceOverview {
   readonly timezone: string;
   /** Personnes, rendez-vous, « À me donner » : Race Pass. */
   readonly canEdit: boolean;
+  /** Créer ou régénérer un lien privé : Race Pass (`assistance.share`). */
+  readonly canShare: boolean;
 }
 
 const MINUTE = 60;
@@ -251,13 +258,14 @@ export async function getAssistance(
   await authorize(context, 'assistance.read', participantRaceId);
 
   const raceId = await raceOf(context, participantRaceId, useCase);
-  const [race, waypoints, settings, assistants, plan, entitlements] = await Promise.all([
+  const [race, waypoints, settings, assistants, plan, entitlements, links] = await Promise.all([
     context.repositories.races.findById(raceId),
     context.repositories.waypoints.listByRace(raceId),
     context.repositories.participantRaceSettings.findByParticipantRace(participantRaceId),
     context.repositories.assistance.listAssistants(participantRaceId),
     context.repositories.racePlans.findActive(participantRaceId),
     resolveEntitlements(serviceContext(context), { participantRaceId }),
+    context.repositories.assistance.listLinks(participantRaceId),
   ]);
   const assignments = await context.repositories.assistance.listAssignments(
     assistants.map((assistant) => assistant.id),
@@ -300,6 +308,7 @@ export async function getAssistance(
       firstName: assistant.firstName,
       lastName: assistant.lastName,
       phone: assistant.phone,
+      link: linkOf(links, assistant.id),
       rendezvous: assignments
         .filter((assignment) => assignment.assistantId === assistant.id)
         .map(rendezvousOf)
@@ -316,6 +325,7 @@ export async function getAssistance(
     hasPlan: plan !== null,
     timezone: race?.timezone ?? 'Europe/Paris',
     canEdit: can(entitlements, 'assistance.edit').allowed,
+    canShare: can(entitlements, 'assistance.share').allowed,
   };
 }
 
@@ -471,4 +481,132 @@ export async function removeRendezvousItem(
   }
 
   await context.repositories.assistance.deleteItem(command.itemId);
+}
+
+// ------------------------------------------------------------
+// Lien privé de l'accompagnant — 0100, 03_PRIVACY_RLS §44 à §47
+// ------------------------------------------------------------
+
+function linkOf(links: readonly AssistantLinkRecord[], assistantId: string): AssistantView['link'] {
+  const link = links.find((entry) => entry.assistantId === assistantId);
+  return link === undefined ? null : { createdAt: link.createdAt, lastUsedAt: link.lastUsedAt };
+}
+
+/** SHA-256 hexadécimal : la seule forme du jeton qui entre en base (§44). */
+export function hashAssistantToken(token: string): string {
+  return createHash('sha256').update(token, 'utf8').digest('hex');
+}
+
+/**
+ * 96 bits aléatoires, en base64url : 16 caractères, pour un lien court à
+ * envoyer par message (décision du 2026-11-17). Impossible à deviner, et la page
+ * limite en plus le débit.
+ */
+const TOKEN_PATTERN = /^[A-Za-z0-9_-]{16}$/u;
+
+/**
+ * Crée le lien privé d'une personne et rend le jeton en clair — la seule fois
+ * où il existe hors de l'URL. L'ancien lien de cette personne s'éteint.
+ * Race Pass (`assistance.share`, 04_ENTITLEMENTS §46).
+ */
+export async function createAssistantLink(
+  context: AssistanceContext,
+  input: unknown,
+): Promise<{ readonly token: string }> {
+  const useCase = 'createAssistantLink';
+  const command = parseCommand(assistantCommand, input, useCase);
+
+  await authorize(context, 'assistance.share', command.participantRaceId);
+  await ownAssistant(context, command.participantRaceId, command.assistantId, useCase);
+
+  const token = randomBytes(12).toString('base64url');
+  await context.repositories.assistance.createLink(command.assistantId, hashAssistantToken(token));
+  return { token };
+}
+
+/** Révoquer reste toujours permis : couper un accès n'est pas une personnalisation. */
+export async function revokeAssistantLink(
+  context: AssistanceContext,
+  input: unknown,
+): Promise<void> {
+  const useCase = 'revokeAssistantLink';
+  const command = parseCommand(assistantCommand, input, useCase);
+
+  await authorize(context, 'assistance.read', command.participantRaceId);
+  await ownAssistant(context, command.participantRaceId, command.assistantId, useCase);
+  await context.repositories.assistance.revokeLink(command.assistantId);
+}
+
+export interface AssistantPageContext {
+  readonly repositories: { readonly assistantLinkView: AssistantLinkViewRepository };
+  readonly now: () => Date;
+}
+
+export interface AssistantPageRendezvous {
+  readonly pointName: string;
+  readonly distanceKm: number;
+  readonly passage: AssistancePassage | null;
+  readonly instructions: string | null;
+  readonly items: readonly string[];
+}
+
+export type AssistantPage =
+  | { readonly state: 'unknown' | 'revoked' | 'expired' }
+  | {
+      readonly state: 'valid';
+      readonly runnerFirstName: string | null;
+      readonly assistantFirstName: string;
+      readonly raceName: string;
+      readonly eventName: string | null;
+      readonly timezone: string;
+      readonly planUpdatedAt: string | null;
+      readonly rendezvous: readonly AssistantPageRendezvous[];
+      /**
+       * Le prochain rendez-vous : le premier dont la fenêtre n'est pas
+       * terminée, sinon le dernier. Une estimation du Plan, jamais un suivi
+       * en direct (PLAN_ENGINE §42).
+       */
+      readonly nextIndex: number | null;
+    };
+
+/**
+ * La page `/a/[token]` — sans session. Un jeton mal formé ne va pas jusqu'à
+ * la base. La projection reste celle de §46 : rendez-vous, heures, lieux, ce
+ * qu'il faut apporter, consignes.
+ */
+export async function getAssistantPage(
+  context: AssistantPageContext,
+  token: string,
+): Promise<AssistantPage> {
+  if (!TOKEN_PATTERN.test(token)) return { state: 'unknown' };
+
+  const view = await context.repositories.assistantLinkView.view(hashAssistantToken(token));
+  if (view.state !== 'valid') return { state: view.state };
+
+  const rendezvous = view.rendezvous.map((entry) => ({
+    pointName: entry.pointName,
+    distanceKm: Number(entry.distanceKm),
+    passage:
+      entry.plannedElapsedSeconds === null
+        ? null
+        : assistancePassage(view.startAt, entry.plannedElapsedSeconds),
+    instructions: entry.instructions,
+    items: entry.items,
+  }));
+  const now = context.now().getTime();
+  const upcoming = rendezvous.findIndex(
+    (entry) => entry.passage !== null && Date.parse(entry.passage.windowEnd) >= now,
+  );
+
+  return {
+    state: 'valid',
+    runnerFirstName: view.runnerFirstName,
+    assistantFirstName: view.assistantFirstName,
+    raceName: view.raceName,
+    eventName: view.eventName,
+    timezone: view.timezone,
+    planUpdatedAt: view.planUpdatedAt,
+    rendezvous,
+    nextIndex: rendezvous.length === 0 ? null : upcoming >= 0 ? upcoming : rendezvous.length - 1,
+  };
 }

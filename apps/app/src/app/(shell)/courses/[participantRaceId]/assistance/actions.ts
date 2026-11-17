@@ -4,11 +4,13 @@ import {
   addAssistant,
   addRendezvous,
   addRendezvousItems,
+  createAssistantLink,
   DomainError,
   EntitlementError,
   removeAssistant,
   removeRendezvous,
   removeRendezvousItem,
+  revokeAssistantLink,
   setAssistanceStatus,
   setRendezvousInstructions,
   updateAssistant,
@@ -17,6 +19,7 @@ import { revalidatePath } from 'next/cache';
 
 import type { ActionState } from '@/app/actions';
 import { assistanceContext } from '@/lib/assistance';
+import { publicEnv } from '@/lib/env';
 import { requireSession } from '@/lib/session';
 
 /**
@@ -153,5 +156,43 @@ export async function addItemAction(_previous: ActionState, form: FormData) {
 export async function removeItemAction(_previous: ActionState, form: FormData) {
   return run(form, 'Élément introuvable.', (context, participantRaceId) =>
     removeRendezvousItem(context, { participantRaceId, itemId: field(form, 'itemId') }),
+  );
+}
+
+export interface LinkActionState {
+  readonly error?: string;
+  /** Le lien en clair, montré une seule fois après sa création. */
+  readonly link?: string;
+}
+
+/**
+ * Crée (ou régénère) le lien privé d'une personne. Le jeton en clair ne
+ * revient qu'ici, une fois : la base n'en garde que l'empreinte (0100).
+ */
+export async function createLinkAction(
+  _previous: LinkActionState,
+  form: FormData,
+): Promise<LinkActionState> {
+  const participantRaceId = field(form, 'participantRaceId');
+  const session = await requireSession(pathOf(participantRaceId));
+
+  try {
+    const { token } = await createAssistantLink(assistanceContext(session), {
+      participantRaceId,
+      assistantId: field(form, 'assistantId'),
+    });
+    revalidatePath(pathOf(participantRaceId));
+    return { link: new URL(`/a/${token}`, publicEnv().NEXT_PUBLIC_APP_URL).toString() };
+  } catch (error) {
+    if (error instanceof EntitlementError) {
+      return { error: 'Le lien privé pour tes accompagnants fait partie du Race Pass.' };
+    }
+    return { error: messageOf(error, 'Personne introuvable.') };
+  }
+}
+
+export async function revokeLinkAction(_previous: ActionState, form: FormData) {
+  return run(form, 'Personne introuvable.', (context, participantRaceId) =>
+    revokeAssistantLink(context, { participantRaceId, assistantId: field(form, 'assistantId') }),
   );
 }

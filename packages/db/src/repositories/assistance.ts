@@ -64,7 +64,59 @@ export interface AssistanceRepository {
   listItems(assignmentIds: readonly string[]): Promise<readonly AssistanceItemRecord[]>;
   addItems(assignmentId: string, labels: readonly string[]): Promise<void>;
   deleteItem(itemId: string): Promise<void>;
+  /** Les liens privés actifs d'une participation (0100) ; jamais leur empreinte. */
+  listLinks(participantRaceId: string): Promise<readonly AssistantLinkRecord[]>;
+  /** Crée le lien d'une personne, en éteignant l'ancien. Seule l'empreinte entre en base. */
+  createLink(assistantId: string, tokenHash: string): Promise<void>;
+  revokeLink(assistantId: string): Promise<void>;
 }
+
+export interface AssistantLinkRecord {
+  readonly assistantId: string;
+  readonly createdAt: string;
+  readonly lastUsedAt: string | null;
+}
+
+/**
+ * La page de l'accompagnant, telle que `assistant_link_view` la rend (0100) :
+ * une projection sûre, rien d'autre (03_PRIVACY_RLS §46).
+ */
+export type AssistantLinkViewRecord =
+  | { readonly state: 'unknown' | 'revoked' | 'expired' }
+  | {
+      readonly state: 'valid';
+      readonly runnerFirstName: string | null;
+      readonly assistantFirstName: string;
+      readonly raceName: string;
+      readonly eventName: string | null;
+      readonly timezone: string;
+      readonly startAt: string;
+      readonly planUpdatedAt: string | null;
+      readonly rendezvous: readonly {
+        readonly pointName: string;
+        readonly distanceKm: number;
+        readonly instructions: string | null;
+        readonly plannedElapsedSeconds: number | null;
+        readonly items: readonly string[];
+      }[];
+    };
+
+export interface AssistantLinkViewRepository {
+  /** Sans session : la fonction valide le lien elle-même, par son empreinte. */
+  view(tokenHash: string): Promise<AssistantLinkViewRecord>;
+}
+
+export const assistantLinkViewRepository = defineRepository<AssistantLinkViewRepository>(
+  (context) => ({
+    async view(tokenHash) {
+      const data = unwrap(
+        await context.client.rpc('assistant_link_view', { p_token_hash: tokenHash }),
+        'assistant_link_view',
+      );
+      return data as unknown as AssistantLinkViewRecord;
+    },
+  }),
+);
 
 type AssistantRow = {
   id: string;
@@ -227,6 +279,38 @@ export const assistanceRepository = defineRepository<AssistanceRepository>((cont
     unwrapMaybe(
       await context.client.from('assistance_items').delete().eq('id', itemId),
       'assistance_items.delete',
+    );
+  },
+
+  async listLinks(participantRaceId) {
+    const rows = unwrapMaybe(
+      await context.client.rpc('list_assistant_links', {
+        p_participant_race_id: participantRaceId,
+      }),
+      'list_assistant_links',
+    );
+
+    return (rows ?? []).map((row) => ({
+      assistantId: row.assistant_id,
+      createdAt: row.created_at,
+      lastUsedAt: row.last_used_at,
+    }));
+  },
+
+  async createLink(assistantId, tokenHash) {
+    unwrapMaybe(
+      await context.client.rpc('create_assistant_link', {
+        p_assistant_id: assistantId,
+        p_token_hash: tokenHash,
+      }),
+      'create_assistant_link',
+    );
+  },
+
+  async revokeLink(assistantId) {
+    unwrapMaybe(
+      await context.client.rpc('revoke_assistant_link', { p_assistant_id: assistantId }),
+      'revoke_assistant_link',
     );
   },
 }));

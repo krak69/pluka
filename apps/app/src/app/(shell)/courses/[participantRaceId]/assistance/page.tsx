@@ -22,6 +22,7 @@ import {
 import {
   ActionForm,
   AddPersonForm,
+  LinkPanel,
   PersonHeader,
 } from '@/app/(shell)/courses/[participantRaceId]/assistance/assistance-forms';
 import { Icon } from '@/components/icon';
@@ -212,6 +213,13 @@ function Person({
         participantRaceId={participantRaceId}
         person={person}
         canEdit={overview.canEdit}
+      />
+
+      <LinkPanel
+        participantRaceId={participantRaceId}
+        person={person}
+        link={person.link}
+        canShare={overview.canShare}
       />
 
       {person.rendezvous.length === 0 ? (

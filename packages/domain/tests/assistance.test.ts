@@ -14,6 +14,10 @@ import {
   addAssistant,
   addRendezvous,
   addRendezvousItems,
+  createAssistantLink,
+  getAssistantPage,
+  hashAssistantToken,
+  revokeAssistantLink,
   assistancePassage,
   DomainError,
   EntitlementError,
@@ -65,6 +69,7 @@ type Stored<T> = T & { readonly participantRaceId?: string };
 let assistants: Stored<AssistantRecord>[];
 let assignments: AssistanceAssignmentRecord[];
 let items: AssistanceItemRecord[];
+let links: { assistantId: string; tokenHash: string; createdAt: string; revoked: boolean }[];
 
 function id(): string {
   sequence += 1;
@@ -143,6 +148,27 @@ function fakeAssistance(): AssistanceRepository {
     deleteItem: async (itemId) => {
       items = items.filter((item) => item.id !== itemId);
     },
+    listLinks: async (participantRaceId) =>
+      links
+        .filter((link) => link.revoked === false)
+        .filter((link) =>
+          assistants.some(
+            (entry) =>
+              entry.id === link.assistantId && entry.participantRaceId === participantRaceId,
+          ),
+        )
+        .map(({ assistantId, createdAt }) => ({ assistantId, createdAt, lastUsedAt: null })),
+    createLink: async (assistantId, tokenHash) => {
+      links = links.map((link) =>
+        link.assistantId === assistantId ? { ...link, revoked: true } : link,
+      );
+      links.push({ assistantId, tokenHash, createdAt: NOW.toISOString(), revoked: false });
+    },
+    revokeLink: async (assistantId) => {
+      links = links.map((link) =>
+        link.assistantId === assistantId ? { ...link, revoked: true } : link,
+      );
+    },
   };
 }
 
@@ -214,6 +240,7 @@ beforeEach(() => {
   assistants = [];
   assignments = [];
   items = [];
+  links = [];
 });
 
 describe('assistancePassage — PLAN_ENGINE §42', () => {
@@ -412,5 +439,145 @@ describe('personnes et rendez-vous — Race Pass', () => {
       getAssistance(context(RUNNER_B), { participantRaceId: own }),
     ).rejects.toBeInstanceOf(DomainError);
     expect(assignments).toHaveLength(1);
+  });
+});
+
+describe('lien privé de l’accompagnant — 0100, AC-ASST-06', () => {
+  it('refuse de créer un lien sans Race Pass', async () => {
+    racePass();
+    const { assistantId } = await camilleAtBaseVie();
+    entitlements.entitlements = [];
+
+    await expect(
+      createAssistantLink(context(), { participantRaceId: own, assistantId }),
+    ).rejects.toBeInstanceOf(EntitlementError);
+    expect(links).toEqual([]);
+  });
+
+  it('rend un jeton opaque et n’enregistre que son empreinte', async () => {
+    racePass();
+    const { assistantId } = await camilleAtBaseVie();
+
+    const { token } = await createAssistantLink(context(), { participantRaceId: own, assistantId });
+
+    expect(token).toMatch(/^[A-Za-z0-9_-]{16}$/u);
+    expect(links).toHaveLength(1);
+    expect(links[0]?.tokenHash).toBe(hashAssistantToken(token));
+    expect(links[0]?.tokenHash).not.toContain(token);
+    expect(
+      (await getAssistance(context(), { participantRaceId: own })).people[0]?.link,
+    ).not.toBeNull();
+  });
+
+  it('régénérer éteint l’ancien lien ; révoquer reste permis sans Race Pass', async () => {
+    racePass();
+    const { assistantId } = await camilleAtBaseVie();
+    const first = await createAssistantLink(context(), { participantRaceId: own, assistantId });
+    const second = await createAssistantLink(context(), { participantRaceId: own, assistantId });
+
+    expect(second.token).not.toBe(first.token);
+    expect(links.filter((link) => !link.revoked)).toHaveLength(1);
+
+    entitlements.entitlements = [];
+    await revokeAssistantLink(context(), { participantRaceId: own, assistantId });
+    expect(links.every((link) => link.revoked)).toBe(true);
+    expect((await getAssistance(context(), { participantRaceId: own })).people[0]?.link).toBeNull();
+  });
+
+  it('ne crée pas de lien pour la personne d’une autre participation', async () => {
+    racePass();
+    const { assistantId } = await camilleAtBaseVie();
+    grantEntitlement(entitlements, {
+      kind: 'race_pass',
+      userId: RUNNER_B,
+      participantRaceId: foreign,
+    });
+
+    await expectDomainError(
+      createAssistantLink(context(RUNNER_B), { participantRaceId: foreign, assistantId }),
+      'not_found',
+    );
+  });
+});
+
+describe('getAssistantPage — la page publique (§46)', () => {
+  const VALID = 'A'.repeat(16);
+
+  function pageContext(view: unknown, seen: string[] = []) {
+    return {
+      repositories: {
+        assistantLinkView: {
+          view: async (tokenHash: string) => {
+            seen.push(tokenHash);
+            return view as never;
+          },
+        },
+      },
+      now: () => new Date('2026-07-04T10:00:00.000Z'),
+    };
+  }
+
+  it('écarte un jeton mal formé sans interroger la base', async () => {
+    const seen: string[] = [];
+
+    await expect(getAssistantPage(pageContext({ state: 'valid' }, seen), 'court')).resolves.toEqual(
+      { state: 'unknown' },
+    );
+    expect(seen).toEqual([]);
+  });
+
+  it('cherche par empreinte, et rend l’état d’un lien révoqué ou expiré sans rien d’autre', async () => {
+    const seen: string[] = [];
+
+    await expect(
+      getAssistantPage(pageContext({ state: 'revoked', raceName: 'fuite' }, seen), VALID),
+    ).resolves.toEqual({ state: 'revoked' });
+    expect(seen).toEqual([hashAssistantToken(VALID)]);
+  });
+
+  it('calcule passages et fenêtres, et désigne le prochain rendez-vous', async () => {
+    const page = await getAssistantPage(
+      pageContext({
+        state: 'valid',
+        runnerFirstName: 'Alex',
+        assistantFirstName: 'Camille',
+        raceName: 'Les 9 clochers',
+        eventName: 'Trail des clochers',
+        timezone: 'Europe/Paris',
+        startAt: START,
+        planUpdatedAt: null,
+        rendezvous: [
+          {
+            pointName: 'Col',
+            distanceKm: 20,
+            instructions: null,
+            plannedElapsedSeconds: 3 * 3600,
+            items: [],
+          },
+          {
+            pointName: 'Base vie',
+            distanceKm: 52,
+            instructions: 'Parking',
+            plannedElapsedSeconds: 8 * 3600,
+            items: ['Gourde'],
+          },
+          {
+            pointName: 'Lac',
+            distanceKm: 60,
+            instructions: null,
+            plannedElapsedSeconds: null,
+            items: [],
+          },
+        ],
+      }),
+      VALID,
+    );
+
+    expect(page.state).toBe('valid');
+    if (page.state !== 'valid') return;
+    // 10:00 UTC : la fenêtre du col (07:00 ± 15 min) est passée, la base vie est la prochaine.
+    expect(page.nextIndex).toBe(1);
+    expect(page.rendezvous[1]?.passage).toEqual(assistancePassage(START, 8 * 3600));
+    expect(page.rendezvous[2]?.passage).toBeNull();
   });
 });

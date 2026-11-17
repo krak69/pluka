@@ -359,6 +359,10 @@ export {
   type AssistanceItemRecord,
   type AssistanceRepositories,
   type AssistanceRepository,
+  assistantLinkViewRepository,
+  type AssistantLinkRecord,
+  type AssistantLinkViewRecord,
+  type AssistantLinkViewRepository,
   type AssistantInput,
   type AssistantRecord,
 } from './repositories/assistance.js';
