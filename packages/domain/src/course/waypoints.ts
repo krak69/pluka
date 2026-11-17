@@ -61,6 +61,11 @@ const waypointSchema = z.object({
    * Jamais au départ ni à l'arrivée : voir `dropBagOnEndpoint`.
    */
   dropBagAllowed: z.boolean().default(false),
+  /**
+   * L'organisation autorise l'assistance à ce point — AC-ASST-03, décision du
+   * 2026-11-17. Jamais au départ ni à l'arrivée : voir `assistanceOnEndpoint`.
+   */
+  assistanceAllowed: z.boolean().default(false),
 });
 
 export type RaceWaypointCommandEntry = z.infer<typeof waypointSchema>;
@@ -211,10 +216,39 @@ export async function setRaceWaypoints(
     });
   }
 
+  const assistanceEndpoint = assistanceOnEndpoint(command.waypoints);
+  if (assistanceEndpoint !== null) {
+    throw validationError(useCase, ASSISTANCE_ENDPOINT_MESSAGE, {
+      [`waypoints.${assistanceEndpoint}.assistanceAllowed`]: ASSISTANCE_ENDPOINT_MESSAGE,
+    });
+  }
+
   return context.repositories.waypoints.replace(command.raceId, command.waypoints);
 }
 
 const DROP_BAG_ENDPOINT_MESSAGE = 'un drop bag se dépose à un point intermédiaire';
+const ASSISTANCE_ENDPOINT_MESSAGE = 'l’assistance s’autorise à un point intermédiaire';
+
+function isEndpoint(waypointType: string): boolean {
+  return waypointType === 'start' || waypointType === 'finish';
+}
+
+/**
+ * Rang du premier départ ou arrivée marqué « assistance », ou `null`.
+ *
+ * Retrouver ses proches au départ ou à l'arrivée n'est pas un rendez-vous
+ * d'assistance en course : décision produit du 2026-11-17, gardée aussi par
+ * une contrainte (0098).
+ */
+export function assistanceOnEndpoint(
+  waypoints: readonly { readonly waypointType: string; readonly assistanceAllowed: boolean }[],
+): number | null {
+  const index = waypoints.findIndex(
+    (waypoint) => waypoint.assistanceAllowed && isEndpoint(waypoint.waypointType),
+  );
+
+  return index < 0 ? null : index;
+}
 
 /**
  * Rang du premier départ ou arrivée marqué « drop bag », ou `null`.

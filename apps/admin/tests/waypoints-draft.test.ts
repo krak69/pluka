@@ -29,6 +29,7 @@ function row(overrides: Partial<WaypointRow>): WaypointRow {
     cutoffDay: '',
     cutoffTime: '',
     dropBagAllowed: false,
+    assistanceAllowed: false,
     ...overrides,
   };
 }
@@ -94,6 +95,14 @@ describe('drop bag', () => {
   it('compte comme une modification de la saisie', () => {
     expect(fingerprint([row({ dropBagAllowed: true })], START)).not.toBe(
       fingerprint([row({ dropBagAllowed: false })], START),
+    );
+  });
+});
+
+describe('assistance (0098)', () => {
+  it('compte comme une modification de la saisie', () => {
+    expect(fingerprint([row({ assistanceAllowed: true })], START)).not.toBe(
+      fingerprint([row({ assistanceAllowed: false })], START),
     );
   });
 });

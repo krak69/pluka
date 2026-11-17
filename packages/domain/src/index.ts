@@ -73,6 +73,7 @@ export {
 export {
   AUTHORED_WAYPOINT_TYPES,
   checkWaypointChain,
+  assistanceOnEndpoint,
   dropBagOnEndpoint,
   getRaceWaypoints,
   getRaceWaypointsQuerySchema,
@@ -890,11 +891,7 @@ export {
   type TasksOverview,
 } from './preparation/tasks.js';
 
-export {
-  nextActions,
-  type NextAction,
-  type NextActionsInput,
-} from './preparation/next-actions.js';
+export { nextActions, type NextAction, type NextActionsInput } from './preparation/next-actions.js';
 
 export {
   addToMyEquipment,

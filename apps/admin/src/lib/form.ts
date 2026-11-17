@@ -125,6 +125,7 @@ export function raceWaypointsCommand(
   const distances = texts(form, 'distanceKm');
   const cutoffs = texts(form, 'cutoffAt');
   const dropBags = texts(form, 'dropBagAllowed');
+  const assistances = texts(form, 'assistanceAllowed');
 
   return {
     raceId: text(form, 'raceId'),
@@ -136,6 +137,7 @@ export function raceWaypointsCommand(
       distanceKm: toNumber(distances[index]),
       cutoffAt: toInstant(cutoffs[index], timezone),
       dropBagAllowed: dropBags[index] === 'true',
+      assistanceAllowed: assistances[index] === 'true',
     })),
   };
 }
@@ -349,7 +351,8 @@ export function equipmentCandidateCorrection(form: FormData): {
   const edited =
     label !== field('original.label') ||
     requirement !== field('original.requirement') ||
-    condition !== (field('original.requirement') === 'conditional' ? field('original.condition') : null) ||
+    condition !==
+      (field('original.requirement') === 'conditional' ? field('original.condition') : null) ||
     detail !== field('original.detail');
 
   if (!edited) return {};

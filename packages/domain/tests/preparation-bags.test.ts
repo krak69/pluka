@@ -59,6 +59,7 @@ function waypoint(
   waypointType: CourseWaypointRecord['waypointType'],
   distanceKm: number,
   dropBagAllowed = false,
+  assistanceAllowed = waypointType === 'assistance',
 ): CourseWaypointRecord {
   return {
     id,
@@ -69,6 +70,7 @@ function waypoint(
     sortOrder: Math.round(distanceKm),
     altitudeM: null,
     dropBagAllowed,
+    assistanceAllowed,
   };
 }
 
@@ -528,6 +530,32 @@ describe('changements côté organisation', () => {
 
     const overview = await getBags(context(), { participantRaceId: own });
     expect(overview.bags[0]?.pointIssue).toBe('drop_bag_withdrawn');
+  });
+
+  it('signale un sac d’assistance dont le point ne l’autorise plus (0098)', async () => {
+    await createBag(context(), {
+      participantRaceId: own,
+      bagType: 'assistance',
+      pointId: BASE_VIE,
+    });
+    waypoints = waypoints.map((entry) =>
+      entry.id === BASE_VIE ? { ...entry, assistanceAllowed: false } : entry,
+    );
+
+    const overview = await getBags(context(), { participantRaceId: own });
+    expect(overview.bags[0]?.pointIssue).toBe('assistance_withdrawn');
+  });
+
+  it('propose l’assistance là où l’organisation l’autorise, pas selon le type du point', async () => {
+    waypoints = waypoints.map((entry) =>
+      entry.id === RAVITO ? { ...entry, assistanceAllowed: true } : entry,
+    );
+
+    const overview = await getBags(context(), { participantRaceId: own });
+    expect(overview.assistancePoints.map((point) => point.name)).toEqual([
+      'Ravito du lac',
+      'Base vie',
+    ]);
   });
 
   it('signale un sac dont le point a été retiré', async () => {

@@ -26,9 +26,11 @@ export interface WaypointRow {
   readonly cutoffTime: string;
   /** Drop bag accepté à ce point (0094) ; jamais au départ ni à l'arrivée. */
   readonly dropBagAllowed: boolean;
+  /** Assistance autorisée à ce point (0098) ; jamais au départ ni à l'arrivée. */
+  readonly assistanceAllowed: boolean;
 }
 
-/** Un drop bag se dépose à un point intermédiaire. */
+/** Un drop bag se dépose, et l'assistance s'autorise, à un point intermédiaire. */
 export function acceptsDropBag(waypointType: string): boolean {
   return waypointType !== 'start' && waypointType !== 'finish';
 }
@@ -91,6 +93,7 @@ export function rowsOf(
         cutoffDay: '',
         cutoffTime: '',
         dropBagAllowed: false,
+        assistanceAllowed: false,
       },
       {
         key: 'new-1',
@@ -101,6 +104,7 @@ export function rowsOf(
         cutoffDay: '',
         cutoffTime: '',
         dropBagAllowed: false,
+        assistanceAllowed: false,
       },
     ];
   }
@@ -121,6 +125,7 @@ export function rowsOf(
       cutoffDay: day === null || startDay === null ? '' : String(day - startDay),
       cutoffTime: parts?.time ?? '',
       dropBagAllowed: waypoint.dropBagAllowed,
+      assistanceAllowed: waypoint.assistanceAllowed,
     };
   });
 }
@@ -136,7 +141,11 @@ export function elapsedMinutes(row: WaypointRow, start: LocalStart | null): numb
   if (start === null || row.cutoffDay === '' || row.cutoffTime === '') return null;
   const [hours, minutes] = row.cutoffTime.split(':').map(Number);
   const [startHours, startMinutes] = start.time.split(':').map(Number);
-  if ([hours, minutes, startHours, startMinutes].some((part) => part === undefined || Number.isNaN(part))) {
+  if (
+    [hours, minutes, startHours, startMinutes].some(
+      (part) => part === undefined || Number.isNaN(part),
+    )
+  ) {
     return null;
   }
   return (
@@ -191,6 +200,7 @@ export function fingerprint(rows: readonly WaypointRow[], start: LocalStart | nu
       parseKm(row.distanceKm),
       cutoffValue(row, start),
       row.dropBagAllowed,
+      row.assistanceAllowed,
     ]),
   );
 }

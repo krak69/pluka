@@ -401,6 +401,7 @@ export function createFakeRepositories(state: FakeState): CourseRepositories {
             sortOrder: index + 1,
             altitudeM: null,
             dropBagAllowed: entry.dropBagAllowed ?? false,
+            assistanceAllowed: entry.assistanceAllowed ?? false,
           };
 
           const existing = state.waypoints.findIndex((waypoint) => waypoint.id === id);

@@ -107,6 +107,8 @@ export interface WaypointInput {
   readonly cutoffTime: string | null;
   /** L'organisation accepte un drop bag à ce point (0094). */
   readonly dropBagAllowed: boolean;
+  /** L'organisation autorise l'assistance à ce point (0098). */
+  readonly assistanceAllowed: boolean;
 }
 
 interface Row {
@@ -118,9 +120,14 @@ interface Row {
   readonly cutoffDay: string;
   readonly cutoffTime: string;
   readonly dropBagAllowed: boolean;
+  /** L'organisation autorise l'assistance à ce point (0098). */
+  readonly assistanceAllowed: boolean;
 }
 
-/** Un drop bag se dépose à un point intermédiaire, jamais au départ ni à l'arrivée. */
+/**
+ * Un drop bag se dépose, et l'assistance s'autorise, à un point intermédiaire :
+ * jamais au départ ni à l'arrivée (0094, 0098).
+ */
 function acceptsDropBag(waypointType: string): boolean {
   return waypointType !== 'start' && waypointType !== 'finish';
 }
@@ -137,6 +144,7 @@ function rowsOf(waypoints: readonly WaypointInput[]): readonly Row[] {
         cutoffDay: '',
         cutoffTime: '',
         dropBagAllowed: false,
+        assistanceAllowed: false,
       },
       {
         key: 'new-1',
@@ -147,6 +155,7 @@ function rowsOf(waypoints: readonly WaypointInput[]): readonly Row[] {
         cutoffDay: '',
         cutoffTime: '',
         dropBagAllowed: false,
+        assistanceAllowed: false,
       },
     ];
   }
@@ -160,6 +169,7 @@ function rowsOf(waypoints: readonly WaypointInput[]): readonly Row[] {
     cutoffDay: waypoint.cutoffDay === null ? '' : String(waypoint.cutoffDay),
     cutoffTime: waypoint.cutoffTime ?? '',
     dropBagAllowed: waypoint.dropBagAllowed,
+    assistanceAllowed: waypoint.assistanceAllowed,
   }));
 }
 
@@ -226,6 +236,7 @@ export function WaypointsForm({
         cutoffDay: '',
         cutoffTime: '',
         dropBagAllowed: false,
+        assistanceAllowed: false,
       },
       ...current.slice(-1),
     ]);
@@ -241,6 +252,7 @@ export function WaypointsForm({
             <input type="hidden" name="waypointId" value={row.id} />
             {/* Une case décochée ne poste rien : la valeur part toujours, rang pour rang. */}
             <input type="hidden" name="dropBagAllowed" value={String(row.dropBagAllowed)} />
+            <input type="hidden" name="assistanceAllowed" value={String(row.assistanceAllowed)} />
             <input
               type="hidden"
               name="cutoffAt"
@@ -279,6 +291,10 @@ export function WaypointsForm({
                   update(row.key, {
                     waypointType: event.target.value,
                     dropBagAllowed: acceptsDropBag(event.target.value) && row.dropBagAllowed,
+                    // Une « Base de vie » est un point d'assistance : la case suit.
+                    assistanceAllowed:
+                      acceptsDropBag(event.target.value) &&
+                      (row.assistanceAllowed || event.target.value === 'assistance'),
                   })
                 }
               >
@@ -370,6 +386,32 @@ export function WaypointsForm({
                 </>
               ) : null}
             </div>
+            <div className="pk-field wp-drop-bag">
+              {acceptsDropBag(row.waypointType) ? (
+                <>
+                  <span className="pk-field-label" aria-hidden="true">
+                    Assistance
+                  </span>
+                  <label className="wp-drop-bag-toggle">
+                    <input
+                      type="checkbox"
+                      checked={row.assistanceAllowed}
+                      onChange={(event) =>
+                        update(row.key, { assistanceAllowed: event.target.checked })
+                      }
+                    />
+                    <span>
+                      Autorisée<span className="pk-visually-hidden"> : assistance à ce point</span>
+                    </span>
+                  </label>
+                  {errors[`waypoints.${String(index)}.assistanceAllowed`] === undefined ? null : (
+                    <p className="pk-field-error">
+                      {errors[`waypoints.${String(index)}.assistanceAllowed`]}
+                    </p>
+                  )}
+                </>
+              ) : null}
+            </div>
             <button
               type="button"
               className="pk-btn pk-button-ghost"
@@ -393,7 +435,8 @@ export function WaypointsForm({
       </div>
       <p className="pk-field-hint">
         Les kilomètres du règlement. La trace mesurée peut en différer : l’écart est signalé, jamais
-        corrigé. Cochez « Drop bag » aux points où le coureur peut faire déposer un sac.
+        corrigé. Cochez « Drop bag » aux points où le coureur peut faire déposer un sac, et «
+        Assistance » là où ses proches peuvent le retrouver.
       </p>
       <ActionError state={state} />
     </form>

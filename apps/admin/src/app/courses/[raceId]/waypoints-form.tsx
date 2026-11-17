@@ -134,7 +134,7 @@ export function WaypointsForm({
   const saved = waypoints
     .map(
       (waypoint) =>
-        `${waypoint.id}:${waypoint.distanceKm}:${waypoint.cutoffAt ?? ''}:${String(waypoint.dropBagAllowed)}:${waypoint.name}`,
+        `${waypoint.id}:${waypoint.distanceKm}:${waypoint.cutoffAt ?? ''}:${String(waypoint.dropBagAllowed)}:${String(waypoint.assistanceAllowed)}:${waypoint.name}`,
     )
     .join('|');
   const [seen, setSeen] = useState(saved);
@@ -171,6 +171,7 @@ export function WaypointsForm({
         cutoffDay: '',
         cutoffTime: '',
         dropBagAllowed: false,
+        assistanceAllowed: false,
       },
       ...current.slice(index + 1),
     ]);
@@ -233,6 +234,7 @@ export function WaypointsForm({
           const kmError = state.fieldErrors?.[`waypoints.${index}.distanceKm`];
           const cutoffError = state.fieldErrors?.[`waypoints.${index}.cutoffAt`];
           const dropBagError = state.fieldErrors?.[`waypoints.${index}.dropBagAllowed`];
+          const assistanceError = state.fieldErrors?.[`waypoints.${index}.assistanceAllowed`];
 
           return (
             <div key={row.key} className="ad-wp-row" role="row" data-type={row.waypointType}>
@@ -240,6 +242,7 @@ export function WaypointsForm({
               <input type="hidden" name="cutoffAt" value={cutoffValue(row, start)} />
               {/* Une case décochée ne poste rien : la valeur part toujours, rang pour rang. */}
               <input type="hidden" name="dropBagAllowed" value={String(row.dropBagAllowed)} />
+              <input type="hidden" name="assistanceAllowed" value={String(row.assistanceAllowed)} />
 
               <div className="ad-wp-point" role="cell">
                 <span className="ad-wp-icon" aria-hidden="true">
@@ -272,6 +275,10 @@ export function WaypointsForm({
                       update(row.key, {
                         waypointType: event.target.value,
                         dropBagAllowed: acceptsDropBag(event.target.value) && row.dropBagAllowed,
+                        // Une « Base de vie » est un point d'assistance : la case suit.
+                        assistanceAllowed:
+                          acceptsDropBag(event.target.value) &&
+                          (row.assistanceAllowed || event.target.value === 'assistance'),
                       })
                     }
                   >
@@ -293,9 +300,24 @@ export function WaypointsForm({
                       <span>Drop bag accepté</span>
                     </label>
                   ) : null}
+                  {acceptsDropBag(row.waypointType) ? (
+                    <label className="ad-wp-drop-bag">
+                      <input
+                        type="checkbox"
+                        checked={row.assistanceAllowed}
+                        onChange={(event) =>
+                          update(row.key, { assistanceAllowed: event.target.checked })
+                        }
+                      />
+                      <span>Assistance autorisée</span>
+                    </label>
+                  ) : null}
                   {nameError === undefined ? null : <p className="pk-field-error">{nameError}</p>}
                   {dropBagError === undefined ? null : (
                     <p className="pk-field-error">{dropBagError}</p>
+                  )}
+                  {assistanceError === undefined ? null : (
+                    <p className="pk-field-error">{assistanceError}</p>
                   )}
                 </div>
               </div>
@@ -320,9 +342,7 @@ export function WaypointsForm({
                   />
                   <span aria-hidden="true">km</span>
                 </span>
-                <span className="ad-wp-meta">
-                  {gap === null ? ' ' : `+${formatKm(gap)}`}
-                </span>
+                <span className="ad-wp-meta">{gap === null ? ' ' : `+${formatKm(gap)}`}</span>
                 {kmError === undefined ? null : <p className="pk-field-error">{kmError}</p>}
               </div>
 
@@ -374,9 +394,7 @@ export function WaypointsForm({
                     </span>
                   </>
                 )}
-                {cutoffError === undefined ? null : (
-                  <p className="pk-field-error">{cutoffError}</p>
-                )}
+                {cutoffError === undefined ? null : <p className="pk-field-error">{cutoffError}</p>}
               </div>
 
               <div className="ad-wp-actions" role="cell">
@@ -392,7 +410,9 @@ export function WaypointsForm({
                 <button
                   type="button"
                   className="ad-wp-action"
-                  onClick={() => setRows((current) => current.filter((entry) => entry.key !== row.key))}
+                  onClick={() =>
+                    setRows((current) => current.filter((entry) => entry.key !== row.key))
+                  }
                   disabled={rows.length <= 2}
                   title="Retirer ce point"
                 >

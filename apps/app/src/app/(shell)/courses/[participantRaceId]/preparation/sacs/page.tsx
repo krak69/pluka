@@ -54,6 +54,8 @@ const ISSUES = {
     'L’organisation a retiré ce point du parcours. Choisis un autre point ou supprime ce sac.',
   drop_bag_withdrawn:
     'L’organisation n’accepte plus de drop bag à ce point. Vérifie les consignes officielles.',
+  assistance_withdrawn:
+    'L’organisation n’autorise plus l’assistance à ce point. Vérifie les consignes officielles.',
 } as const;
 
 function Bag({

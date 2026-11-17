@@ -29,6 +29,7 @@ function waypoint(overrides: Partial<RaceWaypointView> = {}): RaceWaypointView {
     altitudeM: null,
     cutoffAt: null,
     dropBagAllowed: false,
+    assistanceAllowed: false,
     ...overrides,
   } as RaceWaypointView;
 }
@@ -194,6 +195,7 @@ describe('transmission jusqu’à la Server Action', () => {
           distanceKm: 0,
           cutoffAt: null,
           dropBagAllowed: false,
+          assistanceAllowed: false,
         },
         {
           id: SAVED[1]?.id,
@@ -205,6 +207,7 @@ describe('transmission jusqu’à la Server Action', () => {
           cutoffAt: '2026-06-20T13:00:00+02:00',
           // Relu en base, renvoyé tel quel : réenregistrer ne décoche rien.
           dropBagAllowed: true,
+          assistanceAllowed: false,
         },
         {
           id: SAVED[2]?.id,
@@ -213,6 +216,7 @@ describe('transmission jusqu’à la Server Action', () => {
           distanceKm: 70,
           cutoffAt: null,
           dropBagAllowed: false,
+          assistanceAllowed: false,
         },
       ],
     });

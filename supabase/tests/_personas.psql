@@ -76,14 +76,14 @@ values
    'Org B 50K', 'org-b-50k', 50, '2026-07-04T05:00:00Z', 'Europe/Paris', 'published', 'public');
 
 insert into public.race_waypoints
-  (id, race_id, name, waypoint_type, distance_km, sort_order)
+  (id, race_id, name, waypoint_type, distance_km, sort_order, assistance_allowed)
 values
   ('aaaaaaaa-0000-4000-8000-000000000021', 'aaaaaaaa-0000-4000-8000-000000000013',
-   'Départ', 'start', 0, 1),
+   'Départ', 'start', 0, 1, false),
   ('aaaaaaaa-0000-4000-8000-000000000022', 'aaaaaaaa-0000-4000-8000-000000000013',
-   'Col du Test', 'aid_station', 40, 2),
+   'Col du Test', 'aid_station', 40, 2, true),
   ('aaaaaaaa-0000-4000-8000-000000000023', 'aaaaaaaa-0000-4000-8000-000000000014',
-   'Départ privé', 'start', 0, 1);
+   'Départ privé', 'start', 0, 1, false);
 
 -- ============================================================
 -- Sources et facts (§19 à §25)

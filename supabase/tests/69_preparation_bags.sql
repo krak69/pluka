@@ -17,12 +17,14 @@ select plan(14);
 
 \ir _personas.psql
 
--- Un point d'assistance, et un drop bag accepté au col.
-insert into public.race_waypoints (id, race_id, name, waypoint_type, distance_km, sort_order)
+-- Un point où l'assistance est autorisée (0098), et un drop bag accepté au col —
+-- qui, ici, n'autorise pas l'assistance.
+insert into public.race_waypoints
+  (id, race_id, name, waypoint_type, distance_km, sort_order, assistance_allowed)
 values ('aaaaaaaa-0000-4000-8000-000000000024', 'aaaaaaaa-0000-4000-8000-000000000013',
-        'Base vie', 'assistance', 60, 3);
+        'Base vie', 'assistance', 60, 3, true);
 
-update public.race_waypoints set drop_bag_allowed = true
+update public.race_waypoints set drop_bag_allowed = true, assistance_allowed = false
 where id = 'aaaaaaaa-0000-4000-8000-000000000022';
 
 -- ============================================================

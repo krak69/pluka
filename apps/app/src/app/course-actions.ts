@@ -352,14 +352,17 @@ export async function duplicateEditionAction(
   const year = text(form, 'year').trim();
 
   try {
-    await duplicateEdition(sessionEventSiteContext(await requireSession(pagePath(form, 'epreuves'))), {
-      organizationId: text(form, 'organizationId'),
-      eventId: text(form, 'eventId'),
-      sourceEditionId: text(form, 'sourceEditionId'),
-      year,
-      startDate: text(form, 'startDate'),
-      endDate: text(form, 'endDate'),
-    });
+    await duplicateEdition(
+      sessionEventSiteContext(await requireSession(pagePath(form, 'epreuves'))),
+      {
+        organizationId: text(form, 'organizationId'),
+        eventId: text(form, 'eventId'),
+        sourceEditionId: text(form, 'sourceEditionId'),
+        year,
+        startDate: text(form, 'startDate'),
+        endDate: text(form, 'endDate'),
+      },
+    );
   } catch (error) {
     return failure(error);
   }
@@ -413,6 +416,7 @@ export async function saveWaypointsAction(
   const distances = texts(form, 'distanceKm');
   const cutoffs = texts(form, 'cutoffAt');
   const dropBags = texts(form, 'dropBagAllowed');
+  const assistances = texts(form, 'assistanceAllowed');
   const raceId = text(form, 'raceId');
 
   try {
@@ -435,6 +439,7 @@ export async function saveWaypointsAction(
               ? null
               : civilToInstant(day, time, race.timezone),
           dropBagAllowed: dropBags[index] === 'true',
+          assistanceAllowed: assistances[index] === 'true',
         };
       }),
     });
@@ -479,10 +484,13 @@ export async function reviseEquipmentAction(
   form: FormData,
 ): Promise<CourseActionState> {
   try {
-    await reviseRaceEquipment(factEditingContext(await requireSession(pagePath(form, 'epreuves'))), {
-      factId: text(form, 'factId'),
-      ...equipmentFields(form),
-    });
+    await reviseRaceEquipment(
+      factEditingContext(await requireSession(pagePath(form, 'epreuves'))),
+      {
+        factId: text(form, 'factId'),
+        ...equipmentFields(form),
+      },
+    );
   } catch (error) {
     return failure(error);
   }

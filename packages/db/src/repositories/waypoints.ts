@@ -25,6 +25,7 @@ const WAYPOINT_COLUMNS = [
   'sort_order',
   'altitude_m',
   'drop_bag_allowed',
+  'assistance_allowed',
 ] as const;
 
 const CUTOFF_COLUMNS = [
@@ -45,6 +46,7 @@ type WaypointRow = {
   sort_order: number;
   altitude_m: number | null;
   drop_bag_allowed: boolean;
+  assistance_allowed: boolean;
 };
 
 type CutoffRow = {
@@ -59,12 +61,14 @@ type CutoffRow = {
 /**
  * Un point du référentiel tel que la Course le montre.
  *
- * Le drop bag n'est pas dans `RaceWaypointRecord` : le moteur Plan n'en a que
+ * Le drop bag et l'assistance ne sont pas dans `RaceWaypointRecord` : le moteur Plan n'en a que
  * faire, et son snapshot ne doit pas changer pour une case cochée.
  */
 export interface CourseWaypointRecord extends RaceWaypointRecord {
   /** L'organisation accepte un drop bag à ce point (migration 0094). */
   readonly dropBagAllowed: boolean;
+  /** L'organisation autorise l'assistance à ce point (migration 0098). */
+  readonly assistanceAllowed: boolean;
 }
 
 function toWaypoint(row: WaypointRow): CourseWaypointRecord {
@@ -77,6 +81,7 @@ function toWaypoint(row: WaypointRow): CourseWaypointRecord {
     sortOrder: row.sort_order,
     altitudeM: row.altitude_m,
     dropBagAllowed: row.drop_bag_allowed,
+    assistanceAllowed: row.assistance_allowed,
   };
 }
 
@@ -102,6 +107,8 @@ export interface RaceWaypointInput {
   readonly cutoffAt?: string | null | undefined;
   /** Drop bag accepté à ce point. Absent, il ne l'est pas. */
   readonly dropBagAllowed?: boolean | undefined;
+  /** Assistance autorisée à ce point. Absente, elle ne l'est pas. */
+  readonly assistanceAllowed?: boolean | undefined;
 }
 
 /** Ce que la réécriture rend : de quoi dire à l'écran ce qui a été demandé. */
@@ -158,6 +165,7 @@ export const raceWaypointRepository = defineRepository<RaceWaypointRepository>((
           distanceKm: waypoint.distanceKm,
           cutoffAt: waypoint.cutoffAt ?? null,
           dropBagAllowed: waypoint.dropBagAllowed ?? false,
+          assistanceAllowed: waypoint.assistanceAllowed ?? false,
         })),
       }),
       'set_race_waypoints',

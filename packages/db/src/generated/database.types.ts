@@ -5366,6 +5366,7 @@ export type Database = {
       race_waypoints: {
         Row: {
           altitude_m: number | null
+          assistance_allowed: boolean
           created_at: string
           distance_km: number
           drop_bag_allowed: boolean
@@ -5384,6 +5385,7 @@ export type Database = {
         }
         Insert: {
           altitude_m?: number | null
+          assistance_allowed?: boolean
           created_at?: string
           distance_km: number
           drop_bag_allowed?: boolean
@@ -5402,6 +5404,7 @@ export type Database = {
         }
         Update: {
           altitude_m?: number | null
+          assistance_allowed?: boolean
           created_at?: string
           distance_km?: number
           drop_bag_allowed?: boolean

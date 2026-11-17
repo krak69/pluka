@@ -964,6 +964,8 @@ L’architecture doit pouvoir supporter plusieurs assistants même si le MVP UX 
 
 Seuls les points où l’assistance est autorisée doivent pouvoir être utilisés comme rendez-vous officiels.
 
+**Points autorisés (décision produit du 2026-11-17).** Comme pour le drop bag, l'organisation coche « Assistance » sur les points intermédiaires où elle l'autorise, ravitaillements compris ; jamais le départ ni l'arrivée. Le coureur le voit dans la Course, et ne peut poser un rendez-vous ou un sac d'assistance qu'à l'un de ces points.
+
 Chaque rendez-vous peut contenir :
 
 - lieu ;

@@ -83,10 +83,10 @@ export interface BagView {
   readonly point: BagPoint | null;
   /**
    * Ce qui a changé côté organisation depuis que le sac existe : le point a
-   * été retiré du parcours, ou n'accepte plus de drop bag. Le sac reste ; l'écran
-   * le signale.
+   * été retiré du parcours, n'accepte plus de drop bag ou plus d'assistance. Le
+   * sac reste ; l'écran le signale.
    */
-  readonly pointIssue: 'removed' | 'drop_bag_withdrawn' | null;
+  readonly pointIssue: 'removed' | 'drop_bag_withdrawn' | 'assistance_withdrawn' | null;
   readonly items: readonly BagItemView[];
   readonly checkedCount: number;
   /** Prêt : au moins un contenu, tout coché. */
@@ -146,9 +146,9 @@ function dropBagWaypoints(waypoints: readonly CourseWaypointRecord[]) {
   return waypoints.filter((waypoint) => waypoint.dropBagAllowed).sort(byKm);
 }
 
-/** Les points d'assistance du parcours (« Base de vie » à la saisie). */
+/** Les points où l'organisation autorise l'assistance (0098). */
 function assistanceWaypoints(waypoints: readonly CourseWaypointRecord[]) {
-  return waypoints.filter((waypoint) => waypoint.waypointType === 'assistance').sort(byKm);
+  return waypoints.filter((waypoint) => waypoint.assistanceAllowed).sort(byKm);
 }
 
 export interface SuggestBagsInput {
@@ -325,7 +325,9 @@ function viewOf(
         ? 'removed'
         : bag.bagType === 'drop_bag' && waypoint !== undefined && !waypoint.dropBagAllowed
           ? 'drop_bag_withdrawn'
-          : null,
+          : bag.bagType === 'assistance' && waypoint !== undefined && !waypoint.assistanceAllowed
+            ? 'assistance_withdrawn'
+            : null,
     items: bag.items,
     checkedCount,
     ready: bag.items.length > 0 && checkedCount === bag.items.length,

@@ -382,6 +382,14 @@ deux points, une base vie. La case s'écrit avec la chaîne, par `set_race_waypo
 prétraitement. Une contrainte l'interdit au départ et à l'arrivée : un sac qu'on y laisse est
 un sac de départ ou d'arrivée (décision produit du 2026-11-16).
 
+**Assistance (migration 0098).** `assistance_allowed` dit que l'organisation autorise l'assistance
+à ce point, ravitaillements compris (AC-ASST-03, décision produit du 2026-11-17). Elle s'écrit
+comme le drop bag, par `set_race_waypoints` (clé `assistanceAllowed`, absente = faux), hors de
+l'empreinte, et jamais au départ ni à l'arrivée. Les points de type `assistance` l'ont reçue à la
+migration. Un déclencheur refuse un rendez-vous (`assistance_assignments`) ou un sac d'assistance
+à un point qui ne l'autorise pas, ou d'une autre course ; si l'organisation la retire ensuite, ce
+qui existe reste et l'écran le signale. `race_assistance_rules` n'est pas utilisée.
+
 ## 6.7 `race_segments`
 
 Segments déterministes entre waypoints.

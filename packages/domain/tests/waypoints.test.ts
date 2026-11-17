@@ -430,3 +430,49 @@ describe('drop bag — 00_PRODUCT_SPEC §14.4', () => {
     });
   });
 });
+
+describe('assistance — AC-ASST-03, décision du 2026-11-17', () => {
+  it('porte l’assistance jusqu’au point, et la relit', async () => {
+    await setRaceWaypoints(
+      contextFor(EDITOR_A),
+      chain([
+        { name: 'Départ', waypointType: 'start', distanceKm: 0 },
+        { name: 'Ravito 1', waypointType: 'aid_station', distanceKm: 18.5, assistanceAllowed: true },
+        { name: 'Col', waypointType: 'checkpoint', distanceKm: 42 },
+        { name: 'Arrivée', waypointType: 'finish', distanceKm: 70 },
+      ]),
+    );
+
+    const waypoints = await getRaceWaypoints(contextFor(EDITOR_A), { raceId: RACE_ID });
+
+    expect(waypoints.map((waypoint) => [waypoint.name, waypoint.assistanceAllowed])).toEqual([
+      ['Départ', false],
+      ['Ravito 1', true],
+      ['Col', false],
+      ['Arrivée', false],
+    ]);
+  });
+
+  it.each([
+    ['départ', 0],
+    ['arrivée', 2],
+  ])('refuse l’assistance à l’%s, contre la ligne fautive', async (_label, index) => {
+    const waypoints = [
+      { name: 'Départ', waypointType: 'start', distanceKm: 0 },
+      { name: 'Ravito', waypointType: 'aid_station', distanceKm: 20 },
+      { name: 'Arrivée', waypointType: 'finish', distanceKm: 70 },
+    ].map((waypoint, position) =>
+      position === index ? { ...waypoint, assistanceAllowed: true } : waypoint,
+    );
+
+    const error = await expectDomainError(
+      setRaceWaypoints(contextFor(EDITOR_A), chain(waypoints)),
+      'validation',
+    );
+
+    expect(error.details).toEqual({
+      [`waypoints.${String(index)}.assistanceAllowed`]:
+        'l’assistance s’autorise à un point intermédiaire',
+    });
+  });
+});

@@ -1133,7 +1133,10 @@ select.pk-input {
 /* 1240 px : le menu latéral retire 15 rem à la ligne. */
 @media (min-width: 1240px) {
   .wp-row {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr) 6rem minmax(0, 1.2fr) 6.5rem 6.5rem auto;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr) 6rem minmax(
+        0,
+        1.2fr
+      ) 6.5rem 6.5rem 6.5rem auto;
   }
 }
 

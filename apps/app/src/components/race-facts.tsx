@@ -203,12 +203,15 @@ function FactRow({ fact }: { readonly fact: PublishedRaceFactRecord }) {
   );
 }
 
-/** Le type du point, et le drop bag quand l'organisation en accepte un (0094). */
+/** Le type du point, le drop bag et l'assistance quand l'organisation les accepte (0094, 0098). */
 function WaypointType({ waypoint }: { readonly waypoint: CourseWaypointRecord }) {
   return (
     <>
       {WAYPOINT_LABELS[waypoint.waypointType]}
       {waypoint.dropBagAllowed ? <span className="rp-waypoint-drop-bag"> · Drop bag</span> : null}
+      {waypoint.assistanceAllowed ? (
+        <span className="rp-waypoint-drop-bag"> · Assistance</span>
+      ) : null}
     </>
   );
 }
