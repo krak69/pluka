@@ -18,6 +18,9 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: '50mb' },
     proxyClientMaxBodySize: '50mb',
+    // Comme `apps/app` : sans cache disque en dev, une recompilation des
+    // paquets `@pluka/*` ne laisse pas de page périmée.
+    turbopackFileSystemCacheForDev: false,
   },
 
   async headers() {

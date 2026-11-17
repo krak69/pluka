@@ -77,6 +77,11 @@ const nextConfig: NextConfig = {
       // image de site jusqu'à 8 Mo ; la marge couvre l'enveloppe multipart.
       bodySizeLimit: '26mb',
     },
+    // Pas de cache disque en dev : les paquets `@pluka/*` sont consommés
+    // compilés (`dist`), et Turbopack resservait d'anciennes pages après leur
+    // recompilation, même au redémarrage de `pnpm dev` (404 sur la Préparation,
+    // 2026-11-17). Un démarrage un peu plus lent, mais jamais de page périmée.
+    turbopackFileSystemCacheForDev: false,
   },
 
   async headers() {
