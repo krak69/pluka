@@ -431,3 +431,12 @@ export {
   type OrganizerEmergencyContactRepository,
   type SharedEmergencyContactRecord,
 } from './repositories/emergency-contacts.js';
+export {
+  createNutritionRepositories,
+  nutritionRepository,
+  type NutritionDensityValue,
+  type NutritionRepositories,
+  type NutritionRepository,
+  type NutritionSettingsRecord,
+  type SaveNutritionSettings,
+} from './repositories/nutrition.js';

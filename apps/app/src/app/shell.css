@@ -5870,3 +5870,497 @@ a.st-tab {
   text-transform: uppercase;
   color: var(--pk-dawn-ink);
 }
+
+/* ══ Nutrition — NUTRITION_ENGINE §104, tranche 1 ═════════════════════════ */
+
+.nu-page {
+  gap: var(--space-6);
+}
+
+.nu-lead {
+  margin: calc(-1 * var(--space-3)) 0 0;
+  max-width: 60ch;
+  color: var(--pk-text-secondary);
+}
+
+.nu-form {
+  display: grid;
+  gap: var(--space-5);
+  justify-items: start;
+}
+
+.nu-fieldset {
+  display: grid;
+  gap: var(--space-3);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.nu-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--space-3);
+}
+
+.nu-unit {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--pk-text-muted);
+}
+
+.nu-number {
+  font-variant-numeric: tabular-nums;
+}
+
+.nu-range-label {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 14px;
+}
+
+.nu-range {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--pk-forest);
+}
+
+.nu-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.nu-choice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  cursor: pointer;
+}
+
+.nu-choice:has(input:checked) {
+  border-color: var(--pk-forest);
+  box-shadow: inset 0 0 0 1px var(--pk-forest);
+}
+
+.nu-choice input {
+  accent-color: var(--pk-forest);
+}
+
+.nu-choice > span {
+  display: grid;
+}
+
+.nu-choice-hint {
+  font-size: 12.5px;
+  color: var(--pk-text-secondary);
+}
+
+/* Les totaux : une bande jointive, comme les cases de l'Accueil. */
+.nu-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: 1px;
+  background: var(--pk-hairline);
+  border: 1px solid var(--pk-hairline);
+}
+
+.nu-totals > div {
+  display: grid;
+  gap: 4px;
+  padding: var(--space-4) var(--space-5);
+  background: var(--pk-surface);
+}
+
+.nu-total-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pk-text-secondary);
+}
+
+.nu-total-value {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.nu-total-rate {
+  font-size: 13px;
+  color: var(--pk-text-secondary);
+}
+
+.nu-block {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.nu-sections,
+.nu-milestones {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.nu-section {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.nu-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.nu-section-name {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.nu-meta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--pk-text-secondary);
+}
+
+.nu-needs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  margin: 0;
+}
+
+.nu-needs div {
+  display: grid;
+  gap: 2px;
+}
+
+.nu-needs dt {
+  font-size: 12px;
+  color: var(--pk-text-secondary);
+}
+
+.nu-needs dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.nu-milestone {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.nu-milestone-aid {
+  background: var(--pk-glacier-bg);
+}
+
+.nu-milestone-when {
+  display: grid;
+  padding-left: var(--space-2);
+}
+
+.nu-milestone-clock {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.nu-milestone-what {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nu-milestone-name {
+  font-weight: 600;
+}
+
+.nu-reason {
+  font-size: 13px;
+  color: var(--pk-text-secondary);
+}
+
+.nu-milestone-need {
+  padding-right: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.nu-settings {
+  border-top: 1px solid var(--pk-hairline);
+  padding-top: var(--space-4);
+}
+
+.nu-settings-summary {
+  min-height: 44px;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (width <= 620px) {
+  .nu-milestone {
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+  }
+
+  .nu-milestone-need {
+    grid-column: 2;
+    text-align: left;
+  }
+}
+
+/* ── Nutrition sur le Plan — prototype `nutOff` / `nutOn` / `nutStepConfig` ── */
+
+.nu-off,
+.nu-on {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: 2px;
+  padding: var(--space-5) var(--space-6);
+  background: var(--pk-surface);
+  border-top: 2px solid var(--pk-glacier);
+}
+
+.nu-off {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.nu-off-text,
+.nu-on-text {
+  display: grid;
+  gap: 4px;
+}
+
+.nu-off-title,
+.nu-on-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.nu-off-body {
+  font-size: 14px;
+  color: var(--pk-text-secondary);
+}
+
+.nu-on-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.nu-on-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pk-text-secondary);
+}
+
+.nu-changed {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 2px solid var(--pk-dawn);
+  background: var(--pk-limestone);
+  font-size: 14px;
+}
+
+.nu-views {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.nu-tabs {
+  display: inline-flex;
+  justify-self: start;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--pk-sand);
+}
+
+.nu-tab {
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--pk-text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.nu-tab[aria-selected='true'] {
+  background: var(--pk-surface);
+}
+
+.nu-section details {
+  width: 100%;
+}
+
+.nu-section-summary {
+  display: grid;
+  gap: 4px;
+  min-height: 44px;
+  cursor: pointer;
+  list-style-position: outside;
+}
+
+.nu-section-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--space-3) var(--space-6);
+  padding-top: var(--space-3);
+}
+
+.nu-section-line {
+  margin: 4px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.nu-section-prises {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.nu-disable {
+  justify-self: start;
+}
+
+/* La modale des objectifs : bordée, peu arrondie, sans ombre décorative (DS §166). */
+.nu-dialog {
+  width: min(100% - 2rem, 40rem);
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  color: var(--pk-text);
+}
+
+.nu-dialog::backdrop {
+  background: color-mix(in srgb, var(--pk-ink) 55%, transparent);
+}
+
+.nu-dialog-form {
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-6);
+}
+
+.nu-dialog-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.nu-dialog-body,
+.nu-dialog-note {
+  margin: calc(-1 * var(--space-3)) 0 0;
+  font-size: 14.5px;
+  color: var(--pk-text-secondary);
+}
+
+.nu-dialog-note {
+  margin: 0;
+  font-size: 13px;
+}
+
+.nu-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.nu-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.nu-chip {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  color: var(--pk-text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.nu-chip[aria-pressed='true'] {
+  border-color: var(--pk-forest);
+  background: var(--pk-glacier-bg);
+}
+
+.nu-place {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 2px solid var(--pk-forest);
+  background: var(--pk-limestone);
+  font-size: 14px;
+}
+
+.nu-place span {
+  color: var(--pk-text-secondary);
+}
+
+.nu-advanced {
+  justify-self: start;
+  padding-inline: 0;
+}
+
+.nu-advanced-body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (width <= 620px) {
+  .nu-off {
+    grid-template-columns: 1fr;
+  }
+}

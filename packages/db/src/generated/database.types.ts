@@ -1861,6 +1861,7 @@ export type Database = {
       }
       nutrition_plans: {
         Row: {
+          aid_buffer: boolean
           caffeine_target_total_mg: number | null
           carbs_target_g_per_hour: number
           confirmed_at: string | null
@@ -1875,12 +1876,17 @@ export type Database = {
           input_snapshot: Json
           last_recalculated_at: string | null
           outing_id: string | null
+          placement_density: string
+          placement_interval_minutes: number | null
+          placement_mode: string
           race_plan_id: string | null
           reserve_percent: number
           sodium_target_mg_per_hour: number
           updated_at: string
+          water_share_percent: number
         }
         Insert: {
+          aid_buffer?: boolean
           caffeine_target_total_mg?: number | null
           carbs_target_g_per_hour: number
           confirmed_at?: string | null
@@ -1895,12 +1901,17 @@ export type Database = {
           input_snapshot?: Json
           last_recalculated_at?: string | null
           outing_id?: string | null
+          placement_density?: string
+          placement_interval_minutes?: number | null
+          placement_mode?: string
           race_plan_id?: string | null
           reserve_percent?: number
           sodium_target_mg_per_hour: number
           updated_at?: string
+          water_share_percent?: number
         }
         Update: {
+          aid_buffer?: boolean
           caffeine_target_total_mg?: number | null
           carbs_target_g_per_hour?: number
           confirmed_at?: string | null
@@ -1915,10 +1926,14 @@ export type Database = {
           input_snapshot?: Json
           last_recalculated_at?: string | null
           outing_id?: string | null
+          placement_density?: string
+          placement_interval_minutes?: number | null
+          placement_mode?: string
           race_plan_id?: string | null
           reserve_percent?: number
           sodium_target_mg_per_hour?: number
           updated_at?: string
+          water_share_percent?: number
         }
         Relationships: [
           {
@@ -6824,6 +6839,10 @@ export type Database = {
         Args: { p_token_hash: string }
         Returns: string
       }
+      disable_nutrition: {
+        Args: { p_participant_race_id: string }
+        Returns: undefined
+      }
       discard_participant_import: {
         Args: { p_import_id: string }
         Returns: undefined
@@ -7281,6 +7300,25 @@ export type Database = {
           p_sections: Json
         }
         Returns: undefined
+      }
+      save_nutrition_settings: {
+        Args: {
+          p_aid_buffer: boolean
+          p_caffeine_total_mg: number
+          p_carbs_g_per_hour: number
+          p_engine_config_version: string
+          p_engine_version: string
+          p_hydration_ml_per_hour: number
+          p_input_hash: string
+          p_input_snapshot: Json
+          p_participant_race_id: string
+          p_placement_density: string
+          p_placement_interval_minutes: number
+          p_placement_mode: string
+          p_sodium_mg_per_hour: number
+          p_water_share_percent: number
+        }
+        Returns: string
       }
       set_event_site_image: {
         Args: { p_event_id: string; p_kind: string; p_path: string }

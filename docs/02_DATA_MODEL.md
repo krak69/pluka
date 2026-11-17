@@ -1198,6 +1198,8 @@ generated_at
 confirmed_at
 ```
 
+**Tranche 1 (migration 0102).** `water_share_percent` (part d'eau pure, 0–100), `placement_density` (`frequent`, `auto`, `sparse`) et `aid_buffer` règlent le placement. L'écriture passe par `save_nutrition_settings`, qui vise le Plan actif et vérifie la propriété ; `nutrition_plans` reste en lecture seule pour le navigateur (0005).
+
 ## 15.3 Conditions Nutrition
 
 `nutrition_conditions` et `nutrition_condition_ranges` représentent les périodes Chaud / Froid / Nuit utilisées par le moteur.

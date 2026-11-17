@@ -951,3 +951,17 @@ export {
   type EmergencyContactView,
   type OrganizerEmergencyContactContext,
 } from './assistance/emergency-contact.js';
+
+export {
+  disableNutrition,
+  getNutritionStrategy,
+  saveNutritionSettings,
+  type NutritionContext,
+  type NutritionStrategyView,
+} from './nutrition/strategy.js';
+export type {
+  MilestoneReason,
+  NutritionMilestone,
+  NutritionResult,
+  NutritionSection,
+} from '@pluka/nutrition-engine';

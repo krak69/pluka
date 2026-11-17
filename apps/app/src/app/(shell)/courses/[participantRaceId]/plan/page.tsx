@@ -1,5 +1,6 @@
 import {
   DomainError,
+  getNutritionStrategy,
   getPlanCourseChange,
   getPlanOverview,
   getPlanStartDrift,
@@ -13,6 +14,8 @@ import { GeneratePlanForm } from '@/app/(shell)/courses/[participantRaceId]/plan
 import { PlanPoints } from '@/app/(shell)/courses/[participantRaceId]/plan/plan-points';
 import { CourseChangeAlert } from '@/components/course-change-alert';
 import { StartChangeAlert } from '@/components/start-change-alert';
+import { NutritionBand } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-band';
+import { nutritionContext } from '@/lib/nutrition';
 import { planContext, redirectOnDomainError } from '@/lib/plan';
 import {
   formatClock,
@@ -65,6 +68,10 @@ export default async function PlanPage({
   const drift = await getPlanStartDrift(context, { participantRaceId }).catch(() => null);
   // PLAN_ENGINE §39 : un point ajouté, retiré ou déplacé depuis le calcul du Plan.
   const courseChange = await getPlanCourseChange(context, { participantRaceId }).catch(() => null);
+  // La Nutrition, sous le Plan ; une lecture en échec n'empêche pas le Plan de s'afficher.
+  const nutrition = await getNutritionStrategy(nutritionContext(session), {
+    participantRaceId,
+  }).catch(() => null);
   const overview = await getPlanOverview(context, { participantRaceId }).catch((error: unknown) => {
     // Pas encore de Plan : l'écran propose de le générer plutôt que de rendre
     // un 404. La participation existe, elle n'a simplement pas d'horaires.
@@ -189,6 +196,11 @@ export default async function PlanPage({
               cutoffWaypointIds={overview.cutoffs.map((cutoff) => cutoff.raceWaypointId)}
             />
           </section>
+
+          {/* AGENTS §39 : la Nutrition vit sous le Plan, pas dans un onglet. */}
+          {nutrition === null ? null : (
+            <NutritionBand participantRaceId={participantRaceId} view={nutrition} />
+          )}
 
           <PlanPoints
             participantRaceId={participantRaceId}

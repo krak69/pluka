@@ -960,6 +960,25 @@ Pipeline :
 
 Les seuils de déclenchement sont des heuristiques de placement versionnées, pas des recommandations nutritionnelles.
 
+**Réglage v1 (`nutrition-config-1.0.0`, décisions du 2026-11-17).** Les valeurs reprennent le prototype. Le placement selon le terrain a été ajouté à la demande produit : « un placement intelligent, pas une minuterie ».
+
+- **Nombre de prises par section.** Une section va d'un départ ou ravitaillement au ravitaillement suivant. Elle reçoit au moins autant de prises que l'écart de temps ou le besoin en glucides l'exigent, selon la densité choisie par le coureur :
+
+  | Densité | Écart maximal | Glucides par prise |
+  |---|---|---|
+  | fréquente | 30 min | 30 g |
+  | équilibrée (`auto`) | 45 min | 40 g |
+  | espacée | 60 min | 50 g |
+
+- **Écarts.** Jamais deux prises à moins de 18 min d'intervalle. Une prise à moins de 10 min d'un ravitaillement s'y fond (§37).
+- **Buffer avant un ravitaillement.** Option du coureur, activée par défaut : la dernière prise ne tombe pas juste avant le ravitaillement. Le buffer vaut 18 % de la section, plafonné à 20 min.
+- **Terrain.** Autour du moment idéal, dans une fenêtre de 30 % de l'écart entre prises (10 min au plus), la prise glisse vers le terrain où manger est le plus facile. Ordre de préférence : montée (pente ≥ 3 %), puis plat, puis descente douce (jusqu'à −8 %), puis descente raide. À terrain égal, le moment le plus proche de l'idéal l'emporte.
+- **Temps du terrain.** Chaque tronçon d'environ 100 m reçoit sa part du temps prévu de la section, au poids d'effort du moteur Plan. Une montée prend donc plus de temps qu'une descente, comme dans le Plan.
+
+La raison retenue est montrée au coureur (« En montée », « Sur le plat »…).
+
+**Tranche 1.** Les prises et les sections se recalculent à chaque lecture depuis le Plan actif, et seules les cibles et le placement sont enregistrés (0102). Rien n'étant encore personnalisable, rien ne peut être écrasé. La persistance des jalons arrive avec les produits (tranche 2), le diff avec la personnalisation (tranche 5).
+
 ---
 
 # 36. Génération — mode Intervalle avancé
