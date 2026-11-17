@@ -353,6 +353,16 @@ export {
   type TaskRepository,
 } from './repositories/tasks.js';
 export {
+  assistanceRepository,
+  createAssistanceRepositories,
+  type AssistanceAssignmentRecord,
+  type AssistanceItemRecord,
+  type AssistanceRepositories,
+  type AssistanceRepository,
+  type AssistantInput,
+  type AssistantRecord,
+} from './repositories/assistance.js';
+export {
   createPreparationRepositories,
   preparationRepository,
   type EquipmentReadiness,

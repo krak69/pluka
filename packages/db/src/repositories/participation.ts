@@ -296,9 +296,14 @@ export const participantRaceRepository = defineRepository<ParticipantRaceReposit
 
   async attach(raceId, referralCode) {
     const operation = 'attach_participant_race';
-    const created = await (context.client as unknown as {
-      rpc(name: string, args: Record<string, unknown>): Promise<{ data: unknown; error: unknown }>;
-    }).rpc(operation, { p_race_id: raceId, p_referral_code: referralCode });
+    const created = await (
+      context.client as unknown as {
+        rpc(
+          name: string,
+          args: Record<string, unknown>,
+        ): Promise<{ data: unknown; error: unknown }>;
+      }
+    ).rpc(operation, { p_race_id: raceId, p_referral_code: referralCode });
 
     if (created.error !== null && created.error !== undefined) {
       throw mapPostgrestError(created.error as PostgrestLikeError, operation);
@@ -375,6 +380,11 @@ export interface ParticipantRaceSettingsRepository {
     participantRaceId: string,
     targetDurationSeconds: number,
   ): Promise<ParticipantRaceSettingsRecord>;
+  /** Le choix d'assistance du coureur, en créant la ligne de réglages si elle manque. */
+  upsertAssistanceStatus(
+    participantRaceId: string,
+    status: ParticipantRaceSettingsRecord['assistanceStatus'],
+  ): Promise<void>;
 }
 
 export const participantRaceSettingsRepository =
@@ -408,6 +418,18 @@ export const participantRaceSettingsRepository =
             .single(),
           'participant_race_settings.upsertTargetDuration',
         ),
+      );
+    },
+
+    async upsertAssistanceStatus(participantRaceId, status) {
+      unwrapMaybe(
+        await context.client
+          .from('participant_race_settings')
+          .upsert(
+            { participant_race_id: participantRaceId, assistance_status: status },
+            { onConflict: 'participant_race_id' },
+          ),
+        'participant_race_settings.upsertAssistanceStatus',
       );
     },
   }));

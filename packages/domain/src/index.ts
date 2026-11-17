@@ -913,3 +913,24 @@ export {
   guessGearCategory,
   type GearCategory,
 } from './library/gear-categories.js';
+
+export {
+  addAssistant,
+  addRendezvous,
+  addRendezvousItems,
+  assistancePassage,
+  getAssistance,
+  removeAssistant,
+  removeRendezvous,
+  removeRendezvousItem,
+  setAssistanceStatus,
+  setRendezvousInstructions,
+  updateAssistant,
+  type AssistanceContext,
+  type AssistanceOverview,
+  type AssistancePassage,
+  type AssistancePoint,
+  type AssistanceStatus,
+  type AssistantView,
+  type RendezvousView,
+} from './assistance/assistance.js';

@@ -5337,3 +5337,276 @@ a.st-tab {
   padding-left: var(--space-5);
   font-size: 15px;
 }
+
+/* ══ Assistance — prototype, `isCrew` (00_PRODUCT_SPEC §15) ══════════════ */
+
+.as-page {
+  gap: var(--space-6);
+}
+
+.as-lead {
+  margin: calc(-1 * var(--space-3)) 0 0;
+  color: var(--pk-text-secondary);
+}
+
+.as-status {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.as-status-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Trois choix exclusifs : un filet, et le choix retenu marqué en Forêt. */
+.as-status-choice {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  color: var(--pk-text);
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.as-status-choice[aria-pressed='true'] {
+  border-color: var(--pk-forest);
+  box-shadow: inset 0 0 0 1px var(--pk-forest);
+}
+
+.as-status-choice[aria-pressed='true']::before {
+  content: '✓ ';
+}
+
+.as-note {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+  border-left: 2px solid var(--pk-hairline);
+  background: var(--pk-surface);
+  color: var(--pk-text-secondary);
+  line-height: 1.55;
+}
+
+.as-note p {
+  margin: 0;
+}
+
+.as-people {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.as-person {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+}
+
+.as-person-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.as-person-name {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.as-person-phone {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--pk-forest);
+}
+
+.as-person-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--space-3);
+}
+
+.as-optional {
+  font-weight: 400;
+  color: var(--pk-text-muted);
+}
+
+.as-person-edit,
+.as-add-person {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+
+.as-person-edit .as-person-fields,
+.as-add-person .as-person-fields {
+  width: 100%;
+}
+
+.as-rendezvous-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.as-rendezvous {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.as-rendezvous-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.as-rendezvous-point {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.as-km {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--pk-text-secondary);
+}
+
+.as-issue {
+  margin: 0;
+  color: var(--pk-dawn-ink);
+  font-size: 14px;
+}
+
+.as-passage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-8);
+  margin: 0;
+}
+
+.as-passage div {
+  display: grid;
+  gap: 4px;
+}
+
+.as-passage dt {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pk-text-secondary);
+}
+
+.as-passage dd {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.as-give,
+.as-instructions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.as-instructions p {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.as-items {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.as-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.as-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.as-inline-form .pk-input {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.as-textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.as-instructions .pk-btn {
+  justify-self: start;
+}
+
+.as-hint {
+  margin: 0;
+  font-size: 14px;
+  color: var(--pk-text-secondary);
+}
+
+.as-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.as-remove-person {
+  justify-self: start;
+}
+
+.as-add {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.as-add-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.as-error {
+  flex-basis: 100%;
+  margin: 0;
+}

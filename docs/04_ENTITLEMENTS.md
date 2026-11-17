@@ -1035,6 +1035,14 @@ autorisée premium sur le scope.
 
 Free ne doit pas créer un lien privé Assistance complet.
 
+**Mise en œuvre (décisions du 2026-11-17).** Le code découpe `assistance.use` en trois capabilities (§50) :
+
+- `assistance.read` (Free) : lire son Assistance, et choisir « avec assistance / autonome / plus tard ». Ce choix est une question de préparation, et il sert aussi aux suggestions de sacs.
+- `assistance.edit` (Race Pass) : ajouter, modifier ou retirer une personne, ses rendez-vous, ce qu'elle doit donner et les consignes.
+- `assistance.share` (Race Pass) : le lien privé, dans une tranche à venir.
+
+Un Race Pass expiré garde la lecture de ce que le coureur a écrit.
+
 ---
 
 # 47. Après-course

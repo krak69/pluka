@@ -306,6 +306,29 @@ export function createFakeParticipationRepositories(
         state.settings[index] = updated;
         return updated;
       },
+
+      upsertAssistanceStatus: async (id, assistanceStatus) => {
+        state.calls.push(`participantRaceSettings.upsertAssistanceStatus:${id}`);
+
+        const index = state.settings.findIndex((row) => row.participantRaceId === id);
+        if (index < 0) {
+          state.settings.push({
+            participantRaceId: id,
+            targetDurationSeconds: null,
+            assistanceStatus,
+            nutritionEnabled: false,
+            nutritionWaypointsVisible: true,
+            repereVisible: false,
+            notificationsEnabled: true,
+          });
+          return;
+        }
+
+        state.settings[index] = {
+          ...(state.settings[index] as ParticipantRaceSettingsRecord),
+          assistanceStatus,
+        };
+      },
     },
   };
 }

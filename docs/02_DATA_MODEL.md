@@ -1299,6 +1299,8 @@ Contient :
 
 La validation métier « assistance autorisée à ce point » est contrôlée côté domaine et doit être renforcée par les contraintes / tests décrits dans la spec Assistance.
 
+**Mise en œuvre (0098, 0099, décisions du 2026-11-17).** Un déclencheur refuse un rendez-vous à un point sans `assistance_allowed`, ou d'une autre course. L'heure n'est pas stockée : elle se lit dans le Plan actif à chaque affichage (AC-ASST-04, AC-ASST-05). `planned_at` et les fenêtres restent donc vides, et la fenêtre affichée suit PLAN_ENGINE §42. Les champs sont bornés : prénom et nom 60 caractères, téléphone 30, consignes 1000, une ligne de « À me donner » 120. `export_my_data` inclut les `assistance_items`.
+
 ## 16.3 `assistance_items`
 
 Ce que l'assistant doit apporter ou faire.

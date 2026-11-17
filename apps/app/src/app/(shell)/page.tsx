@@ -1,10 +1,12 @@
 import {
   DomainError,
   getBags,
+  getAssistance,
   getEquipmentChecklist,
   getPlanOverview,
   getTasks,
   nextActions,
+  type AssistanceOverview,
   type NextAction,
 } from '@pluka/domain';
 import Link from 'next/link';
@@ -15,6 +17,7 @@ import { dueCalendarDay, dueDelay } from '@/lib/due-day';
 import { listMyRaces } from '@/lib/participations';
 import { planContext } from '@/lib/plan';
 import { formatClock, formatDistance, formatDuration } from '@/lib/plan-format';
+import { assistanceContext } from '@/lib/assistance';
 import { bagsContext, preparationContext, tasksContext } from '@/lib/preparation';
 import { requireSession } from '@/lib/session';
 
@@ -101,12 +104,13 @@ export default async function HomePage() {
   const participation = await context.repositories.participantRaces.findById(
     current.participantRaceId,
   );
-  const [race, overview, equipment, bags, tasks] = await Promise.all([
+  const [race, overview, equipment, bags, tasks, assistance] = await Promise.all([
     participation === null ? null : context.repositories.races.findById(participation.raceId),
     orNull(getPlanOverview(context, input)),
     orNull(getEquipmentChecklist(preparationContext(session), input)),
     orNull(getBags(bagsContext(session), input)),
     orNull(getTasks(tasksContext(session), input)),
+    orNull(getAssistance(assistanceContext(session), input)),
   ]);
   const actions = nextActions({
     mandatory: equipment?.mandatory ?? null,
@@ -273,10 +277,9 @@ export default async function HomePage() {
         <Tile
           href={`${base}/assistance`}
           label="Assistance"
-          action="Voir"
-          value="Bientôt"
-          detail="Tes rendez-vous avec tes proches, et leur lien privé."
-          soon
+          action={assistance?.status === 'enabled' ? 'Voir' : 'Configurer'}
+          value={assistanceValue(assistance)}
+          detail={assistanceDetail(assistance)}
         />
       </ul>
 
@@ -298,6 +301,32 @@ export default async function HomePage() {
       <SignOut />
     </div>
   );
+}
+
+/** La case Assistance — prototype, `assistHeadline` / `assistSub`. */
+function assistanceValue(assistance: AssistanceOverview | null): string {
+  if (assistance === null || assistance.status === 'to_define') return 'À définir';
+  if (assistance.status === 'autonomous') return 'Autonome';
+  return assistance.people.length === 0
+    ? 'Avec assistance'
+    : assistance.people.map((person) => person.firstName).join(', ');
+}
+
+function assistanceDetail(assistance: AssistanceOverview | null): string {
+  if (assistance === null || assistance.status === 'to_define') {
+    return 'Dis si quelqu’un pourra te retrouver pendant la course.';
+  }
+  if (assistance.status === 'autonomous') return 'Aucune assistance prévue pour cette course.';
+  const points = [
+    ...new Set(
+      assistance.people.flatMap((person) =>
+        person.rendezvous.flatMap((rendezvous) =>
+          rendezvous.point === null ? [] : [rendezvous.point.name],
+        ),
+      ),
+    ),
+  ];
+  return points.length === 0 ? 'Ajoute tes rendez-vous.' : points.join(' · ');
 }
 
 function plural(count: number, one: string, many: string): string {

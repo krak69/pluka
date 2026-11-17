@@ -977,6 +977,15 @@ Chaque rendez-vous peut contenir :
 - besoins Nutrition ;
 - prochain rendez-vous.
 
+**Écran coureur (décisions du 2026-11-17).** L'écran commence par le choix « Avec assistance / Autonome / Je verrai plus tard », gratuit. Ajouter une personne vaut « avec assistance ». Chaque personne a :
+
+- un prénom, et facultativement un nom et un téléphone ;
+- ses rendez-vous, aux points où l'assistance est autorisée ;
+- pour chaque rendez-vous, le passage estimé et sa fenêtre de planification, lus dans le Plan ;
+- « À me donner » et des consignes libres.
+
+Repasser en « Autonome » ne supprime personne. Personnes et rendez-vous demandent le Race Pass. Les besoins Nutrition et le contenu du sac d'assistance n'y sont pas encore repris ; le lien privé et le contact d'urgence font l'objet de tranches suivantes.
+
 ## 15.4 Lien privé
 
 Le coureur peut partager une page privée sans compte avec son assistant.
