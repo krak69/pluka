@@ -1011,6 +1011,11 @@ Pas de live tracking dans le MVP.
 
 Un contact d’urgence éventuel est distinct du rôle d’assistant et nécessite un consentement explicite.
 
+**Mise en œuvre (migration 0101, décisions du 2026-11-17).** Le contact d'urgence est gratuit, avec un seul contact par course. Il se renseigne en bas de l'écran Assistance, même en autonomie : prénom, nom facultatif, téléphone, lien avec le coureur.
+
+- **Accord de la personne** : une case obligatoire, « Cette personne est d'accord pour être mon contact d'urgence ».
+- **Partage avec l'organisation** : une seconde case, facultative, autorise l'organisation de la course à le consulter en cas d'urgence liée à la course. Seuls le propriétaire et les admins peuvent le consulter, sur un clic depuis la liste des participants, et chaque consultation est journalisée. Le cadre complet est décrit dans 03_PRIVACY_RLS §48.
+
 ---
 
 # 16. Course — informations de référence

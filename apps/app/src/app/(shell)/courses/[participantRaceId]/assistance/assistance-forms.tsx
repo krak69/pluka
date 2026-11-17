@@ -6,6 +6,8 @@ import type { ActionState } from '@/app/actions';
 import {
   addAssistantAction,
   createLinkAction,
+  removeEmergencyAction,
+  saveEmergencyAction,
   type LinkActionState,
   revokeLinkAction,
   updateAssistantAction,
@@ -337,5 +339,177 @@ export function LinkPanel({
         </p>
       )}
     </section>
+  );
+}
+
+/**
+ * Contact d'urgence — 00_PRODUCT_SPEC §15.5, migration 0101. Gratuit, distinct
+ * des accompagnants. L'accord de la personne est obligatoire ; le partage avec
+ * l'organisation est un choix, daté, qu'on retire en décochant.
+ */
+export function EmergencyContactPanel({
+  participantRaceId,
+  contact,
+  raceName,
+}: {
+  readonly participantRaceId: string;
+  readonly contact: {
+    firstName: string;
+    lastName: string | null;
+    phone: string;
+    relationshipLabel: string | null;
+    organizationShareConsentAt: string | null;
+  } | null;
+  readonly raceName: string | null;
+}) {
+  const [editing, setEditing] = useState(contact === null);
+  const [saved, save, saving] = useActionState(saveEmergencyAction, INITIAL);
+  const [removed, remove, removing] = useActionState(removeEmergencyAction, INITIAL);
+  const answered = useRef(saved);
+  const id = useId();
+  const course = raceName === null ? 'cette course' : raceName;
+
+  // Enregistré sans refus : la fiche reprend sa forme de lecture.
+  useEffect(() => {
+    if (saved === answered.current) return;
+    answered.current = saved;
+    if (saved.error === undefined) setEditing(false);
+  }, [saved]);
+
+  if (!editing && contact !== null) {
+    const name = [contact.firstName, contact.lastName].filter(Boolean).join(' ');
+    return (
+      <div className="as-emergency-card">
+        <p className="as-emergency-name">
+          {name}
+          {contact.relationshipLabel === null ? null : (
+            <span className="as-optional"> · {contact.relationshipLabel}</span>
+          )}
+        </p>
+        <a className="as-person-phone" href={`tel:${contact.phone.replace(/[^0-9+]/gu, '')}`}>
+          {contact.phone}
+        </a>
+        <p className="as-hint">
+          {contact.organizationShareConsentAt === null
+            ? 'Privé : l’organisation ne le voit pas.'
+            : `Partagé avec l’organisation de ${course}, pour une urgence liée à la course. Son propriétaire et ses admins peuvent le consulter ; chaque consultation est enregistrée.`}
+        </p>
+        <div className="as-row-actions">
+          <button type="button" className="pk-btn pk-button-ghost" onClick={() => setEditing(true)}>
+            Modifier
+          </button>
+          <form action={remove}>
+            <input type="hidden" name="participantRaceId" value={participantRaceId} />
+            <button type="submit" className="pk-btn pk-button-ghost" disabled={removing}>
+              Retirer ce contact
+            </button>
+          </form>
+        </div>
+        {removed.error === undefined ? null : (
+          <p className="pk-field-error as-error" role="alert">
+            {removed.error}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <form action={save} className="as-person-edit" aria-busy={saving}>
+      <input type="hidden" name="participantRaceId" value={participantRaceId} />
+      <div className="as-person-fields">
+        <div className="pk-field">
+          <label className="pk-field-label" htmlFor={`${id}-first`}>
+            Prénom
+          </label>
+          <input
+            id={`${id}-first`}
+            name="firstName"
+            className="pk-input"
+            required
+            maxLength={60}
+            autoComplete="off"
+            defaultValue={contact?.firstName ?? ''}
+          />
+        </div>
+        <div className="pk-field">
+          <label className="pk-field-label" htmlFor={`${id}-last`}>
+            Nom <span className="as-optional">(facultatif)</span>
+          </label>
+          <input
+            id={`${id}-last`}
+            name="lastName"
+            className="pk-input"
+            maxLength={60}
+            autoComplete="off"
+            defaultValue={contact?.lastName ?? ''}
+          />
+        </div>
+        <div className="pk-field">
+          <label className="pk-field-label" htmlFor={`${id}-phone`}>
+            Téléphone
+          </label>
+          <input
+            id={`${id}-phone`}
+            name="phone"
+            type="tel"
+            className="pk-input"
+            required
+            maxLength={30}
+            autoComplete="off"
+            defaultValue={contact?.phone ?? ''}
+          />
+        </div>
+        <div className="pk-field">
+          <label className="pk-field-label" htmlFor={`${id}-relation`}>
+            Lien avec toi <span className="as-optional">(facultatif)</span>
+          </label>
+          <input
+            id={`${id}-relation`}
+            name="relationshipLabel"
+            className="pk-input"
+            maxLength={60}
+            autoComplete="off"
+            placeholder="Conjoint, sœur, ami…"
+            defaultValue={contact?.relationshipLabel ?? ''}
+          />
+        </div>
+      </div>
+      <label className="as-check">
+        <input type="checkbox" name="personAgreed" required defaultChecked={contact !== null} />
+        <span>Cette personne est d’accord pour être mon contact d’urgence.</span>
+      </label>
+      <label className="as-check">
+        <input
+          type="checkbox"
+          name="shareWithOrganization"
+          defaultChecked={contact?.organizationShareConsentAt !== null && contact !== null}
+        />
+        <span>
+          Autoriser l’organisation de {course} à voir ce contact, pour l’utiliser en cas d’urgence
+          liée à la course. Seuls son propriétaire et ses admins peuvent le consulter, et chaque
+          consultation est enregistrée. Tu peux décocher à tout moment.
+        </span>
+      </label>
+      <div className="as-row-actions">
+        <button type="submit" className="pk-btn pk-button-secondary" disabled={saving}>
+          Enregistrer le contact
+        </button>
+        {contact === null ? null : (
+          <button
+            type="button"
+            className="pk-btn pk-button-ghost"
+            onClick={() => setEditing(false)}
+          >
+            Annuler
+          </button>
+        )}
+      </div>
+      {saved.error === undefined ? null : (
+        <p className="pk-field-error as-error" role="alert">
+          {saved.error}
+        </p>
+      )}
+    </form>
   );
 }

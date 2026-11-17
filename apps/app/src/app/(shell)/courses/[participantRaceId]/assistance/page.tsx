@@ -1,6 +1,7 @@
 import {
   DomainError,
   getAssistance,
+  getEmergencyContact,
   type AssistanceOverview,
   type AssistanceStatus,
   type AssistantView,
@@ -22,6 +23,7 @@ import {
 import {
   ActionForm,
   AddPersonForm,
+  EmergencyContactPanel,
   LinkPanel,
   PersonHeader,
 } from '@/app/(shell)/courses/[participantRaceId]/assistance/assistance-forms';
@@ -72,6 +74,8 @@ export default async function AssistancePage({
       throw error;
     },
   );
+  // Gratuit, et lu même en autonomie (0101).
+  const emergency = await getEmergencyContact(assistanceContext(session), { participantRaceId });
 
   return (
     <div className="ap-page as-page">
@@ -112,6 +116,21 @@ export default async function AssistancePage({
       ) : (
         <Crew participantRaceId={participantRaceId} overview={overview} />
       )}
+
+      <section className="as-emergency" aria-labelledby="as-emergency-title">
+        <h2 id="as-emergency-title" className="as-add-title">
+          Contact d’urgence
+        </h2>
+        <p className="as-hint">
+          La personne à joindre en cas de problème. Différente d’un accompagnant, et utile même en
+          autonomie.
+        </p>
+        <EmergencyContactPanel
+          participantRaceId={participantRaceId}
+          contact={emergency.contact}
+          raceName={emergency.raceName}
+        />
+      </section>
     </div>
   );
 }

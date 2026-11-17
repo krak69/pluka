@@ -922,6 +922,7 @@ export type Database = {
           first_name: string
           id: string
           last_name: string | null
+          organization_share_consent_at: string | null
           participant_race_id: string
           phone: string
           relationship_label: string | null
@@ -933,6 +934,7 @@ export type Database = {
           first_name: string
           id?: string
           last_name?: string | null
+          organization_share_consent_at?: string | null
           participant_race_id: string
           phone: string
           relationship_label?: string | null
@@ -944,6 +946,7 @@ export type Database = {
           first_name?: string
           id?: string
           last_name?: string | null
+          organization_share_consent_at?: string | null
           participant_race_id?: string
           phone?: string
           relationship_label?: string | null
@@ -953,7 +956,7 @@ export type Database = {
           {
             foreignKeyName: "emergency_contacts_participant_race_id_fkey"
             columns: ["participant_race_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "participant_races"
             referencedColumns: ["id"]
           },
@@ -7086,6 +7089,12 @@ export type Database = {
           status: Database["public"]["Enums"]["invitation_status"]
         }[]
       }
+      org_list_shared_emergency_contacts: {
+        Args: { p_edition_id: string }
+        Returns: {
+          participant_race_id: string
+        }[]
+      }
       org_list_start_waves: {
         Args: { p_edition_id: string }
         Returns: {
@@ -7123,6 +7132,16 @@ export type Database = {
       org_update_start_wave: {
         Args: { p_name: string; p_start_datetime: string; p_wave_id: string }
         Returns: string
+      }
+      org_view_emergency_contact: {
+        Args: { p_participant_race_id: string }
+        Returns: {
+          first_name: string
+          last_name: string
+          phone: string
+          relationship_label: string
+          shared_at: string
+        }[]
       }
       persist_race_plan: {
         Args: {

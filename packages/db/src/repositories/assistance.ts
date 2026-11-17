@@ -5,6 +5,10 @@ import {
   type ParticipantRaceSettingsRepository,
 } from './participation.js';
 import { raceRepository, type RaceRepository } from './course.js';
+import {
+  emergencyContactRepository,
+  type EmergencyContactRepository,
+} from './emergency-contacts.js';
 import { racePlanRepository, type RacePlanRepository } from './plan.js';
 import { raceWaypointRepository, type RaceWaypointRepository } from './waypoints.js';
 
@@ -325,6 +329,8 @@ export interface AssistanceRepositories {
   readonly racePlans: RacePlanRepository;
   /** Le fuseau de la course, pour dire l'heure des rendez-vous. */
   readonly races: RaceRepository;
+  /** Le contact d'urgence, distinct des accompagnants (0101). */
+  readonly emergencyContacts: EmergencyContactRepository;
 }
 
 export function createAssistanceRepositories(context: RepositoryContext): AssistanceRepositories {
@@ -334,5 +340,6 @@ export function createAssistanceRepositories(context: RepositoryContext): Assist
     waypoints: raceWaypointRepository(context),
     racePlans: racePlanRepository(context),
     races: raceRepository(context),
+    emergencyContacts: emergencyContactRepository(context),
   };
 }

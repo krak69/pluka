@@ -8,9 +8,11 @@ import {
   DomainError,
   EntitlementError,
   removeAssistant,
+  removeEmergencyContact,
   removeRendezvous,
   removeRendezvousItem,
   revokeAssistantLink,
+  saveEmergencyContact,
   setAssistanceStatus,
   setRendezvousInstructions,
   updateAssistant,
@@ -194,5 +196,28 @@ export async function createLinkAction(
 export async function revokeLinkAction(_previous: ActionState, form: FormData) {
   return run(form, 'Personne introuvable.', (context, participantRaceId) =>
     revokeAssistantLink(context, { participantRaceId, assistantId: field(form, 'assistantId') }),
+  );
+}
+
+export async function saveEmergencyAction(_previous: ActionState, form: FormData) {
+  return run(
+    form,
+    'Indique un prénom et un numéro valide, et confirme que cette personne est d’accord.',
+    (context, participantRaceId) =>
+      saveEmergencyContact(context, {
+        participantRaceId,
+        firstName: field(form, 'firstName'),
+        lastName: field(form, 'lastName'),
+        phone: field(form, 'phone'),
+        relationshipLabel: field(form, 'relationshipLabel'),
+        personAgreed: form.get('personAgreed') === 'on',
+        shareWithOrganization: form.get('shareWithOrganization') === 'on',
+      }),
+  );
+}
+
+export async function removeEmergencyAction(_previous: ActionState, form: FormData) {
+  return run(form, 'Contact introuvable.', (context, participantRaceId) =>
+    removeEmergencyContact(context, { participantRaceId }),
   );
 }

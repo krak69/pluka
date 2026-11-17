@@ -941,3 +941,13 @@ export {
   type AssistantView,
   type RendezvousView,
 } from './assistance/assistance.js';
+
+export {
+  getEmergencyContact,
+  listSharedEmergencyContacts,
+  removeEmergencyContact,
+  saveEmergencyContact,
+  viewSharedEmergencyContact,
+  type EmergencyContactView,
+  type OrganizerEmergencyContactContext,
+} from './assistance/emergency-contact.js';

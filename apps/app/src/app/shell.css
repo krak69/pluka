@@ -5797,3 +5797,76 @@ a.st-tab {
   font-family: var(--font-mono);
   font-size: 13px;
 }
+
+/* Contact d'urgence (0101) : à part des accompagnants, toujours visible. */
+.as-emergency {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.as-emergency-card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-left: 2px solid var(--pk-dawn);
+  background: var(--pk-surface);
+}
+
+.as-emergency-name {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.as-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-height: 44px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.as-check input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: var(--pk-forest);
+}
+
+/* Contact d'urgence partagé (0101) : sous le nom, sur demande seulement. */
+.pa-emergency-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pa-emergency-button {
+  min-height: 44px;
+  padding-inline: 0;
+  color: var(--pk-dawn-ink);
+}
+
+.pa-emergency {
+  display: grid;
+  gap: 2px;
+  margin-top: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid var(--pk-dawn);
+  background: var(--pk-surface);
+  font-size: 14px;
+}
+
+.pa-emergency-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pk-dawn-ink);
+}

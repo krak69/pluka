@@ -1,6 +1,7 @@
 import type {
   AssistanceAssignmentRecord,
   AssistanceItemRecord,
+  EmergencyContactRecord,
   AssistanceRepository,
   AssistantRecord,
   CourseWaypointRecord,
@@ -25,6 +26,9 @@ import {
   removeAssistant,
   removeRendezvous,
   removeRendezvousItem,
+  getEmergencyContact,
+  removeEmergencyContact,
+  saveEmergencyContact,
   setAssistanceStatus,
   setRendezvousInstructions,
   type AssistanceContext,
@@ -69,6 +73,7 @@ type Stored<T> = T & { readonly participantRaceId?: string };
 let assistants: Stored<AssistantRecord>[];
 let assignments: AssistanceAssignmentRecord[];
 let items: AssistanceItemRecord[];
+let emergency: Map<string, EmergencyContactRecord>;
 let links: { assistantId: string; tokenHash: string; createdAt: string; revoked: boolean }[];
 
 function id(): string {
@@ -191,8 +196,21 @@ function context(userId: string = RUNNER_A): AssistanceContext {
           })),
       } as unknown as RacePlanRepository,
       races: {
-        findById: async (raceId: string) => ({ id: raceId, timezone: 'Europe/Paris' }),
+        findById: async (raceId: string) => ({
+          id: raceId,
+          name: 'Les 9 clochers',
+          timezone: 'Europe/Paris',
+        }),
       } as unknown as RaceRepository,
+      emergencyContacts: {
+        find: async (participantRaceId: string) => emergency.get(participantRaceId) ?? null,
+        save: async (participantRaceId: string, contact: EmergencyContactRecord) => {
+          emergency.set(participantRaceId, contact);
+        },
+        remove: async (participantRaceId: string) => {
+          emergency.delete(participantRaceId);
+        },
+      },
     },
     actor: { userId },
     now: () => NOW,
@@ -241,6 +259,7 @@ beforeEach(() => {
   assignments = [];
   items = [];
   links = [];
+  emergency = new Map();
 });
 
 describe('assistancePassage — PLAN_ENGINE §42', () => {
@@ -579,5 +598,84 @@ describe('getAssistantPage — la page publique (§46)', () => {
     expect(page.nextIndex).toBe(1);
     expect(page.rendezvous[1]?.passage).toEqual(assistancePassage(START, 8 * 3600));
     expect(page.rendezvous[2]?.passage).toBeNull();
+  });
+});
+
+describe('contact d’urgence — gratuit, distinct de l’Assistance (AC-ASST-09)', () => {
+  const contact = {
+    firstName: 'Sam',
+    lastName: 'Martin',
+    phone: '06 11 22 33 44',
+    relationshipLabel: 'Sœur',
+    personAgreed: true,
+  };
+
+  it('s’enregistre sans Race Pass, avec l’accord de la personne', async () => {
+    await saveEmergencyContact(context(), {
+      participantRaceId: own,
+      ...contact,
+      shareWithOrganization: false,
+    });
+
+    const view = await getEmergencyContact(context(), { participantRaceId: own });
+    expect(view.raceName).toBe('Les 9 clochers');
+    expect(view.contact).toMatchObject({
+      firstName: 'Sam',
+      phone: '06 11 22 33 44',
+      explicitConsentAt: NOW.toISOString(),
+      organizationShareConsentAt: null,
+    });
+  });
+
+  it('refuse sans l’accord de la personne', async () => {
+    await expectDomainError(
+      saveEmergencyContact(context(), {
+        participantRaceId: own,
+        ...contact,
+        personAgreed: false,
+        shareWithOrganization: false,
+      }),
+      'validation',
+    );
+    expect(emergency.size).toBe(0);
+  });
+
+  it('date le partage avec l’organisation, le garde à la modification, le retire en décochant', async () => {
+    await saveEmergencyContact(context(), {
+      participantRaceId: own,
+      ...contact,
+      shareWithOrganization: true,
+    });
+    const sharedAt = emergency.get(own)?.organizationShareConsentAt;
+    expect(sharedAt).toBe(NOW.toISOString());
+
+    await saveEmergencyContact(
+      { ...context(), now: () => new Date('2026-06-21T08:00:00.000Z') },
+      { participantRaceId: own, ...contact, phone: '06 55 66 77 88', shareWithOrganization: true },
+    );
+    expect(emergency.get(own)?.organizationShareConsentAt).toBe(sharedAt);
+    expect(emergency.get(own)?.explicitConsentAt).toBe(NOW.toISOString());
+
+    await saveEmergencyContact(context(), {
+      participantRaceId: own,
+      ...contact,
+      shareWithOrganization: false,
+    });
+    expect(emergency.get(own)?.organizationShareConsentAt).toBeNull();
+  });
+
+  it('se retire, et reste fermé à un autre coureur', async () => {
+    await saveEmergencyContact(context(), {
+      participantRaceId: own,
+      ...contact,
+      shareWithOrganization: false,
+    });
+
+    await expect(
+      getEmergencyContact(context(RUNNER_B), { participantRaceId: own }),
+    ).rejects.toBeInstanceOf(DomainError);
+
+    await removeEmergencyContact(context(), { participantRaceId: own });
+    expect(emergency.size).toBe(0);
   });
 });

@@ -7,6 +7,7 @@ import {
   isEditionParticipantsIncluded,
   listContactOptouts,
   listEditionParticipants,
+  listSharedEmergencyContacts,
   listParticipantInvitations,
   listStartWaves,
   suggestColumns,
@@ -26,6 +27,8 @@ import {
   StartWaveForm,
   WithdrawForm,
 } from '@/components/participant-forms';
+import { EmergencyContactReveal } from '@/components/emergency-contact-reveal';
+import { organizerEmergencyContext } from '@/lib/emergency-contacts';
 import { sessionEventSiteContext } from '@/lib/event-site-editing';
 import { courseHref, participantImportContext } from '@/lib/organizer-course';
 import {
@@ -233,6 +236,14 @@ export default async function ParticipantsPage({
       : await listEditionParticipants(context, { editionId: edition.id });
   // Owner et admin importent ; le même rang que la base (0060).
   const canImport = permissions.canPublish;
+  // 0101 : les contacts d'urgence que des coureurs ont choisi de partager. Seuls
+  // le propriétaire et les admins y ont droit ; la base le revérifie.
+  const sharedEmergency =
+    edition === null || !canImport
+      ? new Set<string>()
+      : await listSharedEmergencyContacts(organizerEmergencyContext(session), {
+          editionId: edition.id,
+        }).catch(() => new Set<string>());
   // Canal A (0087) : le lien de l'édition. Illisible, le bloc ne s'affiche pas.
   const referral =
     edition === null
@@ -865,6 +876,9 @@ export default async function ParticipantsPage({
                                   <span className="pa-flag">
                                     Dossard {participant.bib} en double
                                   </span>
+                                ) : null}
+                                {canImport && sharedEmergency.has(participant.id) ? (
+                                  <EmergencyContactReveal participantRaceId={participant.id} />
                                 ) : null}
                               </span>
                               <Cell label="Épreuve" value={participant.raceName} />

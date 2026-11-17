@@ -1119,6 +1119,19 @@ Une future fonctionnalité sécurité ne pourrait exposer le contact que :
 
 Ne pas implémenter un accès organisation automatique V1.
 
+**Décision produit du 2026-11-17 : un partage choisi par le coureur (migration 0101).** L'accès n'est jamais automatique : le coureur coche lui-même « autoriser l'organisation de [course] à voir ce contact, pour l'utiliser en cas d'urgence liée à la course ». Raison donnée : un contact à jour vaut mieux que celui d'un formulaire d'inscription rempli huit mois plus tôt.
+
+Les quatre conditions ci-dessus sont tenues :
+
+- **consentement explicite** : `organization_share_consent_at`, daté, retiré en décochant, et l'accès tombe aussitôt ;
+- **finalité déterminée** : l'urgence liée à cette course, dite au coureur et à l'organisateur ;
+- **accès restreint** : seuls le propriétaire et les admins de l'organisation de la course y ont accès, un contact à la fois, sur un clic « Contact d'urgence ». Le contact n'apparaît jamais dans la liste, les exports ni les agrégats. La table n'a toujours aucune policy organisation : l'accès passe par `org_view_emergency_contact` ;
+- **audit** : chaque consultation écrit `private.audit_logs` (`emergency_contact.viewed`, qui, quand, quelle participation).
+
+Éditeurs, lecteurs et autres organisations sont refusés.
+
+Le contact lui-même reste gratuit (AGENTS §22). Le coureur atteste que la personne a accepté d'être son contact (`explicit_consent_at`).
+
 ---
 
 # 49. Weather personnel
@@ -3256,7 +3269,7 @@ L’orga peut consulter candidats / conflits via endpoints contrôlés sans gran
 | `assistance_assignments` | token endpoint | CRUD | — | CRUD |
 | `assistance_items` | token endpoint | CRUD | — | CRUD |
 | `assistant_access_tokens` | endpoint only | manage own | — | CRUD |
-| `emergency_contacts` | — | CRUD | — | CRUD |
+| `emergency_contacts` | — | CRUD | owner/admin : consultation journalisée, si le coureur l’a partagé (0101) | CRUD |
 | `outings` | — | CRUD | — | CRUD |
 | `outing_*` | — | CRUD | — | CRUD |
 

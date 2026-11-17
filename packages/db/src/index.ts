@@ -422,3 +422,12 @@ export {
   type RacePassOfferRecord,
   type StartedPurchaseRecord,
 } from './repositories/billing.js';
+export {
+  emergencyContactRepository,
+  organizerEmergencyContactRepository,
+  type EmergencyContactInput,
+  type EmergencyContactRecord,
+  type EmergencyContactRepository,
+  type OrganizerEmergencyContactRepository,
+  type SharedEmergencyContactRecord,
+} from './repositories/emergency-contacts.js';
