@@ -1,26 +1,35 @@
-import { DomainError, getPlanOverview, type PlanOverview } from '@pluka/domain';
+import {
+  DomainError,
+  getBags,
+  getEquipmentChecklist,
+  getPlanOverview,
+  getTasks,
+  nextActions,
+  type NextAction,
+} from '@pluka/domain';
 import Link from 'next/link';
 
 import { signOut } from '@/app/actions';
-import { Icon } from '@/components/icon';
+import { Icon, type IconName } from '@/components/icon';
+import { dueCalendarDay, dueDelay } from '@/lib/due-day';
 import { listMyRaces } from '@/lib/participations';
 import { planContext } from '@/lib/plan';
 import { formatClock, formatDistance, formatDuration } from '@/lib/plan-format';
+import { bagsContext, preparationContext, tasksContext } from '@/lib/preparation';
 import { requireSession } from '@/lib/session';
 
 /**
  * Accueil coureur — `05_ROUTES_FLOWS.md` §5.1, prototype `tab: 'accueil'`.
  *
- * La bannière de la course qu'on prépare, et tout ce qu'elle affiche existe
- * déjà : la course (date, lieux, distance, dénivelé) et son Plan (objectif,
- * arrivée estimée, marge la plus courte, §64 du moteur).
- *
- * Ce que le prototype y ajoute — jauges de matériel et de sacs, « À faire
- * maintenant » — dépend de la Préparation, qui n'est pas encore branchée.
- * L'écran ne les simule pas (AGENTS §38) : les entrées vers ces espaces le
- * disent, et les jauges apparaîtront avec eux.
+ * La bannière de la course qu'on prépare : la course (date, lieux, distance,
+ * dénivelé), son Plan (objectif, arrivée estimée, marge la plus courte, §64 du
+ * moteur) et trois jauges de Préparation — matériel obligatoire, sacs, « Mes
+ * tâches ». Dessous, « À faire maintenant » : cinq lignes au plus, rangées par
+ * `nextActions` (décisions produit du 2026-11-17). Tout se lit sans Race Pass.
  */
 export const metadata = { title: 'Accueil' };
+
+const SHOWN_ACTIONS = 5;
 
 function daysUntil(startsAt: string, now: Date): number {
   const midnight = (date: Date) => Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
@@ -42,6 +51,19 @@ function startDay(instant: string, timeZone: string): string {
 
 function thousands(value: number): string {
   return new Intl.NumberFormat('fr-FR').format(value);
+}
+
+/**
+ * Une lecture refusée par le domaine (participation introuvable, course non
+ * publiée) retire sa section, pas l'Accueil (AGENTS §37).
+ */
+async function orNull<T>(read: Promise<T>): Promise<T | null> {
+  try {
+    return await read;
+  } catch (error) {
+    if (error instanceof DomainError) return null;
+    throw error;
+  }
 }
 
 export default async function HomePage() {
@@ -75,16 +97,21 @@ export default async function HomePage() {
   }
 
   const context = planContext(session);
+  const input = { participantRaceId: current.participantRaceId };
   const participation = await context.repositories.participantRaces.findById(
     current.participantRaceId,
   );
-  const race =
-    participation === null ? null : await context.repositories.races.findById(participation.raceId);
-  const overview: PlanOverview | null = await getPlanOverview(context, {
-    participantRaceId: current.participantRaceId,
-  }).catch((error: unknown) => {
-    if (error instanceof DomainError) return null;
-    throw error;
+  const [race, overview, equipment, bags, tasks] = await Promise.all([
+    participation === null ? null : context.repositories.races.findById(participation.raceId),
+    orNull(getPlanOverview(context, input)),
+    orNull(getEquipmentChecklist(preparationContext(session), input)),
+    orNull(getBags(bagsContext(session), input)),
+    orNull(getTasks(tasksContext(session), input)),
+  ]);
+  const actions = nextActions({
+    mandatory: equipment?.mandatory ?? null,
+    bags: bags?.bags ?? [],
+    tasks: tasks?.mine ?? [],
   });
 
   const timeZone = race?.timezone ?? overview?.timezone ?? 'Europe/Paris';
@@ -92,6 +119,40 @@ export default async function HomePage() {
   const base = `/courses/${current.participantRaceId}`;
   const tight = overview?.tightestCutoff ?? null;
   const tightAlarm = tight !== null && tight.status !== 'comfortable';
+  const gauges = [
+    equipment === null
+      ? null
+      : {
+          label: 'Matériel obligatoire',
+          ...equipment.mandatory,
+          value:
+            equipment.mandatory.total === 0
+              ? 'Aucun publié'
+              : `${String(equipment.mandatory.ready)} / ${String(equipment.mandatory.total)} prêts`,
+        },
+    bags === null
+      ? null
+      : {
+          label: 'Sacs',
+          ...bags.ready,
+          value:
+            bags.ready.total === 0
+              ? 'Aucun sac'
+              : `${String(bags.ready.ready)} / ${String(bags.ready.total)} prêts`,
+        },
+    tasks === null
+      ? null
+      : {
+          label: 'À faire',
+          ready: tasks.progress.done,
+          total: tasks.progress.total,
+          value:
+            tasks.progress.total === 0
+              ? 'Aucune tâche'
+              : `${String(tasks.progress.done)} / ${String(tasks.progress.total)} terminées`,
+        },
+  ].filter((gauge) => gauge !== null);
+  const preparationRead = equipment !== null || bags !== null || tasks !== null;
 
   return (
     <div className="ap-page hm-page">
@@ -151,7 +212,33 @@ export default async function HomePage() {
             )}
           </dl>
         )}
+
+        {gauges.length === 0 ? null : (
+          <ul className="hm-gauges" aria-label="Préparation">
+            {gauges.map((gauge) => (
+              <li key={gauge.label} className="hm-gauge">
+                <span className="hm-gauge-head">
+                  <span className="hm-gauge-label">{gauge.label}</span>
+                  <span className="hm-gauge-value">{gauge.value}</span>
+                </span>
+                {/* Décorative : le chiffre ci-dessus dit déjà la même chose (§172). */}
+                <span className="hm-gauge-track" aria-hidden="true">
+                  <span
+                    className="hm-gauge-fill"
+                    style={{
+                      width: `${String(
+                        gauge.total === 0 ? 0 : Math.round((gauge.ready / gauge.total) * 100),
+                      )}%`,
+                    }}
+                  />
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
+
+      {preparationRead ? <NextActions actions={actions} base={base} /> : null}
 
       <ul className="hm-tiles">
         <Tile
@@ -179,10 +266,9 @@ export default async function HomePage() {
         <Tile
           href={`${base}/preparation`}
           label="Préparation"
-          action="Voir"
-          value="Bientôt"
-          detail="Matériel, sacs et liste à faire avant le départ."
-          soon
+          action="Ouvrir"
+          value={actions.length === 0 ? 'À jour' : plural(actions.length, 'action', 'actions')}
+          detail="Matériel obligatoire, sacs et liste à faire avant le départ."
         />
         <Tile
           href={`${base}/assistance`}
@@ -211,6 +297,120 @@ export default async function HomePage() {
 
       <SignOut />
     </div>
+  );
+}
+
+function plural(count: number, one: string, many: string): string {
+  return `${String(count)} ${count > 1 ? many : one}`;
+}
+
+/** Une ligne de « À faire maintenant » : icône, titre, raison, destination (DS §165). */
+function describe(
+  action: NextAction,
+  base: string,
+): {
+  key: string;
+  icon: IconName;
+  title: string;
+  reason: string | null;
+  late: boolean;
+  href: string;
+} {
+  switch (action.kind) {
+    case 'task':
+      return {
+        key: `task:${action.id}`,
+        icon: 'ListChecks',
+        title: action.title,
+        reason:
+          action.dueDay === null || action.daysLeft === null
+            ? null
+            : `${dueCalendarDay(action.dueDay, action.daysLeft)} · ${dueDelay(action.daysLeft)}`,
+        late: action.daysLeft !== null && action.daysLeft < 0,
+        href: `${base}/preparation/todo`,
+      };
+    case 'mandatory_equipment':
+      return {
+        key: 'mandatory_equipment',
+        icon: 'TShirt',
+        title: 'Rassembler le matériel obligatoire',
+        reason: `${plural(action.missing, 'pièce manquante', 'pièces manquantes')} sur ${String(action.total)}`,
+        late: false,
+        href: `${base}/preparation/materiel`,
+      };
+    case 'bag':
+      return {
+        key: `bag:${action.id}`,
+        icon: 'Backpack',
+        title: `Préparer : ${action.name}`,
+        reason:
+          action.total === 0
+            ? 'Vide pour l’instant'
+            : `${String(action.checked)} / ${String(action.total)} cochés`,
+        late: false,
+        href: `${base}/preparation/sacs#bag-${action.id}`,
+      };
+  }
+}
+
+function NextActions({
+  actions,
+  base,
+}: {
+  readonly actions: readonly NextAction[];
+  readonly base: string;
+}) {
+  const shown = actions.slice(0, SHOWN_ACTIONS);
+
+  return (
+    <section className="hm-todo" aria-labelledby="hm-todo-title">
+      <header className="hm-todo-head">
+        <h2 id="hm-todo-title" className="hm-todo-title">
+          À faire maintenant
+        </h2>
+        <span className="hm-todo-count">
+          {actions.length > SHOWN_ACTIONS
+            ? `${String(SHOWN_ACTIONS)} sur ${String(actions.length)}`
+            : plural(actions.length, 'élément', 'éléments')}
+        </span>
+      </header>
+      {shown.length === 0 ? (
+        <p className="hm-todo-empty">Tout est à jour. Rien d’urgent dans ta préparation.</p>
+      ) : (
+        <ul className="hm-todo-list">
+          {shown.map((action) => {
+            const line = describe(action, base);
+            return (
+              <li key={line.key}>
+                <Link href={line.href} className="hm-todo-row">
+                  <span className="hm-todo-icon" aria-hidden="true">
+                    <Icon name={line.icon} />
+                  </span>
+                  <span className="hm-todo-text">
+                    <span className="hm-todo-label">{line.title}</span>
+                    {line.reason === null ? null : (
+                      <span
+                        className={line.late ? 'hm-todo-reason hm-todo-late' : 'hm-todo-reason'}
+                      >
+                        {line.reason}
+                      </span>
+                    )}
+                  </span>
+                  <span className="hm-todo-arrow" aria-hidden="true">
+                    <Icon name="ArrowRight" size={16} />
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {actions.length > SHOWN_ACTIONS ? (
+        <Link href={`${base}/preparation`} className="hm-todo-more">
+          Tout voir dans Préparation
+        </Link>
+      ) : null}
+    </section>
   );
 }
 

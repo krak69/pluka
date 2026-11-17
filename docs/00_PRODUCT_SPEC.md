@@ -664,6 +664,8 @@ Les actions doivent être contextualisées, par exemple :
 - consulter une modification ;
 - vérifier les Conditions lorsque la fenêtre J-14 est ouverte.
 
+**Préparation sur l'Accueil (décisions du 2026-11-17).** La bannière porte trois jauges : le matériel obligatoire prêt, les sacs prêts, « Mes tâches » terminées. Une barre fine et un chiffre, sans donut. « À faire maintenant » en est la liste d'action. Elle suit un ordre fixe, sans étiquette de priorité, et chaque ligne dit sa raison : d'abord les tâches en retard ou du jour, puis le matériel obligatoire manquant (une seule ligne), les sacs qui ne sont pas prêts, les tâches datées à venir, et enfin les tâches sans date. Elle ne reprend que « Mes tâches », jamais une suggestion que le coureur n'a pas ajoutée. L'Accueil en montre cinq au plus (« 5 sur N ») ; le reste est dans Préparation. Tout s'y lit sans Race Pass. Les autres actions de la liste ci-dessus (information officielle, Nutrition, Conditions) y entreront avec leurs fonctionnalités.
+
 ---
 
 # 11. Ma saison

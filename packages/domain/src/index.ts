@@ -891,6 +891,12 @@ export {
 } from './preparation/tasks.js';
 
 export {
+  nextActions,
+  type NextAction,
+  type NextActionsInput,
+} from './preparation/next-actions.js';
+
+export {
   addToMyEquipment,
   cleanLabels,
   labelKey,

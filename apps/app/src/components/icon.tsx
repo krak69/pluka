@@ -1,6 +1,8 @@
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import {
   ArrowLeftIcon,
+  ArrowRightIcon,
+  BackpackIcon,
   BookOpenTextIcon,
   BooksIcon,
   CalendarDotsIcon,
@@ -17,6 +19,7 @@ import {
   PencilSimpleIcon,
   PlusIcon,
   SparkleIcon,
+  TShirtIcon,
   TrashIcon,
   UserListIcon,
   UsersThreeIcon,
@@ -36,6 +39,8 @@ import {
 
 const ICONS = {
   ArrowLeft: ArrowLeftIcon,
+  ArrowRight: ArrowRightIcon,
+  Backpack: BackpackIcon,
   BookOpenText: BookOpenTextIcon,
   Books: BooksIcon,
   CalendarDots: CalendarDotsIcon,
@@ -53,6 +58,7 @@ const ICONS = {
   Plus: PlusIcon,
   Sparkle: SparkleIcon,
   Trash: TrashIcon,
+  TShirt: TShirtIcon,
   UserList: UserListIcon,
   UsersThree: UsersThreeIcon,
   X: XIcon,
