@@ -110,6 +110,56 @@ export interface RacePlanRecord {
    * PLAN_ENGINE §5.2). Nulle pour un Plan dont le snapshot ne la porte pas.
    */
   readonly startAt: string | null;
+  /**
+   * Le parcours sur lequel ce Plan a été calculé (PLAN_ENGINE §39). Nul pour
+   * un Plan antérieur au 2026-11-17, dont le snapshot ne le porte pas.
+   */
+  readonly course: PlanCourseReference | null;
+}
+
+/**
+ * Empreinte du parcours d'un Plan — PLAN_ENGINE §39 : de quoi dire au coureur
+ * qu'un point a été ajouté, retiré ou déplacé, ou qu'une barrière a bougé.
+ *
+ * Rangée dans `input_snapshot` sous `course` : des données publiques du
+ * référentiel, jamais rien du coureur (AGENTS §78).
+ */
+export interface PlanCourseReference {
+  readonly waypoints: readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly distanceKm: number;
+  }[];
+  readonly cutoffs: readonly { readonly waypointId: string; readonly at: string }[];
+}
+
+/** Relit l'empreinte d'un snapshot ; tout autre forme vaut absence. */
+function courseReferenceOf(value: unknown): PlanCourseReference | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const { waypoints, cutoffs } = value as { waypoints?: unknown; cutoffs?: unknown };
+  if (!Array.isArray(waypoints) || !Array.isArray(cutoffs)) return null;
+
+  const points = waypoints.filter(
+    (entry): entry is { id: string; name: string; distanceKm: number } =>
+      typeof entry === 'object' &&
+      entry !== null &&
+      typeof (entry as { id?: unknown }).id === 'string' &&
+      typeof (entry as { name?: unknown }).name === 'string' &&
+      typeof (entry as { distanceKm?: unknown }).distanceKm === 'number',
+  );
+  const barriers = cutoffs.filter(
+    (entry): entry is { waypointId: string; at: string } =>
+      typeof entry === 'object' &&
+      entry !== null &&
+      typeof (entry as { waypointId?: unknown }).waypointId === 'string' &&
+      typeof (entry as { at?: unknown }).at === 'string',
+  );
+  if (points.length !== waypoints.length || barriers.length !== cutoffs.length) return null;
+
+  return {
+    waypoints: points.map(({ id, name, distanceKm }) => ({ id, name, distanceKm })),
+    cutoffs: barriers.map(({ waypointId, at }) => ({ waypointId, at })),
+  };
 }
 
 /**
@@ -659,7 +709,7 @@ function toRacePlan(row: {
   input_hash: string | null;
   input_snapshot: unknown;
 }): RacePlanRecord {
-  const snapshot = row.input_snapshot as { start_at?: unknown } | null;
+  const snapshot = row.input_snapshot as { start_at?: unknown; course?: unknown } | null;
   return {
     id: row.id,
     participantRaceId: row.participant_race_id,
@@ -671,6 +721,7 @@ function toRacePlan(row: {
     plannedFinishDatetime: row.planned_finish_datetime,
     inputHash: row.input_hash,
     startAt: typeof snapshot?.start_at === 'string' ? snapshot.start_at : null,
+    course: courseReferenceOf(snapshot?.course),
   };
 }
 

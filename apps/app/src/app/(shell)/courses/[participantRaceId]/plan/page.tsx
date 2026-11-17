@@ -1,10 +1,17 @@
-import { DomainError, getPlanOverview, getPlanStartDrift, listStartChanges } from '@pluka/domain';
+import {
+  DomainError,
+  getPlanCourseChange,
+  getPlanOverview,
+  getPlanStartDrift,
+  listStartChanges,
+} from '@pluka/domain';
 import { MicroLabel } from '@pluka/ui';
 import Link from 'next/link';
 
 import { AltitudeProfile } from '@/app/(shell)/courses/[participantRaceId]/plan/altitude-profile';
 import { GeneratePlanForm } from '@/app/(shell)/courses/[participantRaceId]/plan/generate-form';
 import { PlanPoints } from '@/app/(shell)/courses/[participantRaceId]/plan/plan-points';
+import { CourseChangeAlert } from '@/components/course-change-alert';
 import { StartChangeAlert } from '@/components/start-change-alert';
 import { planContext, redirectOnDomainError } from '@/lib/plan';
 import {
@@ -56,6 +63,8 @@ export default async function PlanPage({
   // L'organisation a pu déplacer le départ sans changer de vague (l'heure de
   // l'épreuve) : l'écart entre le Plan et l'heure actuelle suffit à le dire.
   const drift = await getPlanStartDrift(context, { participantRaceId }).catch(() => null);
+  // PLAN_ENGINE §39 : un point ajouté, retiré ou déplacé depuis le calcul du Plan.
+  const courseChange = await getPlanCourseChange(context, { participantRaceId }).catch(() => null);
   const overview = await getPlanOverview(context, { participantRaceId }).catch((error: unknown) => {
     // Pas encore de Plan : l'écran propose de le générer plutôt que de rendre
     // un 404. La participation existe, elle n'a simplement pas d'horaires.
@@ -108,6 +117,10 @@ export default async function PlanPage({
           }}
         />
       ) : null}
+
+      {courseChange === null ? null : (
+        <CourseChangeAlert participantRaceId={participantRaceId} change={courseChange} />
+      )}
 
       {overview === null ? (
         <section className="pl-hero">

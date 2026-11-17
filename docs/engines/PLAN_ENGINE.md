@@ -1391,6 +1391,8 @@ Le Plan est marqué comme potentiellement impacté.
 
 L’utilisateur doit voir le changement et déclencher / confirmer l’action adaptée lorsque nécessaire.
 
+**Mise en œuvre (décisions du 2026-11-17).** Chaque version du Plan enregistre, dans `input_snapshot.course`, le parcours sur lequel elle a été calculée : points (id, nom, km) et barrières. L’écran Plan compare cette empreinte au parcours actuel et affiche « Le parcours a changé » avec ce qui a bougé : point ajouté, retiré, déplacé, barrières modifiées. Un Plan antérieur à l’empreinte ne compare que ses points. « Mettre à jour mon Plan » recalcule sur le parcours actuel en gardant l’objectif, les arrêts et les heures verrouillées des points qui existent encore. Les durées imposées aux sections tombent, car une section redécoupée n’est plus la même. Le Plan est rééquilibré sur l’objectif. Le geste est ouvert à tous, Free compris, comme le décalage sur une nouvelle heure de départ : suivre un changement officiel n’est pas une personnalisation (AGENTS §22). Il n’existe que s’il y a un écart.
+
 ---
 
 # 40. Downstream — Nutrition

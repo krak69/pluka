@@ -94,6 +94,7 @@ export {
   type PlanSegmentRecord,
   type PlanWaypointRecord,
   type RaceCutoffRecord,
+  type PlanCourseReference,
   type RacePlanRecord,
   type RacePlanRepository,
   type RaceSegmentRecord,

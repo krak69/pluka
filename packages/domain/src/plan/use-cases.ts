@@ -15,6 +15,8 @@ import {
   type PlanStopInput,
 } from '@pluka/plan-engine';
 
+import { courseReferenceOf, diffPlanCourse, type PlanCourseChange } from './course-change.js';
+
 import type { Actor } from '../authorization/organization-role.js';
 import type { Capability } from '../entitlements/capabilities.js';
 import { authorizeCapability } from '../entitlements/use-cases.js';
@@ -192,9 +194,11 @@ async function run(context: PlanContext, options: RunOptions): Promise<PlanComma
     return { result, persisted: null };
   }
 
-  const dependencies = await context.repositories.planCourse.listFactDependencies(
-    options.scope.race.id,
-  );
+  const [dependencies, waypoints, cutoffs] = await Promise.all([
+    context.repositories.planCourse.listFactDependencies(options.scope.race.id),
+    context.repositories.planCourse.listWaypoints(options.scope.race.id),
+    context.repositories.planCourse.listCutoffs(options.scope.race.id),
+  ]);
 
   const persisted = await context.repositories.racePlans.persist({
     participantRaceId: options.scope.participation.id,
@@ -207,7 +211,11 @@ async function run(context: PlanContext, options: RunOptions): Promise<PlanComma
         Date.parse(options.scope.startAt) + result.finishElapsedSeconds * 1000,
       ).toISOString(),
       inputHash: result.calculationMetadata.inputHash,
-      inputSnapshot: safeInputSnapshot(input, result),
+      inputSnapshot: {
+        ...safeInputSnapshot(input, result),
+        // §39 : le parcours de cette version, pour voir plus tard s'il a changé.
+        course: courseReferenceOf(waypoints, cutoffs),
+      },
     },
     waypoints: result.planWaypoints.map((waypoint) => ({
       raceWaypointId: waypoint.raceWaypointId,
@@ -545,6 +553,98 @@ export async function shiftPlanToOfficialStart(
     scope,
     constraints,
     mode: 'preserve_manual_changes',
+    initialTargetDurationSeconds: plan.initialTargetDurationSeconds,
+    persist: true,
+  });
+}
+
+/**
+ * Ce qui a changé dans le parcours depuis le calcul du Plan — PLAN_ENGINE §39.
+ * Nul quand rien n'a bougé, ou qu'il n'y a pas de Plan.
+ */
+export async function getPlanCourseChange(
+  context: PlanContext,
+  input: unknown,
+): Promise<PlanCourseChange | null> {
+  const useCase = 'getPlanCourseChange';
+  const { participantRaceId } = parseCommand(shiftPlanToOfficialStartCommandSchema, input, useCase);
+
+  const scope = await loadPlanScope(
+    context.repositories,
+    context.actor.userId,
+    participantRaceId,
+    useCase,
+  );
+  const plan = await context.repositories.racePlans.findActive(participantRaceId);
+  if (plan === null) return null;
+
+  return courseChangeOf(context, scope.race.id, plan);
+}
+
+async function courseChangeOf(
+  context: PlanContext,
+  raceId: string,
+  plan: RacePlanRecord,
+): Promise<PlanCourseChange | null> {
+  const [waypoints, cutoffs, planWaypoints] = await Promise.all([
+    context.repositories.planCourse.listWaypoints(raceId),
+    context.repositories.planCourse.listCutoffs(raceId),
+    // Seul un Plan sans empreinte en a besoin ; la lecture reste légère.
+    plan.course === null ? context.repositories.racePlans.listWaypoints(plan.id) : [],
+  ]);
+
+  return diffPlanCourse(
+    plan.course,
+    planWaypoints.map((waypoint) => waypoint.raceWaypointId),
+    courseReferenceOf(waypoints, cutoffs),
+  );
+}
+
+/**
+ * Mettre le Plan à jour sur le parcours actuel — décisions du 2026-11-17.
+ *
+ * L'objectif reste, comme les arrêts et les heures verrouillées des points qui
+ * existent encore ; les durées imposées aux sections tombent, car une section
+ * redécoupée n'est plus celle que le coureur avait réglée. Le Plan est
+ * rééquilibré sur l'objectif. Ouvert à tous, Free compris, comme le décalage
+ * de départ : suivre un changement officiel n'est pas une personnalisation
+ * (AGENTS §22). Le geste n'existe que s'il y a un écart.
+ */
+export async function updatePlanToCurrentCourse(
+  context: PlanContext,
+  input: unknown,
+): Promise<PlanCommandResult> {
+  const useCase = 'updatePlanToCurrentCourse';
+  const { participantRaceId } = parseCommand(shiftPlanToOfficialStartCommandSchema, input, useCase);
+
+  const scope = await loadPlanScope(
+    context.repositories,
+    context.actor.userId,
+    participantRaceId,
+    useCase,
+  );
+  const { plan, constraints } = await currentState(context, participantRaceId, useCase);
+
+  if ((await courseChangeOf(context, scope.race.id, plan)) === null) {
+    throw invalidStateError(useCase, 'le Plan suit déjà le parcours actuel');
+  }
+
+  const current = new Set(
+    (await context.repositories.planCourse.listWaypoints(scope.race.id)).map(
+      (waypoint) => waypoint.id,
+    ),
+  );
+
+  return run(context, {
+    useCase,
+    scope,
+    constraints: {
+      targetDurationSeconds: constraints.targetDurationSeconds,
+      stops: constraints.stops.filter((stop) => current.has(stop.waypointId)),
+      segmentOverrides: [],
+      anchors: constraints.anchors.filter((anchor) => current.has(anchor.waypointId)),
+    },
+    mode: 'rebalance_to_target',
     initialTargetDurationSeconds: plan.initialTargetDurationSeconds,
     persist: true,
   });

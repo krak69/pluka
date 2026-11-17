@@ -253,6 +253,9 @@ export function createFakePlanRepositories(state: PlanState): PlanRepositories {
             typeof input.summary.inputSnapshot['start_at'] === 'string'
               ? input.summary.inputSnapshot['start_at']
               : null,
+          // Comme le dépôt réel, qui relit `course` dans le snapshot enregistré.
+          course:
+            (input.summary.inputSnapshot['course'] as RacePlanRecord['course'] | undefined) ?? null,
         };
 
         state.plans.push({

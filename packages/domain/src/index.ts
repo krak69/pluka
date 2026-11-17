@@ -432,6 +432,8 @@ export {
   lockPlanWaypoint,
   preserveCurrentPlan,
   getPlanStartDrift,
+  getPlanCourseChange,
+  updatePlanToCurrentCourse,
   shiftPlanToOfficialStart,
   previewPlan,
   rebalancePlanToTarget,
@@ -444,6 +446,7 @@ export {
   type PlanCommandResult,
   type PlanContext,
 } from './plan/use-cases.js';
+export { courseReferenceOf, diffPlanCourse, type PlanCourseChange } from './plan/course-change.js';
 
 export {
   getTrailProfileQuerySchema,

@@ -5328,3 +5328,12 @@ a.st-tab {
 .td-suggestion-actions form {
   margin: 0;
 }
+
+/* « Le parcours a changé » (PLAN_ENGINE §39) : la liste des changements. */
+.rp-course-alert-list {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-5);
+  font-size: 15px;
+}
