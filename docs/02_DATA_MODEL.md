@@ -1047,6 +1047,12 @@ TODO utilisateur ou PLUKA.
 
 Une tâche peut être générée à partir d'un changement officiel, de Nutrition ou des Conditions.
 
+Une suggestion PLUKA (0097) n'est une ligne qu'une fois ajoutée aux tâches du coureur
+(`dismissed_at` nul) ou écartée (`dismissed_at` posé) : `origin = 'pluka'`, `suggestion_key`
+(`plan`, `gpx`, `mandatory_equipment`, `bag:<id>`), unique par participation. La retirer de ses
+tâches, ou « Réafficher » les suggestions écartées, efface la ligne. Une ligne dont la suggestion ne vaut plus (sac
+supprimé, Plan construit) n'est ni affichée ni comptée.
+
 ## 13.2 `participant_equipment`
 
 État personnel du matériel pour une course.

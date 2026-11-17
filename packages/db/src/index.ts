@@ -342,6 +342,16 @@ export {
   type NewBagItem,
 } from './repositories/bags.js';
 export {
+  createTaskRepositories,
+  taskRepository,
+  type NewTask,
+  type SuggestionMark,
+  type TaskOrigin,
+  type TaskRecord,
+  type TaskRepositories,
+  type TaskRepository,
+} from './repositories/tasks.js';
+export {
   createPreparationRepositories,
   preparationRepository,
   type EquipmentReadiness,

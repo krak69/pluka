@@ -4996,3 +4996,180 @@ a.st-tab {
   box-sizing: border-box;
   min-height: 48px;
 }
+
+/* Préparation · À faire — prototype, `isTodo` */
+
+.td-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+}
+
+.td-count {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.td-add {
+  display: flex;
+  flex: 0 1 34rem;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0 0 0 auto;
+}
+
+.eq-add-input.td-add-title {
+  flex: 1 1 14rem;
+}
+
+.eq-add-input.td-due {
+  flex: 0 1 10.5rem;
+}
+
+.td-add-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 48px;
+}
+
+.td-error {
+  flex: 1 0 100%;
+  margin: 0;
+}
+
+.td-label {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--pk-text-secondary);
+}
+
+.td-label-accent {
+  color: var(--pk-forest);
+  font-weight: 600;
+}
+
+.td-hint {
+  margin: 0 0 var(--space-3);
+  font-size: 12.5px;
+  color: var(--pk-text-secondary);
+}
+
+.td-list {
+  margin: 0;
+  padding: 0 var(--space-4);
+  list-style: none;
+  background: var(--pk-surface);
+  box-shadow: 0 0 0 1px var(--pk-hairline);
+}
+
+.td-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  min-height: 44px;
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.td-row:last-child {
+  border-bottom: 0;
+}
+
+.td-grow {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.td-check {
+  width: 100%;
+  min-height: 44px;
+  font-size: 14.5px;
+}
+
+.td-due-text {
+  font-size: 12.5px;
+  color: var(--pk-text-secondary);
+}
+
+/* Aube marque l'échéance dépassée (AGENTS §43) ; le texte le dit aussi. */
+.td-late {
+  color: var(--pk-dawn-ink);
+}
+
+.td-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pk-text-secondary);
+  cursor: pointer;
+}
+
+.td-icon-danger {
+  color: var(--pk-error);
+}
+
+.td-row form {
+  margin: 0;
+}
+
+.td-edit {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+}
+
+.td-edit-title {
+  flex: 1 1 14rem;
+  font-size: 14.5px;
+}
+
+.td-row-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  font-size: 13.5px;
+}
+
+.td-suggestions {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.td-suggestion {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px dashed var(--pk-hairline);
+  border-radius: 2px;
+}
+
+.td-suggestion-title {
+  font-size: 14.5px;
+}
+
+.td-suggestion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.td-suggestion-actions form {
+  margin: 0;
+}

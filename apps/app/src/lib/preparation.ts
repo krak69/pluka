@@ -4,8 +4,9 @@ import {
   createLibraryRepositories,
   createPreparationRepositories,
   createRaceInformationRepositories,
+  createTaskRepositories,
 } from '@pluka/db';
-import type { BagsContext, PreparationContext } from '@pluka/domain';
+import type { BagsContext, PreparationContext, TasksContext } from '@pluka/domain';
 
 import type { Session } from '@/lib/session';
 import { createDataClient } from '@/lib/supabase/data';
@@ -48,6 +49,24 @@ export function bagsContext(session: Session): BagsContext {
       ...createBagRepositories({ client }),
       publishedFacts: course.publishedFacts,
       waypoints: course.waypoints,
+    },
+    actor: { userId: session.userId },
+    now: () => new Date(),
+  };
+}
+
+/**
+ * Contexte de « À faire » (0097) : les tâches, et de quoi déduire les
+ * suggestions — Plan, trace, matériel obligatoire, sacs.
+ */
+export function tasksContext(session: Session): TasksContext {
+  const client = createDataClient(session.accessToken);
+
+  return {
+    repositories: {
+      ...createTaskRepositories({ client }),
+      ...createEntitlementRepositories({ client }),
+      publishedFacts: createRaceInformationRepositories({ client }).publishedFacts,
     },
     actor: { userId: session.userId },
     now: () => new Date(),

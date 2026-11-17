@@ -870,6 +870,25 @@ export {
   type SuggestBagsInput,
   type SuggestedBagType,
 } from './preparation/bags.js';
+export {
+  adoptTaskSuggestion,
+  createTask,
+  deleteTask,
+  dismissTaskSuggestion,
+  getTasks,
+  removeTaskSuggestion,
+  restoreTaskSuggestions,
+  setSuggestedTaskDone,
+  setSuggestedTaskDueDay,
+  setTaskDone,
+  suggestTasks,
+  updateTask,
+  type MyTaskView,
+  type SuggestTasksInput,
+  type TasksContext,
+  type TaskSuggestion,
+  type TasksOverview,
+} from './preparation/tasks.js';
 
 export {
   addToMyEquipment,

@@ -1015,6 +1015,12 @@ coche avec `course.mandatory_equipment.read` : c'est de la sécurité, et §14.1
 produit dit que le coureur peut le cocher. Seul le matériel personnel (ajouter, cocher,
 retirer) demande `preparation.edit_advanced`. La jauge « prêts » ne compte que l'obligatoire.
 
+**À faire : même partage (décision produit du 2026-11-17).** Voir, ajouter à ses tâches,
+dater, cocher, retirer et écarter les suggestions PLUKA est Free (`preparation.read`) ; leur
+titre ne se réécrit pas, sans quoi une suggestion deviendrait une tâche libre gratuite : ce sont des rappels sur ce que la course
+demande. Créer, modifier, cocher et supprimer ses propres tâches demande
+`preparation.edit_advanced`. Un Race Pass expiré garde la lecture de ses tâches (§57).
+
 ---
 
 # 46. Assistance

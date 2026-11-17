@@ -912,6 +912,23 @@ rattacher un drop bag qu’à l’un de ces points.
 
 PLUKA peut générer des tâches de préparation et le coureur peut ajouter ses propres tâches.
 
+**Suggestions et tâches (décision produit du 2026-11-17).** Les suggestions PLUKA se
+déduisent des données de la course, jamais d’une IA, et seulement quand la donnée existe :
+
+- « Construire ton Plan », tant qu’aucun Plan n’existe ;
+- « Charger la trace sur ta montre », quand la course a une trace ;
+- « Rassembler le matériel obligatoire », quand l’organisation en a publié ;
+- un rappel par sac créé dans Sacs (« Préparer : … », « Préparer et déposer : … » pour un drop bag).
+
+Comme dans le prototype, le coureur ajoute une suggestion à « Mes tâches », où elle se coche à
+la main et peut être retirée (elle redevient une suggestion), ou l’écarte pour cette course
+(« Réafficher » la ramène). Les suggestions n’ont pas d’échéance par défaut : aucun délai
+n’est spécifié. Une fois ajoutée, le coureur peut lui donner une date ; son titre reste celui
+de PLUKA.
+Ses propres tâches portent un titre et une échéance facultative. L’échéance s’affiche par sa
+date et son délai compté depuis aujourd’hui (« jeu. 19 nov. · dans 2 jours », « aujourd’hui »,
+« en retard de 3 jours ») ; jamais en « J-x », qui dans PLUKA désigne le jour de la course. Le compte « X / Y terminées » porte sur « Mes tâches ».
+
 ---
 
 # 15. Assistance

@@ -5870,11 +5870,13 @@ export type Database = {
           completed_at: string | null
           created_at: string
           description: string | null
+          dismissed_at: string | null
           due_at: string | null
           id: string
           origin: Database["public"]["Enums"]["task_origin"]
           participant_race_id: string
           source_change_event_id: string | null
+          suggestion_key: string | null
           title: string
           updated_at: string
         }
@@ -5882,11 +5884,13 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           description?: string | null
+          dismissed_at?: string | null
           due_at?: string | null
           id?: string
           origin?: Database["public"]["Enums"]["task_origin"]
           participant_race_id: string
           source_change_event_id?: string | null
+          suggestion_key?: string | null
           title: string
           updated_at?: string
         }
@@ -5894,11 +5898,13 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           description?: string | null
+          dismissed_at?: string | null
           due_at?: string | null
           id?: string
           origin?: Database["public"]["Enums"]["task_origin"]
           participant_race_id?: string
           source_change_event_id?: string | null
+          suggestion_key?: string | null
           title?: string
           updated_at?: string
         }
