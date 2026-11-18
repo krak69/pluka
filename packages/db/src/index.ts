@@ -439,4 +439,10 @@ export {
   type NutritionRepository,
   type NutritionSettingsRecord,
   type SaveNutritionSettings,
+  myProductsRepository,
+  type CatalogueProductRecord,
+  type CustomProductInput,
+  type MyProductRecord,
+  type MyProductsRepository,
+  type NutritionProductCategory,
 } from './repositories/nutrition.js';

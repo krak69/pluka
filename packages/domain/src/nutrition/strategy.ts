@@ -4,6 +4,7 @@ import type {
   CourseMicroSegmentRecord,
   EntitlementRepositories,
   NutritionRepositories,
+  MyProductRecord,
   NutritionSettingsRecord,
   RacePlanRecord,
 } from '@pluka/db';
@@ -61,6 +62,8 @@ export interface NutritionStrategyView {
   /** Les cibles ont été réglées sur une version antérieure du Plan. */
   readonly planChangedSinceSettings: boolean;
   readonly canEdit: boolean;
+  /** « Mes produits », pour l'étape de choix de la modale. */
+  readonly products: readonly MyProductRecord[];
 }
 
 const participation = z.object({ participantRaceId: z.uuid() }).strict();
@@ -82,6 +85,8 @@ const settingsCommand = z
     placementMode: z.enum(['smart', 'interval']).default('smart'),
     // §36 : une cadence de 10 min à 2 h ; seulement en rythme imposé.
     intervalMinutes: z.number().int().min(10).max(120).nullable().default(null),
+    // §27 : les produits choisis pour la stratégie ; absents, la sélection ne change pas.
+    productIds: z.array(z.uuid()).max(60).optional(),
   })
   .strict();
 
@@ -222,9 +227,23 @@ function engineInput(
     | 'placementMode'
     | 'intervalMinutes'
   >,
+  products?: readonly MyProductRecord[],
 ): NutritionInput {
   return {
     timeline,
+    ...(products === undefined
+      ? {}
+      : {
+          products: products.map((product) => ({
+            id: product.id,
+            name: product.brand === null ? product.name : `${product.brand} ${product.name}`,
+            category: product.category,
+            carbsG: product.carbsG,
+            sodiumMg: product.sodiumMg,
+            caffeineMg: product.caffeineMg,
+            hydrationMl: product.hydrationMl,
+          })),
+        }),
     targets: {
       carbsGPerHour: settings.carbsGPerHour,
       hydrationMlPerHour: settings.hydrationMlPerHour,
@@ -264,13 +283,14 @@ export async function getNutritionStrategy(
     participantRaceId,
   });
 
-  const [{ raceId, timezone, plan }, settings, entitlements] = await Promise.all([
+  const [{ raceId, timezone, plan }, settings, entitlements, products] = await Promise.all([
     scopeOf(context, participantRaceId, useCase),
     context.repositories.nutrition.findLatest(participantRaceId),
     resolveEntitlements(serviceContext(context), { participantRaceId }),
+    context.repositories.myProducts.list(context.actor.userId),
   ]);
   const canEdit = can(entitlements, 'nutrition.edit').allowed;
-  const base = { startAt: plan?.startAt ?? null, timezone, canEdit };
+  const base = { startAt: plan?.startAt ?? null, timezone, canEdit, products };
 
   if (plan === null) {
     return {
@@ -296,7 +316,14 @@ export async function getNutritionStrategy(
     ...base,
     state: 'ready',
     settings,
-    result: generateNutrition(engineInput(timeline, settings)),
+    // §27 : seuls les produits choisis pour cette stratégie, et qui existent encore.
+    result: generateNutrition(
+      engineInput(
+        timeline,
+        settings,
+        products.filter((product) => settings.selectedProductIds.includes(product.id)),
+      ),
+    ),
     planChangedSinceSettings: !settings.onActivePlan,
   };
 }
@@ -319,7 +346,17 @@ export async function saveNutritionSettings(
     throw invalidStateError(useCase, 'aucun Plan actif : construire le Plan d’abord');
   }
 
-  const engine = engineInput(await timelineOf(context, raceId, plan), command);
+  const [timeline, products, previous] = await Promise.all([
+    timelineOf(context, raceId, plan),
+    context.repositories.myProducts.list(context.actor.userId),
+    context.repositories.nutrition.findLatest(command.participantRaceId),
+  ]);
+  const selected = command.productIds ?? previous?.selectedProductIds ?? [];
+  const engine = engineInput(
+    timeline,
+    command,
+    products.filter((product) => selected.includes(product.id)),
+  );
   const result = generateNutrition(engine);
 
   await context.repositories.nutrition.save(command.participantRaceId, {
@@ -343,8 +380,12 @@ export async function saveNutritionSettings(
       placement: engine.placement,
       point_count: engine.timeline.points.length,
       terrain_span_count: engine.timeline.terrain.length,
+      product_ids: selected,
     },
   });
+  if (command.productIds !== undefined) {
+    await context.repositories.nutrition.setProducts(command.participantRaceId, command.productIds);
+  }
   return result;
 }
 
@@ -362,4 +403,117 @@ export async function disableNutrition(context: NutritionContext, input: unknown
     participantRaceId,
   });
   await context.repositories.nutrition.disable(participantRaceId);
+}
+
+// ------------------------------------------------------------
+// « Mes produits » — choisir, ajouter, créer (0104). Pas de stock.
+// ------------------------------------------------------------
+
+const searchQuery = z.object({ participantRaceId: z.uuid(), query: z.string().max(80) }).strict();
+
+const addFromCatalogueCommand = z
+  .object({ participantRaceId: z.uuid(), catalogueProductId: z.uuid() })
+  .strict();
+
+const createProductCommand = z
+  .object({
+    participantRaceId: z.uuid(),
+    brand: z
+      .string()
+      .trim()
+      .max(60)
+      .nullish()
+      .transform((value) => (value === undefined || value === null || value === '' ? null : value)),
+    name: z.string().trim().min(1).max(80),
+    category: z.enum([
+      'gel',
+      'drink',
+      'bar',
+      'chew',
+      'puree',
+      'solid',
+      'salty',
+      'capsule',
+      'electrolyte',
+      'other',
+    ]),
+    servingLabel: z
+      .string()
+      .trim()
+      .max(40)
+      .nullish()
+      .transform((value) => (value === undefined || value === null || value === '' ? null : value)),
+    carbsG: z.number().min(0).max(500),
+    sodiumMg: z.number().int().min(0).max(10000),
+    caffeineMg: z.number().int().min(0).max(1000),
+    hydrationMl: z.number().int().min(0).max(5000),
+  })
+  .strict();
+
+/** Le catalogue validé de PLUKA, pour ajouter un produit à « Mes produits ». */
+export async function searchNutritionCatalogue(context: NutritionContext, input: unknown) {
+  const command = parseCommand(searchQuery, input, 'searchNutritionCatalogue');
+  await authorizeCapability(serviceContext(context), {
+    capability: 'nutrition.edit',
+    participantRaceId: command.participantRaceId,
+  });
+  return context.repositories.myProducts.searchCatalogue(command.query);
+}
+
+/** Ajoute un produit du catalogue à « Mes produits » ; rend son identifiant. */
+export async function addCatalogueProduct(context: NutritionContext, input: unknown) {
+  const command = parseCommand(addFromCatalogueCommand, input, 'addCatalogueProduct');
+  await authorizeCapability(serviceContext(context), {
+    capability: 'nutrition.edit',
+    participantRaceId: command.participantRaceId,
+  });
+  return context.repositories.myProducts.addFromCatalogue(
+    context.actor.userId,
+    command.catalogueProductId,
+  );
+}
+
+/** Crée un produit personnel dans « Mes produits » ; rend son identifiant. */
+export async function createMyNutritionProduct(context: NutritionContext, input: unknown) {
+  const command = parseCommand(createProductCommand, input, 'createMyNutritionProduct');
+  await authorizeCapability(serviceContext(context), {
+    capability: 'nutrition.edit',
+    participantRaceId: command.participantRaceId,
+  });
+  return context.repositories.myProducts.createCustom(context.actor.userId, {
+    brand: command.brand,
+    name: command.name,
+    category: command.category,
+    servingLabel: command.servingLabel,
+    carbsG: command.carbsG,
+    sodiumMg: command.sodiumMg,
+    caffeineMg: command.caffeineMg,
+    hydrationMl: command.hydrationMl,
+  });
+}
+
+const volumeCommand = z
+  .object({
+    participantRaceId: z.uuid(),
+    userProductId: z.uuid(),
+    hydrationMl: z.number().int().min(50).max(3000),
+  })
+  .strict();
+
+/**
+ * Le volume de dilution d'une boisson en poudre : sans lui, sa concentration
+ * est inconnue et la boisson ne compte pas (§29). Un réglage personnel, gardé
+ * dans « Mes produits ».
+ */
+export async function setNutritionProductVolume(context: NutritionContext, input: unknown) {
+  const command = parseCommand(volumeCommand, input, 'setNutritionProductVolume');
+  await authorizeCapability(serviceContext(context), {
+    capability: 'nutrition.edit',
+    participantRaceId: command.participantRaceId,
+  });
+  await context.repositories.myProducts.setHydration(
+    context.actor.userId,
+    command.userProductId,
+    command.hydrationMl,
+  );
 }

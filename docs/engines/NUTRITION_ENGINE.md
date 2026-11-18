@@ -1086,6 +1086,21 @@ Pour chaque intervalle opérationnel :
 6. choisir la meilleure de façon déterministe ;
 7. conserver un gap plutôt que forcer une combinaison excessive.
 
+**Mise en œuvre v1 (`allocator.ts`, décisions du 2026-11-17).**
+
+- **La boisson d'effort** est la première boisson choisie qui a un volume. Elle couvre en continu sa part de l'hydratation, et ses glucides, son sodium et sa caféine comptent au prorata du volume.
+  - Une boisson en poudre sans volume de dilution ne compte pas, et l'écran le signale.
+  - Le coureur donne ce volume une fois ; il est gardé dans « Mes produits » (`custom_hydration_ml`).
+- **À chaque prise et à chaque ravitaillement**, une combinaison de 1 à 3 portions de produits solides (gel, barre, purée…) vise le besoin en glucides restant jusqu'au jalon suivant, boisson déduite.
+  - Coût : l'écart au besoin, plus 1 par portion. Sous 8 g de besoin, rien n'est placé.
+- **Chaque section**, d'un ravitaillement au suivant, s'équilibre pour elle-même. Un surplus avant un ravito ne dispense pas de manger après.
+- **Le sodium encore manquant** est complété par capsules ou électrolytes, deux au plus par jalon.
+- **La caféine** n'entre que si le coureur s'en est fixé un total. Elle est étalée au prorata du temps écoulé et ne dépasse jamais ce total. Sans total, aucun produit caféiné n'est placé.
+- **Couverture et statuts.** La couverture est donnée par section et sur la course, pour les glucides et le sodium. Une section est « à compléter » sous 85 % des glucides avec plus de 15 g manquants, et « au-dessus » au-delà de 125 %.
+- **Alertes** : aucun produit choisi, aucune boisson d'effort, boisson sans volume, objectif caféine sans produit caféiné.
+
+Les produits sont choisis dans « Mes produits » (0104). C'est une liste, sans stock ni quantités, comme le prévoit §3. Le coureur peut y ajouter un produit du catalogue validé ou créer un produit personnel typé. La stratégie retient sa sélection dans `selected_user_product_ids`.
+
 ---
 
 # 41. Fonction d’évaluation de couverture

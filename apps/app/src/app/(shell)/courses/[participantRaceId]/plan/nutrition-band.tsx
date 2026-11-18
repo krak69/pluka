@@ -54,6 +54,16 @@ export function NutritionBand({
   readonly view: NutritionStrategyView;
 }) {
   if (view.state === 'no_plan') return null;
+  // « Mes produits », pour l'étape de choix de la modale.
+  const pickable = view.products.map((product) => ({
+    id: product.id,
+    name: product.brand === null ? product.name : `${product.brand} ${product.name}`,
+    category: product.category,
+    carbsG: product.carbsG,
+    sodiumMg: product.sodiumMg,
+    caffeineMg: product.caffeineMg,
+    hydrationMl: product.hydrationMl,
+  }));
 
   if (view.state === 'off' || view.result === null || view.settings === null) {
     return (
@@ -74,6 +84,8 @@ export function NutritionBand({
             triggerLabel="Activer la nutrition"
             triggerClassName="pk-btn pk-button-secondary"
             submitLabel="Générer ma stratégie"
+            products={pickable}
+            selectedIds={view.settings?.selectedProductIds ?? []}
           />
         ) : (
           <Link href={`/offre?course=${participantRaceId}`} className="pk-btn pk-button-secondary">
@@ -85,6 +97,7 @@ export function NutritionBand({
   }
 
   const settings = view.settings;
+  const lines = strategyLines(view.result, view.startAt, view.timezone);
   const intakes = view.result.milestones.filter((milestone) => milestone.kind === 'intake').length;
   const targets = `${String(settings.carbsGPerHour)} g/h · ${String(settings.hydrationMlPerHour)} ml/h · ${String(settings.sodiumMgPerHour)} mg/h${
     settings.caffeineTotalMg === null
@@ -98,6 +111,9 @@ export function NutritionBand({
         <span className="nu-on-text">
           <span id="nu-on-title" className="nu-on-title">
             Nutrition
+            {lines.summary.coverage === null ? null : (
+              <span className="nu-on-coverage">{lines.summary.coverage}</span>
+            )}
             <span className="nu-on-count">
               {intakes === 0
                 ? 'aucune prise'
@@ -107,11 +123,16 @@ export function NutritionBand({
             </span>
           </span>
           <span className="nu-meta">{targets}</span>
+          {lines.summary.todo === null ? null : (
+            <span className="nu-on-todo">{lines.summary.todo}</span>
+          )}
         </span>
         {view.canEdit ? (
           <NutritionDialog
             participantRaceId={participantRaceId}
             initial={goalsOf(view)}
+            products={pickable}
+            selectedIds={settings.selectedProductIds}
             triggerLabel="Mes paramètres"
             triggerClassName="pk-btn pk-button-secondary"
             submitLabel="Recalculer ma stratégie"
@@ -125,7 +146,13 @@ export function NutritionBand({
         </p>
       ) : null}
 
-      <NutritionViews {...strategyLines(view.result, view.startAt, view.timezone)} />
+      {lines.summary.warnings.map((warning) => (
+        <p key={warning} className="nu-changed" role="status">
+          {warning}
+        </p>
+      ))}
+
+      <NutritionViews milestones={lines.milestones} sections={lines.sections} />
 
       <form action={disableNutritionAction} className="nu-disable">
         <input type="hidden" name="participantRaceId" value={participantRaceId} />

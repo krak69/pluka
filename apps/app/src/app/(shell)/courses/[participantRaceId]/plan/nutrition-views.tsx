@@ -58,6 +58,9 @@ export function NutritionViews({
               <span className="nu-milestone-what">
                 <span className="nu-milestone-name">{line.name}</span>
                 <span className="nu-reason">{line.reason}</span>
+                {line.items.length === 0 ? null : (
+                  <span className="nu-items">{line.items.join(' + ')}</span>
+                )}
               </span>
               <span className="nu-milestone-need">{line.need}</span>
             </li>
@@ -71,12 +74,25 @@ export function NutritionViews({
                 <summary className="nu-section-summary">
                   <span className="nu-section-name">{line.name}</span>
                   <span className="nu-meta">{line.meta}</span>
+                  {line.status === 'low' || line.status === 'high' ? (
+                    <span
+                      className={line.status === 'low' ? 'nu-status nu-status-low' : 'nu-status'}
+                    >
+                      {line.status === 'low' ? 'À compléter' : 'Au-dessus de la cible'}
+                    </span>
+                  ) : null}
                 </summary>
                 <div className="nu-section-body">
                   <div>
                     <span className="pk-label">Besoins</span>
                     <p className="nu-section-line">{line.needs}</p>
                   </div>
+                  {line.coverage === null ? null : (
+                    <div>
+                      <span className="pk-label">Couverture</span>
+                      <p className="nu-section-line">{line.coverage}</p>
+                    </div>
+                  )}
                   <div>
                     <span className="pk-label">À emporter</span>
                     <p className="nu-section-line">{line.carry}</p>

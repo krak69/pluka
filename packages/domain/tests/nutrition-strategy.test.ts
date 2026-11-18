@@ -1,4 +1,6 @@
 import type {
+  MyProductRecord,
+  MyProductsRepository,
   NutritionRepository,
   NutritionSettingsRecord,
   RaceWaypointRepository,
@@ -8,6 +10,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   DomainError,
   EntitlementError,
+  createMyNutritionProduct,
   disableNutrition,
   generateRacePlan,
   getNutritionStrategy,
@@ -41,10 +44,12 @@ import {
  */
 
 const NOW = new Date('2026-03-01T10:00:00.000Z');
+const GEL_ID = '0f000000-0000-4000-8000-000000000001';
 
 let entitlements: EntitlementState;
 let plan: PlanState;
 let own: string;
+let myProducts: MyProductRecord[];
 let stored: (NutritionSettingsRecord & { participantRaceId: string })[];
 
 function fakeNutrition(): NutritionRepository {
@@ -54,6 +59,13 @@ function fakeNutrition(): NutritionRepository {
       if (row === undefined) return null;
       const active = plan.plans.find((entry) => entry.record.status === 'active');
       return { ...row, onActivePlan: active?.record.id === row.racePlanId };
+    },
+    setProducts: async (participantRaceId, ids) => {
+      stored = stored.map((entry) =>
+        entry.participantRaceId === participantRaceId
+          ? { ...entry, selectedProductIds: [...ids] }
+          : entry,
+      );
     },
     disable: async (participantRaceId) => {
       stored = stored.map((entry) =>
@@ -76,6 +88,7 @@ function fakeNutrition(): NutritionRepository {
         placementMode: settings.placementMode,
         intervalMinutes: settings.intervalMinutes,
         enabled: true,
+        selectedProductIds: [],
         confirmedAt: NOW.toISOString(),
       });
     },
@@ -89,6 +102,27 @@ function context(userId: string = RUNNER_A): NutritionContext & PlanContext {
       ...planRepositories,
       ...createFakeEntitlementRepositories(entitlements),
       nutrition: fakeNutrition(),
+      myProducts: {
+        list: async () => myProducts,
+        searchCatalogue: async () => [],
+        addFromCatalogue: async () => 'catalogue-copy',
+        setHydration: async () => undefined,
+        createCustom: async (_userId: string, product: { name: string }) => {
+          myProducts.push({
+            id: '0f000000-0000-4000-8000-000000000009',
+            catalogueProductId: null,
+            brand: null,
+            servingLabel: null,
+            category: 'gel',
+            carbsG: 25,
+            sodiumMg: 50,
+            caffeineMg: 0,
+            hydrationMl: 0,
+            name: product.name,
+          });
+          return '0f000000-0000-4000-8000-000000000009';
+        },
+      } as unknown as MyProductsRepository,
       waypoints: {
         listByRace: async (raceId: string) =>
           plan.waypoints
@@ -124,6 +158,20 @@ beforeEach(() => {
   entitlements = entitlementBaseState(participation);
   plan = planBaseState(participation, PUBLIC_RACE);
   stored = [];
+  myProducts = [
+    {
+      id: GEL_ID,
+      catalogueProductId: null,
+      brand: 'Test',
+      name: 'Gel 25',
+      category: 'gel',
+      servingLabel: null,
+      carbsG: 25,
+      sodiumMg: 50,
+      caffeineMg: 0,
+      hydrationMl: 0,
+    },
+  ];
 });
 
 async function withPlan(hours = 3): Promise<void> {
@@ -242,5 +290,54 @@ describe('activation — jamais par défaut (décision du 2026-11-17)', () => {
 
     expect(stored.at(-1)?.placementMode).toBe('interval');
     expect(stored.at(-1)?.intervalMinutes).toBe(20);
+  });
+});
+
+describe('produits choisis (§27, 0104)', () => {
+  it('répartit les seuls produits choisis pour la stratégie', async () => {
+    racePass();
+    await withPlan();
+    await saveNutritionSettings(context(), {
+      participantRaceId: own,
+      ...SETTINGS,
+      waterSharePercent: 100,
+      productIds: [GEL_ID],
+    });
+
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    const items = Object.values(view.result?.allocation?.items ?? {}).flat();
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.every((item) => item.productId === GEL_ID)).toBe(true);
+    expect(view.products).toHaveLength(1);
+  });
+
+  it('sans produit choisi, le dit plutôt que d’en inventer', async () => {
+    racePass();
+    await withPlan();
+    await saveNutritionSettings(context(), { participantRaceId: own, ...SETTINGS });
+
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(view.result?.allocation?.warnings).toContain('no_products');
+  });
+
+  it('crée un produit personnel avec le Race Pass, et le refuse sans', async () => {
+    await withPlan();
+    const product = {
+      participantRaceId: own,
+      name: 'Purée maison',
+      category: 'puree',
+      carbsG: 20,
+      sodiumMg: 100,
+      caffeineMg: 0,
+      hydrationMl: 0,
+    };
+
+    await expect(createMyNutritionProduct(context(), product)).rejects.toBeInstanceOf(
+      EntitlementError,
+    );
+    racePass();
+    await expect(createMyNutritionProduct(context(), product)).resolves.toBe(
+      '0f000000-0000-4000-8000-000000000009',
+    );
   });
 });

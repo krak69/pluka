@@ -10,6 +10,7 @@ import type {
   NutritionTimeline,
   NutritionTimelinePoint,
 } from './contracts.js';
+import { allocateProducts } from './allocator.js';
 import { computeNutritionHash } from './hash.js';
 
 /**
@@ -272,5 +273,18 @@ export function generateNutrition(
     },
     sections,
     milestones,
+    // §39 : besoins et jalons d'abord, produits ensuite — un défaut de
+    // produit ne change ni les prises ni les cibles.
+    allocation:
+      input.products === undefined
+        ? null
+        : allocateProducts({
+            products: input.products,
+            milestones,
+            sections,
+            drinkMlPerHour: input.targets.hydrationMlPerHour * (1 - input.targets.waterShare),
+            caffeineTotalMg: input.targets.caffeineTotalMg,
+            finishElapsedSeconds: input.timeline.finishElapsedSeconds,
+          }),
   };
 }

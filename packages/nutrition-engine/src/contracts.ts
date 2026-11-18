@@ -68,6 +68,8 @@ export interface NutritionInput {
   readonly timeline: NutritionTimeline;
   readonly targets: NutritionTargets;
   readonly placement: NutritionPlacement;
+  /** Les produits choisis par le coureur (§27). Absents : pas de répartition. */
+  readonly products?: readonly import('./allocator.js').NutritionProduct[];
 }
 
 export interface NutritionNeeds {
@@ -118,4 +120,6 @@ export interface NutritionResult {
   readonly totals: NutritionNeeds & { readonly caffeineMg: number | null };
   readonly sections: readonly NutritionSection[];
   readonly milestones: readonly NutritionMilestone[];
+  /** Répartition des produits et couverture ; nulle sans produits fournis. */
+  readonly allocation: import('./allocator.js').Allocation | null;
 }

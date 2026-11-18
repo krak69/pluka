@@ -21,3 +21,11 @@ export type {
 } from './contracts.js';
 export { generateNutrition } from './engine.js';
 export { computeNutritionHash } from './hash.js';
+export {
+  allocateProducts,
+  type AllocatedItem,
+  type Allocation,
+  type AllocationWarning,
+  type Coverage,
+  type NutritionProduct,
+} from './allocator.js';

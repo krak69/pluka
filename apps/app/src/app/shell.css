@@ -6364,3 +6364,134 @@ a.st-tab {
     grid-template-columns: 1fr;
   }
 }
+
+/* Nutrition, tranche 2 : produits, couverture, choix (prototype `nutStepProducts`). */
+.nu-on-coverage {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pk-forest);
+}
+
+.nu-on-todo {
+  font-size: 13.5px;
+  color: var(--pk-text-secondary);
+}
+
+.nu-items {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pk-forest);
+}
+
+.nu-status {
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: 2px;
+  background: var(--pk-sand);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nu-status-low {
+  background: color-mix(in srgb, var(--pk-dawn) 18%, transparent);
+  color: var(--pk-dawn-ink);
+}
+
+.nu-dialog-eyebrow {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pk-text-secondary);
+}
+
+.nu-step[hidden] {
+  display: none;
+}
+
+.nu-step,
+.nu-products {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.nu-picks,
+.nu-results {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nu-pick {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 48px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  color: var(--pk-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.nu-pick[aria-pressed='true'] {
+  border-color: var(--pk-forest);
+  background: var(--pk-glacier-bg);
+}
+
+.nu-pick-box {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--pk-forest);
+  border-radius: 2px;
+  font-size: 13px;
+  color: var(--pk-forest);
+}
+
+.nu-pick-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nu-pick-name {
+  font-weight: 600;
+}
+
+.nu-result {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.nu-panel {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-left: 2px solid var(--pk-glacier);
+  background: var(--pk-limestone);
+}
+
+.nu-volume {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  border-left: 2px solid var(--pk-dawn);
+  background: var(--pk-limestone);
+}

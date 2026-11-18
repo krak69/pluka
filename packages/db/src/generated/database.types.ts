@@ -1881,6 +1881,7 @@ export type Database = {
           placement_mode: string
           race_plan_id: string | null
           reserve_percent: number
+          selected_user_product_ids: string[]
           sodium_target_mg_per_hour: number
           updated_at: string
           water_share_percent: number
@@ -1906,6 +1907,7 @@ export type Database = {
           placement_mode?: string
           race_plan_id?: string | null
           reserve_percent?: number
+          selected_user_product_ids?: string[]
           sodium_target_mg_per_hour: number
           updated_at?: string
           water_share_percent?: number
@@ -1931,6 +1933,7 @@ export type Database = {
           placement_mode?: string
           race_plan_id?: string | null
           reserve_percent?: number
+          selected_user_product_ids?: string[]
           sodium_target_mg_per_hour?: number
           updated_at?: string
           water_share_percent?: number
@@ -6062,6 +6065,9 @@ export type Database = {
           custom_brand: string | null
           custom_caffeine_mg: number | null
           custom_carbs_g: number | null
+          custom_category:
+            | Database["public"]["Enums"]["nutrition_product_category"]
+            | null
           custom_hydration_ml: number | null
           custom_name: string | null
           custom_serving_label: string | null
@@ -6077,6 +6083,9 @@ export type Database = {
           custom_brand?: string | null
           custom_caffeine_mg?: number | null
           custom_carbs_g?: number | null
+          custom_category?:
+            | Database["public"]["Enums"]["nutrition_product_category"]
+            | null
           custom_hydration_ml?: number | null
           custom_name?: string | null
           custom_serving_label?: string | null
@@ -6092,6 +6101,9 @@ export type Database = {
           custom_brand?: string | null
           custom_caffeine_mg?: number | null
           custom_carbs_g?: number | null
+          custom_category?:
+            | Database["public"]["Enums"]["nutrition_product_category"]
+            | null
           custom_hydration_ml?: number | null
           custom_name?: string | null
           custom_serving_label?: string | null
@@ -7329,6 +7341,10 @@ export type Database = {
           p_event_id: string
           p_status: Database["public"]["Enums"]["event_site_status"]
         }
+        Returns: undefined
+      }
+      set_nutrition_products: {
+        Args: { p_participant_race_id: string; p_user_product_ids: string[] }
         Returns: undefined
       }
       set_participant_withdrawn: {

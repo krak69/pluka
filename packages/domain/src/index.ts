@@ -953,7 +953,11 @@ export {
 } from './assistance/emergency-contact.js';
 
 export {
+  addCatalogueProduct,
+  createMyNutritionProduct,
   disableNutrition,
+  searchNutritionCatalogue,
+  setNutritionProductVolume,
   getNutritionStrategy,
   saveNutritionSettings,
   type NutritionContext,
@@ -964,4 +968,7 @@ export type {
   NutritionMilestone,
   NutritionResult,
   NutritionSection,
+  AllocatedItem,
+  Allocation,
+  Coverage,
 } from '@pluka/nutrition-engine';
