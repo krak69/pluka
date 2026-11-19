@@ -181,3 +181,22 @@ describe('dans le moteur', () => {
     expect(generateNutrition(withContainers).flasks?.stops).toHaveLength(3);
   });
 });
+
+describe('boisson du ravito (0110)', () => {
+  it('au ravito où le coureur la prend, la flasque se remplit sur place, sans dose', () => {
+    const plan = planFlasks(input(), TWO_FLASKS, [], ['ravito-2']);
+    const refill = plan.stops[2]?.actions[1];
+    expect(plan.stops[2]?.aidDrink).toBe(true);
+    expect(refill).toMatchObject({ kind: 'prepare_drink', doses: 0, fromAid: true, levelMl: 500 });
+    // Plus de dose en sachet pour ce remplissage ; celle du départ reste.
+    expect(plan.dosesAtStart).toBe(1);
+    expect(plan.dosesToCarry).toBe(0);
+  });
+
+  it('ailleurs, rien ne change ; et jamais au départ', () => {
+    const plan = planFlasks(input(), TWO_FLASKS, [], ['depart']);
+    expect(plan.stops[0]?.aidDrink).toBe(false);
+    expect(plan.dosesAtStart).toBe(1);
+    expect(plan.dosesToCarry).toBe(1);
+  });
+});

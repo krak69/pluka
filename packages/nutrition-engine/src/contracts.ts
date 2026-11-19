@@ -80,6 +80,8 @@ export interface NutritionInput {
   readonly containers?: import('./flasks.js').NutritionContainers;
   /** Les ravitaillements où le coureur ne remplit pas (« je ne remplis pas ici »). */
   readonly noRefillPointIds?: readonly string[];
+  /** Les ravitaillements où le coureur prend la boisson d'effort fournie (0110). */
+  readonly aidDrinkPointIds?: readonly string[];
 }
 
 export interface NutritionNeeds {

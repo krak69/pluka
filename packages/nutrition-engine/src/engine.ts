@@ -327,6 +327,11 @@ export function generateNutrition(
     flasks:
       input.containers === undefined || input.targets.hydrationMlPerHour <= 0
         ? null
-        : planFlasks(input, input.containers, input.noRefillPointIds ?? []),
+        : planFlasks(
+            input,
+            input.containers,
+            input.noRefillPointIds ?? [],
+            input.aidDrinkPointIds ?? [],
+          ),
   };
 }

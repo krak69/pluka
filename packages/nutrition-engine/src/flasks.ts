@@ -52,6 +52,8 @@ export interface FlaskAction {
   /** Le niveau en repartant. */
   readonly levelMl: number;
   readonly doses: number;
+  /** La flasque se remplit avec la boisson fournie par le ravito : aucune dose (0110). */
+  readonly fromAid?: true;
 }
 
 export interface FlaskStop {
@@ -72,6 +74,8 @@ export interface FlaskStop {
   readonly shortfallMl: number;
   /** Boisson qui manque d'un rien, compensée à l'eau plutôt que de refaire une flasque. */
   readonly drinkTopUpWithWaterMl: number;
+  /** Le coureur prend ici la boisson d'effort du ravito (0110). */
+  readonly aidDrink: boolean;
 }
 
 export type FlaskWarning =
@@ -117,7 +121,9 @@ export function planFlasks(
   input: NutritionInput,
   containers: NutritionContainers,
   noRefillPointIds: readonly string[] = [],
+  aidDrinkPointIds: readonly string[] = [],
 ): FlaskPlan {
+  const aidDrink = new Set(aidDrinkPointIds);
   const warnings = new Set<FlaskWarning>();
   const points = input.timeline.points;
   const skipped = new Set(noRefillPointIds);
@@ -220,6 +226,11 @@ export function planFlasks(
     let waterNeed = leg.water;
     let drinkNeed = leg.drink;
     const fresh = new Set<string>();
+    // La boisson du ravito : la flasque se remplit sur place, sans dose du coureur.
+    const fromAid = legIndex > 0 && aidDrink.has(leg.stop.id);
+    const fillLevel = drink === null ? 0 : fromAid ? capacity : drink.prepVolumeMl;
+    const fillDoses = drink === null || fromAid ? 0 : drink.prepDoses;
+    const aidMark = fromAid ? ({ fromAid: true } as const) : {};
 
     // — Boisson d'effort —
     if (drink !== null && drinkers.length > 0 && drinkNeed > EPSILON) {
@@ -243,10 +254,11 @@ export function planFlasks(
               containerId: flask.id,
               kind: 'prepare_drink',
               remainingMl: 0,
-              levelMl: drink.prepVolumeMl,
-              doses: drink.prepDoses,
+              levelMl: fillLevel,
+              doses: fillDoses,
+              ...aidMark,
             });
-            level.set(flask.id, drink.prepVolumeMl);
+            level.set(flask.id, fillLevel);
             fresh.add(flask.id);
           }
           // Plus de flasque vide : finir ici la moins pleine, puis la refaire.
@@ -262,10 +274,11 @@ export function planFlasks(
               containerId: flask.id,
               kind: 'finish_then_prepare',
               remainingMl: remaining,
-              levelMl: drink.prepVolumeMl,
-              doses: drink.prepDoses,
+              levelMl: fillLevel,
+              doses: fillDoses,
+              ...aidMark,
             });
-            level.set(flask.id, drink.prepVolumeMl);
+            level.set(flask.id, fillLevel);
             fresh.add(flask.id);
           }
           const missing = drinkNeed - avail();
@@ -378,6 +391,7 @@ export function planFlasks(
       drinkHereMl: drinkHere,
       shortfallMl: shortfall,
       drinkTopUpWithWaterMl: topUpWithWater,
+      aidDrink: fromAid && drink !== null,
     };
   });
 
