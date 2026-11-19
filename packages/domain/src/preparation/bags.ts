@@ -19,6 +19,7 @@ import { can } from '../entitlements/resolver.js';
 import { authorizeCapability, resolveEntitlements } from '../entitlements/use-cases.js';
 import { notFoundError, parseCommand, validationError } from '../errors.js';
 import { cleanLabels, labelKey } from '../library/equipment-library.js';
+import type { NutritionSupply, NutritionSupplyReader, SuppliedItem } from '../nutrition/supply.js';
 
 /**
  * Sacs de la Préparation — 00_PRODUCT_SPEC §14.4 ; 04_ENTITLEMENTS §45 ;
@@ -51,6 +52,8 @@ export interface BagsContext {
   /** Horloge serveur, transmise au service de droits (04_ENTITLEMENTS §22). */
   readonly now: () => Date;
   readonly disabledCapabilities?: ReadonlySet<Capability>;
+  /** Ce que la Nutrition range dans les sacs (NUTRITION_ENGINE §54) ; absent, rien. */
+  readonly nutritionSupply?: NutritionSupplyReader;
 }
 
 export type SuggestedBagType = Exclude<BagType, 'other'>;
@@ -93,6 +96,11 @@ export interface BagView {
   readonly ready: boolean;
   /** Ce qu'on peut y mettre d'un clic : checklist et « Mon matériel », hors ce qu'il contient. */
   readonly picks: readonly string[];
+  /**
+   * Ce que la stratégie Nutrition y range, calculé à la lecture (§54) : il
+   * suit chaque changement de stratégie et se règle depuis la Nutrition.
+   */
+  readonly nutrition: readonly SuppliedItem[];
 }
 
 export interface OfficialBagNote {
@@ -305,10 +313,21 @@ async function pickableLabels(
   ]);
 }
 
+/** Le sac de départ, le drop bag ou le sac d'assistance d'un point. */
+function nutritionOf(bag: BagRecord, supply: NutritionSupply | null): readonly SuppliedItem[] {
+  if (supply === null) return [];
+  if (bag.bagType === 'start') return supply.start;
+  if (bag.raceWaypointId === null) return [];
+  if (bag.bagType === 'drop_bag') return supply.bags[bag.raceWaypointId] ?? [];
+  if (bag.bagType === 'assistance') return supply.assistance[bag.raceWaypointId] ?? [];
+  return [];
+}
+
 function viewOf(
   bag: BagRecord,
   waypoints: ReadonlyMap<string, CourseWaypointRecord>,
   picks: readonly string[],
+  supply: NutritionSupply | null,
 ): BagView {
   const waypoint = bag.raceWaypointId === null ? undefined : waypoints.get(bag.raceWaypointId);
   const wantsPoint = bag.bagType === 'drop_bag' || bag.bagType === 'assistance';
@@ -332,6 +351,7 @@ function viewOf(
     checkedCount,
     ready: bag.items.length > 0 && checkedCount === bag.items.length,
     picks: picks.filter((label) => !inside.has(labelKey(label))),
+    nutrition: nutritionOf(bag, supply),
   };
 }
 
@@ -343,18 +363,20 @@ export async function getBags(context: BagsContext, input: unknown): Promise<Bag
   await authorize(context, 'preparation.read', participantRaceId);
 
   const raceId = await raceIdOf(context, participantRaceId, useCase);
-  const [bags, waypoints, settings, dismissed, facts, entitlements, picks] = await Promise.all([
-    context.repositories.bags.listBags(participantRaceId),
-    context.repositories.waypoints.listByRace(raceId),
-    context.repositories.participantRaceSettings.findByParticipantRace(participantRaceId),
-    context.repositories.bags.listDismissedSuggestions(participantRaceId),
-    context.repositories.publishedFacts.listPublishedByRace(raceId),
-    resolveEntitlements(serviceContext(context), { participantRaceId }),
-    pickableLabels(context, participantRaceId, raceId),
-  ]);
+  const [bags, waypoints, settings, dismissed, facts, entitlements, picks, supply] =
+    await Promise.all([
+      context.repositories.bags.listBags(participantRaceId),
+      context.repositories.waypoints.listByRace(raceId),
+      context.repositories.participantRaceSettings.findByParticipantRace(participantRaceId),
+      context.repositories.bags.listDismissedSuggestions(participantRaceId),
+      context.repositories.publishedFacts.listPublishedByRace(raceId),
+      resolveEntitlements(serviceContext(context), { participantRaceId }),
+      pickableLabels(context, participantRaceId, raceId),
+      context.nutritionSupply?.(participantRaceId) ?? null,
+    ]);
 
   const byId = new Map(waypoints.map((waypoint) => [waypoint.id, waypoint]));
-  const views = bags.map((bag) => viewOf(bag, byId, picks));
+  const views = bags.map((bag) => viewOf(bag, byId, picks, supply));
   const dismissedKeys = new Set(dismissed);
   const suggestions = suggestBags({
     waypoints,

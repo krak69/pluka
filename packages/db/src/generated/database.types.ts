@@ -1887,6 +1887,9 @@ export type Database = {
           reserve_percent: number
           selected_user_product_ids: string[]
           sodium_target_mg_per_hour: number
+          supply_assistance_waypoint_ids: string[]
+          supply_bag_waypoint_ids: string[]
+          supply_start_waypoint_ids: string[]
           updated_at: string
           water_share_percent: number
         }
@@ -1917,6 +1920,9 @@ export type Database = {
           reserve_percent?: number
           selected_user_product_ids?: string[]
           sodium_target_mg_per_hour: number
+          supply_assistance_waypoint_ids?: string[]
+          supply_bag_waypoint_ids?: string[]
+          supply_start_waypoint_ids?: string[]
           updated_at?: string
           water_share_percent?: number
         }
@@ -1947,6 +1953,9 @@ export type Database = {
           reserve_percent?: number
           selected_user_product_ids?: string[]
           sodium_target_mg_per_hour?: number
+          supply_assistance_waypoint_ids?: string[]
+          supply_bag_waypoint_ids?: string[]
+          supply_start_waypoint_ids?: string[]
           updated_at?: string
           water_share_percent?: number
         }
@@ -7353,6 +7362,10 @@ export type Database = {
         }
         Returns: string
       }
+      send_assistance_nutrition: {
+        Args: { p_assignment_id: string; p_labels: string[] }
+        Returns: undefined
+      }
       set_event_site_image: {
         Args: { p_event_id: string; p_kind: string; p_path: string }
         Returns: undefined
@@ -7394,6 +7407,18 @@ export type Database = {
           p_participant_race_id: string
           p_race_waypoint_id: string
           p_refill: boolean
+        }
+        Returns: undefined
+      }
+      set_nutrition_reserve: {
+        Args: { p_participant_race_id: string; p_reserve_percent: number }
+        Returns: undefined
+      }
+      set_nutrition_supply_point: {
+        Args: {
+          p_participant_race_id: string
+          p_race_waypoint_id: string
+          p_source: string
         }
         Returns: undefined
       }

@@ -600,3 +600,44 @@ describe('« Pas besoin »', () => {
     expect(overview.dismissedCount).toBe(1);
   });
 });
+
+describe('Nutrition — ce que la stratégie range dans les sacs (NUTRITION_ENGINE §54)', () => {
+  const gel = {
+    productId: 'gel',
+    name: 'Gel 25',
+    unit: 'serving' as const,
+    inFlasks: 0,
+    reserve: 0,
+  };
+
+  it('le sac de départ et le drop bag montrent leurs produits, calculés à la lecture', async () => {
+    racePass();
+    await createBag(context(), { participantRaceId: own, bagType: 'start' });
+    await createBag(context(), { participantRaceId: own, bagType: 'drop_bag', pointId: COL });
+    const supplied = {
+      ...context(),
+      nutritionSupply: async () => ({
+        start: [{ ...gel, quantity: 3, reserve: 1 }],
+        bags: { [COL]: [{ ...gel, quantity: 2 }] },
+        assistance: {},
+      }),
+    };
+
+    const overview = await getBags(supplied, { participantRaceId: own });
+    const byName = new Map(overview.bags.map((bag) => [bag.name, bag]));
+    expect(byName.get('Sac de départ')?.nutrition).toEqual([{ ...gel, quantity: 3, reserve: 1 }]);
+    expect(byName.get('Drop bag · Col')?.nutrition).toEqual([{ ...gel, quantity: 2 }]);
+    // Calculés, pas stockés : ils ne comptent pas dans ce qui est coché.
+    expect(byName.get('Drop bag · Col')?.items).toEqual([]);
+  });
+
+  it('sans stratégie Nutrition, les sacs restent tels quels', async () => {
+    racePass();
+    await createBag(context(), { participantRaceId: own, bagType: 'start' });
+    const overview = await getBags(
+      { ...context(), nutritionSupply: async () => null },
+      { participantRaceId: own },
+    );
+    expect(overview.bags[0]?.nutrition).toEqual([]);
+  });
+});

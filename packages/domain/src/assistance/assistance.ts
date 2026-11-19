@@ -16,8 +16,16 @@ import type { Actor } from '../authorization/organization-role.js';
 import type { Capability } from '../entitlements/capabilities.js';
 import { can } from '../entitlements/resolver.js';
 import { authorizeCapability, resolveEntitlements } from '../entitlements/use-cases.js';
-import { notFoundError, parseCommand, validationError } from '../errors.js';
+import { invalidStateError, notFoundError, parseCommand, validationError } from '../errors.js';
 import { cleanLabels } from '../library/equipment-library.js';
+import {
+  type NutritionSendStatus,
+  type NutritionSupplyReader,
+  type SuppliedItem,
+  sendStatus,
+  sentOf,
+  supplyLabels,
+} from '../nutrition/supply.js';
 
 /**
  * Assistance du coureur — 00_PRODUCT_SPEC §15, PLAN_ENGINE §41-42,
@@ -38,6 +46,8 @@ export interface AssistanceContext {
   readonly actor: Actor;
   readonly now: () => Date;
   readonly disabledCapabilities?: ReadonlySet<Capability>;
+  /** Ce que la Nutrition confie à l'Assistance (NUTRITION_ENGINE §55) ; absent, rien. */
+  readonly nutritionSupply?: NutritionSupplyReader;
 }
 
 export type AssistanceStatus = ParticipantRaceSettingsRecord['assistanceStatus'];
@@ -70,6 +80,23 @@ export interface RendezvousView {
   readonly passage: AssistancePassage | null;
   readonly instructions: string | null;
   readonly items: readonly { readonly id: string; readonly label: string }[];
+  /**
+   * Les produits de la stratégie Nutrition à donner à ce point, calculés à la
+   * lecture (§55) : quantités seulement, jamais les objectifs.
+   */
+  readonly nutrition: readonly SuppliedItem[];
+  /**
+   * Ce que l'accompagnant voit de cette liste sur sa page (0109) : une copie
+   * envoyée par le coureur, à jour ou non.
+   */
+  readonly nutritionSend: {
+    readonly status: NutritionSendStatus;
+    readonly sentAt: string | null;
+    /** Ce qu'il voit en ce moment. */
+    readonly sentLabels: readonly string[];
+    /** Ce qu'il faut donner, selon la stratégie maintenant. */
+    readonly labels: readonly string[];
+  };
 }
 
 export interface AssistantView {
@@ -270,9 +297,10 @@ export async function getAssistance(
   const assignments = await context.repositories.assistance.listAssignments(
     assistants.map((assistant) => assistant.id),
   );
-  const [items, planWaypoints] = await Promise.all([
+  const [items, planWaypoints, supply] = await Promise.all([
     context.repositories.assistance.listItems(assignments.map((assignment) => assignment.id)),
     plan === null ? [] : context.repositories.racePlans.listWaypoints(plan.id),
+    context.nutritionSupply?.(participantRaceId) ?? null,
   ]);
 
   const byId = new Map(waypoints.map((waypoint) => [waypoint.id, waypoint]));
@@ -280,6 +308,9 @@ export async function getAssistance(
 
   const rendezvousOf = (assignment: AssistanceAssignmentRecord): RendezvousView => {
     const waypoint = byId.get(assignment.raceWaypointId);
+    const nutrition = supply?.assistance[assignment.raceWaypointId] ?? [];
+    const labels = supplyLabels(nutrition);
+    const sent = sentOf(items, assignment.id);
     const step = planned.get(assignment.raceWaypointId);
     return {
       id: assignment.id,
@@ -295,9 +326,17 @@ export async function getAssistance(
           ? null
           : assistancePassage(plan.startAt, step.plannedElapsedSeconds),
       instructions: assignment.instructions,
+      // La liste Nutrition envoyée se règle depuis la stratégie, pas ligne à ligne.
       items: items
-        .filter((item) => item.assignmentId === assignment.id)
+        .filter((item) => item.assignmentId === assignment.id && item.kind !== 'nutrition')
         .map((item) => ({ id: item.id, label: item.label })),
+      nutrition,
+      nutritionSend: {
+        status: sendStatus(labels, sent.labels),
+        sentAt: sent.sentAt,
+        sentLabels: sent.labels,
+        labels,
+      },
     };
   };
 
@@ -481,6 +520,37 @@ export async function removeRendezvousItem(
   }
 
   await context.repositories.assistance.deleteItem(command.itemId);
+}
+
+/**
+ * « Envoyer à mon accompagnant » (0109, NUTRITION_ENGINE §55) : fige la liste
+ * Nutrition de ce rendez-vous, telle que la stratégie la calcule maintenant,
+ * dans sa page privée. Si plus rien n'est prévu ici, l'envoi est retiré.
+ * Rien ne se renvoie tout seul : l'écran du coureur dit quand la copie n'est
+ * plus à jour.
+ */
+export async function sendNutritionToAssistant(
+  context: AssistanceContext,
+  input: unknown,
+): Promise<void> {
+  const useCase = 'sendNutritionToAssistant';
+  const command = parseCommand(rendezvousCommand, input, useCase);
+
+  await authorize(context, 'assistance.edit', command.participantRaceId);
+  const assignment = await ownRendezvous(
+    context,
+    command.participantRaceId,
+    command.rendezvousId,
+    useCase,
+  );
+  if (context.nutritionSupply === undefined) {
+    throw invalidStateError(useCase, 'La stratégie Nutrition n’est pas lisible ici.');
+  }
+  const supply = await context.nutritionSupply(command.participantRaceId);
+  await context.repositories.assistance.sendNutritionItems(
+    assignment.id,
+    supplyLabels(supply?.assistance[assignment.raceWaypointId] ?? []),
+  );
 }
 
 // ------------------------------------------------------------

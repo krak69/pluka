@@ -1,4 +1,8 @@
 import type {
+  AssistanceAssignmentRecord,
+  AssistanceItemRecord,
+  AssistantRecord,
+  BagRecord,
   CustomMilestoneRecord,
   MyProductRecord,
   MyProductsRepository,
@@ -19,6 +23,8 @@ import {
   saveNutritionSettings,
   setNutritionMilestoneItems,
   setNutritionRefillPoint,
+  setNutritionReserve,
+  setNutritionSupplyPoint,
   type NutritionContext,
   type PlanContext,
 } from '../src/index.js';
@@ -56,6 +62,10 @@ let own: string;
 let myProducts: MyProductRecord[];
 let stored: (NutritionSettingsRecord & { participantRaceId: string })[];
 let customs: CustomMilestoneRecord[];
+let bags: BagRecord[];
+let assistants: AssistantRecord[];
+let assignments: AssistanceAssignmentRecord[];
+let sentItems: AssistanceItemRecord[];
 
 function fakeNutrition(): NutritionRepository {
   return {
@@ -88,6 +98,23 @@ function fakeNutrition(): NutritionRepository {
             }
           : entry,
       );
+    },
+    setReserve: async (participantRaceId, reservePercent) => {
+      stored = stored.map((entry) =>
+        entry.participantRaceId === participantRaceId ? { ...entry, reservePercent } : entry,
+      );
+    },
+    setSupplyPoint: async (participantRaceId, raceWaypointId, source) => {
+      stored = stored.map((entry) => {
+        if (entry.participantRaceId !== participantRaceId) return entry;
+        const choices = Object.fromEntries(
+          Object.entries(entry.supplyChoices).filter(([id]) => id !== raceWaypointId),
+        );
+        return {
+          ...entry,
+          supplyChoices: source === null ? choices : { ...choices, [raceWaypointId]: source },
+        };
+      });
     },
     listCustomMilestones: async () => customs,
     setMilestoneItems: async (_participantRaceId, milestone) => {
@@ -139,6 +166,8 @@ function fakeNutrition(): NutritionRepository {
         flaskCapacityMl: 500,
         bladderMl: null,
         noRefillWaypointIds: [],
+        reservePercent: 0,
+        supplyChoices: {},
         confirmedAt: NOW.toISOString(),
       });
     },
@@ -152,6 +181,12 @@ function context(userId: string = RUNNER_A): NutritionContext & PlanContext {
       ...planRepositories,
       ...createFakeEntitlementRepositories(entitlements),
       nutrition: fakeNutrition(),
+      bags: { listBags: async () => bags },
+      assistance: {
+        listAssistants: async () => assistants,
+        listAssignments: async () => assignments,
+        listItems: async () => sentItems,
+      },
       myProducts: {
         list: async () => myProducts,
         searchCatalogue: async () => [],
@@ -209,6 +244,10 @@ beforeEach(() => {
   plan = planBaseState(participation, PUBLIC_RACE);
   stored = [];
   customs = [];
+  bags = [];
+  assistants = [];
+  assignments = [];
+  sentItems = [];
   myProducts = [
     {
       id: GEL_ID,
@@ -512,5 +551,160 @@ describe('flasques (§33, §34, 0107)', () => {
         containers: { flaskCount: 9, flaskCapacityMl: 500, bladderMl: null },
       }),
     ).rejects.toBeInstanceOf(DomainError);
+  });
+});
+
+describe('à préparer pour cette course (§49 à §56, 0108)', () => {
+  /** Le ravitaillement du km 5 de la fixture, avec des gels à prendre après lui. */
+  async function ready(): Promise<string> {
+    racePass();
+    await withPlan();
+    await saveNutritionSettings(context(), {
+      participantRaceId: own,
+      ...SETTINGS,
+      productIds: [GEL_ID],
+    });
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    const aid = view.preparation?.points[0];
+    expect(aid).toBeDefined();
+    return aid?.pointId ?? '';
+  }
+
+  it('sans sac ni Assistance, tout part du départ ; la réserve s’ajoute sans être consommée', async () => {
+    await ready();
+    await setNutritionReserve(context(), { participantRaceId: own, reservePercent: 10 });
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    const gel = view.preparation?.plan.products.find((row) => row.productId === GEL_ID);
+
+    expect(view.preparation?.points[0]).toMatchObject({ auto: 'start', source: 'start' });
+    expect(gel?.reserve).toBe(Math.ceil((gel?.planned ?? 0) * 0.1));
+    expect(gel?.start).toBe(gel?.total);
+    expect(view.preparation?.plan.reservePercent).toBe(10);
+  });
+
+  it('un rendez-vous d’Assistance au ravito : ses produits viennent de l’accompagnant', async () => {
+    const aidId = await ready();
+    assistants = [{ id: 'marie', firstName: 'Marie', lastName: null, phone: null }];
+    assignments = [{ id: 'rdv', assistantId: 'marie', raceWaypointId: aidId, instructions: null }];
+    bags = [{ id: 'sac', bagType: 'drop_bag', name: 'Drop bag', raceWaypointId: aidId, items: [] }];
+
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(view.preparation?.points[0]).toMatchObject({
+      options: ['start', 'bag', 'assistance'],
+      auto: 'assistance',
+      source: 'assistance',
+      assistants: ['Marie'],
+      bagName: 'Drop bag',
+    });
+  });
+
+  it('le coureur choisit le drop bag ; s’il le supprime, ses produits restent, sans place', async () => {
+    const aidId = await ready();
+    bags = [{ id: 'sac', bagType: 'drop_bag', name: 'Drop bag', raceWaypointId: aidId, items: [] }];
+    await setNutritionSupplyPoint(context(), {
+      participantRaceId: own,
+      raceWaypointId: aidId,
+      source: 'bag',
+    });
+    const chosen = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(chosen.preparation?.points[0]).toMatchObject({ chosen: 'bag', source: 'bag' });
+
+    bags = [];
+    const orphan = await getNutritionStrategy(context(), { participantRaceId: own });
+    const gel = orphan.preparation?.plan.products.find((row) => row.productId === GEL_ID);
+    expect(orphan.preparation?.points[0]).toMatchObject({ chosen: 'bag', source: 'unassigned' });
+    expect((gel?.start ?? 0) + (gel?.unassigned ?? 0)).toBe(gel?.total);
+  });
+
+  it('régler la réserve ou la source demande le Race Pass', async () => {
+    await withPlan();
+    await expect(
+      setNutritionReserve(context(), { participantRaceId: own, reservePercent: 10 }),
+    ).rejects.toBeInstanceOf(EntitlementError);
+    await expect(
+      setNutritionSupplyPoint(context(), {
+        participantRaceId: own,
+        raceWaypointId: '0a000000-0000-4000-8000-000000000001',
+        source: null,
+      }),
+    ).rejects.toBeInstanceOf(EntitlementError);
+  });
+
+  it('refuse une réserve hors de 0 à 100 %, et une source inconnue', async () => {
+    const aidId = await ready();
+    await expect(
+      setNutritionReserve(context(), { participantRaceId: own, reservePercent: 150 }),
+    ).rejects.toBeInstanceOf(DomainError);
+    await expect(
+      setNutritionSupplyPoint(context(), {
+        participantRaceId: own,
+        raceWaypointId: aidId,
+        source: 'poche',
+      }),
+    ).rejects.toBeInstanceOf(DomainError);
+  });
+});
+
+describe('envoyer à l’accompagnant — l’état de la liste (§55, 0109)', () => {
+  async function withAlice(): Promise<string> {
+    racePass();
+    await withPlan();
+    await saveNutritionSettings(context(), {
+      participantRaceId: own,
+      ...SETTINGS,
+      productIds: [GEL_ID],
+    });
+    const before = await getNutritionStrategy(context(), { participantRaceId: own });
+    const aidId = before.preparation?.points[0]?.pointId ?? '';
+    assistants = [{ id: 'alice', firstName: 'Alice', lastName: null, phone: null }];
+    assignments = [{ id: 'rdv', assistantId: 'alice', raceWaypointId: aidId, instructions: null }];
+    return aidId;
+  }
+
+  const sent = (labels: readonly string[]): AssistanceItemRecord[] =>
+    labels.map((label, index) => ({
+      id: `envoi-${String(index)}`,
+      assignmentId: 'rdv',
+      label,
+      kind: 'nutrition',
+      createdAt: `2026-03-01T10:00:0${String(index)}.000Z`,
+    }));
+
+  it('pas encore envoyé : la stratégie prévoit des produits qu’Alice ne voit pas', async () => {
+    await withAlice();
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(view.preparation?.sends).toEqual([
+      expect.objectContaining({ assistant: 'Alice', status: 'unsent', sentAt: null }),
+    ]);
+  });
+
+  it('à jour quand la copie est celle du calcul ; périmée dès que la stratégie change', async () => {
+    await withAlice();
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    const gels = view.preparation?.plan.points[1]?.items[0]?.quantity ?? 0;
+    expect(gels).toBeGreaterThan(0);
+    sentItems = sent([`${String(gels)} × Test Gel 25`]);
+    const upToDate = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(upToDate.preparation?.sends[0]?.status).toBe('sent');
+
+    sentItems = sent([`${String(gels + 1)} × Test Gel 25`]);
+    const stale = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(stale.preparation?.sends[0]).toMatchObject({
+      status: 'stale',
+      sentAt: '2026-03-01T10:00:00.000Z',
+      nothingToGive: false,
+    });
+  });
+
+  it('périmée aussi quand plus rien n’est prévu chez Alice, mais qu’elle a encore une liste', async () => {
+    const aidId = await withAlice();
+    sentItems = sent(['2 × Test Gel 25']);
+    await setNutritionSupplyPoint(context(), {
+      participantRaceId: own,
+      raceWaypointId: aidId,
+      source: 'start',
+    });
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(view.preparation?.sends[0]).toMatchObject({ status: 'stale', nothingToGive: true });
   });
 });

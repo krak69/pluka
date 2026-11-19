@@ -26,6 +26,7 @@ import {
   removeAssistant,
   removeRendezvous,
   removeRendezvousItem,
+  sendNutritionToAssistant,
   getEmergencyContact,
   removeEmergencyContact,
   saveEmergencyContact,
@@ -148,7 +149,27 @@ function fakeAssistance(): AssistanceRepository {
     listItems: async (assignmentIds) =>
       items.filter((item) => assignmentIds.includes(item.assignmentId)),
     addItems: async (assignmentId, labels) => {
-      items.push(...labels.map((label) => ({ id: id(), assignmentId, label })));
+      items.push(
+        ...labels.map((label) => ({
+          id: id(),
+          assignmentId,
+          label,
+          kind: 'other' as const,
+          createdAt: NOW.toISOString(),
+        })),
+      );
+    },
+    sendNutritionItems: async (assignmentId, labels) => {
+      items = [
+        ...items.filter((item) => item.assignmentId !== assignmentId || item.kind !== 'nutrition'),
+        ...labels.map((label, index) => ({
+          id: id(),
+          assignmentId,
+          label,
+          kind: 'nutrition' as const,
+          createdAt: new Date(NOW.getTime() + index).toISOString(),
+        })),
+      ];
     },
     deleteItem: async (itemId) => {
       items = items.filter((item) => item.id !== itemId);
@@ -677,5 +698,179 @@ describe('contact d’urgence — gratuit, distinct de l’Assistance (AC-ASST-0
 
     await removeEmergencyContact(context(), { participantRaceId: own });
     expect(emergency.size).toBe(0);
+  });
+});
+
+describe('Nutrition — ce que l’Assistance donne (NUTRITION_ENGINE §55)', () => {
+  it('« À me donner » montre les produits de la stratégie pour ce point, sans objectif', async () => {
+    racePass();
+    await addAssistant(context(), { participantRaceId: own, firstName: 'Camille' });
+    await addRendezvous(context(), {
+      participantRaceId: own,
+      assistantId: assistants[0]?.id,
+      pointId: BASE_VIE,
+    });
+    const gel = {
+      productId: 'gel',
+      name: 'Gel 25',
+      unit: 'serving' as const,
+      quantity: 2,
+      inFlasks: 0,
+      reserve: 0,
+    };
+
+    const overview = await getAssistance(
+      {
+        ...context(),
+        nutritionSupply: async () => ({ start: [], bags: {}, assistance: { [BASE_VIE]: [gel] } }),
+      },
+      { participantRaceId: own },
+    );
+    expect(overview.people[0]?.rendezvous[0]?.nutrition).toEqual([gel]);
+  });
+});
+
+describe('envoyer la liste Nutrition à l’accompagnant (0109, §55)', () => {
+  const gel = {
+    productId: 'gel',
+    name: 'Gel 25',
+    unit: 'serving' as const,
+    quantity: 3,
+    inFlasks: 0,
+    reserve: 0,
+  };
+  const dose = { ...gel, productId: 'naak', name: 'Näak', unit: 'dose' as const, quantity: 1 };
+
+  async function rendezvous(): Promise<string> {
+    racePass();
+    await addAssistant(context(), { participantRaceId: own, firstName: 'Camille' });
+    await addRendezvous(context(), {
+      participantRaceId: own,
+      assistantId: assistants[0]?.id,
+      pointId: BASE_VIE,
+    });
+    return assignments[0]?.id ?? '';
+  }
+
+  function supplied(list: readonly { readonly quantity: number }[]): AssistanceContext {
+    return {
+      ...context(),
+      nutritionSupply: async () => ({
+        start: [],
+        bags: {},
+        assistance: { [BASE_VIE]: list as readonly (typeof gel)[] },
+      }),
+    };
+  }
+
+  it('fige la liste ; elle est à jour, puis périmée quand la stratégie change', async () => {
+    const rendezvousId = await rendezvous();
+    await addRendezvousItems(context(), {
+      participantRaceId: own,
+      rendezvousId,
+      labels: ['Gourde pleine'],
+    });
+
+    const before = await getAssistance(supplied([gel, dose]), { participantRaceId: own });
+    expect(before.people[0]?.rendezvous[0]?.nutritionSend.status).toBe('unsent');
+
+    await sendNutritionToAssistant(supplied([gel, dose]), { participantRaceId: own, rendezvousId });
+    const sent = await getAssistance(supplied([gel, dose]), { participantRaceId: own });
+    expect(sent.people[0]?.rendezvous[0]).toMatchObject({
+      items: [{ label: 'Gourde pleine' }],
+      nutritionSend: { status: 'sent', sentLabels: ['3 × Gel 25', '1 dose de Näak'] },
+    });
+
+    const changed = await getAssistance(supplied([{ ...gel, quantity: 2 }, dose]), {
+      participantRaceId: own,
+    });
+    expect(changed.people[0]?.rendezvous[0]?.nutritionSend).toMatchObject({
+      status: 'stale',
+      sentLabels: ['3 × Gel 25', '1 dose de Näak'],
+    });
+  });
+
+  it('renvoyer quand plus rien n’est prévu retire la liste ; le reste demeure', async () => {
+    const rendezvousId = await rendezvous();
+    await sendNutritionToAssistant(supplied([gel]), { participantRaceId: own, rendezvousId });
+    await sendNutritionToAssistant(supplied([]), { participantRaceId: own, rendezvousId });
+    const overview = await getAssistance(supplied([]), { participantRaceId: own });
+    expect(overview.people[0]?.rendezvous[0]?.nutritionSend).toMatchObject({
+      status: 'none',
+      sentLabels: [],
+    });
+  });
+
+  it('envoyer demande un rendez-vous du coureur, et le Race Pass', async () => {
+    const rendezvousId = await rendezvous();
+    await expect(
+      sendNutritionToAssistant(supplied([gel]), {
+        participantRaceId: own,
+        rendezvousId: '0a000000-0000-4000-8000-0000000000ff',
+      }),
+    ).rejects.toBeInstanceOf(DomainError);
+    entitlements.entitlements = [];
+    await expect(
+      sendNutritionToAssistant(supplied([gel]), { participantRaceId: own, rendezvousId }),
+    ).rejects.toBeInstanceOf(EntitlementError);
+  });
+});
+
+describe('plusieurs équipes d’assistance — un ravito chacune (ultra)', () => {
+  it('chaque équipe voit la liste de son point, et reçoit son propre envoi', async () => {
+    racePass();
+    waypoints = waypoints.map((entry) =>
+      entry.id === RAVITO ? { ...entry, assistanceAllowed: true } : entry,
+    );
+    await addAssistant(context(), { participantRaceId: own, firstName: 'Équipe 1' });
+    await addAssistant(context(), { participantRaceId: own, firstName: 'Équipe 2' });
+    const [first, second] = assistants;
+    await addRendezvous(context(), {
+      participantRaceId: own,
+      assistantId: first?.id,
+      pointId: RAVITO,
+    });
+    await addRendezvous(context(), {
+      participantRaceId: own,
+      assistantId: second?.id,
+      pointId: BASE_VIE,
+    });
+    const gel = {
+      productId: 'gel',
+      name: 'Gel 25',
+      unit: 'serving' as const,
+      inFlasks: 0,
+      reserve: 0,
+    };
+    const teams: AssistanceContext = {
+      ...context(),
+      nutritionSupply: async () => ({
+        start: [],
+        bags: {},
+        assistance: {
+          [RAVITO]: [{ ...gel, quantity: 2 }],
+          [BASE_VIE]: [{ ...gel, quantity: 3 }],
+        },
+      }),
+    };
+
+    const secondRendezvous = assignments.find((entry) => entry.raceWaypointId === BASE_VIE)?.id;
+    await sendNutritionToAssistant(teams, {
+      participantRaceId: own,
+      rendezvousId: secondRendezvous,
+    });
+
+    const overview = await getAssistance(teams, { participantRaceId: own });
+    const byTeam = new Map(
+      overview.people.map((person) => [person.firstName, person.rendezvous[0]]),
+    );
+    expect(byTeam.get('Équipe 1')).toMatchObject({
+      point: { name: 'Ravito du lac' },
+      nutritionSend: { status: 'unsent', labels: ['2 × Gel 25'] },
+    });
+    expect(byTeam.get('Équipe 2')).toMatchObject({
+      point: { name: 'Base vie' },
+      nutritionSend: { status: 'sent', sentLabels: ['3 × Gel 25'] },
+    });
   });
 });

@@ -930,6 +930,7 @@ export {
   removeAssistant,
   removeRendezvous,
   removeRendezvousItem,
+  sendNutritionToAssistant,
   setAssistanceStatus,
   setRendezvousInstructions,
   updateAssistant,
@@ -963,9 +964,21 @@ export {
   resetNutritionMilestone,
   setNutritionMilestoneItems,
   setNutritionRefillPoint,
+  setNutritionReserve,
+  setNutritionSupplyPoint,
+  getNutritionSupply,
   type NutritionContext,
   type NutritionStrategyView,
 } from './nutrition/strategy.js';
+export type {
+  NutritionPreparationView,
+  NutritionSendStatus,
+  NutritionSendView,
+  NutritionSupply,
+  NutritionSupplyReader,
+  SuppliedItem,
+  SupplyPointView,
+} from './nutrition/supply.js';
 export type {
   MilestoneReason,
   NutritionMilestone,
@@ -977,4 +990,9 @@ export type {
   FlaskAction,
   FlaskContainer,
   FlaskPlan,
+  PreparationDestination,
+  PreparationPlan,
+  PreparationPoint,
+  PreparationProduct,
+  PreparationQuantity,
 } from '@pluka/nutrition-engine';

@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 import type {
+  AssistanceRepository,
+  BagRepository,
   CourseMicroSegmentRecord,
   CustomMilestoneRecord,
   EntitlementRepositories,
@@ -19,6 +21,7 @@ import {
   type NutritionTerrainSpan,
   type NutritionTimeline,
   type NutritionTimelinePoint,
+  planPreparation,
 } from '@pluka/nutrition-engine';
 import { microSegmentWeight, PLAN_ENGINE_V1 } from '@pluka/plan-engine';
 
@@ -27,6 +30,17 @@ import type { Capability } from '../entitlements/capabilities.js';
 import { can } from '../entitlements/resolver.js';
 import { authorizeCapability, resolveEntitlements } from '../entitlements/use-cases.js';
 import { invalidStateError, notFoundError, parseCommand } from '../errors.js';
+import {
+  type NutritionPreparationView,
+  type NutritionSendView,
+  type NutritionSupply,
+  sendStatus,
+  sentOf,
+  sourcesOf,
+  supplyLabels,
+  supplyOf,
+  supplyPoints,
+} from './supply.js';
 
 /**
  * Nutrition, tranche 1 — NUTRITION_ENGINE §6, §7, §10, §35, §83 ; décisions
@@ -43,7 +57,19 @@ import { invalidStateError, notFoundError, parseCommand } from '../errors.js';
  */
 
 export interface NutritionContext {
-  readonly repositories: NutritionRepositories & EntitlementRepositories;
+  /**
+   * Les sacs et les rendez-vous d'Assistance disent d'où viennent les produits
+   * après chaque ravitaillement (« À préparer », §53) : la Nutrition les lit,
+   * sans jamais les écrire.
+   */
+  readonly repositories: NutritionRepositories &
+    EntitlementRepositories & {
+      readonly bags: Pick<BagRepository, 'listBags'>;
+      readonly assistance: Pick<
+        AssistanceRepository,
+        'listAssistants' | 'listAssignments' | 'listItems'
+      >;
+    };
   readonly actor: Actor;
   readonly now: () => Date;
   readonly disabledCapabilities?: ReadonlySet<Capability>;
@@ -67,6 +93,8 @@ export interface NutritionStrategyView {
   readonly canEdit: boolean;
   /** « Mes produits », pour l'étape de choix de la modale. */
   readonly products: readonly MyProductRecord[];
+  /** « À préparer pour cette course » (§49-56) ; nul tant que la stratégie n'est pas calculée. */
+  readonly preparation: NutritionPreparationView | null;
 }
 
 const participation = z.object({ participantRaceId: z.uuid() }).strict();
@@ -338,7 +366,13 @@ export async function getNutritionStrategy(
     context.repositories.myProducts.list(context.actor.userId),
   ]);
   const canEdit = can(entitlements, 'nutrition.edit').allowed;
-  const base = { startAt: plan?.startAt ?? null, timezone, canEdit, products };
+  const base = {
+    startAt: plan?.startAt ?? null,
+    timezone,
+    canEdit,
+    products,
+    preparation: null,
+  };
 
   if (plan === null) {
     return {
@@ -359,32 +393,79 @@ export async function getNutritionStrategy(
     };
   }
 
-  const [timeline, customs] = await Promise.all([
+  const [timeline, customs, bags, assistants] = await Promise.all([
     timelineOf(context, raceId, plan),
     context.repositories.nutrition.listCustomMilestones(settings.id),
+    context.repositories.bags.listBags(participantRaceId),
+    context.repositories.assistance.listAssistants(participantRaceId),
   ]);
+  const assignments =
+    assistants.length === 0
+      ? []
+      : await context.repositories.assistance.listAssignments(
+          assistants.map((person) => person.id),
+        );
+  const sentItems =
+    assignments.length === 0
+      ? []
+      : await context.repositories.assistance.listItems(
+          assignments.map((assignment) => assignment.id),
+        );
+  // §27 : seuls les produits choisis pour cette stratégie, et qui existent encore.
+  // §58 : les prises que le coureur a modifiées gardent ses produits.
+  const result = generateNutrition(
+    engineInput(
+      timeline,
+      settings,
+      products.filter((product) => settings.selectedProductIds.includes(product.id)),
+      customs,
+      {
+        containers: {
+          flaskCount: settings.flaskCount,
+          flaskCapacityMl: settings.flaskCapacityMl,
+          bladderMl: settings.bladderMl,
+        },
+        noRefillPointIds: settings.noRefillWaypointIds,
+      },
+    ),
+  );
+  const points = supplyPoints(result, {
+    choices: settings.supplyChoices,
+    bags,
+    assistants,
+    assignments,
+  });
+  const preparationPlan = planPreparation(result, {
+    reservePercent: settings.reservePercent,
+    sources: sourcesOf(points),
+  });
+  const supply = supplyOf({ plan: preparationPlan, points, sends: [] });
+  const names = new Map(assistants.map((person) => [person.id, person.firstName]));
+  const pointNames = new Map(points.map((point) => [point.pointId, point.name]));
+  const sends = assignments.flatMap((assignment): NutritionSendView[] => {
+    const current = supplyLabels(supply.assistance[assignment.raceWaypointId] ?? []);
+    const sent = sentOf(sentItems, assignment.id);
+    const status = sendStatus(current, sent.labels);
+    if (status === 'none') return [];
+    return [
+      {
+        rendezvousId: assignment.id,
+        assistant: names.get(assignment.assistantId) ?? 'ton accompagnant',
+        pointId: assignment.raceWaypointId,
+        pointName: pointNames.get(assignment.raceWaypointId) ?? 'son point',
+        status,
+        sentAt: sent.sentAt,
+        nothingToGive: current.length === 0,
+        labels: current,
+      },
+    ];
+  });
   return {
     ...base,
     state: 'ready',
     settings,
-    // §27 : seuls les produits choisis pour cette stratégie, et qui existent encore.
-    // §58 : les prises que le coureur a modifiées gardent ses produits.
-    result: generateNutrition(
-      engineInput(
-        timeline,
-        settings,
-        products.filter((product) => settings.selectedProductIds.includes(product.id)),
-        customs,
-        {
-          containers: {
-            flaskCount: settings.flaskCount,
-            flaskCapacityMl: settings.flaskCapacityMl,
-            bladderMl: settings.bladderMl,
-          },
-          noRefillPointIds: settings.noRefillWaypointIds,
-        },
-      ),
-    ),
+    result,
+    preparation: { plan: preparationPlan, points, sends },
     planChangedSinceSettings: !settings.onActivePlan,
   };
 }
@@ -685,4 +766,71 @@ export async function setNutritionRefillPoint(
     command.raceWaypointId,
     command.refill,
   );
+}
+
+// ------------------------------------------------------------
+// « À préparer pour cette course » — §49 à §56 (0108).
+// ------------------------------------------------------------
+
+const reserveCommand = z
+  .object({ participantRaceId: z.uuid(), reservePercent: z.number().min(0).max(100) })
+  .strict();
+
+/**
+ * La réserve de sécurité : ce qu'on prépare en plus, jamais compté comme
+ * consommé (§49, §51). Elle part avec le coureur.
+ */
+export async function setNutritionReserve(
+  context: NutritionContext,
+  input: unknown,
+): Promise<void> {
+  const command = parseCommand(reserveCommand, input, 'setNutritionReserve');
+  await authorizeCapability(serviceContext(context), {
+    capability: 'nutrition.edit',
+    participantRaceId: command.participantRaceId,
+  });
+  await context.repositories.nutrition.setReserve(
+    command.participantRaceId,
+    command.reservePercent,
+  );
+}
+
+const supplyCommand = z
+  .object({
+    participantRaceId: z.uuid(),
+    raceWaypointId: z.uuid(),
+    source: z.enum(['start', 'bag', 'assistance']).nullable(),
+  })
+  .strict();
+
+/**
+ * D'où viennent les produits après un ravitaillement : porté depuis le
+ * départ, drop bag ou Assistance ; nul, retour au choix automatique.
+ */
+export async function setNutritionSupplyPoint(
+  context: NutritionContext,
+  input: unknown,
+): Promise<void> {
+  const command = parseCommand(supplyCommand, input, 'setNutritionSupplyPoint');
+  await authorizeCapability(serviceContext(context), {
+    capability: 'nutrition.edit',
+    participantRaceId: command.participantRaceId,
+  });
+  await context.repositories.nutrition.setSupplyPoint(
+    command.participantRaceId,
+    command.raceWaypointId,
+    command.source,
+  );
+}
+
+/**
+ * Ce que la Nutrition range dans les sacs et chez l'Assistance (§53 à §55),
+ * pour Sacs et Assistance. Nul tant que la stratégie n'est pas calculée.
+ */
+export async function getNutritionSupply(
+  context: NutritionContext,
+  input: unknown,
+): Promise<NutritionSupply | null> {
+  const view = await getNutritionStrategy(context, input);
+  return view.preparation === null ? null : supplyOf(view.preparation);
 }

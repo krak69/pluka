@@ -439,6 +439,7 @@ export {
   type NutritionRepository,
   type NutritionSettingsRecord,
   type ContainersInput,
+  type SupplyChoice,
   type CustomMilestoneInput,
   type CustomMilestoneItemRecord,
   type CustomMilestoneRecord,

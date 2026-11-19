@@ -43,7 +43,14 @@ export interface NutritionSettingsRecord {
   readonly bladderMl: number | null;
   /** Les ravitaillements où il ne remplit pas ses flasques (0107). */
   readonly noRefillWaypointIds: readonly string[];
+  /** Réserve de sécurité, 0 à 100 % (0001, réglable depuis 0108). */
+  readonly reservePercent: number;
+  /** D'où viennent les produits à un ravitaillement, quand le coureur l'a choisi (0108). */
+  readonly supplyChoices: Readonly<Record<string, SupplyChoice>>;
 }
+
+/** Ce qui sert après un ravitaillement : porté depuis le départ, drop bag ou Assistance. */
+export type SupplyChoice = 'start' | 'bag' | 'assistance';
 
 export interface SaveNutritionSettings {
   readonly carbsGPerHour: number;
@@ -72,6 +79,14 @@ export interface NutritionRepository {
   setContainers(participantRaceId: string, containers: ContainersInput): Promise<void>;
   /** « Je remplis ici » ou non, à un point de la course (0107). */
   setRefillPoint(participantRaceId: string, raceWaypointId: string, refill: boolean): Promise<void>;
+  /** La réserve de la stratégie du Plan actif (0108). */
+  setReserve(participantRaceId: string, reservePercent: number): Promise<void>;
+  /** D'où viennent les produits à un point ; nul, retour à l'automatique (0108). */
+  setSupplyPoint(
+    participantRaceId: string,
+    raceWaypointId: string,
+    source: SupplyChoice | null,
+  ): Promise<void>;
   /** Les prises dont le coureur a fixé les produits (0106, §57-58). */
   listCustomMilestones(nutritionPlanId: string): Promise<readonly CustomMilestoneRecord[]>;
   setMilestoneItems(participantRaceId: string, milestone: CustomMilestoneInput): Promise<void>;
@@ -143,6 +158,10 @@ type SettingsRow = {
   flask_capacity_ml: number;
   bladder_ml: number | null;
   no_refill_waypoint_ids: string[];
+  reserve_percent: number;
+  supply_start_waypoint_ids: string[];
+  supply_bag_waypoint_ids: string[];
+  supply_assistance_waypoint_ids: string[];
   confirmed_at: string | null;
   race_plans: { status: string };
 };
@@ -153,7 +172,7 @@ export const nutritionRepository = defineRepository<NutritionRepository>((contex
       await context.client
         .from('nutrition_plans')
         .select(
-          'id, race_plan_id, carbs_target_g_per_hour, hydration_target_ml_per_hour, sodium_target_mg_per_hour, caffeine_target_total_mg, water_share_percent, placement_density, aid_buffer, placement_mode, placement_interval_minutes, enabled, selected_user_product_ids, flask_count, flask_capacity_ml, bladder_ml, no_refill_waypoint_ids, confirmed_at, race_plans!inner(participant_race_id, status)',
+          'id, race_plan_id, carbs_target_g_per_hour, hydration_target_ml_per_hour, sodium_target_mg_per_hour, caffeine_target_total_mg, water_share_percent, placement_density, aid_buffer, placement_mode, placement_interval_minutes, enabled, selected_user_product_ids, flask_count, flask_capacity_ml, bladder_ml, no_refill_waypoint_ids, reserve_percent, supply_start_waypoint_ids, supply_bag_waypoint_ids, supply_assistance_waypoint_ids, confirmed_at, race_plans!inner(participant_race_id, status)',
         )
         .eq('race_plans.participant_race_id', participantRaceId)
         .order('generated_at', { ascending: false })
@@ -182,6 +201,12 @@ export const nutritionRepository = defineRepository<NutritionRepository>((contex
       flaskCapacityMl: row.flask_capacity_ml,
       bladderMl: row.bladder_ml,
       noRefillWaypointIds: row.no_refill_waypoint_ids,
+      reservePercent: Number(row.reserve_percent),
+      supplyChoices: Object.fromEntries([
+        ...row.supply_start_waypoint_ids.map((id) => [id, 'start'] as const),
+        ...row.supply_bag_waypoint_ids.map((id) => [id, 'bag'] as const),
+        ...row.supply_assistance_waypoint_ids.map((id) => [id, 'assistance'] as const),
+      ]),
       confirmedAt: row.confirmed_at,
     };
   },
@@ -247,6 +272,28 @@ export const nutritionRepository = defineRepository<NutritionRepository>((contex
         p_refill: refill,
       }),
       'set_nutrition_refill_point',
+    );
+  },
+
+  async setReserve(participantRaceId, reservePercent) {
+    unwrapMaybe(
+      await context.client.rpc('set_nutrition_reserve', {
+        p_participant_race_id: participantRaceId,
+        p_reserve_percent: reservePercent,
+      }),
+      'set_nutrition_reserve',
+    );
+  },
+
+  async setSupplyPoint(participantRaceId, raceWaypointId, source) {
+    unwrapMaybe(
+      await context.client.rpc('set_nutrition_supply_point', {
+        p_participant_race_id: participantRaceId,
+        p_race_waypoint_id: raceWaypointId,
+        // Le type généré ne connaît pas la nullabilité des paramètres : la fonction l'accepte.
+        p_source: source as string,
+      }),
+      'set_nutrition_supply_point',
     );
   },
 

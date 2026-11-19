@@ -29,6 +29,7 @@ function bag(id: string, checked: number, total: number): BagView {
     checkedCount: checked,
     ready: total > 0 && checked === total,
     picks: [],
+    nutrition: [],
   };
 }
 

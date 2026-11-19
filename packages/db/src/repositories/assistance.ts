@@ -48,6 +48,9 @@ export interface AssistanceItemRecord {
   readonly id: string;
   readonly assignmentId: string;
   readonly label: string;
+  /** `nutrition` : la liste envoyée depuis la stratégie (0109) ; sinon, notée à la main. */
+  readonly kind: 'nutrition' | 'other';
+  readonly createdAt: string;
 }
 
 export interface AssistanceRepository {
@@ -68,6 +71,8 @@ export interface AssistanceRepository {
   listItems(assignmentIds: readonly string[]): Promise<readonly AssistanceItemRecord[]>;
   addItems(assignmentId: string, labels: readonly string[]): Promise<void>;
   deleteItem(itemId: string): Promise<void>;
+  /** Remplace la liste Nutrition envoyée à ce rendez-vous ; vide, la retire (0109). */
+  sendNutritionItems(assignmentId: string, labels: readonly string[]): Promise<void>;
   /** Les liens privés actifs d'une participation (0100) ; jamais leur empreinte. */
   listLinks(participantRaceId: string): Promise<readonly AssistantLinkRecord[]>;
   /** Crée le lien d'une personne, en éteignant l'ancien. Seule l'empreinte entre en base. */
@@ -136,7 +141,13 @@ type AssignmentRow = {
   instructions: string | null;
 };
 
-type ItemRow = { id: string; assistance_assignment_id: string; label: string };
+type ItemRow = {
+  id: string;
+  assistance_assignment_id: string;
+  label: string;
+  item_type: string;
+  created_at: string;
+};
 
 export const assistanceRepository = defineRepository<AssistanceRepository>((context) => ({
   async listAssistants(participantRaceId) {
@@ -252,7 +263,7 @@ export const assistanceRepository = defineRepository<AssistanceRepository>((cont
     const rows = unwrap(
       await context.client
         .from('assistance_items')
-        .select('id, assistance_assignment_id, label')
+        .select('id, assistance_assignment_id, label, item_type, created_at')
         .in('assistance_assignment_id', [...assignmentIds])
         .order('created_at', { ascending: true }),
       'assistance_items.list',
@@ -262,6 +273,8 @@ export const assistanceRepository = defineRepository<AssistanceRepository>((cont
       id: row.id,
       assignmentId: row.assistance_assignment_id,
       label: row.label,
+      kind: row.item_type === 'nutrition' ? ('nutrition' as const) : ('other' as const),
+      createdAt: row.created_at,
     }));
   },
 
@@ -283,6 +296,16 @@ export const assistanceRepository = defineRepository<AssistanceRepository>((cont
     unwrapMaybe(
       await context.client.from('assistance_items').delete().eq('id', itemId),
       'assistance_items.delete',
+    );
+  },
+
+  async sendNutritionItems(assignmentId, labels) {
+    unwrapMaybe(
+      await context.client.rpc('send_assistance_nutrition', {
+        p_assignment_id: assignmentId,
+        p_labels: [...labels],
+      }),
+      'send_assistance_nutrition',
     );
   },
 
