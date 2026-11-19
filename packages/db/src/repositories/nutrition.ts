@@ -37,6 +37,12 @@ export interface NutritionSettingsRecord {
   readonly enabled: boolean;
   /** Les produits de « Mes produits » choisis pour cette stratégie (0104). */
   readonly selectedProductIds: readonly string[];
+  /** Ce que le coureur porte (0107). */
+  readonly flaskCount: number;
+  readonly flaskCapacityMl: number;
+  readonly bladderMl: number | null;
+  /** Les ravitaillements où il ne remplit pas ses flasques (0107). */
+  readonly noRefillWaypointIds: readonly string[];
 }
 
 export interface SaveNutritionSettings {
@@ -62,7 +68,62 @@ export interface NutritionRepository {
   disable(participantRaceId: string): Promise<void>;
   /** Retient les produits choisis pour la stratégie du Plan actif (0104). */
   setProducts(participantRaceId: string, userProductIds: readonly string[]): Promise<void>;
+  /** Les contenants portés, sur la stratégie du Plan actif (0107). */
+  setContainers(participantRaceId: string, containers: ContainersInput): Promise<void>;
+  /** « Je remplis ici » ou non, à un point de la course (0107). */
+  setRefillPoint(participantRaceId: string, raceWaypointId: string, refill: boolean): Promise<void>;
+  /** Les prises dont le coureur a fixé les produits (0106, §57-58). */
+  listCustomMilestones(nutritionPlanId: string): Promise<readonly CustomMilestoneRecord[]>;
+  setMilestoneItems(participantRaceId: string, milestone: CustomMilestoneInput): Promise<void>;
+  /** Rend la prise au moteur : la proposition PLUKA revient. */
+  resetMilestone(participantRaceId: string, stableKey: string): Promise<void>;
 }
+
+export interface ContainersInput {
+  readonly flaskCount: number;
+  readonly flaskCapacityMl: number;
+  readonly bladderMl: number | null;
+}
+
+export interface CustomMilestoneItemRecord {
+  /** Nul si le produit a depuis été retiré de « Mes produits ». */
+  readonly userProductId: string | null;
+  readonly label: string;
+  readonly quantity: number;
+  /** Par portion, recopiés à l'enregistrement. */
+  readonly carbsG: number;
+  readonly sodiumMg: number;
+  readonly caffeineMg: number;
+  readonly hydrationMl: number;
+}
+
+export interface CustomMilestoneRecord {
+  readonly stableKey: string;
+  readonly items: readonly CustomMilestoneItemRecord[];
+}
+
+export interface CustomMilestoneInput {
+  readonly stableKey: string;
+  readonly label: string;
+  readonly elapsedSeconds: number;
+  readonly distanceKm: number | null;
+  readonly items: readonly { readonly userProductId: string; readonly quantity: number }[];
+}
+
+type CustomMilestoneRow = {
+  stable_key: string;
+  nutrition_waypoint_items: {
+    user_nutrition_product_id: string | null;
+    generic_label: string | null;
+    product_label_snapshot: string | null;
+    quantity: number;
+    carbs_g: number;
+    sodium_mg: number;
+    caffeine_mg: number;
+    hydration_ml: number;
+    created_at: string;
+  }[];
+};
 
 type SettingsRow = {
   id: string;
@@ -78,6 +139,10 @@ type SettingsRow = {
   placement_interval_minutes: number | null;
   enabled: boolean;
   selected_user_product_ids: string[];
+  flask_count: number;
+  flask_capacity_ml: number;
+  bladder_ml: number | null;
+  no_refill_waypoint_ids: string[];
   confirmed_at: string | null;
   race_plans: { status: string };
 };
@@ -88,7 +153,7 @@ export const nutritionRepository = defineRepository<NutritionRepository>((contex
       await context.client
         .from('nutrition_plans')
         .select(
-          'id, race_plan_id, carbs_target_g_per_hour, hydration_target_ml_per_hour, sodium_target_mg_per_hour, caffeine_target_total_mg, water_share_percent, placement_density, aid_buffer, placement_mode, placement_interval_minutes, enabled, selected_user_product_ids, confirmed_at, race_plans!inner(participant_race_id, status)',
+          'id, race_plan_id, carbs_target_g_per_hour, hydration_target_ml_per_hour, sodium_target_mg_per_hour, caffeine_target_total_mg, water_share_percent, placement_density, aid_buffer, placement_mode, placement_interval_minutes, enabled, selected_user_product_ids, flask_count, flask_capacity_ml, bladder_ml, no_refill_waypoint_ids, confirmed_at, race_plans!inner(participant_race_id, status)',
         )
         .eq('race_plans.participant_race_id', participantRaceId)
         .order('generated_at', { ascending: false })
@@ -113,6 +178,10 @@ export const nutritionRepository = defineRepository<NutritionRepository>((contex
       intervalMinutes: row.placement_interval_minutes,
       enabled: row.enabled,
       selectedProductIds: row.selected_user_product_ids,
+      flaskCount: row.flask_count,
+      flaskCapacityMl: row.flask_capacity_ml,
+      bladderMl: row.bladder_ml,
+      noRefillWaypointIds: row.no_refill_waypoint_ids,
       confirmedAt: row.confirmed_at,
     };
   },
@@ -154,6 +223,85 @@ export const nutritionRepository = defineRepository<NutritionRepository>((contex
         p_user_product_ids: [...userProductIds],
       }),
       'set_nutrition_products',
+    );
+  },
+
+  async setContainers(participantRaceId, containers) {
+    unwrapMaybe(
+      await context.client.rpc('set_nutrition_containers', {
+        p_participant_race_id: participantRaceId,
+        p_flask_count: containers.flaskCount,
+        p_flask_capacity_ml: containers.flaskCapacityMl,
+        // Le type généré ne connaît pas la nullabilité des paramètres : la fonction l'accepte.
+        p_bladder_ml: containers.bladderMl as number,
+      }),
+      'set_nutrition_containers',
+    );
+  },
+
+  async setRefillPoint(participantRaceId, raceWaypointId, refill) {
+    unwrapMaybe(
+      await context.client.rpc('set_nutrition_refill_point', {
+        p_participant_race_id: participantRaceId,
+        p_race_waypoint_id: raceWaypointId,
+        p_refill: refill,
+      }),
+      'set_nutrition_refill_point',
+    );
+  },
+
+  async listCustomMilestones(nutritionPlanId) {
+    const rows = unwrapMaybe(
+      await context.client
+        .from('nutrition_waypoints')
+        .select(
+          'stable_key, nutrition_waypoint_items(user_nutrition_product_id, generic_label, product_label_snapshot, quantity, carbs_g, sodium_mg, caffeine_mg, hydration_ml, created_at)',
+        )
+        .eq('nutrition_plan_id', nutritionPlanId)
+        .eq('is_customized', true),
+      'nutrition_waypoints.listCustom',
+    ) as CustomMilestoneRow[] | null;
+
+    return (rows ?? []).map((row) => ({
+      stableKey: row.stable_key,
+      items: [...row.nutrition_waypoint_items]
+        .sort((left, right) => (left.created_at < right.created_at ? -1 : 1))
+        .map((item) => ({
+          userProductId: item.user_nutrition_product_id,
+          label: item.generic_label ?? item.product_label_snapshot ?? 'Produit',
+          // Une portion entière : la fonction n'écrit que des entiers (0106).
+          quantity: Number(item.quantity),
+          carbsG: Number(item.carbs_g),
+          sodiumMg: item.sodium_mg,
+          caffeineMg: item.caffeine_mg,
+          hydrationMl: item.hydration_ml,
+        })),
+    }));
+  },
+
+  async setMilestoneItems(participantRaceId, milestone) {
+    unwrapMaybe(
+      await context.client.rpc('set_nutrition_milestone_items', {
+        p_participant_race_id: participantRaceId,
+        p_stable_key: milestone.stableKey,
+        p_label: milestone.label,
+        p_elapsed_seconds: Math.round(milestone.elapsedSeconds),
+        // Le type généré ne connaît pas la nullabilité des paramètres : la fonction l'accepte.
+        p_distance_km: milestone.distanceKm as number,
+        p_user_product_ids: milestone.items.map((item) => item.userProductId),
+        p_quantities: milestone.items.map((item) => item.quantity),
+      }),
+      'set_nutrition_milestone_items',
+    );
+  },
+
+  async resetMilestone(participantRaceId, stableKey) {
+    unwrapMaybe(
+      await context.client.rpc('reset_nutrition_milestone', {
+        p_participant_race_id: participantRaceId,
+        p_stable_key: stableKey,
+      }),
+      'reset_nutrition_milestone',
     );
   },
 }));
@@ -200,6 +348,8 @@ export interface CatalogueProductRecord {
   readonly sodiumMg: number;
   readonly caffeineMg: number;
   readonly hydrationMl: number;
+  /** Photo de la fiche (https, site de la marque) ; null si la fiche n'en a pas. */
+  readonly imageUrl: string | null;
 }
 
 export interface CustomProductInput {
@@ -215,7 +365,11 @@ export interface CustomProductInput {
 
 export interface MyProductsRepository {
   list(userId: string): Promise<readonly MyProductRecord[]>;
-  /** Le catalogue validé, par nom ou marque ; 30 résultats au plus. */
+  /**
+   * Le catalogue validé ; 30 résultats au plus. Chaque mot tapé doit se
+   * retrouver dans la marque, le nom ou la variante, sans tenir compte des
+   * accents ni de la casse (« naak » trouve « Näak », 0105).
+   */
   searchCatalogue(query: string): Promise<readonly CatalogueProductRecord[]>;
   /** Ajoute un produit du catalogue ; déjà présent, ne fait rien. Rend l'identifiant. */
   addFromCatalogue(userId: string, catalogueProductId: string): Promise<string>;
@@ -249,7 +403,7 @@ type MyProductRow = {
 };
 
 const CATALOGUE_COLUMNS =
-  'id, brand, name, variant, category, carbs_g, sodium_mg, caffeine_mg, hydration_ml';
+  'id, brand, name, variant, category, carbs_g, sodium_mg, caffeine_mg, hydration_ml, image_url';
 
 type CatalogueRow = {
   id: string;
@@ -261,7 +415,21 @@ type CatalogueRow = {
   sodium_mg: number;
   caffeine_mg: number;
   hydration_ml: number;
+  image_url: string | null;
 };
+
+/** Même repli que `public.nutrition_search_fold` (0105) : casse et accents. */
+function foldSearchText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/œ/gu, 'oe')
+    .replace(/æ/gu, 'ae')
+    .replace(/ß/gu, 'ss')
+    .replace(/ł/gu, 'l')
+    .replace(/ø/gu, 'o')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '');
+}
 
 function nameOf(name: string, variant: string | null): string {
   return variant === null || variant === '' ? name : `${name} ${variant}`;
@@ -318,7 +486,12 @@ export const myProductsRepository = defineRepository<MyProductsRepository>((cont
   },
 
   async searchCatalogue(query) {
-    const term = query.trim().replace(/[%_,()]/gu, ' ');
+    // `%` et `_` sont des jokers de `ilike` : on les retire de la saisie.
+    const words = foldSearchText(query)
+      .replace(/[%_\\]/gu, ' ')
+      .split(/\s+/u)
+      .filter((word) => word !== '')
+      .slice(0, 6);
     let request = context.client
       .from('nutrition_products')
       .select(CATALOGUE_COLUMNS)
@@ -326,7 +499,7 @@ export const myProductsRepository = defineRepository<MyProductsRepository>((cont
       .order('brand', { ascending: true })
       .order('name', { ascending: true })
       .limit(30);
-    if (term !== '') request = request.or(`name.ilike.%${term}%,brand.ilike.%${term}%`);
+    for (const word of words) request = request.ilike('search_key', `%${word}%`);
     const rows = unwrapMaybe(await request, 'nutrition_products.search') as CatalogueRow[] | null;
 
     return (rows ?? []).map((row) => ({
@@ -338,6 +511,7 @@ export const myProductsRepository = defineRepository<MyProductsRepository>((cont
       sodiumMg: row.sodium_mg,
       caffeineMg: row.caffeine_mg,
       hydrationMl: row.hydration_ml,
+      imageUrl: row.image_url,
     }));
   },
 

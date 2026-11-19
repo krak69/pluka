@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import type {
   CourseMicroSegmentRecord,
+  CustomMilestoneRecord,
   EntitlementRepositories,
   NutritionRepositories,
   MyProductRecord,
@@ -9,8 +10,10 @@ import type {
   RacePlanRecord,
 } from '@pluka/db';
 import {
+  type CustomItem,
   generateNutrition,
   NUTRITION_ENGINE_V1,
+  type NutritionContainers,
   type NutritionInput,
   type NutritionResult,
   type NutritionTerrainSpan,
@@ -72,6 +75,15 @@ const participation = z.object({ participantRaceId: z.uuid() }).strict();
  * Bornes techniques du contrat (§10) — pas des bornes médicales : elles
  * écartent une saisie absurde (une virgule oubliée), jamais un choix.
  */
+/** Bornes techniques des contenants (0107) : de quoi écarter une saisie absurde. */
+const containersSchema = z
+  .object({
+    flaskCount: z.number().int().min(0).max(4),
+    flaskCapacityMl: z.number().int().min(150).max(1000),
+    bladderMl: z.number().int().min(500).max(3000).nullable(),
+  })
+  .strict();
+
 const settingsCommand = z
   .object({
     participantRaceId: z.uuid(),
@@ -87,6 +99,8 @@ const settingsCommand = z
     intervalMinutes: z.number().int().min(10).max(120).nullable().default(null),
     // §27 : les produits choisis pour la stratégie ; absents, la sélection ne change pas.
     productIds: z.array(z.uuid()).max(60).optional(),
+    // §33-34 : ce que le coureur porte ; absent, les contenants ne changent pas.
+    containers: containersSchema.optional(),
   })
   .strict();
 
@@ -228,9 +242,18 @@ function engineInput(
     | 'intervalMinutes'
   >,
   products?: readonly MyProductRecord[],
+  customs: readonly CustomMilestoneRecord[] = [],
+  logistics?: {
+    readonly containers: NutritionContainers;
+    readonly noRefillPointIds: readonly string[];
+  },
 ): NutritionInput {
   return {
     timeline,
+    ...(logistics === undefined
+      ? {}
+      : { containers: logistics.containers, noRefillPointIds: logistics.noRefillPointIds }),
+    ...(customs.length === 0 ? {} : { customItems: customItemsOf(customs) }),
     ...(products === undefined
       ? {}
       : {
@@ -258,6 +281,31 @@ function engineInput(
       intervalSeconds: settings.intervalMinutes === null ? null : settings.intervalMinutes * 60,
     },
   };
+}
+
+/**
+ * Les prises fixées par le coureur, pour le moteur. Les valeurs sont celles
+ * recopiées à l'enregistrement (0106) : un produit retiré depuis de « Mes
+ * produits » reste à sa prise, sous son nom.
+ */
+function customItemsOf(
+  customs: readonly CustomMilestoneRecord[],
+): Record<string, readonly CustomItem[]> {
+  return Object.fromEntries(
+    customs.map((custom) => [
+      custom.stableKey,
+      custom.items.map((item, index) => ({
+        id: item.userProductId ?? `retire:${custom.stableKey}:${String(index)}`,
+        name: item.label,
+        category: 'other',
+        carbsG: item.carbsG,
+        sodiumMg: item.sodiumMg,
+        caffeineMg: item.caffeineMg,
+        hydrationMl: 0,
+        quantity: item.quantity,
+      })),
+    ]),
+  );
 }
 
 async function scopeOf(context: NutritionContext, participantRaceId: string, useCase: string) {
@@ -311,17 +359,30 @@ export async function getNutritionStrategy(
     };
   }
 
-  const timeline = await timelineOf(context, raceId, plan);
+  const [timeline, customs] = await Promise.all([
+    timelineOf(context, raceId, plan),
+    context.repositories.nutrition.listCustomMilestones(settings.id),
+  ]);
   return {
     ...base,
     state: 'ready',
     settings,
     // §27 : seuls les produits choisis pour cette stratégie, et qui existent encore.
+    // §58 : les prises que le coureur a modifiées gardent ses produits.
     result: generateNutrition(
       engineInput(
         timeline,
         settings,
         products.filter((product) => settings.selectedProductIds.includes(product.id)),
+        customs,
+        {
+          containers: {
+            flaskCount: settings.flaskCount,
+            flaskCapacityMl: settings.flaskCapacityMl,
+            bladderMl: settings.bladderMl,
+          },
+          noRefillPointIds: settings.noRefillWaypointIds,
+        },
       ),
     ),
     planChangedSinceSettings: !settings.onActivePlan,
@@ -385,6 +446,12 @@ export async function saveNutritionSettings(
   });
   if (command.productIds !== undefined) {
     await context.repositories.nutrition.setProducts(command.participantRaceId, command.productIds);
+  }
+  if (command.containers !== undefined) {
+    await context.repositories.nutrition.setContainers(
+      command.participantRaceId,
+      command.containers,
+    );
   }
   return result;
 }
@@ -515,5 +582,107 @@ export async function setNutritionProductVolume(context: NutritionContext, input
     context.actor.userId,
     command.userProductId,
     command.hydrationMl,
+  );
+}
+
+// ------------------------------------------------------------
+// Modifier les produits d'une prise — §57, §58 (0106).
+// ------------------------------------------------------------
+
+const milestoneCommand = z
+  .object({
+    participantRaceId: z.uuid(),
+    stableKey: z.string().min(1).max(160),
+    items: z
+      .array(z.object({ userProductId: z.uuid(), quantity: z.number().int().min(1).max(5) }))
+      .max(6),
+  })
+  .strict();
+
+const resetCommand = z
+  .object({ participantRaceId: z.uuid(), stableKey: z.string().min(1).max(160) })
+  .strict();
+
+/**
+ * Le coureur fixe lui-même les produits d'une prise ou d'un ravitaillement.
+ * Ils sont protégés : le moteur ne les change plus, et répartit le reste
+ * autour (§40, étape 2). Une liste vide veut dire « rien à cette prise ».
+ */
+export async function setNutritionMilestoneItems(
+  context: NutritionContext,
+  input: unknown,
+): Promise<void> {
+  const useCase = 'setNutritionMilestoneItems';
+  const command = parseCommand(milestoneCommand, input, useCase);
+  await authorizeCapability(serviceContext(context), {
+    capability: 'nutrition.edit',
+    participantRaceId: command.participantRaceId,
+  });
+
+  const view = await getNutritionStrategy(context, {
+    participantRaceId: command.participantRaceId,
+  });
+  const milestone = view.result?.milestones.find(
+    (candidate) => candidate.stableKey === command.stableKey && candidate.kind !== 'finish',
+  );
+  if (view.state !== 'ready' || milestone === undefined) {
+    throw invalidStateError(useCase, 'prise introuvable dans la stratégie actuelle');
+  }
+  const owned = new Set(view.products.map((product) => product.id));
+  if (command.items.some((item) => !owned.has(item.userProductId))) {
+    throw notFoundError(useCase, 'produit');
+  }
+  const ids = command.items.map((item) => item.userProductId);
+  if (new Set(ids).size !== ids.length) {
+    throw invalidStateError(useCase, 'un produit en double');
+  }
+
+  await context.repositories.nutrition.setMilestoneItems(command.participantRaceId, {
+    stableKey: milestone.stableKey,
+    label: milestone.kind === 'aid' ? milestone.name : 'Prise',
+    elapsedSeconds: milestone.elapsedSeconds,
+    distanceKm: milestone.distanceKm,
+    items: command.items,
+  });
+}
+
+/** Rend une prise au moteur : la proposition PLUKA revient. */
+export async function resetNutritionMilestone(
+  context: NutritionContext,
+  input: unknown,
+): Promise<void> {
+  const command = parseCommand(resetCommand, input, 'resetNutritionMilestone');
+  await authorizeCapability(serviceContext(context), {
+    capability: 'nutrition.edit',
+    participantRaceId: command.participantRaceId,
+  });
+  await context.repositories.nutrition.resetMilestone(command.participantRaceId, command.stableKey);
+}
+
+// ------------------------------------------------------------
+// Points de remplissage — §33, §34 (0107).
+// ------------------------------------------------------------
+
+const refillCommand = z
+  .object({ participantRaceId: z.uuid(), raceWaypointId: z.uuid(), refill: z.boolean() })
+  .strict();
+
+/**
+ * « Je remplis ici » ou non, à un ravitaillement. Le plan de flasques suit :
+ * le tronçon s'allonge jusqu'au point de remplissage suivant.
+ */
+export async function setNutritionRefillPoint(
+  context: NutritionContext,
+  input: unknown,
+): Promise<void> {
+  const command = parseCommand(refillCommand, input, 'setNutritionRefillPoint');
+  await authorizeCapability(serviceContext(context), {
+    capability: 'nutrition.edit',
+    participantRaceId: command.participantRaceId,
+  });
+  await context.repositories.nutrition.setRefillPoint(
+    command.participantRaceId,
+    command.raceWaypointId,
+    command.refill,
   );
 }

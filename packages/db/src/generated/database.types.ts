@@ -1862,6 +1862,7 @@ export type Database = {
       nutrition_plans: {
         Row: {
           aid_buffer: boolean
+          bladder_ml: number | null
           caffeine_target_total_mg: number | null
           carbs_target_g_per_hour: number
           confirmed_at: string | null
@@ -1869,12 +1870,15 @@ export type Database = {
           enabled: boolean
           engine_config_version: string | null
           engine_version: string
+          flask_capacity_ml: number
+          flask_count: number
           generated_at: string
           hydration_target_ml_per_hour: number
           id: string
           input_hash: string | null
           input_snapshot: Json
           last_recalculated_at: string | null
+          no_refill_waypoint_ids: string[]
           outing_id: string | null
           placement_density: string
           placement_interval_minutes: number | null
@@ -1888,6 +1892,7 @@ export type Database = {
         }
         Insert: {
           aid_buffer?: boolean
+          bladder_ml?: number | null
           caffeine_target_total_mg?: number | null
           carbs_target_g_per_hour: number
           confirmed_at?: string | null
@@ -1895,12 +1900,15 @@ export type Database = {
           enabled?: boolean
           engine_config_version?: string | null
           engine_version: string
+          flask_capacity_ml?: number
+          flask_count?: number
           generated_at?: string
           hydration_target_ml_per_hour: number
           id?: string
           input_hash?: string | null
           input_snapshot?: Json
           last_recalculated_at?: string | null
+          no_refill_waypoint_ids?: string[]
           outing_id?: string | null
           placement_density?: string
           placement_interval_minutes?: number | null
@@ -1914,6 +1922,7 @@ export type Database = {
         }
         Update: {
           aid_buffer?: boolean
+          bladder_ml?: number | null
           caffeine_target_total_mg?: number | null
           carbs_target_g_per_hour?: number
           confirmed_at?: string | null
@@ -1921,12 +1930,15 @@ export type Database = {
           enabled?: boolean
           engine_config_version?: string | null
           engine_version?: string
+          flask_capacity_ml?: number
+          flask_count?: number
           generated_at?: string
           hydration_target_ml_per_hour?: number
           id?: string
           input_hash?: string | null
           input_snapshot?: Json
           last_recalculated_at?: string | null
+          no_refill_waypoint_ids?: string[]
           outing_id?: string | null
           placement_density?: string
           placement_interval_minutes?: number | null
@@ -1978,6 +1990,7 @@ export type Database = {
           protein_g: number | null
           purchase_is_affiliate: boolean
           purchase_url: string | null
+          search_key: string | null
           serving_label: string | null
           serving_quantity: number | null
           serving_unit: string | null
@@ -2012,6 +2025,7 @@ export type Database = {
           protein_g?: number | null
           purchase_is_affiliate?: boolean
           purchase_url?: string | null
+          search_key?: string | null
           serving_label?: string | null
           serving_quantity?: number | null
           serving_unit?: string | null
@@ -2046,6 +2060,7 @@ export type Database = {
           protein_g?: number | null
           purchase_is_affiliate?: boolean
           purchase_url?: string | null
+          search_key?: string | null
           serving_label?: string | null
           serving_quantity?: number | null
           serving_unit?: string | null
@@ -6480,6 +6495,7 @@ export type Database = {
           protein_g: number | null
           purchase_is_affiliate: boolean
           purchase_url: string | null
+          search_key: string | null
           serving_label: string | null
           serving_quantity: number | null
           serving_unit: string | null
@@ -7052,6 +7068,7 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["staff_role"]
       }
+      nutrition_search_fold: { Args: { p_text: string }; Returns: string }
       org_change_member_role: {
         Args: {
           p_organization_id: string
@@ -7243,6 +7260,10 @@ export type Database = {
         Returns: undefined
       }
       request_account_deletion: { Args: never; Returns: Json }
+      reset_nutrition_milestone: {
+        Args: { p_participant_race_id: string; p_stable_key: string }
+        Returns: undefined
+      }
       resolve_referral_code: {
         Args: { p_code: string }
         Returns: {
@@ -7343,8 +7364,37 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_nutrition_containers: {
+        Args: {
+          p_bladder_ml: number
+          p_flask_capacity_ml: number
+          p_flask_count: number
+          p_participant_race_id: string
+        }
+        Returns: undefined
+      }
+      set_nutrition_milestone_items: {
+        Args: {
+          p_distance_km: number
+          p_elapsed_seconds: number
+          p_label: string
+          p_participant_race_id: string
+          p_quantities: number[]
+          p_stable_key: string
+          p_user_product_ids: string[]
+        }
+        Returns: undefined
+      }
       set_nutrition_products: {
         Args: { p_participant_race_id: string; p_user_product_ids: string[] }
+        Returns: undefined
+      }
+      set_nutrition_refill_point: {
+        Args: {
+          p_participant_race_id: string
+          p_race_waypoint_id: string
+          p_refill: boolean
+        }
         Returns: undefined
       }
       set_participant_withdrawn: {

@@ -1,4 +1,5 @@
 import type {
+  CustomMilestoneRecord,
   MyProductRecord,
   MyProductsRepository,
   NutritionRepository,
@@ -14,7 +15,10 @@ import {
   disableNutrition,
   generateRacePlan,
   getNutritionStrategy,
+  resetNutritionMilestone,
   saveNutritionSettings,
+  setNutritionMilestoneItems,
+  setNutritionRefillPoint,
   type NutritionContext,
   type PlanContext,
 } from '../src/index.js';
@@ -51,6 +55,7 @@ let plan: PlanState;
 let own: string;
 let myProducts: MyProductRecord[];
 let stored: (NutritionSettingsRecord & { participantRaceId: string })[];
+let customs: CustomMilestoneRecord[];
 
 function fakeNutrition(): NutritionRepository {
   return {
@@ -66,6 +71,47 @@ function fakeNutrition(): NutritionRepository {
           ? { ...entry, selectedProductIds: [...ids] }
           : entry,
       );
+    },
+    setContainers: async (participantRaceId, containers) => {
+      stored = stored.map((entry) =>
+        entry.participantRaceId === participantRaceId ? { ...entry, ...containers } : entry,
+      );
+    },
+    setRefillPoint: async (participantRaceId, raceWaypointId, refill) => {
+      stored = stored.map((entry) =>
+        entry.participantRaceId === participantRaceId
+          ? {
+              ...entry,
+              noRefillWaypointIds: refill
+                ? entry.noRefillWaypointIds.filter((id) => id !== raceWaypointId)
+                : [...entry.noRefillWaypointIds, raceWaypointId],
+            }
+          : entry,
+      );
+    },
+    listCustomMilestones: async () => customs,
+    setMilestoneItems: async (_participantRaceId, milestone) => {
+      customs = [
+        ...customs.filter((custom) => custom.stableKey !== milestone.stableKey),
+        {
+          stableKey: milestone.stableKey,
+          items: milestone.items.map((item) => {
+            const product = myProducts.find((entry) => entry.id === item.userProductId);
+            return {
+              userProductId: item.userProductId,
+              label: product?.name ?? 'Produit',
+              quantity: item.quantity,
+              carbsG: product?.carbsG ?? 0,
+              sodiumMg: product?.sodiumMg ?? 0,
+              caffeineMg: product?.caffeineMg ?? 0,
+              hydrationMl: product?.hydrationMl ?? 0,
+            };
+          }),
+        },
+      ];
+    },
+    resetMilestone: async (_participantRaceId, stableKey) => {
+      customs = customs.filter((custom) => custom.stableKey !== stableKey);
     },
     disable: async (participantRaceId) => {
       stored = stored.map((entry) =>
@@ -89,6 +135,10 @@ function fakeNutrition(): NutritionRepository {
         intervalMinutes: settings.intervalMinutes,
         enabled: true,
         selectedProductIds: [],
+        flaskCount: 2,
+        flaskCapacityMl: 500,
+        bladderMl: null,
+        noRefillWaypointIds: [],
         confirmedAt: NOW.toISOString(),
       });
     },
@@ -158,6 +208,7 @@ beforeEach(() => {
   entitlements = entitlementBaseState(participation);
   plan = planBaseState(participation, PUBLIC_RACE);
   stored = [];
+  customs = [];
   myProducts = [
     {
       id: GEL_ID,
@@ -339,5 +390,127 @@ describe('produits choisis (§27, 0104)', () => {
     await expect(createMyNutritionProduct(context(), product)).resolves.toBe(
       '0f000000-0000-4000-8000-000000000009',
     );
+  });
+});
+
+describe('prise personnalisée (§57, §58, 0106)', () => {
+  const BAR_ID = '0f000000-0000-4000-8000-000000000002';
+
+  async function ready(): Promise<string> {
+    racePass();
+    myProducts.push({
+      id: BAR_ID,
+      catalogueProductId: null,
+      brand: 'Test',
+      name: 'Barre 40',
+      category: 'bar',
+      servingLabel: null,
+      carbsG: 40,
+      sodiumMg: 100,
+      caffeineMg: 0,
+      hydrationMl: 0,
+    });
+    await withPlan();
+    await saveNutritionSettings(context(), {
+      participantRaceId: own,
+      ...SETTINGS,
+      waterSharePercent: 100,
+      productIds: [GEL_ID, BAR_ID],
+    });
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    const intake = view.result?.milestones.find((milestone) => milestone.kind === 'intake');
+    return intake?.stableKey ?? '';
+  }
+
+  it('garde les produits choisis par le coureur à une prise, et revient à PLUKA sur demande', async () => {
+    const key = await ready();
+    await setNutritionMilestoneItems(context(), {
+      participantRaceId: own,
+      stableKey: key,
+      items: [{ userProductId: BAR_ID, quantity: 1 }],
+    });
+
+    let view = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(view.result?.allocation?.items[key]?.map((item) => item.productId)).toEqual([BAR_ID]);
+    expect(view.result?.allocation?.customized).toEqual([key]);
+
+    await resetNutritionMilestone(context(), { participantRaceId: own, stableKey: key });
+    view = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(view.result?.allocation?.customized).toEqual([]);
+  });
+
+  it('refuse une prise inconnue, et sans Race Pass', async () => {
+    const key = await ready();
+    await expect(
+      setNutritionMilestoneItems(context(), {
+        participantRaceId: own,
+        stableKey: 'intake:inconnue:1',
+        items: [],
+      }),
+    ).rejects.toBeInstanceOf(DomainError);
+    await expect(
+      setNutritionMilestoneItems(context(RUNNER_B), {
+        participantRaceId: own,
+        stableKey: key,
+        items: [],
+      }),
+    ).rejects.toBeInstanceOf(Error);
+  });
+
+  it('refuse un produit qui n’est pas dans « Mes produits »', async () => {
+    const key = await ready();
+    await expect(
+      setNutritionMilestoneItems(context(), {
+        participantRaceId: own,
+        stableKey: key,
+        items: [{ userProductId: '0f000000-0000-4000-8000-0000000000ff', quantity: 1 }],
+      }),
+    ).rejects.toBeInstanceOf(DomainError);
+  });
+});
+
+describe('flasques (§33, §34, 0107)', () => {
+  it('enregistre les contenants, et le plan de flasques les suit', async () => {
+    racePass();
+    await withPlan();
+    await saveNutritionSettings(context(), {
+      participantRaceId: own,
+      ...SETTINGS,
+      containers: { flaskCount: 1, flaskCapacityMl: 600, bladderMl: 1500 },
+    });
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(view.result?.flasks?.containers.map((container) => container.capacityMl)).toEqual([
+      600, 1500,
+    ]);
+  });
+
+  it('« je ne remplis pas ici » retire le ravito des points de remplissage', async () => {
+    racePass();
+    await withPlan();
+    await saveNutritionSettings(context(), { participantRaceId: own, ...SETTINGS });
+    const before = await getNutritionStrategy(context(), { participantRaceId: own });
+    const aid = before.result?.flasks?.stops.find((stop) => stop.kind === 'refill');
+    expect(aid).toBeDefined();
+
+    await setNutritionRefillPoint(context(), {
+      participantRaceId: own,
+      raceWaypointId: aid?.pointId,
+      refill: false,
+    });
+    const after = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(after.result?.flasks?.stops.some((stop) => stop.pointId === aid?.pointId)).toBe(false);
+    expect(after.result?.flasks?.skippedPointIds).toEqual([aid?.pointId]);
+  });
+
+  it('refuse les contenants hors bornes', async () => {
+    racePass();
+    await withPlan();
+    await expect(
+      saveNutritionSettings(context(), {
+        participantRaceId: own,
+        ...SETTINGS,
+        containers: { flaskCount: 9, flaskCapacityMl: 500, bladderMl: null },
+      }),
+    ).rejects.toBeInstanceOf(DomainError);
   });
 });

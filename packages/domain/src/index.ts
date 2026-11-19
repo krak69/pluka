@@ -960,6 +960,9 @@ export {
   setNutritionProductVolume,
   getNutritionStrategy,
   saveNutritionSettings,
+  resetNutritionMilestone,
+  setNutritionMilestoneItems,
+  setNutritionRefillPoint,
   type NutritionContext,
   type NutritionStrategyView,
 } from './nutrition/strategy.js';
@@ -971,4 +974,7 @@ export type {
   AllocatedItem,
   Allocation,
   Coverage,
+  FlaskAction,
+  FlaskContainer,
+  FlaskPlan,
 } from '@pluka/nutrition-engine';
