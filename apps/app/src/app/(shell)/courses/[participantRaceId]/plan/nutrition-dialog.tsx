@@ -289,10 +289,14 @@ export function NutritionDialog({
               {state.error}
             </p>
           )}
+          {/* Une clé par bouton : sans elle, React réutiliserait le bouton
+              « Choisir mes produits » pour « Recalculer », qui deviendrait
+              type="submit" pendant le clic et enverrait le formulaire. */}
           <div className="nu-dialog-actions">
             {step === 1 ? (
               <>
                 <button
+                  key="cancel"
                   type="button"
                   className="pk-btn pk-button-secondary"
                   onClick={() => dialog.current?.close()}
@@ -300,9 +304,11 @@ export function NutritionDialog({
                   Annuler
                 </button>
                 <button
+                  key="next"
                   type="button"
                   className="pk-btn pk-button-primary"
-                  onClick={() => {
+                  onClick={(event) => {
+                    event.preventDefault();
                     if (form.current?.reportValidity() !== false) setStep(2);
                   }}
                 >
@@ -312,13 +318,19 @@ export function NutritionDialog({
             ) : (
               <>
                 <button
+                  key="back"
                   type="button"
                   className="pk-btn pk-button-secondary"
                   onClick={() => setStep(1)}
                 >
                   ← Mes objectifs
                 </button>
-                <button type="submit" className="pk-btn pk-button-primary" disabled={pending}>
+                <button
+                  key="submit"
+                  type="submit"
+                  className="pk-btn pk-button-primary"
+                  disabled={pending}
+                >
                   {pending ? 'Calcul…' : submitLabel}
                 </button>
               </>
