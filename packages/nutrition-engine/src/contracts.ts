@@ -70,6 +70,16 @@ export interface NutritionInput {
   readonly placement: NutritionPlacement;
   /** Les produits choisis par le coureur (§27). Absents : pas de répartition. */
   readonly products?: readonly import('./allocator.js').NutritionProduct[];
+  /**
+   * Les produits que le coureur a choisis lui-même pour une prise, par
+   * `stableKey` (§57, §58). Ils sont gardés tels quels, et les autres prises
+   * s'ajustent autour (§40, étape 2). Une liste vide : rien à cette prise.
+   */
+  readonly customItems?: Readonly<Record<string, readonly import('./allocator.js').CustomItem[]>>;
+  /** Ce que le coureur porte (flasques, poche) ; absent : pas de plan de flasques. */
+  readonly containers?: import('./flasks.js').NutritionContainers;
+  /** Les ravitaillements où le coureur ne remplit pas (« je ne remplis pas ici »). */
+  readonly noRefillPointIds?: readonly string[];
 }
 
 export interface NutritionNeeds {
@@ -122,4 +132,6 @@ export interface NutritionResult {
   readonly milestones: readonly NutritionMilestone[];
   /** Répartition des produits et couverture ; nulle sans produits fournis. */
   readonly allocation: import('./allocator.js').Allocation | null;
+  /** Quoi mettre dans chaque flasque à chaque point ; nul sans contenants ni hydratation. */
+  readonly flasks: import('./flasks.js').FlaskPlan | null;
 }

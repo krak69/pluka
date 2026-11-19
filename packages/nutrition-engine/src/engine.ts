@@ -10,7 +10,8 @@ import type {
   NutritionTimeline,
   NutritionTimelinePoint,
 } from './contracts.js';
-import { allocateProducts } from './allocator.js';
+import { allocateProducts, SOLID_CATEGORIES } from './allocator.js';
+import { planFlasks } from './flasks.js';
 import { computeNutritionHash } from './hash.js';
 
 /**
@@ -149,6 +150,40 @@ function bestMoment(
   return chosen === null ? { at: ideal, reason: 'time' } : chosen;
 }
 
+/**
+ * Ce que les prises doivent apporter, et combien chacune peut porter (§35).
+ *
+ * Sans produits connus : la cible horaire entière, et la charge de la densité.
+ * Avec les produits choisis : la boisson d'effort se déduit de la cible, et une
+ * prise ne porte pas plus que la plus grosse portion solide choisie. Une prise
+ * vient donc quand le besoin d'une portion s'est accumulé — des gels de 30 g
+ * à 60 g/h donnent une prise toutes les 30 min environ, pas deux gels d'un coup.
+ * Les cibles et le pacing ne bougent pas (§39) : seul l'espacement suit.
+ */
+function solidsLoad(
+  input: NutritionInput,
+  densityLoadG: number,
+): { carbsGPerHour: number; loadG: number } {
+  const products = input.products;
+  if (products === undefined || products.length === 0) {
+    return { carbsGPerHour: input.targets.carbsGPerHour, loadG: densityLoadG };
+  }
+  const drink = products.find((product) => product.category === 'drink' && product.hydrationMl > 0);
+  const drinkMlPerHour = input.targets.hydrationMlPerHour * (1 - input.targets.waterShare);
+  const drinkCarbsPerHour =
+    drink === undefined ? 0 : (drinkMlPerHour * drink.carbsG) / drink.hydrationMl;
+  const largestServing = Math.max(
+    0,
+    ...products
+      .filter((product) => SOLID_CATEGORIES.has(product.category))
+      .map((product) => product.carbsG),
+  );
+  return {
+    carbsGPerHour: Math.max(0, input.targets.carbsGPerHour - drinkCarbsPerHour),
+    loadG: largestServing > 0 ? Math.min(densityLoadG, largestServing) : densityLoadG,
+  };
+}
+
 function intakesForLeg(
   input: NutritionInput,
   config: NutritionEngineConfig,
@@ -160,7 +195,8 @@ function intakesForLeg(
   if (duration <= 0) return [];
 
   const density = config.densities[input.placement.density];
-  const carbs = (input.targets.carbsGPerHour * duration) / 3600;
+  const { carbsGPerHour, loadG } = solidsLoad(input, density.carbsLoadG);
+  const carbs = (carbsGPerHour * duration) / 3600;
   const interval = input.placement.intervalSeconds ?? 0;
   // §36 : le rythme imposé ne regarde que la cadence choisie, pas le besoin.
   let count =
@@ -169,7 +205,7 @@ function intakesForLeg(
       : Math.max(
           0,
           Math.ceil(duration / density.maxGapSeconds - EPSILON) - 1,
-          input.targets.carbsGPerHour > 0 ? Math.ceil(carbs / density.carbsLoadG - EPSILON) - 1 : 0,
+          carbsGPerHour > 0 ? Math.ceil(carbs / loadG - EPSILON) - 1 : 0,
         );
   while (count > 0 && duration / (count + 1) < config.minGapSeconds) count -= 1;
   if (count === 0) return [];
@@ -285,6 +321,12 @@ export function generateNutrition(
             drinkMlPerHour: input.targets.hydrationMlPerHour * (1 - input.targets.waterShare),
             caffeineTotalMg: input.targets.caffeineTotalMg,
             finishElapsedSeconds: input.timeline.finishElapsedSeconds,
+            ...(input.customItems === undefined ? {} : { customItems: input.customItems }),
           }),
+    // §33-34 : la logistique de l'hydratation, à part des besoins et des produits.
+    flasks:
+      input.containers === undefined || input.targets.hydrationMlPerHour <= 0
+        ? null
+        : planFlasks(input, input.containers, input.noRefillPointIds ?? []),
   };
 }

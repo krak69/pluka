@@ -20,6 +20,16 @@ export type {
   NutritionTimelinePoint,
 } from './contracts.js';
 export { generateNutrition } from './engine.js';
+export {
+  planFlasks,
+  type FlaskAction,
+  type FlaskActionKind,
+  type FlaskContainer,
+  type FlaskPlan,
+  type FlaskStop,
+  type FlaskWarning,
+  type NutritionContainers,
+} from './flasks.js';
 export { computeNutritionHash } from './hash.js';
 export {
   allocateProducts,
@@ -27,5 +37,6 @@ export {
   type Allocation,
   type AllocationWarning,
   type Coverage,
+  type CustomItem,
   type NutritionProduct,
 } from './allocator.js';

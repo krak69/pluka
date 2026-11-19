@@ -36,7 +36,7 @@ export interface NutritionEngineConfig {
 }
 
 export const NUTRITION_ENGINE_V1: NutritionEngineConfig = {
-  engineVersion: 'nutrition-1.0.0',
+  engineVersion: 'nutrition-1.1.0',
   configVersion: 'nutrition-config-1.0.0',
   densities: {
     frequent: { maxGapSeconds: 30 * 60, carbsLoadG: 30 },

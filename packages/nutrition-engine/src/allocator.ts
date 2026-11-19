@@ -28,6 +28,11 @@ export interface NutritionProduct {
   readonly hydrationMl: number;
 }
 
+/** Un produit fixé par le coureur à une prise, avec sa quantité. */
+export interface CustomItem extends NutritionProduct {
+  readonly quantity: number;
+}
+
 export interface AllocatedItem {
   readonly productId: string;
   readonly name: string;
@@ -58,9 +63,11 @@ export interface Allocation {
     readonly caffeineMg: number;
   };
   readonly warnings: readonly AllocationWarning[];
+  /** Les jalons dont le coureur a fixé lui-même les produits. */
+  readonly customized: readonly string[];
 }
 
-const SOLID_CATEGORIES = new Set([
+export const SOLID_CATEGORIES: ReadonlySet<string> = new Set([
   'gel',
   'bar',
   'chew',
@@ -118,6 +125,7 @@ export function allocateProducts(input: {
   readonly drinkMlPerHour: number;
   readonly caffeineTotalMg: number | null;
   readonly finishElapsedSeconds: number;
+  readonly customItems?: Readonly<Record<string, readonly CustomItem[]>>;
 }): Allocation {
   const drink =
     input.products.find((product) => product.category === 'drink' && product.hydrationMl > 0) ??
@@ -192,8 +200,17 @@ export function allocateProducts(input: {
       sodiumPlaced = 0;
     }
 
-    const nextTime = input.milestones[index + 1]?.elapsedSeconds ?? input.finishElapsedSeconds;
-    const until = cumulative[index + 1] ?? cumulative[index] ?? { carbs: 0, sodium: 0 };
+    // Une prise couvre jusqu'à mi-chemin du jalon suivant : la suivante prend
+    // le relais. Viser le jalon suivant entier chargeait la première prise de
+    // deux portions (deux gels au km 5, retour du 2026-11-19).
+    const here = cumulative[index] ?? { carbs: 0, sodium: 0 };
+    const after = cumulative[index + 1] ?? here;
+    const followingTime = input.milestones[index + 1]?.elapsedSeconds ?? input.finishElapsedSeconds;
+    const nextTime = (milestone.elapsedSeconds + followingTime) / 2;
+    const until = {
+      carbs: (here.carbs + after.carbs) / 2,
+      sodium: (here.sodium + after.sodium) / 2,
+    };
 
     // §25 : la caféine suit le prorata du temps écoulé, jamais au-delà du total.
     const caffeineBudget =
@@ -205,8 +222,15 @@ export function allocateProducts(input: {
     const carbsNeed =
       until.carbs - base.carbs - drinkPerSecond.carbs * (nextTime - base.seconds) - carbsPlaced;
 
+    // §58 : une prise personnalisée garde les produits du coureur, sans
+    // complément ; ce qu'elle apporte compte pour les prises suivantes.
+    const custom = input.customItems?.[milestone.stableKey];
     let chosen: NutritionProduct[] = [];
-    if (carbsNeed >= MIN_CARBS_FOR_ITEM && candidates.length > 0) {
+    if (custom !== undefined) {
+      chosen = custom.flatMap((item) =>
+        Array.from({ length: Math.max(0, Math.round(item.quantity)) }, () => item),
+      );
+    } else if (carbsNeed >= MIN_CARBS_FOR_ITEM && candidates.length > 0) {
       let bestCost = Number.POSITIVE_INFINITY;
       for (const combination of candidates) {
         const caffeine = combination.reduce((sum, product) => sum + product.caffeineMg, 0);
@@ -229,7 +253,7 @@ export function allocateProducts(input: {
       sodiumPlaced -
       sodiumFromSolids;
     const salt = salts[0];
-    if (salt !== undefined && sodiumNeed >= salt.sodiumMg * 0.6) {
+    if (custom === undefined && salt !== undefined && sodiumNeed >= salt.sodiumMg * 0.6) {
       const count = Math.min(2, Math.max(1, Math.round(sodiumNeed / salt.sodiumMg)));
       for (let repeat = 0; repeat < count; repeat += 1) chosen.push(salt);
     }
@@ -285,5 +309,9 @@ export function allocateProducts(input: {
     },
     planned,
     warnings,
+    customized: input.milestones
+      .filter((milestone) => milestone.kind !== 'finish')
+      .map((milestone) => milestone.stableKey)
+      .filter((key) => input.customItems?.[key] !== undefined),
   };
 }

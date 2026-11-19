@@ -202,3 +202,66 @@ describe('boisson en poudre', () => {
     );
   });
 });
+
+describe('espacement des prises selon les portions choisies (§35)', () => {
+  const GEL30: NutritionProduct = { ...GEL, id: 'gel30', name: 'Gel 30', carbsG: 30 };
+
+  it('des gels de 30 g à 60 g/h : une prise par gel, jamais deux gels d’un coup', () => {
+    const result = generateNutrition(input([GEL30]));
+    const intakes = result.milestones.filter((milestone) => milestone.kind === 'intake');
+    // 2 h par section à 60 g/h = 120 g = 4 gels : 3 prises + le ravito ou l'arrivée.
+    expect(intakes.length).toBeGreaterThanOrEqual(6);
+    const quantities = intakes.map(
+      (milestone) => result.allocation?.items[milestone.stableKey]?.[0]?.quantity ?? 0,
+    );
+    expect(Math.max(...quantities)).toBe(1);
+  });
+
+  it('la boisson d’effort se déduit : moins de prises quand elle apporte des glucides', () => {
+    const count = (products: readonly NutritionProduct[]) =>
+      generateNutrition(input(products, { waterShare: 0.5 })).milestones.filter(
+        (milestone) => milestone.kind === 'intake',
+      ).length;
+    expect(count([GEL30, DRINK])).toBeLessThan(count([GEL30]));
+  });
+
+  it('les cibles ne bougent pas avec les produits (§39)', () => {
+    expect(generateNutrition(input([GEL30])).totals).toEqual(
+      generateNutrition(input(undefined)).totals,
+    );
+  });
+});
+
+describe('prise personnalisée (§57, §58)', () => {
+  it('garde les produits du coureur, et les prises suivantes s’ajustent', () => {
+    const auto = generateNutrition(input([GEL, BAR]));
+    const first = auto.milestones.find((milestone) => milestone.kind === 'intake');
+    expect(first).toBeDefined();
+    const key = first?.stableKey ?? '';
+    const custom = generateNutrition({
+      ...input([GEL, BAR]),
+      customItems: { [key]: [{ ...BAR, quantity: 2 }] },
+    });
+    expect(custom.allocation?.items[key]).toEqual([
+      { productId: 'bar', name: 'Barre 40', quantity: 2, carbsG: 80, sodiumMg: 200, caffeineMg: 0 },
+    ]);
+    expect(custom.allocation?.customized).toEqual([key]);
+    // 80 g d'un coup : la prise suivante en demande moins qu'en automatique.
+    const second = auto.milestones.filter((milestone) => milestone.kind === 'intake')[1];
+    const carbsAt = (result: typeof auto) =>
+      (result.allocation?.items[second?.stableKey ?? ''] ?? []).reduce(
+        (sum, item) => sum + item.carbsG,
+        0,
+      );
+    expect(carbsAt(custom)).toBeLessThan(carbsAt(auto));
+  });
+
+  it('une liste vide : rien à cette prise', () => {
+    const key =
+      generateNutrition(input([GEL])).milestones.find((milestone) => milestone.kind === 'intake')
+        ?.stableKey ?? '';
+    const result = generateNutrition({ ...input([GEL]), customItems: { [key]: [] } });
+    expect(result.allocation?.items[key]).toBeUndefined();
+    expect(result.allocation?.customized).toEqual([key]);
+  });
+});

@@ -930,6 +930,18 @@ au ravito Lenk :
 
 Le moteur doit pouvoir produire ces deux niveaux.
 
+**Mise en œuvre : « Mes flasques » (`flasks.ts`, 0107, décisions du 2026-11-19).**
+
+- **Ce que le coureur porte.** Il le déclare dans la modale Nutrition, pour chaque stratégie : 0 à 4 flasques d'une même contenance (250 à 750 ml), et une poche à eau facultative (1 à 3 l). Par défaut, 2 flasques de 500 ml, comme le prototype.
+- **Où il remplit.** Au départ, puis à chaque ravitaillement, point d'eau ou point où l'Assistance est autorisée. Il peut dire « je ne remplis pas ici » : le tronçon s'allonge alors jusqu'au point de remplissage suivant.
+- **La boisson d'effort se prépare en flasque pleine, en doses entières.** Par exemple « 500 ml + 1 dose » : on ne prépare pas « 350 ml et ¾ de dose ». Si une flasque est plus petite qu'une dose, c'est une demi-dose. Le nombre de flasques réservées à la boisson suffit pour le plus long tronçon, sans prendre la seule flasque d'eau quand il n'y a pas de poche.
+- **Le moteur suit ce qu'il reste dans chaque flasque.** Une flasque de boisson qui suffit jusqu'au point suivant ne se touche pas : 250 ml sur une section, 250 ml sur la suivante, une seule préparation. S'il manque d'un rien (100 ml au plus, et 20 % au plus du besoin), le coureur garde sa flasque et complète à l'eau. Sinon, il finit sa flasque au ravito et la refait.
+- **L'eau se complète au juste besoin**, à 50 ml près, les flasques d'abord, puis la poche.
+- **Quand la capacité manque**, il le dit. Il propose d'abord de boire avant de repartir, jusqu'à 300 ml. S'il manque encore, il propose de prendre une flasque de plus ou la poche. Les cibles ne changent jamais (§46).
+- **Les doses.** L'écran compte les doses à préparer avant le départ et celles à emporter en sachet pour les ravitos.
+- **Le récapitulatif « Par section »** reprend, au début de chaque section, ce qu'il faut faire de chaque flasque (§104 : remplissage / emport). Il remplace alors la répartition eau / boisson des cibles, qui ne tient compte ni d'une boisson absente ni d'un ravito sauté.
+- **Pas encore fait.** Les doses à déposer dans un sac de ravito ou à confier à l'Assistance (« À préparer »). Le contenu officiel des ravitos (boisson fournie sur place, §32).
+
 ---
 
 # 35. Génération des jalons — mode Smart
@@ -969,6 +981,8 @@ Les seuils de déclenchement sont des heuristiques de placement versionnées, pa
   | fréquente | 30 min | 30 g |
   | équilibrée (`auto`) | 45 min | 40 g |
   | espacée | 60 min | 50 g |
+
+  **Avec des produits choisis (`nutrition-1.1.0`, retour du 2026-11-19).** Le besoin qui compte pour le nombre de prises est la cible moins ce qu'apporte la boisson d'effort. Une prise ne porte pas plus que la plus grosse portion solide choisie : avec des gels de 30 g à 60 g/h, une prise vient toutes les 30 min environ, pas deux gels d'un coup toutes les 45 min. Les cibles et le pacing ne changent pas (§39). Seul l'espacement des prises suit les portions.
 
 - **Écarts.** Jamais deux prises à moins de 18 min d'intervalle. Une prise à moins de 10 min d'un ravitaillement s'y fond (§37).
 - **Buffer avant un ravitaillement.** Option du coureur, activée par défaut : la dernière prise ne tombe pas juste avant le ravitaillement. Le buffer vaut 18 % de la section, plafonné à 20 min.
@@ -1091,7 +1105,7 @@ Pour chaque intervalle opérationnel :
 - **La boisson d'effort** est la première boisson choisie qui a un volume. Elle couvre en continu sa part de l'hydratation, et ses glucides, son sodium et sa caféine comptent au prorata du volume.
   - Une boisson en poudre sans volume de dilution ne compte pas, et l'écran le signale.
   - Le coureur donne ce volume une fois ; il est gardé dans « Mes produits » (`custom_hydration_ml`).
-- **À chaque prise et à chaque ravitaillement**, une combinaison de 1 à 3 portions de produits solides (gel, barre, purée…) vise le besoin en glucides restant jusqu'au jalon suivant, boisson déduite.
+- **À chaque prise et à chaque ravitaillement**, une combinaison de 1 à 3 portions de produits solides (gel, barre, purée…) vise le besoin en glucides restant jusqu'à mi-chemin du jalon suivant, boisson déduite. La prise suivante prend le relais. Viser le jalon suivant entier chargeait la première prise de deux portions (`nutrition-1.1.0`).
   - Coût : l'écart au besoin, plus 1 par portion. Sous 8 g de besoin, rien n'est placé.
 - **Chaque section**, d'un ravitaillement au suivant, s'équilibre pour elle-même. Un surplus avant un ravito ne dispense pas de manger après.
 - **Le sodium encore manquant** est complété par capsules ou électrolytes, deux au plus par jalon.
@@ -1501,6 +1515,14 @@ Un jalon manuel ou personnalisé est protégé.
 | Modifier produits | affectations personnalisées protégées |
 | Modifier quantité | quantité personnalisée protégée |
 | Modifier cible | génère un diff avant application |
+
+**Mise en œuvre de « Modifier produits » (0106, retour du 2026-11-19).**
+
+- **Le geste.** Sur une prise ou un ravitaillement, le coureur choisit parmi les produits de sa stratégie et leur nombre (0 à 5 chacun). Une prise sans aucun produit veut dire « rien à cette prise ».
+- **Ce qui est enregistré.** Seules les prises modifiées s'enregistrent, dans `nutrition_waypoints` (`stable_key`, `is_customized`) et `nutrition_waypoint_items`. Les valeurs par portion sont recopiées par la base depuis « Mes produits ». Les autres prises restent calculées à la lecture.
+- **Le moteur.** Une prise modifiée garde exactement ses produits, sans complément de sodium. Ce qu'elle apporte compte pour les prises suivantes, qui s'ajustent (§40, étape 2). L'écran la marque « Modifiée par toi ».
+- **Revenir en arrière.** « Revenir à la proposition PLUKA » efface la prise personnalisée.
+- **Pas encore fait (tranche 5).** Si le Plan change et qu'une prise modifiée n'existe plus à sa clé, elle n'est plus montrée. Le diff qui la proposerait à réaffecter (N27) reste à faire.
 
 ---
 
