@@ -1,10 +1,12 @@
 import type {
+  AidNoteRecord,
+  AidStationItemRecord,
   CourseWaypointRecord,
   PublishedRaceFactRecord,
   RaceCutoffRecord,
   RaceWaypointRecord,
 } from '@pluka/db';
-import { equipmentValueOf } from '@pluka/domain';
+import { AID_KIND_LABELS, equipmentValueOf } from '@pluka/domain';
 import type { ReactNode } from 'react';
 import { Divider, EmptyState, MicroLabel, SourceDrawer, TrustBadge } from '@pluka/ui';
 
@@ -216,6 +218,41 @@ function WaypointType({ waypoint }: { readonly waypoint: CourseWaypointRecord })
   );
 }
 
+/** Les points où l'on attend un contenu de ravitaillement. */
+const AID_WAYPOINT_TYPES = new Set(['aid_station', 'water', 'assistance']);
+
+/**
+ * Ce que propose un point (0110) : annoncé par l'organisation, sinon « non
+ * communiqué » — et, pour le coureur, sa note, jamais présentée comme officielle.
+ */
+function AidContent({
+  waypoint,
+  items,
+  note,
+}: {
+  readonly waypoint: CourseWaypointRecord;
+  readonly items: readonly AidStationItemRecord[];
+  readonly note: AidNoteRecord | null;
+}) {
+  const expected = AID_WAYPOINT_TYPES.has(waypoint.waypointType) || waypoint.assistanceAllowed;
+  if (items.length === 0 && note === null && !expected) return null;
+  const noted = note === null ? [] : note.kinds.map((kind) => AID_KIND_LABELS[kind]);
+  return (
+    <span className="rp-waypoint-aid">
+      {items.length > 0 ? (
+        <span>Au ravito : {items.map((item) => item.label).join(' · ')}</span>
+      ) : (
+        <span className="rp-waypoint-aid-unknown">Contenu non communiqué par l’organisation</span>
+      )}
+      {note === null || items.length > 0 ? null : (
+        <span className="rp-waypoint-aid-note">
+          Ta note : {[...noted, ...(note.note === null ? [] : [note.note])].join(' · ')}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export interface RaceFactsProps {
   readonly facts: readonly PublishedRaceFactRecord[];
   readonly cutoffs: readonly RaceCutoffRecord[];
@@ -228,6 +265,10 @@ export interface RaceFactsProps {
    */
   readonly indexed?: boolean;
   readonly lead?: ReactNode;
+  /** Ce que proposent les ravitaillements (0110) ; absent, la liste n'en dit rien. */
+  readonly aidItems?: readonly AidStationItemRecord[];
+  /** Les notes du coureur sur ses ravitaillements, sur son onglet « La course ». */
+  readonly aidNotes?: readonly AidNoteRecord[];
 }
 
 export function RaceFacts({
@@ -237,6 +278,8 @@ export function RaceFacts({
   timezone,
   indexed = false,
   lead,
+  aidItems,
+  aidNotes = [],
 }: RaceFactsProps) {
   const byWaypointId = new Map(waypoints.map((waypoint) => [waypoint.id, waypoint]));
 
@@ -290,6 +333,13 @@ export function RaceFacts({
                     <span className="rp-waypoint-alt">
                       {waypoint.altitudeM === null ? '—' : `${String(waypoint.altitudeM)} m`}
                     </span>
+                    {aidItems === undefined ? null : (
+                      <AidContent
+                        waypoint={waypoint}
+                        items={aidItems.filter((item) => item.waypointId === waypoint.id)}
+                        note={aidNotes.find((entry) => entry.waypointId === waypoint.id) ?? null}
+                      />
+                    )}
                   </li>
                 ))}
               </ol>

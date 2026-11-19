@@ -3,6 +3,7 @@ import {
   getRaceAdministration,
   getRaceGpxImport,
   getRaceWaypoints,
+  listAidStationItems,
   listCandidatesForReview,
   listRaceEquipment,
   listRaceFactsForEditing,
@@ -12,6 +13,7 @@ import {
 import { StatTiles, TerrainBand } from '@pluka/ui';
 import Link from 'next/link';
 
+import { AidStationsForm } from '@/app/courses/[raceId]/aid-stations-form';
 import { EquipmentPanel } from '@/app/courses/[raceId]/equipment-panel';
 import { RaceStatusPanel, RaceVisibilityForm, UpdateRaceForm } from '@/app/courses/[raceId]/forms';
 import { GpxImportStatus, STAGE_LABEL } from '@/app/courses/[raceId]/gpx-import-status';
@@ -24,6 +26,7 @@ import { AdminIcon } from '@/components/admin-icon';
 import { ConsoleNotice } from '@/components/console-action';
 import { factCategoryLabel, raceVisibilityLabel, statusLabel } from '@/components/admin-status';
 import {
+  aidStationContext,
   factEditingContext,
   factReviewContext,
   redirectOnDomainError,
@@ -96,10 +99,11 @@ export default async function RacePage({
   ]);
 
   const session = await requireSession(returnTo);
-  const [facts, candidates, equipment] = await Promise.all([
+  const [facts, candidates, equipment, aidItems] = await Promise.all([
     listRaceFactsForEditing(factEditingContext(session), { raceId }).catch(() => null),
     listCandidatesForReview(factReviewContext(session), { raceId, limit: 100 }).catch(() => null),
     listRaceEquipment(factEditingContext(session), { raceId }).catch(() => null),
+    listAidStationItems(aidStationContext(session), { raceId }).catch(() => []),
   ]);
 
   const live = facts?.filter((fact) => fact.archivedAt === null) ?? null;
@@ -391,6 +395,37 @@ export default async function RacePage({
           timezone={race.timezone}
           start={localParts(race.startDatetime, race.timezone)}
           officialDistanceKm={race.distanceKm}
+        />
+      </section>
+
+      <section className="ad-org-panel" aria-labelledby="aid-title">
+        <h2 id="aid-title" className="ad-org-panel-title">
+          Contenu des ravitaillements
+        </h2>
+        <p className="ad-org-panel-lede">
+          D’après les sources officielles : ce que propose chaque point. Les coureurs le voient sur
+          la page de la course, et PLUKA en tient compte pour leurs flasques. Sans contenu, rien
+          n’est supposé.
+        </p>
+        <AidStationsForm
+          raceId={race.id}
+          points={waypoints
+            .filter(
+              (waypoint) => waypoint.waypointType !== 'start' && waypoint.waypointType !== 'finish',
+            )
+            .map((waypoint) => {
+              const items = aidItems.filter((item) => item.waypointId === waypoint.id);
+              return {
+                id: waypoint.id,
+                name: waypoint.name,
+                distanceKm: waypoint.distanceKm,
+                kinds: items.filter((item) => item.kind !== 'other').map((item) => item.kind),
+                others: items
+                  .filter((item) => item.kind === 'other')
+                  .map((item) => item.label)
+                  .join(', '),
+              };
+            })}
         />
       </section>
 

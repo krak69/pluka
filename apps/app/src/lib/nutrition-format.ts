@@ -1,4 +1,6 @@
+import { AID_KIND_LABELS } from '@pluka/domain';
 import type {
+  AidPointView,
   FlaskAction,
   FlaskContainer,
   FlaskPlan,
@@ -23,6 +25,8 @@ import { formatClock } from '@/lib/plan-format';
 
 export interface MilestoneLine {
   readonly key: string;
+  /** Le ravitaillement de ce jalon ; nul pour une prise ou l'arrivée. */
+  readonly pointId: string | null;
   readonly official: boolean;
   readonly clock: string;
   readonly km: string;
@@ -125,6 +129,7 @@ function milestoneLine(
   const official = milestone.kind !== 'intake';
   return {
     key: milestone.stableKey,
+    pointId: milestone.kind === 'aid' ? milestone.pointId : null,
     official,
     clock: clockAt(startAt, timezone, milestone.elapsedSeconds),
     km: `km ${decimal.format(milestone.distanceKm)}`,
@@ -323,6 +328,8 @@ export interface FlaskStopLine {
 }
 
 export interface FlaskView {
+  /** Le coureur a une boisson d'effort : la boisson du ravito peut la remplacer à un point. */
+  readonly hasDrink: boolean;
   readonly carrying: string;
   readonly doses: string | null;
   readonly stops: readonly FlaskStopLine[];
@@ -356,9 +363,13 @@ function flaskText(
     plan.drink === null ? '' : `${ml(plan.drink.prepVolumeMl)} + ${doses(plan.drink.prepDoses)}`;
   switch (action.kind) {
     case 'prepare_drink':
-      return `${drinkName} : ${start ? 'prépare' : 'refais'} ${recipe}`;
+      return action.fromAid === true
+        ? `Boisson du ravito : remplis-la ici (${ml(action.levelMl)})`
+        : `${drinkName} : ${start ? 'prépare' : 'refais'} ${recipe}`;
     case 'finish_then_prepare':
-      return `${drinkName} : finis les ${ml(action.remainingMl)} restants ici, puis refais ${recipe}`;
+      return action.fromAid === true
+        ? `Finis les ${ml(action.remainingMl)} restants ici, puis remplis-la de boisson du ravito`
+        : `${drinkName} : finis les ${ml(action.remainingMl)} restants ici, puis refais ${recipe}`;
     case 'fill_water':
       if (start) {
         return action.levelMl >= container.capacityMl
@@ -411,6 +422,7 @@ export function flaskView(
   }
 
   return {
+    hasDrink: plan.drink !== null,
     carrying:
       carryingParts.length === 0 ? 'Aucun contenant' : `Tu portes ${carryingParts.join(' et ')}`,
     doses:
@@ -849,4 +861,51 @@ export function sendLine(send: SendFacts, timezone: string): SendLine {
         action: `Envoyer à ${send.assistant}`,
       };
   }
+}
+
+// ------------------------------------------------------------
+// Ce que propose chaque ravitaillement — §31, §32 (0110)
+// ------------------------------------------------------------
+
+export interface AidLine {
+  readonly pointId: string;
+  /** « Au ravito : Eau · Boisson d’effort » ; « Contenu non communiqué par l’organisation ». */
+  readonly content: string;
+  readonly announced: boolean;
+  /** « Ta note : Eau · Cola » ; nulle sans note. */
+  readonly note: string | null;
+  /** Pour pré-remplir la note. */
+  readonly noteKinds: readonly string[];
+  readonly noteText: string;
+  /** La boisson d'effort du ravito : nulle quand rien n'en annonce (ni ne la note). */
+  readonly drink: { readonly chosen: boolean; readonly fromNote: boolean } | null;
+}
+
+export function aidLines(aid: readonly AidPointView[]): readonly AidLine[] {
+  return aid.map((point) => {
+    const noted =
+      point.note === null
+        ? []
+        : [
+            ...point.note.kinds.map((kind) => AID_KIND_LABELS[kind]),
+            ...(point.note.note === null ? [] : [point.note.note]),
+          ];
+    return {
+      pointId: point.pointId,
+      announced: point.official.length > 0,
+      content:
+        point.official.length > 0
+          ? `Au ravito : ${point.official.map((item) => item.label).join(' · ')}`
+          : 'Contenu non communiqué par l’organisation',
+      // La note ne sert que si rien n'est annoncé : l'officiel prime.
+      note:
+        noted.length === 0 || point.official.length > 0 ? null : `Ta note : ${noted.join(' · ')}`,
+      noteKinds: point.note?.kinds ?? [],
+      noteText: point.note?.note ?? '',
+      drink:
+        point.drink === null
+          ? null
+          : { chosen: point.usesAidDrink, fromNote: point.drink === 'note' },
+    };
+  });
 }

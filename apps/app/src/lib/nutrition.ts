@@ -1,4 +1,6 @@
 import {
+  aidNoteRepository,
+  aidStationRepository,
   createAssistanceRepositories,
   createBagRepositories,
   createEntitlementRepositories,
@@ -24,6 +26,9 @@ export function nutritionContext(session: Session): NutritionContext {
       // « À préparer » lit les sacs et les rendez-vous, sans les écrire (§53).
       bags: createBagRepositories({ client }).bags,
       assistance: createAssistanceRepositories({ client }).assistance,
+      // Ce que proposent les ravitaillements, et la note du coureur (0110).
+      aidStations: aidStationRepository({ client }),
+      aidNotes: aidNoteRepository({ client }),
     },
     actor: { userId: session.userId },
     now: () => new Date(),

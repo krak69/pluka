@@ -17,6 +17,7 @@ import {
   restoreRaceFact,
   reviseRaceEquipment,
   setRaceWaypoints,
+  setAidStationItems,
   retireRaceFact,
   reviseRaceFact,
   updateRace,
@@ -26,6 +27,7 @@ import { redirect } from 'next/navigation';
 
 import { sessionEventSiteContext } from '@/lib/event-site-editing';
 import {
+  aidStationContext,
   courseContext,
   courseDocumentsContext,
   factEditingContext,
@@ -534,4 +536,29 @@ export async function reinstateRaceAction(
   }
 
   done(form, 'epreuve-retablie', 'epreuves');
+}
+
+/**
+ * Ce que propose un ravitaillement — NUTRITION_ENGINE §32, 0110. Les genres
+ * cochés, et le reste en clair, séparé par des virgules.
+ */
+export async function saveAidStationAction(
+  _previous: CourseActionState,
+  form: FormData,
+): Promise<CourseActionState> {
+  try {
+    await setAidStationItems(aidStationContext(await requireSession(pagePath(form, 'epreuves'))), {
+      raceId: text(form, 'raceId'),
+      waypointId: text(form, 'waypointId'),
+      kinds: texts(form, 'kind'),
+      others: text(form, 'others')
+        .split(/[,\n]/u)
+        .map((label) => label.trim())
+        .filter((label) => label !== ''),
+    });
+  } catch (error) {
+    return failure(error);
+  }
+
+  done(form, 'ravito-enregistre', 'epreuves');
 }

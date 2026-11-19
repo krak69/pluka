@@ -822,6 +822,8 @@ Le produit doit distinguer :
 
 Les aliments génériques de ravitaillement peuvent être représentés avec portions estimées si cette estimation est clairement indiquée.
 
+**Contenu des ravitos (décision produit du 2026-11-19).** L'organisation (dans /org) et l'équipe PLUKA (dans l'admin) disent ce que propose chaque point. Le coureur le voit dans la Course et dans sa Nutrition ; sans contenu annoncé, il peut noter ce qu'il y trouvera, sous son nom, jamais comme officiel. Une boisson d'effort annoncée peut remplacer la sienne à ce point, sans dose à préparer ni à emporter. Les aliments sont affichés, pas comptés (NUTRITION_ENGINE §32).
+
 ## 13.5 Préparation de course
 
 La Nutrition doit produire une vue « À préparer pour cette course » comprenant des quantités utiles.

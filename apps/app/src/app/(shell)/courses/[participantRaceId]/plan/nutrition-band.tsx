@@ -9,6 +9,7 @@ import {
 import { NutritionSendAlert } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-send';
 import { NutritionViews } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-views';
 import {
+  aidLines,
   flaskView,
   plannedIntake,
   preparationLines,
@@ -202,6 +203,7 @@ export function NutritionBand({
         sections={sectionsWithFlasks(lines.sections, flasks)}
         flasks={flasks}
         preparation={preparation}
+        aid={aidLines(view.aid)}
         canEdit={view.canEdit}
         products={pickable
           .filter((product) => settings.selectedProductIds.includes(product.id))

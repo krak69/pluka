@@ -15,6 +15,8 @@ import {
   setNutritionReserve,
   setNutritionSupplyPoint,
   sendNutritionToAssistant,
+  setAidNote,
+  setNutritionAidDrink,
 } from '@pluka/domain';
 import { revalidatePath } from 'next/cache';
 
@@ -368,5 +370,51 @@ export async function sendNutritionAction(
     return { error: 'La liste n’a pas pu être envoyée. Réessaie dans un instant.' };
   }
   revalidatePreparation(participantRaceId);
+  return {};
+}
+
+/** « Je prends la boisson du ravito ici », ou non — §32 (0110). */
+export async function setAidDrinkAction(
+  participantRaceId: string,
+  raceWaypointId: string,
+  use: boolean,
+): Promise<{ readonly error?: string }> {
+  const session = await requireSession(pathOf(participantRaceId));
+  try {
+    await setNutritionAidDrink(nutritionContext(session), {
+      participantRaceId,
+      raceWaypointId,
+      use,
+    });
+  } catch (error) {
+    if (error instanceof EntitlementError) return { error: PREPARATION_LOCKED };
+    return { error: 'Ce point n’a pas pu être modifié. Réessaie dans un instant.' };
+  }
+  revalidatePreparation(participantRaceId);
+  return {};
+}
+
+/** La note du coureur sur un ravitaillement qui n'annonce rien — §32 (0110). */
+export async function setAidNoteAction(
+  participantRaceId: string,
+  raceWaypointId: string,
+  kinds: readonly string[],
+  note: string,
+): Promise<{ readonly error?: string }> {
+  const session = await requireSession(pathOf(participantRaceId));
+  try {
+    await setAidNote(nutritionContext(session), {
+      participantRaceId,
+      raceWaypointId,
+      kinds,
+      note: note.trim() === '' ? null : note.trim(),
+    });
+  } catch (error) {
+    if (error instanceof EntitlementError) return { error: PREPARATION_LOCKED };
+    if (error instanceof DomainError) return { error: 'Ta note fait 200 caractères au plus.' };
+    return { error: 'Ta note n’a pas pu être enregistrée. Réessaie dans un instant.' };
+  }
+  revalidatePreparation(participantRaceId);
+  revalidatePath(`/courses/${participantRaceId}/course`);
   return {};
 }

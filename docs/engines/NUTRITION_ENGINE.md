@@ -874,6 +874,14 @@ Si aucun contenu officiel fiable n’est disponible :
 - permettre une configuration manuelle ;
 - ne pas inventer le contenu du ravito.
 
+**Mise en œuvre (0110, décisions du 2026-11-19).**
+
+- **Qui saisit.** L'organisation dans /org (Ma course › Épreuves › Parcours) et l'équipe PLUKA dans l'admin, d'après les sources officielles, pour une course dont l'organisation ne le fait pas. Point par point : eau, boisson d'effort, cola, soupe ou bouillon, fruits, sucré, salé, repas chaud, et le reste en clair.
+- **Ce que voit le coureur.** « Au ravito : Eau · Boisson d'effort · … » sous le point, dans la Course (et la fiche publique), Ma stratégie, Mes flasques et À préparer. Sans contenu : « Contenu non communiqué par l'organisation ».
+- **La note du coureur.** Quand rien n'est annoncé, il peut noter ce qu'il y trouvera (`participant_aid_notes`, Race Pass) : marquée « Ta note », jamais présentée comme officielle. Dès que l'organisation annonce un contenu, l'officiel prime et la note ne s'affiche plus.
+- **La boisson du ravito.** Si une boisson d'effort est annoncée (ou notée), le coureur peut cocher « Je prends la boisson du ravito ici » dans Mes flasques. La flasque se remplit sur place : ni dose à préparer ni dose à emporter pour ce remplissage. Les apports restent comptés avec les valeurs de sa propre boisson, et l'écran le dit. Le choix n'a d'effet que si une boisson est bien annoncée (ou notée) à ce point.
+- **Les aliments** sont affichés, pas comptés (§31) : aucune valeur estimée n'entre dans la stratégie.
+
 ---
 
 # 33. Actions Nutrition

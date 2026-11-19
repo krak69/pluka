@@ -1,5 +1,6 @@
 import {
   DbError,
+  aidStationRepository,
   createAdminActionsRepositories,
   createAdminConsoleRepositories,
   createBetaAccessRepositories,
@@ -20,6 +21,7 @@ import {
 import {
   DomainError,
   getAdminPlatformCounters,
+  type AidStationContext,
   getMyStaffRole,
   type AdminActionsContext,
   type AdminConsoleContext,
@@ -478,4 +480,16 @@ export async function requireFactReviewContext(returnTo: string): Promise<FactRe
   const session = await requireSession(returnTo);
 
   return factReviewContext(session);
+}
+
+/** Contenu des ravitaillements (0110) : les dépôts de course, plus ce que propose chaque point. */
+export function aidStationContext(session: Session): AidStationContext {
+  const client = createDataClient(session.accessToken);
+  return {
+    repositories: {
+      ...createCourseRepositories({ client }),
+      aidStations: aidStationRepository({ client }),
+    },
+    actor: { userId: session.userId },
+  };
 }

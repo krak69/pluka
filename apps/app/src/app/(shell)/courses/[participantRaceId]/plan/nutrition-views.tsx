@@ -10,7 +10,13 @@ import {
   setSupplyPointAction,
 } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-actions';
 import { NutritionSendStatus } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-send';
+import {
+  AidControls,
+  AidDrinkChoice,
+  AidInfo,
+} from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-aid';
 import type {
+  AidLine,
   FlaskLine,
   FlaskView,
   MilestoneLine,
@@ -42,6 +48,7 @@ export function NutritionViews({
   sections,
   flasks,
   preparation,
+  aid,
   products,
   canEdit,
 }: {
@@ -50,10 +57,13 @@ export function NutritionViews({
   readonly sections: readonly SectionLine[];
   readonly flasks: FlaskView | null;
   readonly preparation: PreparationLines | null;
+  /** Ce que propose chaque ravitaillement (0110). */
+  readonly aid: readonly AidLine[];
   readonly products: readonly EditableProduct[];
   readonly canEdit: boolean;
 }) {
   const [view, setView] = useState<View>('strategie');
+  const aidOf = new Map(aid.map((line) => [line.pointId, line]));
   const [editing, setEditing] = useState<string | null>(null);
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
   const allOpen = sections.length > 0 && sections.every((line) => open.has(line.key));
@@ -94,10 +104,16 @@ export function NutritionViews({
         <PreparationPanel
           participantRaceId={participantRaceId}
           preparation={preparation}
+          aidOf={aidOf}
           canEdit={canEdit}
         />
       ) : view === 'flasques' && flasks !== null ? (
-        <FlaskPanel participantRaceId={participantRaceId} flasks={flasks} canEdit={canEdit} />
+        <FlaskPanel
+          participantRaceId={participantRaceId}
+          flasks={flasks}
+          aidOf={aidOf}
+          canEdit={canEdit}
+        />
       ) : view === 'strategie' ? (
         <ol className="nu-milestones">
           {milestones.map((line) => (
@@ -115,6 +131,16 @@ export function NutritionViews({
                   {line.customized ? <span className="nu-custom">Modifiée par toi</span> : null}
                 </span>
                 <span className="nu-reason">{line.reason}</span>
+                {line.pointId === null ? null : <AidInfo line={aidOf.get(line.pointId)} />}
+                {line.pointId === null || flasks === null ? null : (
+                  <AidDrinkChoice
+                    participantRaceId={participantRaceId}
+                    line={aidOf.get(line.pointId)}
+                    hasDrink={flasks.hasDrink}
+                    canEdit={canEdit}
+                    onShowFlasks={() => setView('flasques')}
+                  />
+                )}
                 {line.items.length === 0 ? (
                   line.customized ? (
                     <span className="nu-items">Rien à cette prise</span>
@@ -398,10 +424,12 @@ function MilestoneEditor({
 function FlaskPanel({
   participantRaceId,
   flasks,
+  aidOf,
   canEdit,
 }: {
   readonly participantRaceId: string;
   readonly flasks: FlaskView;
+  readonly aidOf: ReadonlyMap<string, AidLine>;
   readonly canEdit: boolean;
 }) {
   const [pending, startTransition] = useTransition();
@@ -439,6 +467,7 @@ function FlaskPanel({
             <div className="nu-flask-body">
               <span className="nu-milestone-name">{stop.name}</span>
               <span className="nu-reason">{stop.need}</span>
+              {stop.refill ? <AidInfo line={aidOf.get(stop.pointId)} /> : null}
               <FlaskLines lines={stop.lines} />
               {stop.here === null ? null : <p className="nu-flask-here">{stop.here}</p>}
               {stop.alerts.map((alert) => (
@@ -446,6 +475,14 @@ function FlaskPanel({
                   {alert}
                 </p>
               ))}
+              {stop.refill ? (
+                <AidControls
+                  participantRaceId={participantRaceId}
+                  line={aidOf.get(stop.pointId)}
+                  hasDrink={flasks.hasDrink}
+                  canEdit={canEdit}
+                />
+              ) : null}
               {canEdit && stop.refill ? (
                 <button
                   type="button"
@@ -497,10 +534,12 @@ const RESERVES = [0, 10, 20] as const;
 function PreparationPanel({
   participantRaceId,
   preparation,
+  aidOf,
   canEdit,
 }: {
   readonly participantRaceId: string;
   readonly preparation: PreparationLines;
+  readonly aidOf: ReadonlyMap<string, AidLine>;
   readonly canEdit: boolean;
 }) {
   const [pending, startTransition] = useTransition();
@@ -665,6 +704,7 @@ function PreparationPanel({
                   </span>
                   <div className="nu-flask-body">
                     <span className="nu-milestone-name">{point.name}</span>
+                    <AidInfo line={aidOf.get(point.pointId)} />
                     {point.items.length === 0 ? (
                       <span className="nu-reason">Aucun produit à prendre à partir d’ici</span>
                     ) : (

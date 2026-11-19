@@ -1,8 +1,9 @@
-import { DomainError, getParticipation, listRaceInformation } from '@pluka/domain';
+import { DomainError, getMyAidNotes, getParticipation, listRaceInformation } from '@pluka/domain';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { RaceFacts } from '@/components/race-facts';
+import { nutritionContext } from '@/lib/nutrition';
 import { participationContext } from '@/lib/participations';
 import { formatClock, formatDistance } from '@/lib/plan-format';
 import { sessionRaceContext } from '@/lib/race-information';
@@ -45,9 +46,11 @@ export default async function RaceInformationPage({
     },
   );
 
-  const information = await listRaceInformation(sessionRaceContext(session), {
-    raceId: detail.participation.raceId,
-  });
+  const [information, aidNotes] = await Promise.all([
+    listRaceInformation(sessionRaceContext(session), { raceId: detail.participation.raceId }),
+    // Ses notes sur les ravitaillements (0110) : un échec ne cache pas la course.
+    getMyAidNotes(nutritionContext(session), { participantRaceId }).catch(() => []),
+  ]);
 
   const publicPath = `/epreuves/${information.event.slug}/${information.edition.slug}/${information.race.slug}`;
 
@@ -112,6 +115,8 @@ export default async function RaceInformationPage({
         cutoffs={information.cutoffs}
         waypoints={information.waypoints}
         timezone={race.timezone}
+        aidItems={information.aidItems}
+        aidNotes={aidNotes}
         indexed
         lead={lead}
       />

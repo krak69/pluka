@@ -3,6 +3,7 @@ import {
   getOrganizerCourse,
   getRaceGpxImport,
   getRaceWaypoints,
+  listAidStationItems,
   listRaceEquipment,
   type OrganizerCourse,
   type RaceGpxImportStage,
@@ -23,6 +24,7 @@ import {
 import { CourseFrame } from '@/components/course-frame';
 import {
   AddEquipmentForm,
+  AidStationsForm,
   CancelRaceForm,
   ReinstateRaceForm,
   ImportGpxForm,
@@ -31,6 +33,7 @@ import {
 } from '@/components/race-course-forms';
 import { sessionEventSiteContext } from '@/lib/event-site-editing';
 import {
+  aidStationContext,
   courseContext,
   courseHref,
   factEditingContext,
@@ -73,6 +76,7 @@ const NOTICES: Readonly<Record<string, string>> = {
   'edition-creee': 'Édition créée en brouillon. Vérifiez ses dates, puis publiez-la.',
   'trace-ajoutee': 'Trace déposée : PLUKA l’analyse.',
   'points-enregistres': 'Points de passage enregistrés. PLUKA recalcule le parcours.',
+  'ravito-enregistre': 'Contenu du ravitaillement enregistré.',
   'materiel-ajoute': 'Matériel ajouté.',
   'materiel-corrige': 'Matériel corrigé.',
   'epreuve-annulee': 'Épreuve annulée : les participants vont être avertis.',
@@ -164,15 +168,18 @@ export default async function CourseRacesPage({
   const editionScope = { organizationId, selection };
   const next = nextEdition(editions);
 
-  const [trace, waypoints, equipment] =
+  const [trace, waypoints, equipment, aidItems] =
     race === null
-      ? [null, [], []]
+      ? [null, [], [], []]
       : await Promise.all([
           permissions.canEdit
             ? getRaceGpxImport(gpxImportContext(session), { raceId: race.id })
             : null,
           permissions.canEdit ? getRaceWaypoints(courseContext(session), { raceId: race.id }) : [],
           listRaceEquipment(factEditingContext(session), { raceId: race.id }),
+          permissions.canEdit
+            ? listAidStationItems(aidStationContext(session), { raceId: race.id })
+            : [],
         ]);
   const raceScope =
     race === null ? null : { organizationId, selection: raceSelection, raceId: race.id };
@@ -403,6 +410,40 @@ export default async function CourseRacesPage({
                         assistanceAllowed: waypoint.assistanceAllowed,
                       };
                     })}
+                  />
+                </section>
+
+                <section aria-labelledby="race-aid" className="or-card">
+                  <h3 id="race-aid" className="pk-h2">
+                    Contenu des ravitaillements
+                  </h3>
+                  <p className="pk-body">
+                    Ce que propose chaque point. Les coureurs le voient sur la page de la course, et
+                    PLUKA en tient compte pour leurs flasques. Sans contenu, PLUKA n’en suppose
+                    aucun.
+                  </p>
+                  <AidStationsForm
+                    scope={raceScope}
+                    points={waypoints
+                      .filter(
+                        (waypoint) =>
+                          waypoint.waypointType !== 'start' && waypoint.waypointType !== 'finish',
+                      )
+                      .map((waypoint) => {
+                        const items = aidItems.filter((item) => item.waypointId === waypoint.id);
+                        return {
+                          id: waypoint.id,
+                          name: waypoint.name,
+                          distanceKm: waypoint.distanceKm,
+                          kinds: items
+                            .filter((item) => item.kind !== 'other')
+                            .map((item) => item.kind),
+                          others: items
+                            .filter((item) => item.kind === 'other')
+                            .map((item) => item.label)
+                            .join(', '),
+                        };
+                      })}
                   />
                 </section>
               </>

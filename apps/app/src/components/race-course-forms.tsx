@@ -1,6 +1,11 @@
 'use client';
 
-import { AUTHORED_WAYPOINT_TYPES, type RaceEquipmentItem } from '@pluka/domain';
+import {
+  AID_KIND_LABELS,
+  ANNOUNCED_AID_KINDS,
+  AUTHORED_WAYPOINT_TYPES,
+  type RaceEquipmentItem,
+} from '@pluka/domain';
 import { Input } from '@pluka/ui';
 import { useActionState, useId, useRef, useState } from 'react';
 
@@ -10,6 +15,7 @@ import {
   reinstateRaceAction,
   importGpxAction,
   reviseEquipmentAction,
+  saveAidStationAction,
   saveWaypointsAction,
   type CourseActionState,
 } from '@/app/course-actions';
@@ -609,5 +615,96 @@ export function ReinstateRaceForm({
       </div>
       <ActionError state={state} />
     </form>
+  );
+}
+
+// ------------------------------------------------------------
+// Contenu des ravitaillements — NUTRITION_ENGINE §32, 0110
+// ------------------------------------------------------------
+
+export interface AidStationPoint {
+  readonly id: string;
+  readonly name: string;
+  readonly distanceKm: number;
+  readonly kinds: readonly string[];
+  /** Ce qui n'entre dans aucun genre, séparé par des virgules. */
+  readonly others: string;
+}
+
+/** Un point : ce qu'il propose, en quelques clics, et le reste en clair. */
+function AidStationForm({
+  scope,
+  point,
+}: {
+  readonly scope: RaceScope;
+  readonly point: AidStationPoint;
+}) {
+  const [state, action, pending] = useActionState(saveAidStationAction, INITIAL);
+  const othersId = useId();
+
+  return (
+    <form action={action} className="or-aid">
+      <ScopeFields scope={scope} />
+      <input type="hidden" name="screen" value="epreuves" />
+      <input type="hidden" name="waypointId" value={point.id} />
+      <fieldset className="or-aid-fieldset">
+        <legend className="or-aid-name">
+          {point.name}{' '}
+          <span className="or-aid-km">
+            km{' '}
+            {new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(point.distanceKm)}
+          </span>
+        </legend>
+        <div className="or-aid-kinds">
+          {ANNOUNCED_AID_KINDS.map((kind) => (
+            <label key={kind} className="or-aid-kind">
+              <input
+                type="checkbox"
+                name="kind"
+                value={kind}
+                defaultChecked={point.kinds.includes(kind)}
+              />
+              <span>{AID_KIND_LABELS[kind]}</span>
+            </label>
+          ))}
+        </div>
+        <label className="pk-field or-aid-others" htmlFor={othersId}>
+          <span className="pk-field-label">Autres, séparés par des virgules</span>
+          <input
+            id={othersId}
+            name="others"
+            className="pk-input"
+            defaultValue={point.others}
+            placeholder="Fromage, pain d’épices…"
+            maxLength={400}
+          />
+        </label>
+      </fieldset>
+      <ActionError state={state} />
+      <button type="submit" className="pk-btn pk-button-secondary" disabled={pending}>
+        {pending ? 'Enregistrement…' : 'Enregistrer'}
+      </button>
+    </form>
+  );
+}
+
+export function AidStationsForm({
+  scope,
+  points,
+}: {
+  readonly scope: RaceScope;
+  readonly points: readonly AidStationPoint[];
+}) {
+  if (points.length === 0) {
+    return (
+      <p className="pk-body">Ajoutez d’abord vos ravitaillements dans les points de passage.</p>
+    );
+  }
+  return (
+    <div className="or-aid-list">
+      {points.map((point) => (
+        <AidStationForm key={point.id} scope={scope} point={point} />
+      ))}
+    </div>
   );
 }

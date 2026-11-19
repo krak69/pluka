@@ -54,11 +54,17 @@ export default async function SiteRacePage({ params }: { readonly params: Promis
     { label: 'Distance', value: `${record.distanceKm.toLocaleString('fr-FR')} km` },
     {
       label: 'Dénivelé positif',
-      value: record.elevationGainM === null ? null : `${record.elevationGainM.toLocaleString('fr-FR')} m`,
+      value:
+        record.elevationGainM === null
+          ? null
+          : `${record.elevationGainM.toLocaleString('fr-FR')} m`,
     },
     {
       label: 'Dénivelé négatif',
-      value: record.elevationLossM === null ? null : `${record.elevationLossM.toLocaleString('fr-FR')} m`,
+      value:
+        record.elevationLossM === null
+          ? null
+          : `${record.elevationLossM.toLocaleString('fr-FR')} m`,
     },
     { label: 'Départ', value: record.startLocationName },
     { label: 'Arrivée', value: record.finishLocationName },
@@ -71,7 +77,9 @@ export default async function SiteRacePage({ params }: { readonly params: Promis
           <Link href="/#epreuves" className="es-back">
             ← Toutes les épreuves
           </Link>
-          <p className="es-eyebrow es-eyebrow-dark">{raceStartLabel(record.startDatetime, record.timezone)}</p>
+          <p className="es-eyebrow es-eyebrow-dark">
+            {raceStartLabel(record.startDatetime, record.timezone)}
+          </p>
           <h1 className="es-race-title">{record.name}</h1>
         </div>
         <dl className="es-wrap es-stats">
@@ -93,6 +101,7 @@ export default async function SiteRacePage({ params }: { readonly params: Promis
             cutoffs={information.cutoffs}
             waypoints={information.waypoints}
             timezone={record.timezone}
+            aidItems={information.aidItems}
           />
         </div>
       </section>
@@ -102,7 +111,9 @@ export default async function SiteRacePage({ params }: { readonly params: Promis
           <div className="es-wrap es-band-inner">
             <div>
               <strong className="es-band-title">Prêt à prendre le départ ?</strong>
-              <span className="es-band-text">Les inscriptions se font sur la plateforme de l’organisation.</span>
+              <span className="es-band-text">
+                Les inscriptions se font sur la plateforme de l’organisation.
+              </span>
             </div>
             <a href={registration} className="es-cta" rel="noopener" target="_blank">
               S’inscrire

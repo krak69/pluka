@@ -1,4 +1,4 @@
-import { createRaceInformationRepositories } from '@pluka/db';
+import { aidStationRepository, createRaceInformationRepositories } from '@pluka/db';
 import { createServerClient } from '@pluka/db/server';
 import type { RaceInformationContext } from '@pluka/domain';
 
@@ -20,27 +20,33 @@ import { getSession, type Session } from '@/lib/session';
 export function anonymousRaceContext(): RaceInformationContext {
   const env = publicEnv();
 
+  const client = createServerClient({
+    url: env.NEXT_PUBLIC_SUPABASE_URL,
+    publishableKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  });
+
   return {
-    repositories: createRaceInformationRepositories({
-      client: createServerClient({
-        url: env.NEXT_PUBLIC_SUPABASE_URL,
-        publishableKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      }),
-    }),
+    repositories: {
+      ...createRaceInformationRepositories({ client }),
+      aidStations: aidStationRepository({ client }),
+    },
   };
 }
 
 export function sessionRaceContext(session: Session): RaceInformationContext {
   const env = publicEnv();
 
+  const client = createServerClient({
+    url: env.NEXT_PUBLIC_SUPABASE_URL,
+    publishableKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    accessToken: session.accessToken,
+  });
+
   return {
-    repositories: createRaceInformationRepositories({
-      client: createServerClient({
-        url: env.NEXT_PUBLIC_SUPABASE_URL,
-        publishableKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-        accessToken: session.accessToken,
-      }),
-    }),
+    repositories: {
+      ...createRaceInformationRepositories({ client }),
+      aidStations: aidStationRepository({ client }),
+    },
     actor: { userId: session.userId },
   };
 }

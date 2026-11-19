@@ -1,4 +1,5 @@
 import {
+  aidStationRepository,
   createCourseRepositories,
   createEventDiscoveryRepositories,
   createFactEditingRepositories,
@@ -7,6 +8,7 @@ import {
   participantImportRepository,
 } from '@pluka/db';
 import type {
+  AidStationContext,
   CourseContext,
   EventDiscoveryContext,
   FactEditingContext,
@@ -92,7 +94,9 @@ export function courseHref(
 
   const search = query.toString();
   const path =
-    section === 'course' ? `/org/${organizationId}/course/${screen}` : `/org/${organizationId}/participants`;
+    section === 'course'
+      ? `/org/${organizationId}/course/${screen}`
+      : `/org/${organizationId}/participants`;
   return `${path}${search === '' ? '' : `?${search}`}`;
 }
 
@@ -131,4 +135,16 @@ export function factValue(fact: {
       ? null
       : `${fact.valueNumber.toLocaleString('fr-FR')}${fact.unit === null ? '' : ` ${fact.unit}`}`;
   return [fact.valueText, number].filter((part) => part !== null).join(' · ') || '—';
+}
+
+/** Contenu des ravitaillements (0110) : les dépôts de course, plus ce que propose chaque point. */
+export function aidStationContext(session: Session): AidStationContext {
+  const client = createDataClient(session.accessToken);
+  return {
+    repositories: {
+      ...createCourseRepositories({ client }),
+      aidStations: aidStationRepository({ client }),
+    },
+    actor: { userId: session.userId },
+  };
 }

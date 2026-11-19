@@ -129,6 +129,7 @@ export default async function RacePage({
         cutoffs={information.cutoffs}
         waypoints={information.waypoints}
         timezone={found.race.timezone}
+        aidItems={information.aidItems}
       />
     </main>
   );

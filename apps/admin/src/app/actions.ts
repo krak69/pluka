@@ -7,6 +7,7 @@ import {
   createEdition,
   importRaceGpx,
   setRaceWaypoints,
+  setAidStationItems,
   createRace,
   getRaceAdministration,
   decideFactCandidate,
@@ -23,6 +24,7 @@ import { redirect } from 'next/navigation';
 
 import {
   actionFailure,
+  aidStationContext,
   courseContext,
   factReviewContext,
   gpxImportContext,
@@ -497,4 +499,31 @@ export async function decideCandidateAction(
 
   revalidatePath(`/courses/${raceId}/revue`);
   return {};
+}
+
+/**
+ * Ce que propose un ravitaillement, d'après les sources officielles —
+ * NUTRITION_ENGINE §32, 0110. Les genres cochés, et le reste en clair.
+ */
+export async function saveAidStationAction(
+  _previous: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const raceId = text(form, 'raceId');
+  try {
+    await setAidStationItems(aidStationContext(await requireSession(`/courses/${raceId}`)), {
+      raceId,
+      waypointId: text(form, 'waypointId'),
+      kinds: form.getAll('kind').filter((value): value is string => typeof value === 'string'),
+      others: (text(form, 'others') ?? '')
+        .split(/[,\n]/u)
+        .map((label) => label.trim())
+        .filter((label) => label !== ''),
+    });
+  } catch (error) {
+    return actionFailure(error);
+  }
+
+  revalidatePath(`/courses/${raceId}`);
+  return { done: 'Ravitaillement enregistré.' };
 }
