@@ -32,6 +32,17 @@ export {
 } from './flasks.js';
 export { computeNutritionHash } from './hash.js';
 export {
+  planPreparation,
+  type PreparationDestination,
+  type PreparationOptions,
+  type PreparationPlan,
+  type PreparationPoint,
+  type PreparationProduct,
+  type PreparationQuantity,
+  type PreparationUnit,
+  type SupplySource,
+} from './preparation.js';
+export {
   allocateProducts,
   type AllocatedItem,
   type Allocation,
