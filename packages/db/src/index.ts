@@ -451,3 +451,14 @@ export {
   type MyProductsRepository,
   type NutritionProductCategory,
 } from './repositories/nutrition.js';
+export {
+  AID_ITEM_KINDS,
+  aidNoteRepository,
+  aidStationRepository,
+  type AidItemKind,
+  type AidNoteRecord,
+  type AidNoteRepository,
+  type AidStationItemInput,
+  type AidStationItemRecord,
+  type AidStationRepository,
+} from './repositories/aid-stations.js';

@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 import type {
+  AidStationItemRecord,
+  AidStationRepository,
   EditionRecord,
   EventRecord,
   PublishedRaceFactRecord,
@@ -27,7 +29,13 @@ import { isRacePubliclyReadable } from './invariants.js';
  */
 
 export interface RaceInformationContext {
-  readonly repositories: RaceInformationRepositories;
+  /**
+   * `aidStations` : ce que proposent les ravitaillements (0110). Absent, la
+   * fiche n'en dit rien plutôt que de deviner.
+   */
+  readonly repositories: RaceInformationRepositories & {
+    readonly aidStations?: Pick<AidStationRepository, 'listByRace'>;
+  };
   /** Absent sur la fiche publique : elle se lit sans session. */
   readonly actor?: Actor;
 }
@@ -168,6 +176,8 @@ export interface RaceInformation {
   readonly facts: readonly PublishedRaceFactRecord[];
   readonly waypoints: readonly CourseWaypointRecord[];
   readonly cutoffs: readonly RaceCutoffRecord[];
+  /** Ce que propose chaque ravitaillement, quand l'organisation l'annonce (0110). */
+  readonly aidItems: readonly AidStationItemRecord[];
 }
 
 export async function listRaceInformation(
@@ -186,11 +196,12 @@ export async function listRaceInformation(
   const event = await context.repositories.events.findById(edition.eventId);
   if (event === null) throw notFoundError(useCase, 'événement');
 
-  const [facts, waypoints, cutoffs] = await Promise.all([
+  const [facts, waypoints, cutoffs, aidItems] = await Promise.all([
     context.repositories.publishedFacts.listPublishedByRace(race.id),
     context.repositories.waypoints.listByRace(race.id),
     context.repositories.waypoints.listCutoffsByRace(race.id),
+    context.repositories.aidStations?.listByRace(race.id) ?? [],
   ]);
 
-  return { race, edition, event, facts, waypoints, cutoffs };
+  return { race, edition, event, facts, waypoints, cutoffs, aidItems };
 }

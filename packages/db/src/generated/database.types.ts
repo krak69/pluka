@@ -1862,6 +1862,7 @@ export type Database = {
       nutrition_plans: {
         Row: {
           aid_buffer: boolean
+          aid_drink_waypoint_ids: string[]
           bladder_ml: number | null
           caffeine_target_total_mg: number | null
           carbs_target_g_per_hour: number
@@ -1895,6 +1896,7 @@ export type Database = {
         }
         Insert: {
           aid_buffer?: boolean
+          aid_drink_waypoint_ids?: string[]
           bladder_ml?: number | null
           caffeine_target_total_mg?: number | null
           carbs_target_g_per_hour: number
@@ -1928,6 +1930,7 @@ export type Database = {
         }
         Update: {
           aid_buffer?: boolean
+          aid_drink_waypoint_ids?: string[]
           bladder_ml?: number | null
           caffeine_target_total_mg?: number | null
           carbs_target_g_per_hour?: number
@@ -2848,6 +2851,48 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      participant_aid_notes: {
+        Row: {
+          id: string
+          kinds: string[]
+          note: string | null
+          participant_race_id: string
+          race_waypoint_id: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          kinds?: string[]
+          note?: string | null
+          participant_race_id: string
+          race_waypoint_id: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          kinds?: string[]
+          note?: string | null
+          participant_race_id?: string
+          race_waypoint_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_aid_notes_participant_race_id_fkey"
+            columns: ["participant_race_id"]
+            isOneToOne: false
+            referencedRelation: "participant_races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participant_aid_notes_race_waypoint_id_fkey"
+            columns: ["race_waypoint_id"]
+            isOneToOne: false
+            referencedRelation: "race_waypoints"
             referencedColumns: ["id"]
           },
         ]
@@ -4144,6 +4189,7 @@ export type Database = {
           estimated_portion_label: string | null
           fact_id: string | null
           id: string
+          kind: string
           label: string
           nutrition_product_id: string | null
           race_waypoint_id: string
@@ -4155,6 +4201,7 @@ export type Database = {
           estimated_portion_label?: string | null
           fact_id?: string | null
           id?: string
+          kind?: string
           label: string
           nutrition_product_id?: string | null
           race_waypoint_id: string
@@ -4166,6 +4213,7 @@ export type Database = {
           estimated_portion_label?: string | null
           fact_id?: string | null
           id?: string
+          kind?: string
           label?: string
           nutrition_product_id?: string | null
           race_waypoint_id?: string
@@ -7377,6 +7425,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_nutrition_aid_drink: {
+        Args: {
+          p_participant_race_id: string
+          p_race_waypoint_id: string
+          p_use: boolean
+        }
+        Returns: undefined
+      }
       set_nutrition_containers: {
         Args: {
           p_bladder_ml: number
@@ -7422,12 +7478,25 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_participant_aid_note: {
+        Args: {
+          p_kinds: string[]
+          p_note: string
+          p_participant_race_id: string
+          p_race_waypoint_id: string
+        }
+        Returns: undefined
+      }
       set_participant_withdrawn: {
         Args: { p_participant_race_id: string; p_withdrawn: boolean }
         Returns: undefined
       }
       set_purchase_checkout_reference: {
         Args: { p_purchase_id: string; p_reference: string }
+        Returns: undefined
+      }
+      set_race_aid_station_items: {
+        Args: { p_items: Json; p_race_waypoint_id: string }
         Returns: undefined
       }
       set_race_waypoints: {

@@ -47,6 +47,8 @@ export interface NutritionSettingsRecord {
   readonly reservePercent: number;
   /** D'où viennent les produits à un ravitaillement, quand le coureur l'a choisi (0108). */
   readonly supplyChoices: Readonly<Record<string, SupplyChoice>>;
+  /** Les ravitaillements où il prend la boisson d'effort fournie (0110). */
+  readonly aidDrinkWaypointIds: readonly string[];
 }
 
 /** Ce qui sert après un ravitaillement : porté depuis le départ, drop bag ou Assistance. */
@@ -81,6 +83,8 @@ export interface NutritionRepository {
   setRefillPoint(participantRaceId: string, raceWaypointId: string, refill: boolean): Promise<void>;
   /** La réserve de la stratégie du Plan actif (0108). */
   setReserve(participantRaceId: string, reservePercent: number): Promise<void>;
+  /** « Je prends la boisson du ravito ici », ou non (0110). */
+  setAidDrink(participantRaceId: string, raceWaypointId: string, use: boolean): Promise<void>;
   /** D'où viennent les produits à un point ; nul, retour à l'automatique (0108). */
   setSupplyPoint(
     participantRaceId: string,
@@ -162,6 +166,7 @@ type SettingsRow = {
   supply_start_waypoint_ids: string[];
   supply_bag_waypoint_ids: string[];
   supply_assistance_waypoint_ids: string[];
+  aid_drink_waypoint_ids: string[];
   confirmed_at: string | null;
   race_plans: { status: string };
 };
@@ -172,7 +177,7 @@ export const nutritionRepository = defineRepository<NutritionRepository>((contex
       await context.client
         .from('nutrition_plans')
         .select(
-          'id, race_plan_id, carbs_target_g_per_hour, hydration_target_ml_per_hour, sodium_target_mg_per_hour, caffeine_target_total_mg, water_share_percent, placement_density, aid_buffer, placement_mode, placement_interval_minutes, enabled, selected_user_product_ids, flask_count, flask_capacity_ml, bladder_ml, no_refill_waypoint_ids, reserve_percent, supply_start_waypoint_ids, supply_bag_waypoint_ids, supply_assistance_waypoint_ids, confirmed_at, race_plans!inner(participant_race_id, status)',
+          'id, race_plan_id, carbs_target_g_per_hour, hydration_target_ml_per_hour, sodium_target_mg_per_hour, caffeine_target_total_mg, water_share_percent, placement_density, aid_buffer, placement_mode, placement_interval_minutes, enabled, selected_user_product_ids, flask_count, flask_capacity_ml, bladder_ml, no_refill_waypoint_ids, reserve_percent, supply_start_waypoint_ids, supply_bag_waypoint_ids, supply_assistance_waypoint_ids, aid_drink_waypoint_ids, confirmed_at, race_plans!inner(participant_race_id, status)',
         )
         .eq('race_plans.participant_race_id', participantRaceId)
         .order('generated_at', { ascending: false })
@@ -207,6 +212,7 @@ export const nutritionRepository = defineRepository<NutritionRepository>((contex
         ...row.supply_bag_waypoint_ids.map((id) => [id, 'bag'] as const),
         ...row.supply_assistance_waypoint_ids.map((id) => [id, 'assistance'] as const),
       ]),
+      aidDrinkWaypointIds: row.aid_drink_waypoint_ids,
       confirmedAt: row.confirmed_at,
     };
   },
@@ -282,6 +288,17 @@ export const nutritionRepository = defineRepository<NutritionRepository>((contex
         p_reserve_percent: reservePercent,
       }),
       'set_nutrition_reserve',
+    );
+  },
+
+  async setAidDrink(participantRaceId, raceWaypointId, use) {
+    unwrapMaybe(
+      await context.client.rpc('set_nutrition_aid_drink', {
+        p_participant_race_id: participantRaceId,
+        p_race_waypoint_id: raceWaypointId,
+        p_use: use,
+      }),
+      'set_nutrition_aid_drink',
     );
   },
 

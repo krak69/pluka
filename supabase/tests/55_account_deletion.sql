@@ -211,7 +211,9 @@ select set_eq(
     -- Une vente a eu lieu même si la participation disparaît : elle reste, détachée (0086).
     'partner_sale_lines.participant_race_id:n',
     -- « Mon matériel » part avec le compte (0092).
-    'user_equipment_items.user_id:c'
+    'user_equipment_items.user_id:c',
+    -- La note du coureur sur un ravitaillement part avec la participation (0110).
+    'participant_aid_notes.participant_race_id:c'
   ],
   'DEL-21 — chaque clé vers un compte ou une participation a une règle décidée');
 

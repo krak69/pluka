@@ -1,4 +1,6 @@
 import type {
+  AidNoteRecord,
+  AidStationItemRecord,
   AssistanceAssignmentRecord,
   AssistanceItemRecord,
   AssistantRecord,
@@ -25,6 +27,9 @@ import {
   setNutritionRefillPoint,
   setNutritionReserve,
   setNutritionSupplyPoint,
+  setNutritionAidDrink,
+  setAidNote,
+  getMyAidNotes,
   type NutritionContext,
   type PlanContext,
 } from '../src/index.js';
@@ -55,6 +60,7 @@ import {
 
 const NOW = new Date('2026-03-01T10:00:00.000Z');
 const GEL_ID = '0f000000-0000-4000-8000-000000000001';
+const DRINK_ID = '0f000000-0000-4000-8000-000000000002';
 
 let entitlements: EntitlementState;
 let plan: PlanState;
@@ -66,6 +72,8 @@ let bags: BagRecord[];
 let assistants: AssistantRecord[];
 let assignments: AssistanceAssignmentRecord[];
 let sentItems: AssistanceItemRecord[];
+let aidItems: AidStationItemRecord[];
+let aidNotes: AidNoteRecord[];
 
 function fakeNutrition(): NutritionRepository {
   return {
@@ -102,6 +110,19 @@ function fakeNutrition(): NutritionRepository {
     setReserve: async (participantRaceId, reservePercent) => {
       stored = stored.map((entry) =>
         entry.participantRaceId === participantRaceId ? { ...entry, reservePercent } : entry,
+      );
+    },
+    setAidDrink: async (participantRaceId, raceWaypointId, use) => {
+      stored = stored.map((entry) =>
+        entry.participantRaceId === participantRaceId
+          ? {
+              ...entry,
+              aidDrinkWaypointIds: [
+                ...entry.aidDrinkWaypointIds.filter((id) => id !== raceWaypointId),
+                ...(use ? [raceWaypointId] : []),
+              ],
+            }
+          : entry,
       );
     },
     setSupplyPoint: async (participantRaceId, raceWaypointId, source) => {
@@ -168,6 +189,7 @@ function fakeNutrition(): NutritionRepository {
         noRefillWaypointIds: [],
         reservePercent: 0,
         supplyChoices: {},
+        aidDrinkWaypointIds: [],
         confirmedAt: NOW.toISOString(),
       });
     },
@@ -182,6 +204,16 @@ function context(userId: string = RUNNER_A): NutritionContext & PlanContext {
       ...createFakeEntitlementRepositories(entitlements),
       nutrition: fakeNutrition(),
       bags: { listBags: async () => bags },
+      aidStations: { listByRace: async () => aidItems },
+      aidNotes: {
+        listByParticipation: async () => aidNotes,
+        set: async (_participantRaceId, waypointId, kinds, note) => {
+          aidNotes = [
+            ...aidNotes.filter((entry) => entry.waypointId !== waypointId),
+            ...(kinds.length === 0 && note === null ? [] : [{ waypointId, kinds, note }]),
+          ];
+        },
+      },
       assistance: {
         listAssistants: async () => assistants,
         listAssignments: async () => assignments,
@@ -248,6 +280,8 @@ beforeEach(() => {
   assistants = [];
   assignments = [];
   sentItems = [];
+  aidItems = [];
+  aidNotes = [];
   myProducts = [
     {
       id: GEL_ID,
@@ -706,5 +740,113 @@ describe('envoyer à l’accompagnant — l’état de la liste (§55, 0109)', (
     });
     const view = await getNutritionStrategy(context(), { participantRaceId: own });
     expect(view.preparation?.sends[0]).toMatchObject({ status: 'stale', nothingToGive: true });
+  });
+});
+
+describe('ravitaillements — contenu annoncé, note du coureur, boisson du ravito (§32, 0110)', () => {
+  /** Une stratégie avec une boisson d'effort, et le ravito de la fixture. */
+  async function withDrink(): Promise<string> {
+    racePass();
+    await withPlan();
+    myProducts.push({
+      id: DRINK_ID,
+      catalogueProductId: null,
+      brand: null,
+      name: 'Boisson 500',
+      category: 'drink',
+      servingLabel: null,
+      carbsG: 40,
+      sodiumMg: 300,
+      caffeineMg: 0,
+      hydrationMl: 500,
+    });
+    await saveNutritionSettings(context(), {
+      participantRaceId: own,
+      ...SETTINGS,
+      productIds: [GEL_ID, DRINK_ID],
+    });
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    return view.aid[0]?.pointId ?? '';
+  }
+
+  it('sans contenu annoncé, rien n’est supposé', async () => {
+    await withDrink();
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(view.aid[0]).toMatchObject({
+      official: [],
+      note: null,
+      drink: null,
+      usesAidDrink: false,
+    });
+  });
+
+  it('boisson annoncée et choisie : le remplissage se fait sur place, sans dose', async () => {
+    const aidId = await withDrink();
+    aidItems = [
+      { waypointId: aidId, kind: 'water', label: 'Eau', sortOrder: 0 },
+      { waypointId: aidId, kind: 'sports_drink', label: 'Boisson d’effort', sortOrder: 1 },
+    ];
+    const before = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(before.aid[0]).toMatchObject({ drink: 'official', usesAidDrink: false });
+
+    await setNutritionAidDrink(context(), {
+      participantRaceId: own,
+      raceWaypointId: aidId,
+      use: true,
+    });
+    const after = await getNutritionStrategy(context(), { participantRaceId: own });
+    const stop = after.result?.flasks?.stops.find((entry) => entry.pointId === aidId);
+    expect(after.aid[0]?.usesAidDrink).toBe(true);
+    expect(stop?.aidDrink).toBe(true);
+    expect(stop?.actions.every((action) => action.doses === 0)).toBe(true);
+  });
+
+  it('un choix sans boisson annoncée n’a pas d’effet', async () => {
+    const aidId = await withDrink();
+    aidItems = [{ waypointId: aidId, kind: 'water', label: 'Eau', sortOrder: 0 }];
+    await setNutritionAidDrink(context(), {
+      participantRaceId: own,
+      raceWaypointId: aidId,
+      use: true,
+    });
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(view.aid[0]).toMatchObject({ drink: null, usesAidDrink: false });
+    expect(view.result?.flasks?.stops.some((entry) => entry.aidDrink)).toBe(false);
+  });
+
+  it('sans rien d’annoncé, la note du coureur compte — et se lit pour la Course', async () => {
+    const aidId = await withDrink();
+    await setAidNote(context(), {
+      participantRaceId: own,
+      raceWaypointId: aidId,
+      kinds: ['water', 'sports_drink'],
+      note: 'D’après l’édition 2025',
+    });
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(view.aid[0]).toMatchObject({
+      official: [],
+      note: { kinds: ['water', 'sports_drink'], note: 'D’après l’édition 2025' },
+      drink: 'note',
+    });
+    expect(await getMyAidNotes(context(), { participantRaceId: own })).toHaveLength(1);
+  });
+
+  it('noter ou choisir la boisson du ravito demande le Race Pass', async () => {
+    await withPlan();
+    await expect(
+      setAidNote(context(), {
+        participantRaceId: own,
+        raceWaypointId: '0a000000-0000-4000-8000-000000000001',
+        kinds: ['water'],
+        note: null,
+      }),
+    ).rejects.toBeInstanceOf(EntitlementError);
+    await expect(
+      setNutritionAidDrink(context(), {
+        participantRaceId: own,
+        raceWaypointId: '0a000000-0000-4000-8000-000000000001',
+        use: true,
+      }),
+    ).rejects.toBeInstanceOf(EntitlementError);
   });
 });

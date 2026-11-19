@@ -967,6 +967,9 @@ export {
   setNutritionReserve,
   setNutritionSupplyPoint,
   getNutritionSupply,
+  setNutritionAidDrink,
+  setAidNote,
+  getMyAidNotes,
   type NutritionContext,
   type NutritionStrategyView,
 } from './nutrition/strategy.js';
@@ -996,3 +999,14 @@ export type {
   PreparationProduct,
   PreparationQuantity,
 } from '@pluka/nutrition-engine';
+
+export {
+  AID_KIND_LABELS,
+  ANNOUNCED_AID_KINDS,
+  aidItemsOf,
+  listAidStationItems,
+  setAidStationItems,
+  type AidStationContext,
+  type AnnouncedAidKind,
+} from './course/aid-stations.js';
+export type { AidPointView } from './nutrition/aid.js';

@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
 import type {
+  AidNoteRecord,
+  AidNoteRepository,
+  AidStationRepository,
   AssistanceRepository,
   BagRepository,
   CourseMicroSegmentRecord,
@@ -30,6 +33,7 @@ import type { Capability } from '../entitlements/capabilities.js';
 import { can } from '../entitlements/resolver.js';
 import { authorizeCapability, resolveEntitlements } from '../entitlements/use-cases.js';
 import { invalidStateError, notFoundError, parseCommand } from '../errors.js';
+import { type AidPointView, aidDrinkPointIds, aidPoints } from './aid.js';
 import {
   type NutritionPreparationView,
   type NutritionSendView,
@@ -65,6 +69,9 @@ export interface NutritionContext {
   readonly repositories: NutritionRepositories &
     EntitlementRepositories & {
       readonly bags: Pick<BagRepository, 'listBags'>;
+      /** Ce que proposent les ravitaillements, et la note du coureur (0110). */
+      readonly aidStations: Pick<AidStationRepository, 'listByRace'>;
+      readonly aidNotes: AidNoteRepository;
       readonly assistance: Pick<
         AssistanceRepository,
         'listAssistants' | 'listAssignments' | 'listItems'
@@ -95,6 +102,8 @@ export interface NutritionStrategyView {
   readonly products: readonly MyProductRecord[];
   /** « À préparer pour cette course » (§49-56) ; nul tant que la stratégie n'est pas calculée. */
   readonly preparation: NutritionPreparationView | null;
+  /** Ce que propose chaque ravitaillement, annoncé ou noté (§32, 0110). */
+  readonly aid: readonly AidPointView[];
 }
 
 const participation = z.object({ participantRaceId: z.uuid() }).strict();
@@ -274,13 +283,18 @@ function engineInput(
   logistics?: {
     readonly containers: NutritionContainers;
     readonly noRefillPointIds: readonly string[];
+    readonly aidDrinkPointIds: readonly string[];
   },
 ): NutritionInput {
   return {
     timeline,
     ...(logistics === undefined
       ? {}
-      : { containers: logistics.containers, noRefillPointIds: logistics.noRefillPointIds }),
+      : {
+          containers: logistics.containers,
+          noRefillPointIds: logistics.noRefillPointIds,
+          aidDrinkPointIds: logistics.aidDrinkPointIds,
+        }),
     ...(customs.length === 0 ? {} : { customItems: customItemsOf(customs) }),
     ...(products === undefined
       ? {}
@@ -372,6 +386,7 @@ export async function getNutritionStrategy(
     canEdit,
     products,
     preparation: null,
+    aid: [],
   };
 
   if (plan === null) {
@@ -393,11 +408,13 @@ export async function getNutritionStrategy(
     };
   }
 
-  const [timeline, customs, bags, assistants] = await Promise.all([
+  const [timeline, customs, bags, assistants, aidItems, aidNotes] = await Promise.all([
     timelineOf(context, raceId, plan),
     context.repositories.nutrition.listCustomMilestones(settings.id),
     context.repositories.bags.listBags(participantRaceId),
     context.repositories.assistance.listAssistants(participantRaceId),
+    context.repositories.aidStations.listByRace(raceId),
+    context.repositories.aidNotes.listByParticipation(participantRaceId),
   ]);
   const assignments =
     assistants.length === 0
@@ -426,6 +443,7 @@ export async function getNutritionStrategy(
           bladderMl: settings.bladderMl,
         },
         noRefillPointIds: settings.noRefillWaypointIds,
+        aidDrinkPointIds: aidDrinkPointIds(aidItems, aidNotes, settings.aidDrinkWaypointIds),
       },
     ),
   );
@@ -466,6 +484,7 @@ export async function getNutritionStrategy(
     settings,
     result,
     preparation: { plan: preparationPlan, points, sends },
+    aid: aidPoints(result, aidItems, aidNotes, settings.aidDrinkWaypointIds),
     planChangedSinceSettings: !settings.onActivePlan,
   };
 }
@@ -833,4 +852,84 @@ export async function getNutritionSupply(
 ): Promise<NutritionSupply | null> {
   const view = await getNutritionStrategy(context, input);
   return view.preparation === null ? null : supplyOf(view.preparation);
+}
+
+// ------------------------------------------------------------
+// Ravitaillements — §31, §32 (0110)
+// ------------------------------------------------------------
+
+const aidDrinkCommand = z
+  .object({ participantRaceId: z.uuid(), raceWaypointId: z.uuid(), use: z.boolean() })
+  .strict();
+
+/**
+ * « Je prends la boisson du ravito ici » : ce remplissage ne demande ni dose à
+ * préparer ni dose à emporter. Les apports restent comptés avec les valeurs de
+ * la boisson du coureur.
+ */
+export async function setNutritionAidDrink(
+  context: NutritionContext,
+  input: unknown,
+): Promise<void> {
+  const command = parseCommand(aidDrinkCommand, input, 'setNutritionAidDrink');
+  await authorizeCapability(serviceContext(context), {
+    capability: 'nutrition.edit',
+    participantRaceId: command.participantRaceId,
+  });
+  await context.repositories.nutrition.setAidDrink(
+    command.participantRaceId,
+    command.raceWaypointId,
+    command.use,
+  );
+}
+
+const AID_NOTE_KINDS = [
+  'water',
+  'sports_drink',
+  'cola',
+  'soup',
+  'fruit',
+  'sweet',
+  'salty',
+  'hot_meal',
+] as const;
+
+const aidNoteCommand = z
+  .object({
+    participantRaceId: z.uuid(),
+    raceWaypointId: z.uuid(),
+    kinds: z.array(z.enum(AID_NOTE_KINDS)).max(8),
+    note: z.string().trim().max(200).nullable(),
+  })
+  .strict();
+
+/**
+ * La note du coureur sur un ravitaillement qui n'annonce rien : ce qu'il y
+ * trouvera, d'après lui. Elle n'est jamais présentée comme officielle.
+ */
+export async function setAidNote(context: NutritionContext, input: unknown): Promise<void> {
+  const command = parseCommand(aidNoteCommand, input, 'setAidNote');
+  await authorizeCapability(serviceContext(context), {
+    capability: 'nutrition.edit',
+    participantRaceId: command.participantRaceId,
+  });
+  await context.repositories.aidNotes.set(
+    command.participantRaceId,
+    command.raceWaypointId,
+    [...new Set(command.kinds)],
+    command.note === null || command.note === '' ? null : command.note,
+  );
+}
+
+/** Les notes du coureur sur ses ravitaillements, pour la Course. Gratuit à lire. */
+export async function getMyAidNotes(
+  context: NutritionContext,
+  input: unknown,
+): Promise<readonly AidNoteRecord[]> {
+  const { participantRaceId } = parseCommand(participation, input, 'getMyAidNotes');
+  await authorizeCapability(serviceContext(context), {
+    capability: 'nutrition.read',
+    participantRaceId,
+  });
+  return context.repositories.aidNotes.listByParticipation(participantRaceId);
 }
