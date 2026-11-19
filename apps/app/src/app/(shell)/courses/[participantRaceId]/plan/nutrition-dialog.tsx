@@ -21,7 +21,14 @@ export interface NutritionGoals {
   readonly aidBuffer: boolean;
   readonly placementMode: 'smart' | 'interval';
   readonly intervalMinutes: number | null;
+  readonly flaskCount: number;
+  readonly flaskCapacityMl: number;
+  readonly bladderMl: number | null;
 }
+
+const FLASK_COUNTS = [0, 1, 2, 3, 4] as const;
+const FLASK_CAPACITIES = [250, 300, 350, 400, 450, 500, 550, 600, 750] as const;
+const BLADDERS = [1000, 1500, 2000, 2500, 3000] as const;
 
 const INTERVALS = [15, 20, 30, 45, 60] as const;
 
@@ -71,6 +78,8 @@ export function NutritionDialog({
   const [mode, setMode] = useState(initial.placementMode);
   const [interval, setInterval] = useState(initial.intervalMinutes ?? 30);
   const [advanced, setAdvanced] = useState(initial.placementMode === 'interval');
+  const [flaskCount, setFlaskCount] = useState(initial.flaskCount);
+  const [bladder, setBladder] = useState(initial.bladderMl !== null);
 
   const share = split === 'water' ? 100 : split === 'half' ? 50 : waterPercent;
   const waterMl = Math.round((hydration * share) / 100);
@@ -115,6 +124,7 @@ export function NutritionDialog({
           <input type="hidden" name="placementMode" value={mode} />
           <input type="hidden" name="intervalMinutes" value={interval} />
           <input type="hidden" name="density" value={initial.density} />
+          <input type="hidden" name="flaskCount" value={flaskCount} />
 
           <div className="nu-step" hidden={step !== 1}>
             <h2 id={`${id}-title`} className="nu-dialog-title">
@@ -211,6 +221,75 @@ export function NutritionDialog({
                   ? `${String(waterMl)} ml/h d’eau + ${String(hydration - waterMl)} ml/h de boisson d’effort`
                   : 'Indique ton hydratation horaire pour voir la répartition.'}
               </p>
+            </fieldset>
+
+            <fieldset className="nu-fieldset">
+              <legend className="pk-field-label">Tes contenants</legend>
+              <p className="pk-field-hint">
+                PLUKA te dit quoi mettre dans chaque flasque, et quoi faire à chaque ravito.
+              </p>
+              <div className="nu-chips" role="group" aria-label="Nombre de flasques">
+                {FLASK_COUNTS.map((count) => (
+                  <button
+                    key={count}
+                    type="button"
+                    className="nu-chip"
+                    aria-pressed={flaskCount === count}
+                    onClick={() => setFlaskCount(count)}
+                  >
+                    {count === 0
+                      ? 'Aucune flasque'
+                      : count === 1
+                        ? '1 flasque'
+                        : `${String(count)} flasques`}
+                  </button>
+                ))}
+              </div>
+              <div className="nu-fields">
+                {flaskCount === 0 ? (
+                  <input type="hidden" name="flaskCapacityMl" value={initial.flaskCapacityMl} />
+                ) : (
+                  <label className="pk-field">
+                    <span className="pk-field-label">Contenance d’une flasque</span>
+                    <select
+                      name="flaskCapacityMl"
+                      className="pk-input"
+                      defaultValue={initial.flaskCapacityMl}
+                    >
+                      {FLASK_CAPACITIES.map((capacity) => (
+                        <option key={capacity} value={capacity}>
+                          {capacity} ml
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <div className="pk-field">
+                  <label className="as-check">
+                    <input
+                      type="checkbox"
+                      name="bladder"
+                      checked={bladder}
+                      onChange={(event) => setBladder(event.target.checked)}
+                    />
+                    <span>Je porte aussi une poche à eau</span>
+                  </label>
+                  {bladder ? (
+                    <select
+                      name="bladderMl"
+                      className="pk-input"
+                      aria-label="Contenance de la poche à eau"
+                      defaultValue={initial.bladderMl ?? 1500}
+                    >
+                      {BLADDERS.map((capacity) => (
+                        <option key={capacity} value={capacity}>
+                          {String(capacity / 1000).replace('.', ',')} l
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
+                </div>
+              </div>
             </fieldset>
 
             <fieldset className="nu-fieldset">

@@ -7,6 +7,7 @@ import {
   createProductAction,
   searchCatalogueAction,
   setProductVolumeAction,
+  type CatalogueResult,
   type PickableProduct,
 } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-actions';
 
@@ -59,9 +60,7 @@ export function ProductsStep({
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set(selectedIds));
   const [panel, setPanel] = useState<'none' | 'search' | 'create'>('none');
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<readonly (PickableProduct & { catalogueId: string })[]>(
-    [],
-  );
+  const [results, setResults] = useState<readonly CatalogueResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const id = useId();
@@ -85,7 +84,7 @@ export function ProductsStep({
       setResults(await searchCatalogueAction(participantRaceId, query));
     });
 
-  const add = (result: PickableProduct & { catalogueId: string }) =>
+  const add = (result: CatalogueResult) =>
     startTransition(async () => {
       const outcome = await addCatalogueProductAction(participantRaceId, result.catalogueId);
       if (outcome.id === undefined) {
@@ -93,7 +92,15 @@ export function ProductsStep({
         return;
       }
       setError(null);
-      adopt({ ...result, id: outcome.id });
+      adopt({
+        id: outcome.id,
+        name: result.name,
+        category: result.category,
+        carbsG: result.carbsG,
+        sodiumMg: result.sodiumMg,
+        caffeineMg: result.caffeineMg,
+        hydrationMl: result.hydrationMl,
+      });
     });
 
   const [draft, setDraft] = useState({
@@ -264,10 +271,30 @@ export function ProductsStep({
               Chercher
             </button>
           </div>
-          {results.length === 0 ? null : (
+          {results === null ? null : results.length === 0 ? (
+            <p className="pk-field-hint" role="status">
+              Aucun produit ne correspond. Essaie la marque seule, ou crée ton produit personnel.
+            </p>
+          ) : (
             <ul className="nu-results">
               {results.map((result) => (
                 <li key={result.catalogueId} className="nu-result">
+                  <span className="nu-result-photo" aria-hidden="true">
+                    {result.imageUrl === null ? null : (
+                      // Photo de la marque, hors de notre domaine : aucune
+                      // adresse de page ne part avec la requête.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={result.imageUrl}
+                        alt=""
+                        width={48}
+                        height={48}
+                        loading="lazy"
+                        decoding="async"
+                        referrerPolicy="no-referrer"
+                      />
+                    )}
+                  </span>
                   <span className="nu-pick-text">
                     <span className="nu-pick-name">{result.name}</span>
                     <span className="nu-meta">{meta(result)}</span>

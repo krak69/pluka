@@ -7,8 +7,11 @@ import {
   DomainError,
   EntitlementError,
   saveNutritionSettings,
+  resetNutritionMilestone,
   searchNutritionCatalogue,
+  setNutritionMilestoneItems,
   setNutritionProductVolume,
+  setNutritionRefillPoint,
 } from '@pluka/domain';
 import { revalidatePath } from 'next/cache';
 
@@ -57,6 +60,16 @@ export async function saveNutritionAction(
       // L'étape « produits » de la modale envoie toujours sa sélection, même vide.
       ...(form.has('productsStep')
         ? { productIds: form.getAll('productIds').map((value) => String(value)) }
+        : {}),
+      ...(form.has('flaskCount')
+        ? {
+            containers: {
+              flaskCount: Math.round(number(form, 'flaskCount')),
+              flaskCapacityMl: Math.round(number(form, 'flaskCapacityMl')),
+              bladderMl:
+                form.get('bladder') === 'on' ? Math.round(number(form, 'bladderMl')) : null,
+            },
+          }
         : {}),
     });
   } catch (error) {
@@ -109,10 +122,16 @@ export interface PickableProduct {
   readonly hydrationMl: number;
 }
 
+/** Un résultat du catalogue, avec la photo de sa fiche quand elle en a une. */
+export interface CatalogueResult extends PickableProduct {
+  readonly catalogueId: string;
+  readonly imageUrl: string | null;
+}
+
 export async function searchCatalogueAction(
   participantRaceId: string,
   query: string,
-): Promise<readonly (PickableProduct & { readonly catalogueId: string })[]> {
+): Promise<readonly CatalogueResult[]> {
   const session = await requireSession(pathOf(participantRaceId));
   try {
     const rows = await searchNutritionCatalogue(nutritionContext(session), {
@@ -128,6 +147,7 @@ export async function searchCatalogueAction(
       sodiumMg: row.sodiumMg,
       caffeineMg: row.caffeineMg,
       hydrationMl: row.hydrationMl,
+      imageUrl: row.imageUrl,
     }));
   } catch {
     return [];
@@ -203,4 +223,77 @@ export async function setProductVolumeAction(
   } catch {
     return { error: 'Indique un volume entre 50 et 3000 ml.' };
   }
+}
+
+/**
+ * Modifier les produits d'une prise — NUTRITION_ENGINE §57, §58 (0106).
+ * Les produits choisis par le coureur sont gardés ; le reste s'ajuste.
+ */
+export async function setMilestoneItemsAction(
+  participantRaceId: string,
+  stableKey: string,
+  items: readonly { readonly userProductId: string; readonly quantity: number }[],
+): Promise<{ readonly error?: string }> {
+  const session = await requireSession(pathOf(participantRaceId));
+  try {
+    await setNutritionMilestoneItems(nutritionContext(session), {
+      participantRaceId,
+      stableKey,
+      items: items.map((item) => ({ userProductId: item.userProductId, quantity: item.quantity })),
+    });
+  } catch (error) {
+    if (error instanceof EntitlementError) {
+      return {
+        error: 'Modifier tes prises fait partie de la stratégie Nutrition, avec le Race Pass.',
+      };
+    }
+    if (error instanceof DomainError && error.code === 'invalid_state') {
+      return { error: 'Cette prise a changé avec ton Plan : recharge la page.' };
+    }
+    console.error('nutrition : prise non modifiée', {
+      code: error instanceof DomainError ? error.code : 'inconnu',
+    });
+    return { error: 'Cette prise n’a pas pu être modifiée. Réessaie dans un instant.' };
+  }
+  revalidatePath(pathOf(participantRaceId));
+  return {};
+}
+
+export async function resetMilestoneAction(
+  participantRaceId: string,
+  stableKey: string,
+): Promise<{ readonly error?: string }> {
+  const session = await requireSession(pathOf(participantRaceId));
+  try {
+    await resetNutritionMilestone(nutritionContext(session), { participantRaceId, stableKey });
+  } catch {
+    return { error: 'La proposition PLUKA n’a pas pu revenir. Réessaie dans un instant.' };
+  }
+  revalidatePath(pathOf(participantRaceId));
+  return {};
+}
+
+/** « Je remplis ici » ou non, à un ravitaillement — §33, §34 (0107). */
+export async function setRefillPointAction(
+  participantRaceId: string,
+  raceWaypointId: string,
+  refill: boolean,
+): Promise<{ readonly error?: string }> {
+  const session = await requireSession(pathOf(participantRaceId));
+  try {
+    await setNutritionRefillPoint(nutritionContext(session), {
+      participantRaceId,
+      raceWaypointId,
+      refill,
+    });
+  } catch (error) {
+    if (error instanceof EntitlementError) {
+      return {
+        error: 'Régler tes flasques fait partie de la stratégie Nutrition, avec le Race Pass.',
+      };
+    }
+    return { error: 'Ce point n’a pas pu être modifié. Réessaie dans un instant.' };
+  }
+  revalidatePath(pathOf(participantRaceId));
+  return {};
 }

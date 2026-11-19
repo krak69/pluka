@@ -7,7 +7,12 @@ import {
   type NutritionGoals,
 } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-dialog';
 import { NutritionViews } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-views';
-import { strategyLines } from '@/lib/nutrition-format';
+import {
+  flaskView,
+  plannedIntake,
+  sectionsWithFlasks,
+  strategyLines,
+} from '@/lib/nutrition-format';
 
 /**
  * La Nutrition sur le Plan — prototype `nutOff` / `nutOn`.
@@ -28,6 +33,9 @@ const EMPTY: NutritionGoals = {
   aidBuffer: true,
   placementMode: 'smart',
   intervalMinutes: null,
+  flaskCount: 2,
+  flaskCapacityMl: 500,
+  bladderMl: null,
 };
 
 function goalsOf(view: NutritionStrategyView): NutritionGoals {
@@ -43,7 +51,21 @@ function goalsOf(view: NutritionStrategyView): NutritionGoals {
     aidBuffer: settings.aidBuffer,
     placementMode: settings.placementMode,
     intervalMinutes: settings.intervalMinutes,
+    flaskCount: settings.flaskCount,
+    flaskCapacityMl: settings.flaskCapacityMl,
+    bladderMl: settings.bladderMl,
   };
+}
+
+function productMeta(product: {
+  readonly carbsG: number;
+  readonly sodiumMg: number;
+  readonly caffeineMg: number;
+}): string {
+  const parts = [`${String(Math.round(product.carbsG))} g glucides`];
+  if (product.sodiumMg > 0) parts.push(`${String(product.sodiumMg)} mg sodium`);
+  if (product.caffeineMg > 0) parts.push(`${String(product.caffeineMg)} mg caféine`);
+  return parts.join(' · ');
 }
 
 export function NutritionBand({
@@ -98,6 +120,11 @@ export function NutritionBand({
 
   const settings = view.settings;
   const lines = strategyLines(view.result, view.startAt, view.timezone);
+  const planned = plannedIntake(view.result);
+  const flasks =
+    view.result.flasks === null
+      ? null
+      : flaskView(view.result.flasks, view.result, view.startAt, view.timezone);
   const intakes = view.result.milestones.filter((milestone) => milestone.kind === 'intake').length;
   const targets = `${String(settings.carbsGPerHour)} g/h · ${String(settings.hydrationMlPerHour)} ml/h · ${String(settings.sodiumMgPerHour)} mg/h${
     settings.caffeineTotalMg === null
@@ -152,7 +179,35 @@ export function NutritionBand({
         </p>
       ))}
 
-      <NutritionViews milestones={lines.milestones} sections={lines.sections} />
+      <NutritionViews
+        participantRaceId={participantRaceId}
+        milestones={lines.milestones}
+        sections={sectionsWithFlasks(lines.sections, flasks)}
+        flasks={flasks}
+        canEdit={view.canEdit}
+        products={pickable
+          .filter((product) => settings.selectedProductIds.includes(product.id))
+          .map((product) => ({ id: product.id, name: product.name, meta: productMeta(product) }))}
+      />
+
+      {planned === null ? null : (
+        <section className="nu-planned" aria-labelledby="nu-planned-title">
+          <h3 id="nu-planned-title" className="nu-planned-title">
+            Ce que prévoit ta stratégie
+          </h3>
+          <p className="nu-meta">Moyenne par heure de course, et total sur la course.</p>
+          <dl className="nu-planned-grid">
+            {planned.map((row) => (
+              <div key={row.label} className="nu-planned-row">
+                <dt className="pk-label">{row.label}</dt>
+                <dd className="nu-planned-value">
+                  {row.perHour} <span className="nu-planned-total">({row.total})</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
 
       <form action={disableNutritionAction} className="nu-disable">
         <input type="hidden" name="participantRaceId" value={participantRaceId} />
