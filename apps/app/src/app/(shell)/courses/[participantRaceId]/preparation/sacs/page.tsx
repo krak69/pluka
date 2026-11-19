@@ -17,6 +17,7 @@ import {
   RenameBagForm,
 } from '@/app/(shell)/courses/[participantRaceId]/preparation/sacs/bag-forms';
 import { Icon } from '@/components/icon';
+import { suppliedLines } from '@/lib/nutrition-format';
 import { bagsContext } from '@/lib/preparation';
 import { requireSession } from '@/lib/session';
 
@@ -102,8 +103,28 @@ function Bag({
         <span style={{ width: `${String(percent)}%` }} />
       </div>
 
+      {bag.nutrition.length === 0 ? null : (
+        <div className="bg-nutrition">
+          <h3 className="pk-label">Nutrition, d’après ta stratégie</h3>
+          <ul className="bg-nutrition-items">
+            {suppliedLines(bag.nutrition).map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+          <p className="bg-nutrition-note">
+            Ces produits suivent ta stratégie. Ils se règlent dans{' '}
+            <Link href={`/courses/${participantRaceId}/plan#nutrition`}>
+              Plan › Nutrition › À préparer
+            </Link>
+            .
+          </p>
+        </div>
+      )}
+
       {bag.items.length === 0 ? (
-        <p className="bg-empty">Ce sac est vide. Ajoute ce que tu y mets.</p>
+        bag.nutrition.length === 0 ? (
+          <p className="bg-empty">Ce sac est vide. Ajoute ce que tu y mets.</p>
+        ) : null
       ) : (
         <ul className="bg-items">
           {bag.items.map((item) => (

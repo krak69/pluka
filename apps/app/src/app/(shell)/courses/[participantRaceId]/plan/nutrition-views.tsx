@@ -6,8 +6,18 @@ import {
   resetMilestoneAction,
   setMilestoneItemsAction,
   setRefillPointAction,
+  setReserveAction,
+  setSupplyPointAction,
 } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-actions';
-import type { FlaskLine, FlaskView, MilestoneLine, SectionLine } from '@/lib/nutrition-format';
+import { NutritionSendStatus } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-send';
+import type {
+  FlaskLine,
+  FlaskView,
+  MilestoneLine,
+  PreparationLines,
+  SectionLine,
+  SupplyValue,
+} from '@/lib/nutrition-format';
 
 /** Un produit choisi pour la stratégie, tel que la modification le propose. */
 export interface EditableProduct {
@@ -24,13 +34,14 @@ export interface EditableProduct {
  * libellés arrivent prêts du serveur : rien ne se calcule ici.
  */
 
-type View = 'strategie' | 'section' | 'flasques';
+type View = 'strategie' | 'section' | 'flasques' | 'preparer';
 
 export function NutritionViews({
   participantRaceId,
   milestones,
   sections,
   flasks,
+  preparation,
   products,
   canEdit,
 }: {
@@ -38,6 +49,7 @@ export function NutritionViews({
   readonly milestones: readonly MilestoneLine[];
   readonly sections: readonly SectionLine[];
   readonly flasks: FlaskView | null;
+  readonly preparation: PreparationLines | null;
   readonly products: readonly EditableProduct[];
   readonly canEdit: boolean;
 }) {
@@ -62,6 +74,7 @@ export function NutritionViews({
             ['strategie', 'Ma stratégie'],
             ...(flasks === null ? [] : [['flasques', 'Mes flasques'] as const]),
             ['section', 'Par section'],
+            ...(preparation === null ? [] : [['preparer', 'À préparer'] as const]),
           ] as const
         ).map(([value, label]) => (
           <button
@@ -77,7 +90,13 @@ export function NutritionViews({
         ))}
       </div>
 
-      {view === 'flasques' && flasks !== null ? (
+      {view === 'preparer' && preparation !== null ? (
+        <PreparationPanel
+          participantRaceId={participantRaceId}
+          preparation={preparation}
+          canEdit={canEdit}
+        />
+      ) : view === 'flasques' && flasks !== null ? (
         <FlaskPanel participantRaceId={participantRaceId} flasks={flasks} canEdit={canEdit} />
       ) : view === 'strategie' ? (
         <ol className="nu-milestones">
@@ -462,6 +481,242 @@ function FlaskPanel({
             ))}
           </ul>
         </div>
+      )}
+    </div>
+  );
+}
+
+const RESERVES = [0, 10, 20] as const;
+
+/**
+ * À préparer pour cette course — §49 à §56 : combien de chaque produit, la
+ * réserve en plus, et où les trouver point par point. Ce qui sert après un
+ * ravitaillement vient de ce point : ton drop bag, ton Assistance, ou porté
+ * depuis le départ.
+ */
+function PreparationPanel({
+  participantRaceId,
+  preparation,
+  canEdit,
+}: {
+  readonly participantRaceId: string;
+  readonly preparation: PreparationLines;
+  readonly canEdit: boolean;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const preset = (RESERVES as readonly number[]).includes(preparation.reservePercent);
+  const [other, setOther] = useState(!preset);
+  const [otherValue, setOtherValue] = useState(preset ? '' : String(preparation.reservePercent));
+
+  const reserve = (percent: number) =>
+    startTransition(async () => {
+      const outcome = await setReserveAction(participantRaceId, percent);
+      setError(outcome.error ?? null);
+    });
+
+  const supply = (pointId: string, value: SupplyValue) =>
+    startTransition(async () => {
+      const outcome = await setSupplyPointAction(
+        participantRaceId,
+        pointId,
+        value === 'auto' ? null : value,
+      );
+      setError(outcome.error ?? null);
+    });
+
+  return (
+    <div className="nu-prep" aria-busy={pending}>
+      <section className="nu-prep-block" aria-labelledby="nu-prep-reserve">
+        <h3 id="nu-prep-reserve" className="nu-prep-title">
+          Réserve de sécurité
+        </h3>
+        <p className="nu-meta">
+          Elle s’ajoute à ce que tu prépares, jamais à ce que tu consommes. Elle part avec toi.
+        </p>
+        {canEdit ? (
+          <div className="nu-chips" role="group" aria-label="Réserve de sécurité">
+            {RESERVES.map((percent) => (
+              <button
+                key={percent}
+                type="button"
+                className="nu-chip"
+                aria-pressed={!other && preparation.reservePercent === percent}
+                disabled={pending}
+                onClick={() => {
+                  setOther(false);
+                  reserve(percent);
+                }}
+              >
+                {percent === 0 ? 'Aucune' : `+${String(percent)} %`}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="nu-chip"
+              aria-pressed={other}
+              disabled={pending}
+              onClick={() => setOther(true)}
+            >
+              Autre
+            </button>
+          </div>
+        ) : (
+          <p className="nu-section-line">
+            {preparation.reservePercent === 0
+              ? 'Aucune réserve'
+              : `+${String(preparation.reservePercent)} %`}
+          </p>
+        )}
+        {canEdit && other ? (
+          <form
+            className="nu-prep-other"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const value = Number(otherValue.replace(',', '.'));
+              if (otherValue.trim() !== '' && Number.isFinite(value)) reserve(value);
+            }}
+          >
+            <label className="pk-field">
+              <span className="pk-field-label">Réserve, en %</span>
+              <input
+                className="pk-input"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                max={100}
+                step={1}
+                required
+                value={otherValue}
+                onChange={(event) => setOtherValue(event.target.value)}
+              />
+            </label>
+            <button type="submit" className="pk-btn pk-button-secondary" disabled={pending}>
+              Appliquer
+            </button>
+          </form>
+        ) : null}
+      </section>
+
+      {error === null ? null : (
+        <p className="pk-field-error" role="alert">
+          {error}
+        </p>
+      )}
+
+      {preparation.products.length === 0 ? (
+        <p className="nu-section-line">
+          Aucun produit sur tes prises : choisis tes produits dans Mes paramètres, PLUKA comptera ce
+          qu’il faut préparer.
+        </p>
+      ) : (
+        <>
+          <section className="nu-prep-block" aria-labelledby="nu-prep-products">
+            <h3 id="nu-prep-products" className="nu-prep-title">
+              Ce que tu prépares
+            </h3>
+            {preparation.orphans > 0 ? (
+              <p className="nu-changed" role="status">
+                {preparation.orphans === 1
+                  ? 'Un point a perdu son drop bag ou son rendez-vous : ses produits sont sans place.'
+                  : `${String(preparation.orphans)} points ont perdu leur drop bag ou leur rendez-vous : leurs produits sont sans place.`}
+              </p>
+            ) : null}
+            <ul className="nu-prep-products">
+              {preparation.products.map((product) => (
+                <li key={product.key} className="nu-prep-product">
+                  <span className="nu-prep-name">{product.name}</span>
+                  <span className="nu-prep-total">{product.total}</span>
+                  <span className="nu-meta">{product.detail}</span>
+                  <span className="nu-prep-where">{product.where}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="nu-prep-block" aria-labelledby="nu-prep-points">
+            <h3 id="nu-prep-points" className="nu-prep-title">
+              Où les trouver
+            </h3>
+            <ol className="nu-flask-stops">
+              <li className="nu-flask-stop">
+                <span className="nu-milestone-when">
+                  <span className="nu-milestone-clock">{preparation.startClock}</span>
+                  <span className="nu-meta">km 0</span>
+                </span>
+                <div className="nu-flask-body">
+                  <span className="nu-milestone-name">{preparation.startName} · sur toi</span>
+                  {preparation.start.length === 0 ? (
+                    <span className="nu-reason">Rien à emporter</span>
+                  ) : (
+                    <ul className="nu-prep-items">
+                      {preparation.start.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </li>
+              {preparation.points.map((point) => (
+                <li key={point.pointId} className="nu-flask-stop">
+                  <span className="nu-milestone-when">
+                    <span className="nu-milestone-clock">{point.clock}</span>
+                    <span className="nu-meta">{point.km}</span>
+                  </span>
+                  <div className="nu-flask-body">
+                    <span className="nu-milestone-name">{point.name}</span>
+                    {point.items.length === 0 ? (
+                      <span className="nu-reason">Aucun produit à prendre à partir d’ici</span>
+                    ) : (
+                      <ul className="nu-prep-items">
+                        {point.items.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {point.orphan ? (
+                      <p className="nu-changed" role="status">
+                        {point.source}
+                      </p>
+                    ) : canEdit && point.options !== null ? null : (
+                      <span className="nu-prep-source">{point.source}</span>
+                    )}
+                    {canEdit && point.options !== null ? (
+                      <label className="pk-field nu-prep-choice">
+                        <span className="pk-field-label">D’où viennent ces produits</span>
+                        <select
+                          className="pk-input"
+                          value={point.selected}
+                          disabled={pending}
+                          onChange={(event) =>
+                            supply(point.pointId, event.target.value as SupplyValue)
+                          }
+                        >
+                          {point.options.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : null}
+                    {point.hint === null || !canEdit ? null : (
+                      <span className="nu-meta">{point.hint}</span>
+                    )}
+                    {point.sends.map((line) => (
+                      <NutritionSendStatus
+                        key={line.rendezvousId}
+                        participantRaceId={participantRaceId}
+                        line={line}
+                        canSend={canEdit}
+                      />
+                    ))}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+        </>
       )}
     </div>
   );

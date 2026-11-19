@@ -12,10 +12,14 @@ import {
   setNutritionMilestoneItems,
   setNutritionProductVolume,
   setNutritionRefillPoint,
+  setNutritionReserve,
+  setNutritionSupplyPoint,
+  sendNutritionToAssistant,
 } from '@pluka/domain';
 import { revalidatePath } from 'next/cache';
 
 import type { ActionState } from '@/app/actions';
+import { assistanceContext } from '@/lib/assistance';
 import { nutritionContext } from '@/lib/nutrition';
 import { requireSession } from '@/lib/session';
 
@@ -295,5 +299,74 @@ export async function setRefillPointAction(
     return { error: 'Ce point n’a pas pu être modifié. Réessaie dans un instant.' };
   }
   revalidatePath(pathOf(participantRaceId));
+  return {};
+}
+
+/** Les écrans qui montrent ce qui est réparti : le Plan, les sacs, l'Assistance. */
+function revalidatePreparation(participantRaceId: string): void {
+  revalidatePath(pathOf(participantRaceId));
+  revalidatePath(`/courses/${participantRaceId}/preparation/sacs`);
+  revalidatePath(`/courses/${participantRaceId}/assistance`);
+}
+
+const PREPARATION_LOCKED =
+  'Préparer tes produits fait partie de la stratégie Nutrition, avec le Race Pass.';
+
+/** La réserve de sécurité — §49 (0108). */
+export async function setReserveAction(
+  participantRaceId: string,
+  reservePercent: number,
+): Promise<{ readonly error?: string }> {
+  const session = await requireSession(pathOf(participantRaceId));
+  try {
+    await setNutritionReserve(nutritionContext(session), { participantRaceId, reservePercent });
+  } catch (error) {
+    if (error instanceof EntitlementError) return { error: PREPARATION_LOCKED };
+    if (error instanceof DomainError) return { error: 'Indique une réserve entre 0 et 100 %.' };
+    return { error: 'La réserve n’a pas pu être enregistrée. Réessaie dans un instant.' };
+  }
+  revalidatePreparation(participantRaceId);
+  return {};
+}
+
+/** D'où viennent les produits après un ravitaillement ; nul, automatique — §53 (0108). */
+export async function setSupplyPointAction(
+  participantRaceId: string,
+  raceWaypointId: string,
+  source: 'start' | 'bag' | 'assistance' | null,
+): Promise<{ readonly error?: string }> {
+  const session = await requireSession(pathOf(participantRaceId));
+  try {
+    await setNutritionSupplyPoint(nutritionContext(session), {
+      participantRaceId,
+      raceWaypointId,
+      source,
+    });
+  } catch (error) {
+    if (error instanceof EntitlementError) return { error: PREPARATION_LOCKED };
+    return { error: 'Ce point n’a pas pu être modifié. Réessaie dans un instant.' };
+  }
+  revalidatePreparation(participantRaceId);
+  return {};
+}
+
+/**
+ * « Envoyer à mon accompagnant » : fige sur sa page la liste Nutrition de ce
+ * rendez-vous, telle que la stratégie la calcule maintenant (0109, §55).
+ */
+export async function sendNutritionAction(
+  participantRaceId: string,
+  rendezvousId: string,
+): Promise<{ readonly error?: string }> {
+  const session = await requireSession(pathOf(participantRaceId));
+  try {
+    await sendNutritionToAssistant(assistanceContext(session), { participantRaceId, rendezvousId });
+  } catch (error) {
+    if (error instanceof EntitlementError) {
+      return { error: 'Préparer ton Assistance fait partie du Race Pass.' };
+    }
+    return { error: 'La liste n’a pas pu être envoyée. Réessaie dans un instant.' };
+  }
+  revalidatePreparation(participantRaceId);
   return {};
 }

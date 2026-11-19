@@ -1401,6 +1401,17 @@ Sortie :
 
 Cette vue ne représente pas le stock domestique du coureur.
 
+**Mise en œuvre : onglet « À préparer » (`preparation.ts`, 0108, décisions du 2026-11-19).**
+
+- **Où.** Un 4e onglet de la Nutrition sur le Plan : Ma stratégie · Mes flasques · Par section · À préparer.
+- **Ce qui se compte.** Les produits placés sur les prises, à l'unité, et les doses de boisson d'effort là où une flasque se prépare (§34). La réserve s'arrondit au produit entier supérieur, à la dose (ou demi-dose) pour la boisson.
+- **D'où vient ce qui sert après un ravitaillement.** De ce point. Sans choix du coureur, c'est automatique : l'Assistance s'il a un rendez-vous à ce point, sinon le drop bag s'il en a créé un dans Sacs, sinon il le porte depuis le départ. Il peut choisir point par point. Si son choix n'existe plus (sac supprimé, rendez-vous retiré), les produits restent comptés, « sans place », et l'écran le dit (§56).
+- **La réserve part avec le coureur**, au départ. Choix : aucune, +10 %, +20 % ou un pourcentage libre.
+- **Plusieurs accompagnants.** Chaque personne ou équipe a ses rendez-vous, son lien et sa liste : sur un ultra, l'équipe 1 au ravito 2, l'équipe 2 au ravito 4.
+- **Sacs et Assistance (§54, §55).** Le sac de départ, le drop bag et le sac d'assistance d'un point, ainsi que « À me donner » du rendez-vous, affichent un bloc Nutrition calculé à la lecture. Il suit chaque changement de stratégie et se règle depuis la Nutrition, pas depuis le sac. Il n'entre pas dans les éléments à cocher.
+- **Envoyer à l'accompagnant (0109).** La page privée de l'accompagnant (`/a/[token]`) ne calcule pas la stratégie : le coureur lui envoie une copie figée, rendez-vous par rendez-vous (« Envoyer à Alice »). La copie va dans `assistance_items` en `item_type = 'nutrition'`, avant ce qu'il a noté à la main ; elle ne porte que des quantités (« 3 × Gel 25 »), jamais les objectifs (03_PRIVACY_RLS §46). Rien ne se renvoie tout seul. Dès que le calcul diffère de la copie, une alerte forte (« Alice a une ancienne liste de produits ») s'affiche en tête de la Nutrition, au point concerné dans « À préparer », et en tête de la page Assistance, avec « Renvoyer à Alice ». Quand plus rien n'est prévu chez elle, le bouton retire la liste.
+- **Prévenir l'accompagnant.** Une fois sa page à jour, « Prévenir Alice » ouvre le menu de partage du téléphone (SMS, WhatsApp…) avec un message prêt : le point, l'heure de passage prévue et la liste. Sans menu de partage, le message se copie. C'est le coureur qui l'envoie : PLUKA n'écrit à personne et ne collecte aucune adresse (décision du 2026-11-19, plutôt qu'un e-mail).
+
 ---
 
 # 53. Destinations

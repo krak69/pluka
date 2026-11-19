@@ -28,6 +28,11 @@ import {
   PersonHeader,
 } from '@/app/(shell)/courses/[participantRaceId]/assistance/assistance-forms';
 import { Icon } from '@/components/icon';
+import {
+  NutritionSendAlert,
+  NutritionSendStatus,
+} from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-send';
+import { sendLine, suppliedLines, type SendLine } from '@/lib/nutrition-format';
 import { assistanceContext } from '@/lib/assistance';
 import { formatClock, formatDistance } from '@/lib/plan-format';
 import { requireSession } from '@/lib/session';
@@ -58,6 +63,39 @@ function passageDay(isoInstant: string, timeZone: string): string {
     month: 'short',
     timeZone,
   }).format(new Date(isoInstant));
+}
+
+/** La liste Nutrition d'un rendez-vous, vue depuis l'Assistance ; nulle s'il n'y a rien. */
+function sendOf(
+  person: AssistanceOverview['people'][number],
+  rendezvous: RendezvousView,
+  timezone: string,
+): SendLine | null {
+  if (rendezvous.nutritionSend.status === 'none') return null;
+  return sendLine(
+    {
+      rendezvousId: rendezvous.id,
+      assistant: person.firstName,
+      pointId: rendezvous.point?.id ?? '',
+      pointName: rendezvous.point?.name ?? 'ce point',
+      status: rendezvous.nutritionSend.status,
+      sentAt: rendezvous.nutritionSend.sentAt,
+      nothingToGive: rendezvous.nutrition.length === 0,
+      sentLabels: rendezvous.nutritionSend.sentLabels,
+      labels: rendezvous.nutritionSend.labels,
+      clock: rendezvous.passage === null ? null : formatClock(rendezvous.passage.at, timezone),
+    },
+    timezone,
+  );
+}
+
+function staleSends(overview: AssistanceOverview): SendLine[] {
+  return overview.people.flatMap((person) =>
+    person.rendezvous.flatMap((rendezvous) => {
+      const line = sendOf(person, rendezvous, overview.timezone);
+      return line?.status === 'stale' ? [line] : [];
+    }),
+  );
 }
 
 export default async function AssistancePage({
@@ -105,6 +143,15 @@ export default async function AssistancePage({
           ))}
         </div>
       </section>
+
+      {staleSends(overview).map((line) => (
+        <NutritionSendAlert
+          key={line.rendezvousId}
+          participantRaceId={participantRaceId}
+          line={line}
+          canSend={overview.canEdit}
+        />
+      ))}
 
       {overview.status === 'autonomous' ? (
         <Autonomous participantRaceId={participantRaceId} />
@@ -252,6 +299,7 @@ function Person({
                 rendezvous={rendezvous}
                 timezone={overview.timezone}
                 canEdit={overview.canEdit}
+                send={sendOf(person, rendezvous, overview.timezone)}
               />
             </li>
           ))}
@@ -308,11 +356,13 @@ function Rendezvous({
   rendezvous,
   timezone,
   canEdit,
+  send,
 }: {
   readonly participantRaceId: string;
   readonly rendezvous: RendezvousView;
   readonly timezone: string;
   readonly canEdit: boolean;
+  readonly send: SendLine | null;
 }) {
   const where = rendezvous.point?.name ?? 'Point retiré';
   const passage = rendezvous.passage;
@@ -372,8 +422,27 @@ function Rendezvous({
 
       <div className="as-give">
         <h3 className="pk-label">À me donner</h3>
+        {rendezvous.nutrition.length === 0 ? null : (
+          <ul className="as-items as-nutrition" aria-label="Nutrition, d’après ta stratégie">
+            {suppliedLines(rendezvous.nutrition).map((line) => (
+              <li key={line} className="as-item">
+                <span>{line}</span>
+                <span className="as-from">Nutrition</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {send === null ? null : (
+          <NutritionSendStatus
+            participantRaceId={participantRaceId}
+            line={send}
+            canSend={canEdit}
+          />
+        )}
         {rendezvous.items.length === 0 ? (
-          <p className="as-hint">Rien de noté.</p>
+          rendezvous.nutrition.length === 0 ? (
+            <p className="as-hint">Rien de noté.</p>
+          ) : null
         ) : (
           <ul className="as-items">
             {rendezvous.items.map((item) => (

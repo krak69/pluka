@@ -6,10 +6,12 @@ import {
   NutritionDialog,
   type NutritionGoals,
 } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-dialog';
+import { NutritionSendAlert } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-send';
 import { NutritionViews } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-views';
 import {
   flaskView,
   plannedIntake,
+  preparationLines,
   sectionsWithFlasks,
   strategyLines,
 } from '@/lib/nutrition-format';
@@ -125,6 +127,10 @@ export function NutritionBand({
     view.result.flasks === null
       ? null
       : flaskView(view.result.flasks, view.result, view.startAt, view.timezone);
+  const preparation =
+    view.preparation === null
+      ? null
+      : preparationLines(view.preparation, view.startAt, view.timezone);
   const intakes = view.result.milestones.filter((milestone) => milestone.kind === 'intake').length;
   const targets = `${String(settings.carbsGPerHour)} g/h · ${String(settings.hydrationMlPerHour)} ml/h · ${String(settings.sodiumMgPerHour)} mg/h${
     settings.caffeineTotalMg === null
@@ -173,6 +179,17 @@ export function NutritionBand({
         </p>
       ) : null}
 
+      {preparation === null
+        ? null
+        : preparation.stale.map((line) => (
+            <NutritionSendAlert
+              key={line.rendezvousId}
+              participantRaceId={participantRaceId}
+              line={line}
+              canSend={view.canEdit}
+            />
+          ))}
+
       {lines.summary.warnings.map((warning) => (
         <p key={warning} className="nu-changed" role="status">
           {warning}
@@ -184,6 +201,7 @@ export function NutritionBand({
         milestones={lines.milestones}
         sections={sectionsWithFlasks(lines.sections, flasks)}
         flasks={flasks}
+        preparation={preparation}
         canEdit={view.canEdit}
         products={pickable
           .filter((product) => settings.selectedProductIds.includes(product.id))

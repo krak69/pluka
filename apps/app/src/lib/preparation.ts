@@ -6,8 +6,14 @@ import {
   createRaceInformationRepositories,
   createTaskRepositories,
 } from '@pluka/db';
-import type { BagsContext, PreparationContext, TasksContext } from '@pluka/domain';
+import {
+  getNutritionSupply,
+  type BagsContext,
+  type PreparationContext,
+  type TasksContext,
+} from '@pluka/domain';
 
+import { nutritionContext } from '@/lib/nutrition';
 import type { Session } from '@/lib/session';
 import { createDataClient } from '@/lib/supabase/data';
 
@@ -52,6 +58,9 @@ export function bagsContext(session: Session): BagsContext {
     },
     actor: { userId: session.userId },
     now: () => new Date(),
+    // Ce que la stratégie Nutrition range dans les sacs, calculé à la lecture (§54).
+    nutritionSupply: (participantRaceId) =>
+      getNutritionSupply(nutritionContext(session), { participantRaceId }),
   };
 }
 

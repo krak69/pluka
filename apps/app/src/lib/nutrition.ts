@@ -1,4 +1,9 @@
-import { createEntitlementRepositories, createNutritionRepositories } from '@pluka/db';
+import {
+  createAssistanceRepositories,
+  createBagRepositories,
+  createEntitlementRepositories,
+  createNutritionRepositories,
+} from '@pluka/db';
 import type { NutritionContext } from '@pluka/domain';
 
 import type { Session } from '@/lib/session';
@@ -16,6 +21,9 @@ export function nutritionContext(session: Session): NutritionContext {
     repositories: {
       ...createNutritionRepositories({ client }),
       ...createEntitlementRepositories({ client }),
+      // « À préparer » lit les sacs et les rendez-vous, sans les écrire (§53).
+      bags: createBagRepositories({ client }).bags,
+      assistance: createAssistanceRepositories({ client }).assistance,
     },
     actor: { userId: session.userId },
     now: () => new Date(),

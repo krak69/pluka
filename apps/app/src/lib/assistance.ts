@@ -4,9 +4,14 @@ import {
   createEntitlementRepositories,
 } from '@pluka/db';
 import { createServerClient } from '@pluka/db/server';
-import type { AssistanceContext, AssistantPageContext } from '@pluka/domain';
+import {
+  getNutritionSupply,
+  type AssistanceContext,
+  type AssistantPageContext,
+} from '@pluka/domain';
 
 import { publicEnv } from '@/lib/env';
+import { nutritionContext } from '@/lib/nutrition';
 import type { Session } from '@/lib/session';
 import { createDataClient } from '@/lib/supabase/data';
 
@@ -27,6 +32,9 @@ export function assistanceContext(session: Session): AssistanceContext {
     },
     actor: { userId: session.userId },
     now: () => new Date(),
+    // Ce que la stratégie Nutrition confie à l'Assistance, calculé à la lecture (§55).
+    nutritionSupply: (participantRaceId) =>
+      getNutritionSupply(nutritionContext(session), { participantRaceId }),
   };
 }
 

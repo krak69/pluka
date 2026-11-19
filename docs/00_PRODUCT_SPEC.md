@@ -834,6 +834,8 @@ Une marge de réserve peut être définie :
 
 La réserve ne doit pas être comptée comme consommée automatiquement.
 
+**Réserve et répartition (décision produit du 2026-11-19).** La vue est le 4e onglet de la Nutrition. La réserve se choisit parmi aucune, +10 %, +20 % ou un pourcentage libre, et part avec le coureur. Ce qui sert après un ravitaillement vient de ce point : l'Assistance s'il y a un rendez-vous, le drop bag s'il existe, sinon c'est porté depuis le départ. Le coureur peut choisir point par point. Les sacs et « À me donner » affichent ces produits, calculés depuis la stratégie (NUTRITION_ENGINE §52).
+
 ## 13.6 Sous-couverture
 
 Si la stratégie ne couvre pas les objectifs déclarés :

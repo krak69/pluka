@@ -5015,6 +5015,40 @@ a.st-tab {
   color: var(--pk-text-secondary);
 }
 
+/* Ce que la stratégie Nutrition range dans le sac : calculé, pas coché (§54). */
+.bg-nutrition {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-left: 3px solid var(--pk-glacier);
+  background: var(--pk-limestone);
+}
+
+.bg-nutrition .pk-label {
+  margin: 0;
+}
+
+.bg-nutrition-items {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.bg-nutrition-note {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--pk-text-secondary);
+}
+
+.bg-nutrition-note a {
+  color: var(--pk-forest);
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+
 .bg-items {
   margin: 0;
   padding: 0;
@@ -5581,6 +5615,13 @@ a.st-tab {
 .as-hint {
   margin: 0;
   font-size: 14px;
+  color: var(--pk-text-secondary);
+}
+
+.as-from {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
   color: var(--pk-text-secondary);
 }
 
@@ -6755,6 +6796,191 @@ a.st-tab {
   font-size: 12px;
   font-weight: 400;
   color: var(--pk-text-secondary);
+}
+
+/*
+ * La liste d'un accompagnant n'est plus à jour (0109) : Aube, la couleur de
+ * la prochaine action, sur toute la bordure — elle ne doit pas se rater.
+ */
+.nu-send-alert {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 2px solid var(--pk-dawn);
+  border-left-width: 8px;
+  border-radius: var(--radius-sm);
+  background: var(--pk-warning-bg);
+}
+
+.nu-send-alert-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.nu-send-alert-title::before {
+  content: '!';
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 2px;
+  background: var(--pk-dawn);
+  color: var(--pk-ink);
+  font-weight: 800;
+}
+
+.nu-send-alert-text {
+  margin: 0;
+}
+
+.nu-send-alert-seen ul {
+  margin: 4px 0 0;
+  padding-left: var(--space-4);
+  font-size: 14px;
+  color: var(--pk-text-secondary);
+  text-decoration: line-through;
+}
+
+.nu-send-button {
+  justify-self: start;
+  min-height: 44px;
+}
+
+.nu-send {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--pk-glacier);
+  background: var(--pk-limestone);
+}
+
+.nu-send-ok {
+  border-left-color: var(--pk-forest);
+}
+
+.nu-send-text {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.nu-notify {
+  display: grid;
+  flex: 1 1 100%;
+  justify-items: start;
+  gap: var(--space-1);
+}
+
+.nu-notify-text {
+  width: min(100%, 32rem);
+  font-size: 14px;
+}
+
+/* Nutrition — À préparer pour cette course (§49 à §56) */
+.nu-prep {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.nu-prep-block {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.nu-prep-block .nu-meta {
+  margin: 0;
+}
+
+.nu-prep-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.nu-prep-other {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+.nu-prep-other .pk-field {
+  width: min(100%, 9rem);
+}
+
+.nu-prep-other .pk-btn {
+  min-height: 44px;
+}
+
+.nu-prep-products {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.nu-prep-product {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.nu-prep-name {
+  font-weight: 600;
+}
+
+.nu-prep-total {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.nu-prep-where {
+  grid-column: 1 / -1;
+  font-size: 14px;
+  color: var(--pk-forest);
+}
+
+.nu-prep-items {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.nu-prep-source {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pk-forest);
+}
+
+.nu-prep-choice {
+  width: min(100%, 22rem);
+}
+
+@media (max-width: 640px) {
+  .nu-prep-total {
+    text-align: left;
+  }
+
+  .nu-prep-product {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Nutrition — Mes flasques (§33, §34) */

@@ -4,8 +4,14 @@ import type {
   FlaskPlan,
   MilestoneReason,
   NutritionMilestone,
+  NutritionPreparationView,
   NutritionResult,
+  NutritionSendStatus,
   NutritionSection,
+  PreparationProduct,
+  PreparationQuantity,
+  SuppliedItem,
+  SupplyPointView,
 } from '@pluka/domain';
 
 import { formatClock } from '@/lib/plan-format';
@@ -517,4 +523,330 @@ export function sectionsWithFlasks(
       },
     };
   });
+}
+
+// ------------------------------------------------------------
+// À préparer pour cette course — §49 à §56 (0108)
+// ------------------------------------------------------------
+
+export type SupplyValue = 'auto' | 'start' | 'bag' | 'assistance';
+
+export interface PreparationProductLine {
+  readonly key: string;
+  readonly name: string;
+  /** « 4 prévus · +1 de réserve » */
+  readonly detail: string;
+  /** « 5 à préparer » */
+  readonly total: string;
+  /** « 3 sur toi · 2 dans ton drop bag » */
+  readonly where: string;
+}
+
+export interface PreparationPointLine {
+  readonly pointId: string;
+  readonly clock: string;
+  readonly km: string;
+  readonly name: string;
+  readonly items: readonly string[];
+  /** « Porté depuis le départ », « Dans ton drop bag », « Marie te les donne ». */
+  readonly source: string;
+  /** Le choix n'existe plus (§56) : ses produits n'ont pas de place. */
+  readonly orphan: boolean;
+  readonly selected: SupplyValue;
+  /** Nul quand il n'y a rien d'autre à choisir que le départ. */
+  readonly options: readonly { readonly value: SupplyValue; readonly label: string }[] | null;
+  /** Ce qui manque pour avoir le choix : un drop bag ou un rendez-vous. */
+  readonly hint: string | null;
+  /** Les listes envoyées aux accompagnants de ce point (0109). */
+  readonly sends: readonly SendLine[];
+}
+
+export interface PreparationLines {
+  readonly reservePercent: number;
+  readonly products: readonly PreparationProductLine[];
+  readonly startName: string;
+  readonly startClock: string;
+  /** Ce qui part avec le coureur au départ, réserve comprise. */
+  readonly start: readonly string[];
+  readonly points: readonly PreparationPointLine[];
+  readonly orphans: number;
+  /** Les listes périmées chez un accompagnant : l'alerte en tête de la Nutrition. */
+  readonly stale: readonly SendLine[];
+}
+
+function quantity(value: number): string {
+  return decimal.format(value);
+}
+
+function unitText(item: Pick<PreparationQuantity, 'unit' | 'name'>, value: number): string {
+  return item.unit === 'dose'
+    ? `${doses(value)} de ${item.name}`
+    : `${quantity(value)} × ${item.name}`;
+}
+
+function plural(value: number, one: string, many: string): string {
+  return value <= 1 ? one : many;
+}
+
+function productLine(row: PreparationProduct): PreparationProductLine {
+  const dose = row.unit === 'dose';
+  const where = [
+    ...(dose && row.inFlasks > 0 ? [`${doses(row.inFlasks)} dans tes flasques au départ`] : []),
+    ...(row.start - (dose ? row.inFlasks : 0) > 0
+      ? [
+          dose
+            ? `${doses(row.start - row.inFlasks)} en sachet sur toi`
+            : `${quantity(row.start)} sur toi`,
+        ]
+      : []),
+    ...(row.bag > 0 ? [`${dose ? doses(row.bag) : quantity(row.bag)} en drop bag`] : []),
+    ...(row.assistance > 0
+      ? [`${dose ? doses(row.assistance) : quantity(row.assistance)} à l’Assistance`]
+      : []),
+    ...(row.unassigned > 0
+      ? [`${dose ? doses(row.unassigned) : quantity(row.unassigned)} sans place`]
+      : []),
+  ];
+  return {
+    key: `${row.unit}:${row.productId}`,
+    name: dose ? `${row.name} (boisson)` : row.name,
+    detail: [
+      dose
+        ? `${doses(row.planned)} ${plural(row.planned, 'prévue', 'prévues')}`
+        : `${quantity(row.planned)} ${plural(row.planned, 'prévu', 'prévus')}`,
+      ...(row.reserve > 0
+        ? [`+${dose ? doses(row.reserve) : quantity(row.reserve)} de réserve`]
+        : []),
+    ].join(' · '),
+    total: dose ? `${doses(row.total)} à préparer` : `${quantity(row.total)} à préparer`,
+    where: where.join(' · '),
+  };
+}
+
+const SUPPLY_LABELS = {
+  start: () => 'Porté depuis le départ',
+  bag: () => 'Dans ton drop bag',
+  assistance: (point: SupplyPointView) =>
+    `${point.assistants.join(' et ')} ${point.assistants.length > 1 ? 'te les donnent' : 'te les donne'}`,
+} as const;
+
+/** « porté depuis le départ », « dans ton drop bag », « Alice te les donne » : un prénom garde sa majuscule. */
+function autoLabel(point: SupplyPointView): string {
+  const label = SUPPLY_LABELS[point.auto](point);
+  return point.auto === 'assistance' ? label : label.charAt(0).toLowerCase() + label.slice(1);
+}
+
+function sourceText(point: SupplyPointView): string {
+  if (point.source === 'unassigned') {
+    return point.chosen === 'bag'
+      ? 'Sans place : ton drop bag à ce point n’existe plus'
+      : 'Sans place : plus de rendez-vous d’Assistance à ce point';
+  }
+  return SUPPLY_LABELS[point.source](point);
+}
+
+export function preparationLines(
+  preparation: NutritionPreparationView,
+  startAt: string | null,
+  timezone: string,
+): PreparationLines {
+  const { plan } = preparation;
+  const byId = new Map(plan.points.map((point) => [point.pointId, point]));
+  const first = plan.points[0];
+  const clocks = new Map(
+    plan.points.map((point) => [point.pointId, clockAt(startAt, timezone, point.elapsedSeconds)]),
+  );
+  const sends = preparation.sends.map((send) =>
+    sendLine(
+      { ...send, clock: startAt === null ? null : (clocks.get(send.pointId) ?? null) },
+      timezone,
+    ),
+  );
+
+  return {
+    reservePercent: plan.reservePercent,
+    startName: first?.name ?? 'Départ',
+    startClock: clockAt(startAt, timezone, first?.elapsedSeconds ?? 0),
+    products: plan.products.map(productLine),
+    start: suppliedLines(
+      plan.products.filter((row) => row.start > 0).map((row) => ({ ...row, quantity: row.start })),
+    ),
+    points: preparation.points.map((point) => {
+      const items = byId.get(point.pointId)?.items ?? [];
+      const choices = point.options.map((value) => ({
+        value,
+        label: SUPPLY_LABELS[value](point),
+      }));
+      const orphan = point.source === 'unassigned';
+      return {
+        pointId: point.pointId,
+        clock: clockAt(startAt, timezone, point.elapsedSeconds),
+        km: `km ${decimal.format(point.distanceKm)}`,
+        name: point.name,
+        items: items.map((item) => unitText(item, item.quantity)),
+        source: sourceText(point),
+        orphan,
+        selected: point.chosen ?? 'auto',
+        options:
+          point.options.length <= 1 && point.chosen === null
+            ? null
+            : [
+                {
+                  value: 'auto',
+                  label: `Automatique : ${autoLabel(point)}`,
+                },
+                ...choices,
+                ...(orphan && point.chosen !== null
+                  ? [
+                      {
+                        value: point.chosen,
+                        label:
+                          point.chosen === 'bag'
+                            ? 'Drop bag (n’existe plus)'
+                            : 'Assistance (plus de rendez-vous)',
+                      },
+                    ]
+                  : []),
+              ],
+        hint:
+          point.options.length <= 1
+            ? 'Pour les trouver ici, crée un drop bag dans Sacs ou un rendez-vous dans Assistance.'
+            : null,
+        sends: sends.filter((send) => send.pointId === point.pointId),
+      };
+    }),
+    orphans: preparation.points.filter((point) => point.source === 'unassigned').length,
+    stale: sends.filter((send) => send.status === 'stale'),
+  };
+}
+
+/**
+ * Ce que la stratégie range dans un sac ou chez l'Assistance, en lignes :
+ * « 3 × Gel (dont 1 de réserve) », « 1 dose de Näak, dans tes flasques ».
+ */
+export function suppliedLines(items: readonly SuppliedItem[]): readonly string[] {
+  return items.flatMap((item) => {
+    const dose = item.unit === 'dose';
+    const loose = item.quantity - (dose ? item.inFlasks : 0);
+    return [
+      ...(dose && item.inFlasks > 0
+        ? [`${doses(item.inFlasks)} de ${item.name}, dans tes flasques`]
+        : []),
+      ...(loose > 0
+        ? [
+            `${unitText(item, loose)}${dose && item.inFlasks > 0 ? ' en sachet' : ''}${
+              item.reserve > 0
+                ? ` (dont ${dose ? doses(item.reserve) : quantity(item.reserve)} de réserve)`
+                : ''
+            }`,
+          ]
+        : []),
+    ];
+  });
+}
+
+// ------------------------------------------------------------
+// Envoyer à l'accompagnant — §55 (0109)
+// ------------------------------------------------------------
+
+export interface SendLine {
+  readonly rendezvousId: string;
+  readonly pointId: string;
+  readonly status: Exclude<NutritionSendStatus, 'none'>;
+  /** « Alice a une ancienne liste » ; nul hors d'une liste périmée. */
+  readonly title: string | null;
+  readonly text: string;
+  /** « Envoyer à Alice », « Renvoyer à Alice » ; nul quand tout est à jour. */
+  readonly action: string | null;
+  /** Ce que l'accompagnant voit encore (liste périmée, sur la page Assistance). */
+  readonly seen: readonly string[];
+  /**
+   * « Prévenir Alice » : un message prêt à partager depuis le téléphone du
+   * coureur — PLUKA n'écrit à personne. Seulement quand sa page est à jour.
+   */
+  readonly notify: { readonly label: string; readonly message: string } | null;
+}
+
+export interface SendFacts {
+  readonly rendezvousId: string;
+  readonly assistant: string;
+  readonly pointId: string;
+  readonly pointName: string;
+  readonly status: NutritionSendStatus;
+  readonly sentAt: string | null;
+  readonly nothingToGive: boolean;
+  readonly sentLabels?: readonly string[];
+  /** Ce qu'il faut donner maintenant. */
+  readonly labels: readonly string[];
+  /** L'heure de passage prévue, pour le message ; nulle sans Plan. */
+  readonly clock: string | null;
+}
+
+/** « de Paul », « d’Alice » : l'élision devant une voyelle ou un h muet supposé. */
+function ofName(name: string): string {
+  return /^[aeiouyhàâäéèêëîïôöùûü]/i.test(name) ? `d’${name}` : `de ${name}`;
+}
+
+/** Le message que le coureur envoie lui-même, par SMS, WhatsApp… */
+function notifyMessage(send: SendFacts): string {
+  return [
+    `Salut ${send.assistant} ! Voici ce que tu dois me donner à ${send.pointName}${
+      send.clock === null ? '' : ` (passage prévu vers ${send.clock})`
+    } :`,
+    ...send.labels.map((label) => `• ${label}`),
+    'Tout est aussi sur ma page PLUKA, avec le lien que je t’ai envoyé.',
+  ].join('\n');
+}
+
+/** « 19 nov. à 14:32 », dans le fuseau de la course. */
+function sentMoment(isoInstant: string, timeZone: string): string {
+  const day = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', timeZone }).format(
+    new Date(isoInstant),
+  );
+  return `${day} à ${formatClock(isoInstant, timeZone)}`;
+}
+
+export function sendLine(send: SendFacts, timezone: string): SendLine {
+  const base = {
+    rendezvousId: send.rendezvousId,
+    pointId: send.pointId,
+    seen: send.status === 'stale' ? (send.sentLabels ?? []) : [],
+    notify: null,
+  };
+  const when = send.sentAt === null ? null : sentMoment(send.sentAt, timezone);
+  switch (send.status) {
+    case 'stale':
+      return {
+        ...base,
+        status: 'stale',
+        title: `${send.assistant} a une ancienne liste de produits`,
+        text: send.nothingToGive
+          ? `Ta stratégie ne prévoit plus rien à te donner à ${send.pointName}, mais la page ${ofName(send.assistant)} affiche encore la liste envoyée le ${when ?? '—'}.`
+          : `Ta stratégie Nutrition a changé depuis l’envoi du ${when ?? '—'} : à ${send.pointName}, la page ${ofName(send.assistant)} ne montre plus ce qu’il faut te donner.`,
+        action: send.nothingToGive
+          ? `Retirer la liste ${ofName(send.assistant)}`
+          : `Renvoyer à ${send.assistant}`,
+      };
+    case 'sent':
+      return {
+        ...base,
+        status: 'sent',
+        title: null,
+        text: `Envoyé à ${send.assistant} le ${when ?? '—'} : sa page est à jour.`,
+        action: null,
+        notify:
+          send.labels.length === 0
+            ? null
+            : { label: `Prévenir ${send.assistant}`, message: notifyMessage(send) },
+      };
+    case 'unsent':
+    case 'none':
+      return {
+        ...base,
+        status: 'unsent',
+        title: null,
+        text: `${send.assistant} ne voit pas encore ces produits sur sa page.`,
+        action: `Envoyer à ${send.assistant}`,
+      };
+  }
 }
