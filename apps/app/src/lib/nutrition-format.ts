@@ -25,6 +25,8 @@ import { formatClock } from '@/lib/plan-format';
 
 export interface MilestoneLine {
   readonly key: string;
+  /** L'ancre de la ligne dans « Ma stratégie », que visent les points du profil. */
+  readonly anchor: string;
   /** Le ravitaillement de ce jalon ; nul pour une prise ou l'arrivée. */
   readonly pointId: string | null;
   readonly official: boolean;
@@ -120,6 +122,49 @@ function percent(value: number | null): string {
   return value === null ? '—' : `${String(Math.round(value * 100))} %`;
 }
 
+/** « intake:<uuid>:2 » → « prise-intake-<uuid>-2 » : une ancre sans deux-points. */
+function intakeAnchor(stableKey: string): string {
+  return `prise-${stableKey.replace(/[^A-Za-z0-9-]/g, '-')}`;
+}
+
+/** Une prise posée sur le profil du Plan : où, et ce qu'elle dit au survol. */
+export interface ProfileIntake {
+  readonly key: string;
+  readonly anchor: string;
+  readonly distanceKm: number;
+  /** « Prise · 10:42 · km 12,4 — 1 × Gel 25 ». */
+  readonly label: string;
+}
+
+/**
+ * Les prises à poser sur le profil — prototype `planNutMarks`. Les
+ * ravitaillements et l'arrivée y sont déjà marqués comme points du parcours :
+ * seules les prises entre deux points s'ajoutent.
+ */
+export function profileIntakes(
+  result: NutritionResult,
+  startAt: string | null,
+  timezone: string,
+): readonly ProfileIntake[] {
+  return result.milestones
+    .filter((milestone) => milestone.kind === 'intake')
+    .map((milestone) => {
+      const line = milestoneLine(result, milestone, startAt, timezone);
+      const what =
+        line.items.length > 0
+          ? line.items.join(' + ')
+          : result.allocation === null
+            ? line.need
+            : 'Rien de prévu';
+      return {
+        key: line.key,
+        anchor: line.anchor,
+        distanceKm: milestone.distanceKm,
+        label: `Prise · ${line.clock} · ${line.km} — ${what}`,
+      };
+    });
+}
+
 function milestoneLine(
   result: NutritionResult,
   milestone: NutritionMilestone,
@@ -129,6 +174,7 @@ function milestoneLine(
   const official = milestone.kind !== 'intake';
   return {
     key: milestone.stableKey,
+    anchor: intakeAnchor(milestone.stableKey),
     pointId: milestone.kind === 'aid' ? milestone.pointId : null,
     official,
     clock: clockAt(startAt, timezone, milestone.elapsedSeconds),

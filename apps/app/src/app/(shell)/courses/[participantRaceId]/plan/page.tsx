@@ -16,6 +16,7 @@ import { CourseChangeAlert } from '@/components/course-change-alert';
 import { StartChangeAlert } from '@/components/start-change-alert';
 import { NutritionBand } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-band';
 import { nutritionContext } from '@/lib/nutrition';
+import { profileIntakes } from '@/lib/nutrition-format';
 import { planContext, redirectOnDomainError } from '@/lib/plan';
 import {
   formatClock,
@@ -194,6 +195,20 @@ export default async function PlanPage({
               anchored={overview.profileIsAnchored}
               variant="dark"
               cutoffWaypointIds={overview.cutoffs.map((cutoff) => cutoff.raceWaypointId)}
+              nutrition={
+                nutrition === null || nutrition.state === 'no_plan'
+                  ? null
+                  : nutrition.state === 'ready' && nutrition.result !== null
+                    ? {
+                        state: 'ready',
+                        intakes: profileIntakes(
+                          nutrition.result,
+                          nutrition.startAt,
+                          nutrition.timezone,
+                        ),
+                      }
+                    : { state: 'off' }
+              }
             />
           </section>
 

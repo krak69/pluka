@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 import {
   resetMilestoneAction,
@@ -68,6 +68,39 @@ export function NutritionViews({
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
   const allOpen = sections.length > 0 && sections.every((line) => open.has(line.key));
 
+  // Une prise choisie sur le profil : `seq` fait défiler à nouveau un second clic sur le même point.
+  const [target, setTarget] = useState<{ readonly anchor: string; readonly seq: number } | null>(
+    null,
+  );
+  const anchors = milestones.map((line) => line.anchor).join(' ');
+
+  useEffect(() => {
+    const known = new Set(anchors.split(' '));
+    const reveal = (anchor: string) => {
+      setView('strategie');
+      setTarget((current) => ({ anchor, seq: (current?.seq ?? 0) + 1 }));
+    };
+    // Les points du profil visent les lignes de « Ma stratégie », qui n'existent
+    // que sous cet onglet : on l'ouvre, puis on fait défiler jusqu'à la prise.
+    const onClick = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+      const anchor = event.target.closest('a.pl-intake')?.getAttribute('href')?.slice(1);
+      if (anchor === undefined || !known.has(anchor)) return;
+      event.preventDefault();
+      reveal(anchor);
+    };
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, [anchors]);
+
+  useEffect(() => {
+    if (target === null) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document
+      .getElementById(target.anchor)
+      ?.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+  }, [target]);
+
   const toggleSection = (key: string, isOpen: boolean) =>
     setOpen((current) => {
       if (current.has(key) === isOpen) return current;
@@ -119,7 +152,12 @@ export function NutritionViews({
           {milestones.map((line) => (
             <li
               key={line.key}
-              className={line.official ? 'nu-milestone nu-milestone-aid' : 'nu-milestone'}
+              id={line.anchor}
+              className={[
+                'nu-milestone',
+                ...(line.official ? ['nu-milestone-aid'] : []),
+                ...(target?.anchor === line.anchor ? ['nu-milestone-target'] : []),
+              ].join(' ')}
             >
               <span className="nu-milestone-when">
                 <span className="nu-milestone-clock">{line.clock}</span>

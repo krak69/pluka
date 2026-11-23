@@ -3691,7 +3691,159 @@ a.st-tab {
   display: block;
   width: 100%;
   height: auto;
+}
+
+/* Les calques n'ajoutent pas de boîte : le profil garde sa grille. */
+.pl-layers {
+  display: contents;
+}
+
+.pl-profile-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+
+/* Prototype `profFilters` : des puces posées sur la bande sombre. */
+.pl-layer-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pl-layer-chip {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 11px;
+  border: 1px solid color-mix(in srgb, var(--pk-text-on-dark) 20%, transparent);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: color-mix(in srgb, var(--pk-text-on-dark) 75%, transparent);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.pl-layer-chip[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--pk-glacier) 55%, transparent);
+  background: color-mix(in srgb, var(--pk-glacier) 14%, transparent);
+  color: var(--pk-glacier);
+}
+
+.pl-layer-chip:hover:not(.pl-layer-fixed) {
+  border-color: var(--pk-glacier);
+}
+
+.pl-layer-chip:focus-visible {
+  outline: 2px solid var(--pk-focus-dark);
+  outline-offset: 2px;
+}
+
+.pl-layer-fixed {
+  cursor: default;
+  color: color-mix(in srgb, var(--pk-text-on-dark) 62%, transparent);
+}
+
+@media (max-width: 720px) {
+  .pl-layer-chip {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+}
+
+.pl-profile-plot {
+  position: relative;
   margin-top: var(--space-2);
+}
+
+.pl-intakes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Une prise, dans une cible de 24 px. Glacier = donnée secondaire du parcours,
+   la couleur de la puce « Nutrition » (≈ 12:1 sur Ardoise). Glacier et Lichen
+   se confondent (≈ 1,2:1) : le liseré Ardoise découpe le point sur la courbe. */
+.pl-intake {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+
+.pl-intake::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pk-glacier);
+  box-shadow: 0 0 0 2px var(--pk-ink);
+}
+
+.pl-intake:hover::before {
+  box-shadow:
+    0 0 0 2px var(--pk-ink),
+    0 0 0 4px var(--pk-glacier);
+}
+
+/* Les jalons du profil sombre, posés en HTML pour rester ronds. Calcaire et
+   Lichen se confondent (≈ 1,1:1) : le liseré Ardoise les découpe sur la courbe. */
+.pl-waypoints {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.pl-waypoint {
+  position: absolute;
+  box-sizing: border-box;
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--pk-limestone);
+  border-radius: 50%;
+  background: var(--pk-ink);
+  box-shadow: 0 0 0 2px var(--pk-ink);
+  transform: translate(-50%, -50%);
+}
+
+.pl-waypoint-cutoff {
+  background: var(--pk-dawn);
+}
+
+/* §49 : triangle Aube = prochaine échéance, l'arrivée avant la course. Le
+   triangle Ardoise derrière fait le liseré ; le point tombe aux deux tiers. */
+.pl-waypoint-finish {
+  width: 20px;
+  height: 18px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  transform: translate(-50%, -65%);
+}
+
+.pl-waypoint-finish::before {
+  content: '';
+  position: absolute;
+  inset: 4px 3px 2px;
+  background: var(--pk-dawn);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.pl-layers[data-nutrition='off'] .pl-intakes,
+.pl-layers[data-nutrition='off'] .pl-legend-intake-item {
+  display: none;
 }
 
 .pl-profile-dark .pl-profile-svg {
@@ -3738,6 +3890,13 @@ a.st-tab {
 
 .pl-legend-point {
   background: var(--pk-ink);
+}
+
+.pl-legend-intake {
+  width: 8px;
+  height: 8px;
+  border: 0;
+  background: var(--pk-glacier);
 }
 
 .pl-legend-tri {
@@ -6198,6 +6357,25 @@ a.st-tab {
 
 .nu-milestone-aid {
   background: var(--pk-glacier-bg);
+}
+
+/* La prise choisie sur le profil : un filet Forêt, et un fond qui s'estompe. */
+.nu-milestone-target {
+  scroll-margin-top: 96px;
+  box-shadow: inset 3px 0 0 var(--pk-forest);
+  animation: nu-target 2.4s ease-out;
+}
+
+@keyframes nu-target {
+  from {
+    background: var(--pk-sand);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nu-milestone-target {
+    animation: none;
+  }
 }
 
 .nu-milestone-when {

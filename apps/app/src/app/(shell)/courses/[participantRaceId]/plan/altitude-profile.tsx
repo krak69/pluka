@@ -1,6 +1,8 @@
 import type { PlanPointView, PlanProfileSample } from '@pluka/domain';
 import { MicroLabel } from '@pluka/ui';
 
+import { ProfileLayers } from '@/app/(shell)/courses/[participantRaceId]/plan/profile-layers';
+import type { ProfileIntake } from '@/lib/nutrition-format';
 import { formatClock, formatDistance } from '@/lib/plan-format';
 
 /**
@@ -73,6 +75,15 @@ export interface AltitudeProfileProps {
   readonly variant?: 'light' | 'dark';
   /** Les points porteurs d'une barrière, marqués en Aube (§49). */
   readonly cutoffWaypointIds?: readonly string[];
+  /**
+   * Les prises de la stratégie Nutrition, posées sur la courbe (prototype
+   * `planNutMarks`) ; `off` quand la Nutrition n'est pas activée, et la puce
+   * « + Nutrition » mène alors au bandeau qui l'active.
+   */
+  readonly nutrition?:
+    | { readonly state: 'ready'; readonly intakes: readonly ProfileIntake[] }
+    | { readonly state: 'off' }
+    | null;
 }
 
 export function AltitudeProfile({
@@ -82,6 +93,7 @@ export function AltitudeProfile({
   anchored,
   variant = 'light',
   cutoffWaypointIds = [],
+  nutrition = null,
 }: AltitudeProfileProps) {
   const dark = variant === 'dark';
   const passages = points.map((point) => ({
@@ -122,87 +134,173 @@ export function AltitudeProfile({
   // Noms sous la courbe : départ, arrivée et barrières, sans chevauchement.
   const labels = dark ? profileLabels(markers, cutoffWaypointIds) : [];
 
+  // Le SVG sombre s'étire en largeur (`preserveAspectRatio="none"`) : un cercle
+  // y deviendrait une ellipse, un triangle s'y aplatirait. Ses jalons et les
+  // prises sont donc posés en HTML au-dessus du tracé, en pourcentage — ils
+  // restent ronds à toute largeur, et une prise garde une cible cliquable.
+  const percent = (position: { x: number; y: number }) => ({
+    left: Math.min(100, Math.max(0, (position.x / VIEW_WIDTH) * 100)),
+    top: (position.y / VIEW_HEIGHT) * 100,
+  });
+
+  const intakes = (nutrition?.state === 'ready' ? nutrition.intakes : []).map((intake) => ({
+    ...intake,
+    ...percent(
+      project(
+        { distanceKm: intake.distanceKm, elevationMeters: elevationAt(profile, intake.distanceKm) },
+        box,
+      ),
+    ),
+  }));
+
   return (
     <section className={dark ? 'pl-profile pl-profile-dark' : 'pl-profile'}>
-      <MicroLabel className={dark ? 'pl-label-dark' : undefined}>Profil du parcours</MicroLabel>
-
-      <svg
-        viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
-        preserveAspectRatio={dark ? 'none' : 'xMidYMid meet'}
-        role="img"
-        aria-label={`Profil du parcours, ${formatDistance(box.totalDistanceKm)} kilomètres`}
-        className="pl-profile-svg"
+      <ProfileLayers
+        title={
+          <MicroLabel className={dark ? 'pl-label-dark' : undefined}>Profil du parcours</MicroLabel>
+        }
+        nutrition={
+          nutrition === null
+            ? null
+            : nutrition.state === 'off'
+              ? 'activate'
+              : intakes.length > 0
+                ? 'toggle'
+                : null
+        }
       >
-        <path d={area} fill={dark ? 'color-mix(in srgb, var(--pk-lichen) 13%, transparent)' : 'var(--pk-glacier-bg)'} />
-        <path
-          d={line}
-          fill="none"
-          stroke={dark ? 'var(--pk-lichen)' : 'var(--pk-forest)'}
-          strokeWidth={2}
-          vectorEffect="non-scaling-stroke"
-        />
-
-        {markers.map(({ point, position, isFinish }) =>
-          isFinish ? (
-            // §49 : triangle Aube = prochaine action. Avant la course,
-            // l'arrivée est l'échéance qui compte.
-            <polygon
-              key={point.raceWaypointId}
-              points={`${position.x},${position.y - 7} ${position.x - 6},${position.y + 4} ${position.x + 6},${position.y + 4}`}
-              fill="var(--pk-dawn)"
-            />
-          ) : (
-            <circle
-              key={point.raceWaypointId}
-              cx={position.x}
-              cy={position.y}
-              r={4}
+        <div className="pl-profile-plot">
+          <svg
+            viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
+            preserveAspectRatio={dark ? 'none' : 'xMidYMid meet'}
+            role="img"
+            aria-label={`Profil du parcours, ${formatDistance(box.totalDistanceKm)} kilomètres`}
+            className="pl-profile-svg"
+          >
+            <path
+              d={area}
               fill={
-                cutoffWaypointIds.includes(point.raceWaypointId)
-                  ? 'var(--pk-dawn)'
-                  : dark
-                    ? 'var(--pk-ink)'
-                    : 'var(--pk-surface)'
+                dark
+                  ? 'color-mix(in srgb, var(--pk-lichen) 13%, transparent)'
+                  : 'var(--pk-glacier-bg)'
               }
-              stroke={dark ? 'var(--pk-limestone)' : 'var(--pk-forest)'}
+            />
+            <path
+              d={line}
+              fill="none"
+              stroke={dark ? 'var(--pk-lichen)' : 'var(--pk-forest)'}
               strokeWidth={2}
               vectorEffect="non-scaling-stroke"
             />
-          ),
-        )}
-      </svg>
 
-      {labels.length === 0 ? null : (
-        <div className="pl-profile-labels" aria-hidden="true">
-          {labels.map((label) => (
-            <span
-              key={label.key}
-              className="pl-profile-label"
-              style={{ left: `${label.left.toFixed(2)}%`, transform: label.shift }}
-            >
-              {label.name}
-            </span>
-          ))}
+            {dark
+              ? null
+              : markers.map(({ point, position, isFinish }) =>
+                  isFinish ? (
+                    // §49 : triangle Aube = prochaine action. Avant la course,
+                    // l'arrivée est l'échéance qui compte.
+                    <polygon
+                      key={point.raceWaypointId}
+                      points={`${position.x},${position.y - 7} ${position.x - 6},${position.y + 4} ${position.x + 6},${position.y + 4}`}
+                      fill="var(--pk-dawn)"
+                    />
+                  ) : (
+                    <circle
+                      key={point.raceWaypointId}
+                      cx={position.x}
+                      cy={position.y}
+                      r={4}
+                      fill={
+                        cutoffWaypointIds.includes(point.raceWaypointId)
+                          ? 'var(--pk-dawn)'
+                          : 'var(--pk-surface)'
+                      }
+                      stroke="var(--pk-forest)"
+                      strokeWidth={2}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  ),
+                )}
+          </svg>
+
+          {intakes.length === 0 ? null : (
+            // Un raccourci pour la souris et le doigt : chaque prise est détaillée,
+            // et atteignable au clavier, dans « Ma stratégie » juste dessous (§51).
+            <div className="pl-intakes" aria-hidden="true">
+              {intakes.map((intake) => (
+                <a
+                  key={intake.key}
+                  href={`#${intake.anchor}`}
+                  className="pl-intake"
+                  style={{ left: `${intake.left.toFixed(2)}%`, top: `${intake.top.toFixed(2)}%` }}
+                  title={intake.label}
+                  tabIndex={-1}
+                />
+              ))}
+            </div>
+          )}
+
+          {dark ? (
+            // Après les prises : un jalon du parcours passe au-dessus. Le texte
+            // équivalent est la liste des passages, plus bas (§51).
+            <div className="pl-waypoints" aria-hidden="true">
+              {markers.map(({ point, position, isFinish }) => {
+                const { left, top } = percent(position);
+                return (
+                  <span
+                    key={point.raceWaypointId}
+                    className={
+                      isFinish
+                        ? 'pl-waypoint pl-waypoint-finish'
+                        : cutoffWaypointIds.includes(point.raceWaypointId)
+                          ? 'pl-waypoint pl-waypoint-cutoff'
+                          : 'pl-waypoint'
+                    }
+                    style={{ left: `${left.toFixed(2)}%`, top: `${top.toFixed(2)}%` }}
+                  />
+                );
+              })}
+            </div>
+          ) : null}
         </div>
-      )}
 
-      {dark ? (
-        <p className="pl-profile-legend" aria-hidden="true">
-          <span className="pl-legend-dot pl-legend-cutoff" /> Barrière horaire
-          <span className="pl-legend-dot pl-legend-point" /> Point de passage
-          <span className="pl-legend-tri" /> Arrivée
-        </p>
-      ) : null}
+        {labels.length === 0 ? null : (
+          <div className="pl-profile-labels" aria-hidden="true">
+            {labels.map((label) => (
+              <span
+                key={label.key}
+                className="pl-profile-label"
+                style={{ left: `${label.left.toFixed(2)}%`, transform: label.shift }}
+              >
+                {label.name}
+              </span>
+            ))}
+          </div>
+        )}
 
-      <PassageList
-        passages={passages}
-        dark={dark}
-        {...(anchored
-          ? {}
-          : {
-              note: 'Altitudes relatives au départ : aucune altitude officielle n’est renseignée.',
-            })}
-      />
+        {dark ? (
+          <p className="pl-profile-legend" aria-hidden="true">
+            <span className="pl-legend-dot pl-legend-cutoff" /> Barrière horaire
+            <span className="pl-legend-dot pl-legend-point" /> Point de passage
+            <span className="pl-legend-tri" /> Arrivée
+            {intakes.length === 0 ? null : (
+              <span className="pl-legend-intake-item">
+                <span className="pl-legend-dot pl-legend-intake" /> Prise nutrition
+              </span>
+            )}
+          </p>
+        ) : null}
+
+        <PassageList
+          passages={passages}
+          dark={dark}
+          {...(anchored
+            ? {}
+            : {
+                note: 'Altitudes relatives au départ : aucune altitude officielle n’est renseignée.',
+              })}
+        />
+      </ProfileLayers>
     </section>
   );
 }
