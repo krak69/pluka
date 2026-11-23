@@ -22,3 +22,6 @@ supabase/.temp/
 .vercel/
 .DS_Store
 *.log
+
+# Claude Code — réglages personnels
+.claude/settings.local.json
