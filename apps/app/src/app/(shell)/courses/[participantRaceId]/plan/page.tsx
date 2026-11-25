@@ -4,6 +4,7 @@ import {
   getPlanCourseChange,
   getPlanOverview,
   getPlanStartDrift,
+  getRaceConditions,
   listStartChanges,
 } from '@pluka/domain';
 import { MicroLabel } from '@pluka/ui';
@@ -15,6 +16,8 @@ import { PlanPoints } from '@/app/(shell)/courses/[participantRaceId]/plan/plan-
 import { CourseChangeAlert } from '@/components/course-change-alert';
 import { StartChangeAlert } from '@/components/start-change-alert';
 import { NutritionBand } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-band';
+import { conditionsContext, conditionsEnabled } from '@/lib/conditions';
+import { conditionsTeaser } from '@/lib/conditions-format';
 import { nutritionContext } from '@/lib/nutrition';
 import { profileIntakes } from '@/lib/nutrition-format';
 import { planContext, redirectOnDomainError } from '@/lib/plan';
@@ -73,6 +76,11 @@ export default async function PlanPage({
   const nutrition = await getNutritionStrategy(nutritionContext(session), {
     participantRaceId,
   }).catch(() => null);
+  // Prototype : le bouton « Conditions » de la bande, une fois J-14 ouvert.
+  const conditions = conditionsEnabled()
+    ? await getRaceConditions(conditionsContext(session), { participantRaceId }).catch(() => null)
+    : null;
+  const conditionsSub = conditions === null ? null : conditionsTeaser(conditions);
   const overview = await getPlanOverview(context, { participantRaceId }).catch((error: unknown) => {
     // Pas encore de Plan : l'écran propose de le générer plutôt que de rendre
     // un 404. La participation existe, elle n'a simplement pas d'horaires.
@@ -183,9 +191,17 @@ export default async function PlanPage({
                   </span>
                 </p>
               </div>
-              <Link href="#reglages" className="pl-hero-edit">
-                Modifier mon plan
-              </Link>
+              <div className="pl-hero-actions">
+                <Link href="#reglages" className="pl-hero-edit">
+                  Modifier mon plan
+                </Link>
+                {conditionsSub === null ? null : (
+                  <Link href={`${returnTo}/conditions`} className="pl-hero-conditions">
+                    <span className="pl-hero-conditions-title">Conditions</span>
+                    <span className="pk-data pl-hero-conditions-sub">{conditionsSub}</span>
+                  </Link>
+                )}
+              </div>
             </div>
 
             <AltitudeProfile

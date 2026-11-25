@@ -1,7 +1,12 @@
 import type { RaceConditionsView } from '@pluka/domain';
 import { describe, expect, it } from 'vitest';
 
-import { conditionsScreen } from '@/lib/conditions-format';
+import {
+  conditionsNextPoint,
+  conditionsRaceLine,
+  conditionsScreen,
+  conditionsTeaser,
+} from '@/lib/conditions-format';
 
 /**
  * L'écran Conditions — WEATHER_CONDITIONS §7, §9, §11, §50 à §59. Départ
@@ -101,11 +106,14 @@ describe('l’écran Conditions', () => {
     });
   });
 
-  it('W03 — sans Race Pass, l’offre, et les alertes officielles restent à tous', () => {
+  it('W03 — sans Race Pass, l’offre, et les informations officielles restent à tous', () => {
     const screen = conditionsScreen(view({ status: 'not_entitled', forecast: null }), PR);
 
-    expect(screen).toMatchObject({ kind: 'unavailable', action: { href: '/offre?course=pr-1' } });
-    expect(screen.kind === 'unavailable' && screen.body).toContain('alertes');
+    expect(screen).toMatchObject({
+      kind: 'unavailable',
+      action: { href: '/offre?course=pr-1', primary: true },
+    });
+    expect(screen.kind === 'unavailable' && screen.body).toContain('officielles');
   });
 
   it('attend la première prévision, ou dit qu’elle est indisponible (§54)', () => {
@@ -118,25 +126,28 @@ describe('l’écran Conditions', () => {
     ).toEqual({ kind: 'waiting', failed: true });
   });
 
-  it('§9, §53 — horizon qualitatif, source et heure de mise à jour', () => {
+  it('§9, §53 — horizon qualitatif et heure de mise à jour', () => {
     expect(conditionsScreen(view(), PR)).toMatchObject({
       kind: 'forecast',
       horizon: 'Prévision rapprochée',
-      freshness:
-        'Prévision météo externe · Selon ton Plan actuel · Mise à jour : jeu. 10 sept. à 18:20',
+      updated: 'jeu. 10 sept. à 18:20',
       notices: [],
     });
+    expect(conditionsRaceLine(view())).toBe('sam. 12 sept. · 08:00 · Départ');
   });
 
-  it('§50 — un résumé de ce qui mérite d’être regardé', () => {
+  it('§50 — « Sur ton parcours » : les extrêmes, et où ils tombent', () => {
     const screen = conditionsScreen(view(), PR);
 
-    expect(screen.kind === 'forecast' && screen.summary).toEqual([
-      'Température 4 °C → 6 °C',
-      'Ressenti le plus bas 3 °C',
-      'Rafales jusqu’à 52 km/h',
-      'Probabilité de pluie jusqu’à 60 %',
-    ]);
+    expect(screen.kind === 'forecast' && screen.summary).toEqual({
+      range: '4 → 6 °C',
+      feelsMin: '3 °C',
+      feelsMinAt: 'ressenti minimum · Départ',
+      gustMax: '52 km/h',
+      gustMaxAt: 'rafales max · Col du Rawil',
+      rain: 'Pluie jusqu’à 60 %',
+      rainAt: 'Col du Rawil · 17:20',
+    });
     expect(screen.kind === 'forecast' && screen.nights).toEqual([
       'Nuit : sam. 12 sept. 20:10 → jusqu’à l’arrivée',
     ]);
@@ -147,15 +158,20 @@ describe('l’écran Conditions', () => {
 
     expect(screen.kind === 'forecast' && screen.points[1]).toEqual({
       key: 'wp-rawil',
+      eta: '17:20',
+      passage: 'sam. 12 sept. · 17:20',
       name: 'Col du Rawil',
       // Le format français sépare les milliers par une espace fine insécable.
-      where: 'km 40,5 · 2 429 m',
-      passage: 'sam. 12 sept. · 17:20',
+      meta: 'km 40,5 · 2 429 m',
       sky: 'Pluie',
+      icon: 'CloudRain',
       temperature: '4 °C',
       feelsLike: 'ressenti —',
-      rain: '60 % · 1,2 mm',
-      wind: '22 km/h, rafales 52 km/h',
+      gust: 'rafales 52 km/h',
+      rain: '60 %',
+      rainAmount: '1,2 mm',
+      wind: '22 km/h',
+      windFrom: 'O',
     });
   });
 
@@ -170,5 +186,30 @@ describe('l’écran Conditions', () => {
 
     expect(screen.kind === 'forecast' && screen.notices).toHaveLength(2);
     expect(screen.kind === 'forecast' && screen.notices[1]).toContain('19:00');
+  });
+
+  it('Accueil — « Conditions disponibles » seulement une fois J-14 ouvert', () => {
+    expect(conditionsTeaser(view())).toBe('Prévision rapprochée');
+    expect(conditionsTeaser(view({ status: 'not_entitled', forecast: null }))).toBe(
+      'Race Pass · PLUKA+',
+    );
+    expect(conditionsTeaser(view({ status: 'too_early', forecast: null, horizon: null }))).toBe(
+      null,
+    );
+  });
+
+  it('Accueil — le prochain point clé et ce qui l’y attend', () => {
+    // Avant le départ, c'est le départ ; dans la journée, le point suivant.
+    expect(conditionsNextPoint(view(), new Date('2026-09-10T08:00:00.000Z'))).toMatchObject({
+      name: 'Départ',
+      temperature: '6 °',
+      feelsLike: 'ressenti 3 °',
+      wind: 'vent 8 km/h',
+      icon: 'Sun',
+    });
+    expect(conditionsNextPoint(view(), new Date('2026-09-12T09:00:00.000Z'))?.name).toBe(
+      'Col du Rawil',
+    );
+    expect(conditionsNextPoint(view(), new Date('2026-09-13T09:00:00.000Z'))).toBeNull();
   });
 });

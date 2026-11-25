@@ -4,6 +4,7 @@ import {
   getAssistance,
   getEquipmentChecklist,
   getPlanOverview,
+  getRaceConditions,
   getTasks,
   nextActions,
   type AssistanceOverview,
@@ -18,6 +19,8 @@ import { listMyRaces } from '@/lib/participations';
 import { planContext } from '@/lib/plan';
 import { formatClock, formatDistance, formatDuration } from '@/lib/plan-format';
 import { assistanceContext } from '@/lib/assistance';
+import { conditionsContext, conditionsEnabled } from '@/lib/conditions';
+import { conditionsNextPoint, conditionsTeaser } from '@/lib/conditions-format';
 import { bagsContext, preparationContext, tasksContext } from '@/lib/preparation';
 import { requireSession } from '@/lib/session';
 
@@ -104,14 +107,18 @@ export default async function HomePage() {
   const participation = await context.repositories.participantRaces.findById(
     current.participantRaceId,
   );
-  const [race, overview, equipment, bags, tasks, assistance] = await Promise.all([
+  const [race, overview, equipment, bags, tasks, assistance, conditions] = await Promise.all([
     participation === null ? null : context.repositories.races.findById(participation.raceId),
     orNull(getPlanOverview(context, input)),
     orNull(getEquipmentChecklist(preparationContext(session), input)),
     orNull(getBags(bagsContext(session), input)),
     orNull(getTasks(tasksContext(session), input)),
     orNull(getAssistance(assistanceContext(session), input)),
+    // Prototype `wxCta` : le lien vers les Conditions, une fois J-14 ouvert.
+    conditionsEnabled() ? orNull(getRaceConditions(conditionsContext(session), input)) : null,
   ]);
+  const conditionsSub = conditions === null ? null : conditionsTeaser(conditions);
+  const nextPoint = conditions === null ? null : conditionsNextPoint(conditions, now);
   const actions = nextActions({
     mandatory: equipment?.mandatory ?? null,
     bags: bags?.bags ?? [],
@@ -217,6 +224,14 @@ export default async function HomePage() {
           </dl>
         )}
 
+        {conditionsSub === null ? null : (
+          <Link href={`${base}/plan/conditions`} className="hm-conditions">
+            <Icon name="Mountains" size={18} />
+            <span className="hm-conditions-text">Conditions disponibles · {conditionsSub}</span>
+            <Icon name="ArrowRight" size={16} />
+          </Link>
+        )}
+
         {gauges.length === 0 ? null : (
           <ul className="hm-gauges" aria-label="Préparation">
             {gauges.map((gauge) => (
@@ -241,6 +256,31 @@ export default async function HomePage() {
           </ul>
         )}
       </section>
+
+      {/* Prototype `wxNextPoint` : le prochain point clé, et ce qui l'y attend. */}
+      {nextPoint === null ? null : (
+        <Link href={`${base}/plan/conditions`} className="hm-next">
+          <span className="pk-label hm-next-label">Prochain point</span>
+          <span className="hm-next-row">
+            <span className="hm-next-place">
+              <span className="hm-next-name">{nextPoint.name}</span>
+              <span className="pk-data hm-next-where">{nextPoint.where}</span>
+            </span>
+            <span className="hm-next-temp">
+              {nextPoint.icon === null ? null : (
+                <span className="hm-next-icon" aria-hidden="true">
+                  <Icon name={nextPoint.icon} size={30} />
+                </span>
+              )}
+              <span className="pk-data">{nextPoint.temperature}</span>
+            </span>
+            <span className="hm-next-facts">
+              <span className="pk-data">{nextPoint.feelsLike}</span>
+              <span className="pk-data">{nextPoint.wind}</span>
+            </span>
+          </span>
+        </Link>
+      )}
 
       {preparationRead ? <NextActions actions={actions} base={base} /> : null}
 
