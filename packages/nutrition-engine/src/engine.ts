@@ -13,6 +13,7 @@ import type {
 import { allocateProducts, SOLID_CATEGORIES } from './allocator.js';
 import { planFlasks } from './flasks.js';
 import { computeNutritionHash } from './hash.js';
+import { conditionTimeline, type ConditionTimeline } from './targets.js';
 
 /**
  * Moteur Nutrition V1, tranche 1 — NUTRITION_ENGINE §11, §12, §35, §37, §38.
@@ -28,16 +29,6 @@ import { computeNutritionHash } from './hash.js';
  */
 
 const EPSILON = 1e-9;
-
-/** §11 : cibles constantes en tranche 1 — `besoin = cible × durée / 3600`. */
-function needsBetween(input: NutritionInput, from: number, to: number): NutritionNeeds {
-  const hours = Math.max(0, to - from) / 3600;
-  return {
-    carbsG: input.targets.carbsGPerHour * hours,
-    sodiumMg: input.targets.sodiumMgPerHour * hours,
-    hydrationMl: input.targets.hydrationMlPerHour * hours,
-  };
-}
 
 function departure(point: NutritionTimelinePoint): number {
   return point.elapsedSeconds + point.stopSeconds;
@@ -150,28 +141,48 @@ function bestMoment(
   return chosen === null ? { at: ideal, reason: 'time' } : chosen;
 }
 
+/** La boisson d'effort choisie : la première boisson qui a un volume (§29). */
+function drinkOf(input: NutritionInput) {
+  return (
+    input.products?.find((product) => product.category === 'drink' && product.hydrationMl > 0) ??
+    null
+  );
+}
+
+/** Le volume de boisson d'effort entre deux instants : sa part de l'hydratation, plage par plage. */
+function drinkMlBetween(
+  input: NutritionInput,
+  conditions: ConditionTimeline,
+  from: number,
+  to: number,
+): number {
+  return conditions.needsBetween(from, to).hydrationMl * (1 - input.targets.waterShare);
+}
+
 /**
  * Ce que les prises doivent apporter, et combien chacune peut porter (§35).
  *
- * Sans produits connus : la cible horaire entière, et la charge de la densité.
- * Avec les produits choisis : la boisson d'effort se déduit de la cible, et une
- * prise ne porte pas plus que la plus grosse portion solide choisie. Une prise
- * vient donc quand le besoin d'une portion s'est accumulé — des gels de 30 g
- * à 60 g/h donnent une prise toutes les 30 min environ, pas deux gels d'un coup.
- * Les cibles et le pacing ne bougent pas (§39) : seul l'espacement suit.
+ * Sans produits connus : le besoin entier, et la charge de la densité. Avec
+ * les produits choisis : la boisson d'effort se déduit du besoin, et une prise
+ * ne porte pas plus que la plus grosse portion solide choisie. Une prise vient
+ * donc quand le besoin d'une portion s'est accumulé — des gels de 30 g à
+ * 60 g/h donnent une prise toutes les 30 min environ, pas deux gels d'un coup.
+ * Les cibles et le pacing ne bougent pas (§39) : seul l'espacement suit. Sur
+ * une plage chaude ou froide, le besoin suit le profil (§18).
  */
 function solidsLoad(
   input: NutritionInput,
+  conditions: ConditionTimeline,
   densityLoadG: number,
-): { carbsGPerHour: number; loadG: number } {
+): { netCarbsBetween: (from: number, to: number) => number; loadG: number } {
   const products = input.products;
   if (products === undefined || products.length === 0) {
-    return { carbsGPerHour: input.targets.carbsGPerHour, loadG: densityLoadG };
+    return {
+      netCarbsBetween: (from, to) => conditions.needsBetween(from, to).carbsG,
+      loadG: densityLoadG,
+    };
   }
-  const drink = products.find((product) => product.category === 'drink' && product.hydrationMl > 0);
-  const drinkMlPerHour = input.targets.hydrationMlPerHour * (1 - input.targets.waterShare);
-  const drinkCarbsPerHour =
-    drink === undefined ? 0 : (drinkMlPerHour * drink.carbsG) / drink.hydrationMl;
+  const drink = drinkOf(input);
   const largestServing = Math.max(
     0,
     ...products
@@ -179,7 +190,14 @@ function solidsLoad(
       .map((product) => product.carbsG),
   );
   return {
-    carbsGPerHour: Math.max(0, input.targets.carbsGPerHour - drinkCarbsPerHour),
+    netCarbsBetween: (from, to) =>
+      Math.max(
+        0,
+        conditions.needsBetween(from, to).carbsG -
+          (drink === null
+            ? 0
+            : (drinkMlBetween(input, conditions, from, to) * drink.carbsG) / drink.hydrationMl),
+      ),
     loadG: largestServing > 0 ? Math.min(densityLoadG, largestServing) : densityLoadG,
   };
 }
@@ -187,6 +205,7 @@ function solidsLoad(
 function intakesForLeg(
   input: NutritionInput,
   config: NutritionEngineConfig,
+  conditions: ConditionTimeline,
   leg: Leg,
 ): { stableKey: string; at: number; reason: MilestoneReason }[] {
   const start = departure(leg.open);
@@ -195,8 +214,8 @@ function intakesForLeg(
   if (duration <= 0) return [];
 
   const density = config.densities[input.placement.density];
-  const { carbsGPerHour, loadG } = solidsLoad(input, density.carbsLoadG);
-  const carbs = (carbsGPerHour * duration) / 3600;
+  const { netCarbsBetween, loadG } = solidsLoad(input, conditions, density.carbsLoadG);
+  const carbs = netCarbsBetween(start, end);
   const interval = input.placement.intervalSeconds ?? 0;
   // §36 : le rythme imposé ne regarde que la cadence choisie, pas le besoin.
   let count =
@@ -205,7 +224,7 @@ function intakesForLeg(
       : Math.max(
           0,
           Math.ceil(duration / density.maxGapSeconds - EPSILON) - 1,
-          carbsGPerHour > 0 ? Math.ceil(carbs / loadG - EPSILON) - 1 : 0,
+          carbs > 0 ? Math.ceil(carbs / loadG - EPSILON) - 1 : 0,
         );
   while (count > 0 && duration / (count + 1) < config.minGapSeconds) count -= 1;
   if (count === 0) return [];
@@ -240,17 +259,20 @@ function intakesForLeg(
   return intakes;
 }
 
-/** Génère la stratégie de la tranche 1 : besoins, sections, prises. */
+/** Génère la stratégie : besoins, sections, prises, produits, flasques. */
 export function generateNutrition(
   input: NutritionInput,
   config: NutritionEngineConfig = NUTRITION_ENGINE_V1,
 ): NutritionResult {
+  const conditions = conditionTimeline(input, config);
+  const needsBetween = (from: number, to: number): NutritionNeeds =>
+    conditions.needsBetween(from, to);
   const legs = legsOf(input.timeline.points);
   const placed: Omit<NutritionMilestone, 'needSincePrevious'>[] = [];
   const sections: NutritionSection[] = [];
 
   for (const leg of legs) {
-    const intakes = intakesForLeg(input, config, leg);
+    const intakes = intakesForLeg(input, config, conditions, leg);
     for (const intake of intakes) {
       placed.push({
         stableKey: intake.stableKey,
@@ -275,7 +297,7 @@ export function generateNutrition(
 
     // Une section court de l'arrivée au point d'ouverture jusqu'à l'arrivée au
     // suivant : l'arrêt y est compté, et les sections totalisent la course.
-    const needs = needsBetween(input, leg.open.elapsedSeconds, leg.close.elapsedSeconds);
+    const needs = needsBetween(leg.open.elapsedSeconds, leg.close.elapsedSeconds);
     sections.push({
       fromPointId: leg.open.id,
       toPointId: leg.close.id,
@@ -294,17 +316,19 @@ export function generateNutrition(
 
   let previous = 0;
   const milestones = placed.map((milestone) => {
-    const needSincePrevious = needsBetween(input, previous, milestone.elapsedSeconds);
+    const needSincePrevious = needsBetween(previous, milestone.elapsedSeconds);
     previous = milestone.elapsedSeconds;
     return { ...milestone, needSincePrevious };
   });
+
+  const totals = needsBetween(0, input.timeline.finishElapsedSeconds);
 
   return {
     engineVersion: config.engineVersion,
     configVersion: config.configVersion,
     inputHash: computeNutritionHash(input, config),
     totals: {
-      ...needsBetween(input, 0, input.timeline.finishElapsedSeconds),
+      ...totals,
       caffeineMg: input.targets.caffeineTotalMg,
     },
     sections,
@@ -319,19 +343,23 @@ export function generateNutrition(
             milestones,
             sections,
             drinkMlPerHour: input.targets.hydrationMlPerHour * (1 - input.targets.waterShare),
+            drinkMlBetween: (from, to) => drinkMlBetween(input, conditions, from, to),
             caffeineTotalMg: input.targets.caffeineTotalMg,
+            caffeineShareUntil: conditions.caffeineShareUntil,
             finishElapsedSeconds: input.timeline.finishElapsedSeconds,
             ...(input.customItems === undefined ? {} : { customItems: input.customItems }),
           }),
     // §33-34 : la logistique de l'hydratation, à part des besoins et des produits.
     flasks:
-      input.containers === undefined || input.targets.hydrationMlPerHour <= 0
+      input.containers === undefined || totals.hydrationMl <= 0
         ? null
         : planFlasks(
             input,
             input.containers,
             input.noRefillPointIds ?? [],
             input.aidDrinkPointIds ?? [],
+            (from, to) => conditions.needsBetween(from, to).hydrationMl,
           ),
+    conditions: conditions.result,
   };
 }

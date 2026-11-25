@@ -6,7 +6,13 @@
  */
 export { NUTRITION_ENGINE_V1, type NutritionEngineConfig } from './config.js';
 export type {
+  CaffeineSpread,
+  ConditionKind,
+  ConditionOverrides,
+  ConditionTargets,
   MilestoneReason,
+  NutritionConditionRange,
+  NutritionConditionsInput,
   NutritionDensity,
   NutritionInput,
   NutritionMilestone,
@@ -20,6 +26,12 @@ export type {
   NutritionTimelinePoint,
 } from './contracts.js';
 export { generateNutrition } from './engine.js';
+export {
+  proposeConditionTargets,
+  type ConditionProfile,
+  type ConditionsResult,
+  type ConditionWarning,
+} from './targets.js';
 export {
   planFlasks,
   type FlaskAction,

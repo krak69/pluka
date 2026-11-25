@@ -123,7 +123,14 @@ export function allocateProducts(input: {
   readonly milestones: readonly NutritionMilestone[];
   readonly sections: readonly NutritionSection[];
   readonly drinkMlPerHour: number;
+  /** Le volume de boisson d'effort entre deux instants ; absent, `drinkMlPerHour` constant. */
+  readonly drinkMlBetween?: (from: number, to: number) => number;
   readonly caffeineTotalMg: number | null;
+  /**
+   * La part du total de caféine due au temps `t` (§24) ; absente, au prorata
+   * du temps ; nulle, placement manuel : aucune caféine placée par PLUKA.
+   */
+  readonly caffeineShareUntil?: ((t: number) => number) | null;
   readonly finishElapsedSeconds: number;
   readonly customItems?: Readonly<Record<string, readonly CustomItem[]>>;
 }): Allocation {
@@ -153,15 +160,25 @@ export function allocateProducts(input: {
     warnings.push('no_caffeine_product');
   }
 
-  // Ce que la boisson apporte par seconde de course.
-  const drinkPerSecond =
-    drink === null
-      ? { carbs: 0, sodium: 0, caffeine: 0 }
-      : {
-          carbs: (input.drinkMlPerHour * (drink.carbsG / drink.hydrationMl)) / 3600,
-          sodium: (input.drinkMlPerHour * (drink.sodiumMg / drink.hydrationMl)) / 3600,
-          caffeine: (input.drinkMlPerHour * (drink.caffeineMg / drink.hydrationMl)) / 3600,
-        };
+  // Ce que la boisson apporte entre deux instants : sa concentration × le
+  // volume bu, qui suit l'hydratation d'une plage chaude ou froide (§18).
+  const drinkMl =
+    input.drinkMlBetween ??
+    ((from: number, to: number) => (input.drinkMlPerHour * Math.max(0, to - from)) / 3600);
+  const drinkBetween = (from: number, to: number) => {
+    if (drink === null || to <= from) return { carbs: 0, sodium: 0, caffeine: 0 };
+    const volume = drinkMl(from, to);
+    return {
+      carbs: volume * (drink.carbsG / drink.hydrationMl),
+      sodium: volume * (drink.sodiumMg / drink.hydrationMl),
+      caffeine: volume * (drink.caffeineMg / drink.hydrationMl),
+    };
+  };
+  const shareUntil =
+    input.caffeineShareUntil === undefined
+      ? (t: number) =>
+          input.finishElapsedSeconds <= 0 ? 1 : Math.min(1, t / input.finishElapsedSeconds)
+      : input.caffeineShareUntil;
 
   const candidates = combinations(solids);
   const items: Record<string, AllocatedItem[]> = {};
@@ -188,7 +205,7 @@ export function allocateProducts(input: {
 
   input.milestones.forEach((milestone, index) => {
     const previousTime = index === 0 ? 0 : (input.milestones[index - 1]?.elapsedSeconds ?? 0);
-    caffeinePlanned += drinkPerSecond.caffeine * (milestone.elapsedSeconds - previousTime);
+    caffeinePlanned += drinkBetween(previousTime, milestone.elapsedSeconds).caffeine;
     if (milestone.kind === 'finish') return;
     if (milestone.kind === 'aid') {
       base = {
@@ -212,15 +229,15 @@ export function allocateProducts(input: {
       sodium: (here.sodium + after.sodium) / 2,
     };
 
-    // §25 : la caféine suit le prorata du temps écoulé, jamais au-delà du total.
+    // §24, §25 : la caféine suit sa répartition (le temps, la mi-course ou la
+    // nuit), jamais au-delà du total ; en placement manuel, PLUKA n'en place pas.
     const caffeineBudget =
-      input.caffeineTotalMg === null || input.finishElapsedSeconds <= 0
+      input.caffeineTotalMg === null || shareUntil === null
         ? 0
-        : (input.caffeineTotalMg * milestone.elapsedSeconds) / input.finishElapsedSeconds -
-          caffeinePlanned;
+        : input.caffeineTotalMg * shareUntil(milestone.elapsedSeconds) - caffeinePlanned;
     // Ce qu'il reste à couvrir jusqu'au prochain jalon, boisson déduite.
     const carbsNeed =
-      until.carbs - base.carbs - drinkPerSecond.carbs * (nextTime - base.seconds) - carbsPlaced;
+      until.carbs - base.carbs - drinkBetween(base.seconds, nextTime).carbs - carbsPlaced;
 
     // §58 : une prise personnalisée garde les produits du coureur, sans
     // complément ; ce qu'elle apporte compte pour les prises suivantes.
@@ -249,7 +266,7 @@ export function allocateProducts(input: {
     const sodiumNeed =
       until.sodium -
       base.sodium -
-      drinkPerSecond.sodium * (nextTime - base.seconds) -
+      drinkBetween(base.seconds, nextTime).sodium -
       sodiumPlaced -
       sodiumFromSolids;
     const salt = salts[0];
@@ -272,11 +289,9 @@ export function allocateProducts(input: {
 
   const sectionCoverage = input.sections.map((section) => {
     const placed = itemsBetween(section.startElapsedSeconds, section.endElapsedSeconds);
-    const seconds = section.endElapsedSeconds - section.startElapsedSeconds;
-    const carbs =
-      placed.reduce((sum, item) => sum + item.carbsG, 0) + drinkPerSecond.carbs * seconds;
-    const sodium =
-      placed.reduce((sum, item) => sum + item.sodiumMg, 0) + drinkPerSecond.sodium * seconds;
+    const fromDrink = drinkBetween(section.startElapsedSeconds, section.endElapsedSeconds);
+    const carbs = placed.reduce((sum, item) => sum + item.carbsG, 0) + fromDrink.carbs;
+    const sodium = placed.reduce((sum, item) => sum + item.sodiumMg, 0) + fromDrink.sodium;
     return {
       carbs: ratio(carbs, section.needs.carbsG),
       sodium: ratio(sodium, section.needs.sodiumMg),
@@ -284,12 +299,11 @@ export function allocateProducts(input: {
   });
 
   const all = Object.values(items).flat();
-  const total = input.finishElapsedSeconds;
+  const fromDrink = drinkBetween(0, input.finishElapsedSeconds);
   const planned = {
-    carbsG: all.reduce((sum, item) => sum + item.carbsG, 0) + drinkPerSecond.carbs * total,
-    sodiumMg: all.reduce((sum, item) => sum + item.sodiumMg, 0) + drinkPerSecond.sodium * total,
-    caffeineMg:
-      all.reduce((sum, item) => sum + item.caffeineMg, 0) + drinkPerSecond.caffeine * total,
+    carbsG: all.reduce((sum, item) => sum + item.carbsG, 0) + fromDrink.carbs,
+    sodiumMg: all.reduce((sum, item) => sum + item.sodiumMg, 0) + fromDrink.sodium,
+    caffeineMg: all.reduce((sum, item) => sum + item.caffeineMg, 0) + fromDrink.caffeine,
   };
   const need = input.sections.reduce(
     (sum, section) => ({

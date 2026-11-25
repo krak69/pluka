@@ -122,6 +122,9 @@ export function planFlasks(
   containers: NutritionContainers,
   noRefillPointIds: readonly string[] = [],
   aidDrinkPointIds: readonly string[] = [],
+  /** L'hydratation due entre deux instants ; sur une plage chaude ou froide, celle du profil (§18). */
+  hydrationBetween: (from: number, to: number) => number = (from, to) =>
+    (input.targets.hydrationMlPerHour * Math.max(0, to - from)) / 3600,
 ): FlaskPlan {
   const aidDrink = new Set(aidDrinkPointIds);
   const warnings = new Set<FlaskWarning>();
@@ -170,7 +173,7 @@ export function planFlasks(
     const next = refills[index + 1] ?? finish;
     const from = departure(stop);
     const to = next?.elapsedSeconds ?? from;
-    const hydration = (input.targets.hydrationMlPerHour * Math.max(0, to - from)) / 3600;
+    const hydration = hydrationBetween(from, to);
     const drinkMl = drink === null ? 0 : hydration * (1 - input.targets.waterShare);
     return { stop, untilName: next?.name ?? '', water: hydration - drinkMl, drink: drinkMl };
   });
