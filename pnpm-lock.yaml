@@ -379,6 +379,22 @@ importers:
         specifier: ^3.1.0
         version: 3.2.7(@types/node@22.20.1)(tsx@4.23.13)
 
+  packages/weather:
+    dependencies:
+      zod:
+        specifier: ^4.5.4
+        version: 4.5.4
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.1.0
+        version: 3.2.7(@types/node@22.20.1)(tsx@4.23.13)
+
 packages:
 
   '@emnapi/runtime@1.11.3':

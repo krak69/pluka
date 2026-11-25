@@ -659,6 +659,16 @@ type WeatherSamplingConfig = {
 
 Avant production, ces valeurs doivent être validées sur des parcours tests.
 
+> **Décision du 2026-11-25 (`route-points-1.0.0`)** : la v1 ne crée aucun point
+> virtuel. Reçoivent une prévision le départ, l’arrivée, les points de passage
+> (`checkpoint`), les ravitaillements (`aid_station`, le « ravito » d’une
+> sortie), les sommets (`summit`) et les cols (`pass`) — pas les points d’eau,
+> les barrières horaires seules, les points d’assistance ni les autres points.
+> Le départ et l’arrivée sont toujours retenus. La capacité de points
+> virtuels (distance régulière dans l’écart, heure au même prorata du temps de
+> déplacement) reste dans le moteur, activable par une nouvelle version de
+> configuration. Code : `packages/weather/src/config.ts`.
+
 Le moteur doit pouvoir créer plusieurs points virtuels dans une même longue section si nécessaire.
 
 ---
@@ -814,6 +824,28 @@ Le choix devra être fait selon :
 
 Le contrat `WeatherProvider` rend ce choix remplaçable.
 
+> **Décision du 2026-11-25 : Open-Meteo** (`open-meteo-1.0.0`,
+> `packages/weather/src/providers/open-meteo.ts`).
+>
+> - Horizon de 16 jours : toute la fenêtre J-14 est couverte (MET Norway,
+>   écarté, s’arrête vers 10 jours).
+> - L’altitude du parcours est passée au fournisseur (`elevation`), qui corrige
+>   lui-même la température sur un modèle de terrain de 90 m : la correction
+>   reste chez le fournisseur (§23). Sans altitude, il prend son propre terrain.
+> - Lecture (`open-meteo-normalizer-1.0.0`) : la valeur instantanée de l’heure la
+>   plus proche du passage (température, ressenti, vent, ciel) ; l’heure qui
+>   contient le passage pour ce qui porte sur l’heure écoulée (pluie,
+>   probabilité, rafales). Un passage au-delà de l’horizon n’est pas demandé et
+>   reste sans valeur : le run est alors partiel.
+> - Le fournisseur ne dit pas de quel calcul de modèle vient une prévision :
+>   `forecast_issued_at` reste nul.
+> - Licence CC BY 4.0 : « Weather data by Open-Meteo.com », avec lien, à côté
+>   de toute donnée affichée.
+> - L’offre gratuite est réservée à l’évaluation et à un usage non commercial :
+>   un abonnement (« API Standard ») est à prendre avant la mise en ligne. Le
+>   droit de conserver les prévisions dans nos runs n’est pas écrit dans leurs
+>   conditions : à faire confirmer par Open-Meteo avant la production.
+
 ---
 
 # 28. Forecast run
@@ -925,6 +957,10 @@ Ils doivent être configurables et mesurés selon :
 - fraîcheur réelle du modèle fournisseur.
 
 Ne pas enfouir un `refresh every 3h` arbitraire dans le domaine.
+
+> **Valeurs de départ (2026-11-25, `refresh-1.0.0`, à valider)** : une
+> prévision est rafraîchie quand elle a plus de `12 h` de J-14 à J-8, `6 h` de
+> J-7 à J-4, `3 h` de J-3 à J-1, `1 h` le jour J. Jamais à chaque affichage.
 
 ---
 
