@@ -7292,7 +7292,8 @@ a.st-tab {
   color: var(--pk-text);
 }
 
-.nu-cond-open[aria-expanded='true'] .nu-cond-caret {
+.nu-cond-open[aria-expanded='true'] .nu-cond-caret,
+.nu-advanced[aria-expanded='true'] .nu-cond-caret {
   transform: rotate(180deg);
 }
 
@@ -7417,43 +7418,26 @@ a.st-tab {
   color: var(--pk-text-secondary);
 }
 
-/* Les actions secondaires de la modale Nutrition (Ajuster, Retirer, Options
-   avancées…) : du texte, pas des boutons à fond. */
-.nu-text-button {
-  min-height: 44px;
-  padding: 0 var(--space-2);
-  border: 0;
-  background: transparent;
-  color: var(--pk-forest);
-  font: inherit;
+/* Les actions secondaires de la modale (Ajuster, Retirer, Options avancées…) :
+   le bouton discret (DS §27 bis), en 14 px comme les autres actions de ligne
+   de la Nutrition. */
+.nu-cond-adjust-toggle,
+.nu-cond-reset,
+.nu-cond-remove,
+.nu-advanced,
+.nu-pick-add {
   font-size: 14px;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
 }
 
-.nu-text-button:hover {
-  text-decoration-thickness: 2px;
-}
-
-.nu-dialog .nu-advanced {
-  padding-inline: 0;
-}
-
-.nu-text-button:disabled {
-  color: var(--pk-text-secondary);
-  cursor: default;
-}
-
-.nu-cond-remove {
-  color: var(--pk-text-secondary);
-  font-weight: 400;
-}
-
+/* Sous un texte, l'action s'aligne sur lui, comme « Options avancées ». */
 .nu-cond-reset {
   justify-self: start;
   padding-inline: 0;
+}
+
+/* Retirer une plage pèse moins que l'ajouter. */
+.nu-cond-remove {
+  color: var(--pk-text-secondary);
 }
 
 .nu-cond-add {

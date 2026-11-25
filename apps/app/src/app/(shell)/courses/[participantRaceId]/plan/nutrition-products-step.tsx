@@ -304,7 +304,7 @@ export function ProductsStep({
                   </span>
                   <button
                     type="button"
-                    className="nu-text-button"
+                    className="pk-btn pk-button-ghost nu-pick-add"
                     disabled={pending}
                     onClick={() => add(result)}
                   >

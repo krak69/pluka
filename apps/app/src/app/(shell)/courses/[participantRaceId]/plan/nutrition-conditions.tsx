@@ -122,7 +122,7 @@ function TargetsPanel({
         </div>
         <button
           type="button"
-          className="nu-text-button nu-cond-adjust-toggle"
+          className="pk-btn pk-button-ghost nu-cond-adjust-toggle"
           aria-expanded={adjust}
           aria-controls={adjustId}
           onClick={() => setAdjust((open) => !open)}
@@ -165,7 +165,7 @@ function TargetsPanel({
         {custom ? (
           <button
             type="button"
-            className="nu-text-button nu-cond-reset"
+            className="pk-btn pk-button-ghost nu-cond-reset"
             onClick={() => onChange({ carbs: '', hydration: '', sodium: '' })}
           >
             Revenir à la proposition PLUKA
@@ -260,7 +260,7 @@ function ConditionBlock({
                   />
                   <button
                     type="button"
-                    className="nu-text-button nu-cond-remove"
+                    className="pk-btn pk-button-ghost nu-cond-remove"
                     aria-label={`Retirer la plage ${String(index + 1)} (${draft.label})`}
                     onClick={() =>
                       onChange({ rows: state.rows.filter((entry) => entry.id !== row.id) })

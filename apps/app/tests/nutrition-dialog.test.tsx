@@ -111,7 +111,10 @@ describe('la modale des objectifs', () => {
     }
   });
 
-  it('n’emploie pas la classe pk-button-ghost, que le Design System ne définit pas', () => {
-    expect(render()).not.toContain('pk-button-ghost');
+  it('donne aux actions secondaires le bouton discret du Design System (§27 bis)', () => {
+    const html = render();
+
+    expect(html).toContain('class="pk-btn pk-button-ghost nu-advanced"');
+    expect(html).not.toContain('nu-text-button');
   });
 });

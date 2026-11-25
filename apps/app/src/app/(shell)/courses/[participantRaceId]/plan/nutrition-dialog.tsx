@@ -398,11 +398,14 @@ function NutritionForm({
             </p>
             <button
               type="button"
-              className="nu-text-button nu-advanced"
+              className="pk-btn pk-button-ghost nu-advanced"
               aria-expanded={advanced}
               onClick={() => setAdvanced((open) => !open)}
             >
               {advanced ? 'Masquer les options avancées' : 'Options avancées'}
+              <span className="nu-cond-caret" aria-hidden="true">
+                <Icon name="CaretDown" size={14} />
+              </span>
             </button>
             {advanced ? (
               <div className="nu-advanced-body">
