@@ -1,5 +1,5 @@
 -- PLUKA — Routes du dispatcher d'outbox
--- Référence : docs/01_ARCHITECTURE.md §22 · migrations 0008, 0014, 0015, 0025, 0034
+-- Référence : docs/01_ARCHITECTURE.md §22 · migrations 0008, 0014, 0015, 0025, 0034, 0089, 0113
 --
 -- 0025 a réécrit le dispatcher et perdu deux routes sans qu'aucun test ne le
 -- voie : chaque famille d'événement est donc vérifiée ici, de l'outbox à sa
@@ -9,7 +9,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(7);
+select plan(9);
 
 -- Isoler la suite : seuls nos événements sont en attente pendant le test.
 update private.outbox_events set available_at = now() + interval '1 day' where status = 'pending';
@@ -20,9 +20,23 @@ insert into private.outbox_events (event_type, payload, idempotency_key) values
   ('source.uploaded',               '{"probe": "source"}', 'probe:source'),
   ('race.changed',                  '{"probe": "race"}',   'probe:race'),
   ('email.organization_invitation', '{"probe": "email"}',  'probe:email'),
+  ('billing.webhook.received',      '{"probe": "billing"}', 'probe:billing'),
+  ('weather.refresh',               '{"probe": "weather"}', 'probe:weather'),
   ('inconnu.evenement',             '{"probe": "none"}',   'probe:none');
 
-select is(private.dispatch_outbox_events(50), 5, 'OUTBOX-01 — cinq evenements routes, l''inconnu non');
+select is(private.dispatch_outbox_events(50), 7, 'OUTBOX-01 — sept evenements routes, l''inconnu non');
+
+select is(
+  (select count(*) from pgmq.q_pluka_billing where message->>'probe' = 'billing'),
+  1::bigint,
+  'OUTBOX-08 — billing.% va a pluka_billing (0089)'
+);
+
+select is(
+  (select count(*) from pgmq.q_pluka_weather where message->>'probe' = 'weather'),
+  1::bigint,
+  'OUTBOX-09 — weather.% va a pluka_weather (0113)'
+);
 
 select is(
   (select count(*) from pgmq.q_pluka_geo where message->>'probe' in ('gpx', 'course')),
@@ -57,7 +71,7 @@ select is(
 select is(
   (select count(*) from private.outbox_events
     where idempotency_key like 'probe:%' and status = 'published'),
-  5::bigint,
+  7::bigint,
   'OUTBOX-07 — les evenements routes sont marques publies'
 );
 

@@ -39,6 +39,15 @@ export interface WeatherEngineConfig {
   readonly conditionsEngineVersion: string;
   readonly routePoints: WeatherRoutePointsConfig;
   readonly refresh: WeatherRefreshConfig;
+  /**
+   * §93 : la fenêtre des séries partagées d'une course, autour de son départ.
+   * Elle couvre tous les coureurs, rapides ou lents ; au-delà de l'horizon du
+   * fournisseur, elle s'arrête d'elle-même.
+   */
+  readonly series: {
+    readonly beforeStartSeconds: number;
+    readonly afterStartSeconds: number;
+  };
   /** §46 : la nuit se calcule localement, par un algorithme versionné. */
   readonly astronomy: {
     readonly version: string;
@@ -68,6 +77,11 @@ export const WEATHER_ENGINE_V1: WeatherEngineConfig = {
       near: 3 * HOUR,
       race_day: 1 * HOUR,
     },
+  },
+  series: {
+    beforeStartSeconds: 1 * HOUR,
+    // Sept jours : au-delà, Open-Meteo compte la requête pour plus d'un appel.
+    afterStartSeconds: 7 * 24 * HOUR,
   },
   astronomy: {
     version: 'astronomy-noaa-1.0.0',

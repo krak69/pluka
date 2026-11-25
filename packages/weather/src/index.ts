@@ -7,8 +7,12 @@ export {
   type WeatherVirtualCheckpointsConfig,
 } from './config.js';
 export type {
+  HourlySeries,
   NormalizedWeatherPoint,
   RunCompleteness,
+  SeriesLocation,
+  SeriesRequest,
+  SeriesResponse,
   TimelinePoint,
   TracePosition,
   VirtualCheckpointRequest,
@@ -18,6 +22,7 @@ export type {
   WeatherProviderResponse,
   WeatherRoutePoint,
   WeatherScope,
+  WeatherSeriesProvider,
   WeatherSky,
   WeatherTimeline,
 } from './contracts.js';
@@ -40,7 +45,21 @@ export {
   type RoutePointPlan,
 } from './route-points.js';
 export { computeWeatherInputHash, type WeatherHashInput } from './hash.js';
-export { completenessOf, emptyPoint, hasForecast, skyFromWmo } from './normalizer.js';
+export {
+  completenessOf,
+  emptyPoint,
+  hasForecast,
+  projectSeries,
+  skyFromWmo,
+} from './normalizer.js';
+export { seriesReusable, seriesWindow, type CachedSeries, type WantedLocation } from './series.js';
+export {
+  buildRaceRun,
+  type BuiltRun,
+  type FetchedSeries,
+  type ProviderIdentity,
+  type RunPoint,
+} from './run.js';
 export {
   SUNRISE_ALTITUDE_DEG,
   nightPeriods,
@@ -52,7 +71,9 @@ export {
   WeatherProviderError,
   createOpenMeteoProvider,
   openMeteoQueries,
+  openMeteoSeriesQueries,
   parseOpenMeteoResponse,
+  parseOpenMeteoSeries,
   type OpenMeteoDependencies,
   type OpenMeteoQuery,
   type WeatherProviderErrorCode,

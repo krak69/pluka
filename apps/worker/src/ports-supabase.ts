@@ -1,9 +1,16 @@
-import { billingWebhookRepository, type PlukaClient } from '@pluka/db';
+import {
+  billingWebhookRepository,
+  createEntitlementRepositories,
+  type PlukaClient,
+} from '@pluka/db';
+import { can, resolveEntitlements } from '@pluka/domain';
+import { OPEN_METEO, createOpenMeteoProvider } from '@pluka/weather';
 
 import { createAccountNoticeStore } from './account-notices-store.js';
 import { createBilling } from './billing/index.js';
 import { createBillingInboxStore } from './billing-store.js';
 import { createStartChangeStore } from './start-changes-store.js';
+import { createWeatherStore } from './weather-store.js';
 import { createAI } from './ai/index.js';
 import { createDiscoveryStore } from './discoveries-store.js';
 import { createEmail } from './email/index.js';
@@ -83,6 +90,30 @@ export function createPorts(
       provider: createBilling(process.env),
       inbox: createBillingInboxStore(client),
       webhook: billingWebhookRepository({ client }),
+    },
+    weather: {
+      store: createWeatherStore(client),
+      // Offre gratuite d'Open-Meteo : évaluation et bêta ; un abonnement avant la mise en vente.
+      provider: createOpenMeteoProvider({ fetch, now: () => new Date() }),
+      identity: {
+        provider: OPEN_METEO.provider,
+        providerModel: OPEN_METEO.model,
+        providerConfigVersion: OPEN_METEO.providerConfigVersion,
+        normalizerVersion: OPEN_METEO.normalizerVersion,
+      },
+      // Les droits se décident dans le domaine, pour le coureur concerné.
+      async entitled(userId, participantRaceId) {
+        const context = await resolveEntitlements(
+          {
+            repositories: createEntitlementRepositories({ client }),
+            actor: { userId },
+            now: () => new Date(),
+          },
+          { participantRaceId },
+        );
+        return can(context, 'conditions.race.read').allowed;
+      },
+      now: () => new Date(),
     },
     discoveries: createDiscoveryStore(client),
     email: createEmail(process.env),

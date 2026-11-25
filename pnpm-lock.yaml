@@ -157,6 +157,9 @@ importers:
       '@pluka/sources':
         specifier: workspace:*
         version: link:../../packages/sources
+      '@pluka/weather':
+        specifier: workspace:*
+        version: link:../../packages/weather
       '@supabase/supabase-js':
         specifier: ^2.115.0
         version: 2.115.0

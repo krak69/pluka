@@ -6261,6 +6261,8 @@ export type Database = {
         Row: {
           apparent_temperature_c: number | null
           created_at: string
+          distance_km: number | null
+          elapsed_seconds: number | null
           fetched_at: string
           forecast_issued_at: string | null
           id: string
@@ -6285,6 +6287,8 @@ export type Database = {
         Insert: {
           apparent_temperature_c?: number | null
           created_at?: string
+          distance_km?: number | null
+          elapsed_seconds?: number | null
           fetched_at: string
           forecast_issued_at?: string | null
           id?: string
@@ -6309,6 +6313,8 @@ export type Database = {
         Update: {
           apparent_temperature_c?: number | null
           created_at?: string
+          distance_km?: number | null
+          elapsed_seconds?: number | null
           fetched_at?: string
           forecast_issued_at?: string | null
           id?: string
@@ -6363,6 +6369,7 @@ export type Database = {
       }
       weather_forecast_runs: {
         Row: {
+          astronomy_version: string | null
           completeness_status: Database["public"]["Enums"]["weather_run_completeness"]
           conditions_config_version: string | null
           conditions_engine_version: string | null
@@ -6385,6 +6392,7 @@ export type Database = {
           timezone: string
         }
         Insert: {
+          astronomy_version?: string | null
           completeness_status?: Database["public"]["Enums"]["weather_run_completeness"]
           conditions_config_version?: string | null
           conditions_engine_version?: string | null
@@ -6407,6 +6415,7 @@ export type Database = {
           timezone: string
         }
         Update: {
+          astronomy_version?: string | null
           completeness_status?: Database["public"]["Enums"]["weather_run_completeness"]
           conditions_config_version?: string | null
           conditions_engine_version?: string | null
@@ -7355,6 +7364,10 @@ export type Database = {
         Returns: undefined
       }
       request_account_deletion: { Args: never; Returns: Json }
+      request_weather_refresh: {
+        Args: { p_participant_race_id: string }
+        Returns: string
+      }
       reset_nutrition_milestone: {
         Args: { p_participant_race_id: string; p_stable_key: string }
         Returns: undefined
@@ -8048,6 +8061,11 @@ export type Database = {
           snapshot_id: string
         }[]
       }
+      worker_record_weather_run: {
+        Args: { p_periods: Json; p_points: Json; p_run: Json }
+        Returns: string
+      }
+      worker_save_weather_series: { Args: { p_rows: Json }; Returns: number }
       worker_settle_billing_webhook: {
         Args: { p_id: string; p_result: string; p_status: string }
         Returns: undefined
@@ -8084,6 +8102,27 @@ export type Database = {
         Returns: {
           already_completed: boolean
           run_id: string
+        }[]
+      }
+      worker_weather_race_plan: {
+        Args: { p_race_plan_id: string }
+        Returns: Json
+      }
+      worker_weather_series: {
+        Args: {
+          p_provider_config_version: string
+          p_race_waypoint_ids: string[]
+        }
+        Returns: {
+          elevation_m: number
+          fetched_at: string
+          latitude: number
+          longitude: number
+          provider_model: string
+          race_waypoint_id: string
+          series: Json
+          window_end: string
+          window_start: string
         }[]
       }
     }

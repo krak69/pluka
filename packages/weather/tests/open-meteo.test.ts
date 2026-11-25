@@ -72,7 +72,8 @@ describe('les appels (§92)', () => {
     expect(withAltitude.searchParams.get('timeformat')).toBe('unixtime');
     expect(withAltitude.searchParams.get('timezone')).toBe('GMT');
     expect(withAltitude.searchParams.get('start_hour')).toBe('2026-09-12T14:00');
-    expect(withAltitude.searchParams.get('end_hour')).toBe('2026-09-12T17:00');
+    // Une fenêtre commune à la requête : du premier passage moins une heure au dernier plus une.
+    expect(withAltitude.searchParams.get('end_hour')).toBe('2026-09-12T19:00');
     expect(withAltitude.searchParams.get('hourly')?.split(',')).toEqual([
       'temperature_2m',
       'apparent_temperature',
@@ -109,7 +110,7 @@ describe('les appels (§92)', () => {
 });
 
 describe('la lecture d’une réponse (§26)', () => {
-  const query = { pointKeys: ['wp-rawil'], url: 'x' };
+  const query = { pointKeys: ['wp-rawil'] };
   const single: WeatherProviderRequest = { timezone: 'UTC', points: [RAWIL] };
 
   it('prend l’heure la plus proche pour l’instantané, l’heure du passage pour pluie et rafales', () => {
@@ -185,7 +186,7 @@ describe('la lecture d’une réponse (§26)', () => {
   it('refuse une réponse qui ne correspond pas à la demande', () => {
     expect(() =>
       parseOpenMeteoResponse(
-        { pointKeys: ['a', 'b'], url: 'x' },
+        { pointKeys: ['a', 'b'] },
         REQUEST,
         [location('2026-09-12T14:00:00.000Z')],
         NOW.toISOString(),
@@ -254,7 +255,8 @@ describe('le fournisseur (§24, §90, §91)', () => {
   it('W17 — un passage hors horizon laisse le run partiel, et le dit', async () => {
     const provider = createOpenMeteoProvider({
       now: () => NOW,
-      fetch: respond(location('2026-09-12T14:00:00.000Z')),
+      // Le lieu lointain est demandé aussi : sa série couvre les heures dans l'horizon.
+      fetch: respond([location('2026-09-12T14:00:00.000Z'), location('2026-09-12T14:00:00.000Z')]),
     });
     const response = await provider.getForecast({
       timezone: 'UTC',

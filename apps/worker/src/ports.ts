@@ -3,6 +3,15 @@ import type { BillingWebhookRepository } from '@pluka/db';
 import type { ProcessedTrack } from '@pluka/gpx';
 import type { DeclaredWaypoint, PlanMicroSegment, PlanRaceSegmentInput } from '@pluka/plan-engine';
 import type { Capture, ExtractedCandidate, ParsedBlock, ParsedChunk } from '@pluka/sources';
+import type {
+  HourlySeries,
+  NightPeriod,
+  ProviderIdentity,
+  RunCompleteness,
+  RunPoint,
+  TimelinePoint,
+  WeatherSeriesProvider,
+} from '@pluka/weather';
 
 import type { NotificationStore } from './ports-notifications.js';
 
@@ -499,6 +508,86 @@ export interface BillingPorts {
   readonly webhook: BillingWebhookRepository;
 }
 
+/**
+ * La timeline d'une version de Plan, telle que `worker_weather_race_plan`
+ * la rend (0113) : les points y ont leur position officielle, ou celle de la
+ * trace à leur distance.
+ */
+export interface WeatherRacePlan {
+  readonly racePlanId: string;
+  readonly participantRaceId: string;
+  readonly userId: string | null;
+  readonly status: string;
+  readonly startAt: string | null;
+  readonly timezone: string;
+  readonly geometryKey: string | null;
+  readonly points: readonly TimelinePoint[];
+}
+
+/** Une série partagée d'un point de course (0113, `private.weather_series`). */
+export interface StoredWeatherSeries {
+  readonly raceWaypointId: string;
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly elevationM: number | null;
+  readonly windowStart: string;
+  readonly windowEnd: string;
+  readonly fetchedAt: string;
+  readonly providerModel: string | null;
+  readonly series: HourlySeries;
+}
+
+export interface WeatherRunRecord {
+  readonly racePlanId: string;
+  readonly timezone: string;
+  readonly provider: string;
+  readonly providerModel: string | null;
+  readonly providerConfigVersion: string;
+  readonly normalizerVersion: string;
+  readonly conditionsEngineVersion: string;
+  readonly routePointsVersion: string;
+  readonly astronomyVersion: string;
+  readonly inputHash: string;
+  readonly fetchedAt: string;
+  readonly completeness: RunCompleteness;
+  readonly failureCode: string | null;
+  readonly inputSnapshot: unknown;
+}
+
+export interface WeatherStore {
+  racePlan(racePlanId: string): Promise<WeatherRacePlan | null>;
+  series(
+    raceWaypointIds: readonly string[],
+    providerConfigVersion: string,
+  ): Promise<readonly StoredWeatherSeries[]>;
+  saveSeries(
+    rows: readonly (StoredWeatherSeries & {
+      readonly provider: string;
+      readonly providerConfigVersion: string;
+    })[],
+  ): Promise<void>;
+  /** Rend l'identifiant du run, ou null si le Plan n'est plus actif. */
+  recordRun(
+    run: WeatherRunRecord,
+    points: readonly RunPoint[],
+    nights: readonly NightPeriod[],
+  ): Promise<string | null>;
+}
+
+/** Les Conditions J-14 : séries partagées, runs, et la revérification des droits (0113). */
+export interface WeatherPorts {
+  readonly store: WeatherStore;
+  readonly provider: WeatherSeriesProvider;
+  /** Qui fournit les séries, et selon quelles versions : un run tiré du cache le dit aussi. */
+  readonly identity: ProviderIdentity;
+  /**
+   * Le coureur a-t-il droit aux Conditions de cette course ? Décidé par le
+   * domaine (04_ENTITLEMENTS), jamais par le worker lui-même.
+   */
+  entitled(userId: string, participantRaceId: string): Promise<boolean>;
+  readonly now: () => Date;
+}
+
 export interface WorkerPorts {
   readonly queue: Queue;
   readonly jobs: JobStore;
@@ -517,6 +606,7 @@ export interface WorkerPorts {
   readonly accountNotices: AccountNoticeStore;
   readonly startChanges: StartChangeStore;
   readonly billing: BillingPorts;
+  readonly weather: WeatherPorts;
   readonly discoveries: DiscoveryStore;
   /**
    * Fournisseur email, ou son absence.

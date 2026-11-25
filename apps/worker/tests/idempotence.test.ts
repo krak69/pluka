@@ -207,6 +207,27 @@ function createRecorder(): Recorder {
       complete: async (): Promise<void> => undefined,
       fail: async (): Promise<void> => undefined,
     },
+    weather: {
+      store: {
+        racePlan: async () => null,
+        series: async () => [],
+        saveSeries: async (): Promise<void> => undefined,
+        recordRun: async () => null,
+      },
+      provider: {
+        getSeries: async () => {
+          throw new Error('non employé dans ces tests');
+        },
+      },
+      identity: {
+        provider: 'test',
+        providerModel: null,
+        providerConfigVersion: 'test',
+        normalizerVersion: 'test',
+      },
+      entitled: async () => false,
+      now: () => new Date('2026-09-10T08:00:00.000Z'),
+    },
     email: null,
     appUrl: 'http://localhost:3001',
     adminUrl: 'http://localhost:3002',
@@ -414,6 +435,7 @@ describe('boucle', () => {
     // `pluka_plan` s'y ajoute avec l'Impact Analyzer de §44 : un changement
     // publié descend vers les Plans, la Préparation et l'Assistance.
     // `pluka_billing` porte le webhook de paiement, vérifié ici (0089).
+    // `pluka_weather` porte les prévisions J-14, hors de toute requête (0113).
     const order: string[] = [];
 
     recorder.ports.queue.read = async (queue) => {
@@ -428,6 +450,7 @@ describe('boucle', () => {
         'pluka_plan',
         'pluka_email',
         'pluka_billing',
+        'pluka_weather',
       ]);
     });
   });

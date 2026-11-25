@@ -161,3 +161,58 @@ export interface WeatherProviderResponse {
 export interface WeatherProvider {
   getForecast(request: WeatherProviderRequest): Promise<WeatherProviderResponse>;
 }
+
+/**
+ * La série horaire d'un lieu, normalisée — de quoi servir tous les coureurs
+ * qui y passent (§93, §94) : chacun projette ensuite la série sur son heure
+ * de passage (§34). Les mesures instantanées valent à l'heure indiquée ; la
+ * probabilité de pluie, le cumul et la rafale portent sur l'heure écoulée.
+ */
+export interface HourlySeries {
+  /** Heures UTC, en secondes Unix, croissantes. */
+  readonly times: readonly number[];
+  readonly temperatureC: readonly (number | null)[];
+  readonly apparentTemperatureC: readonly (number | null)[];
+  /** Le code météo WMO du fournisseur, traduit à la projection (§56). */
+  readonly weatherCode: readonly (number | null)[];
+  readonly windSpeedKmh: readonly (number | null)[];
+  readonly windDirectionDeg: readonly (number | null)[];
+  readonly precipitationProbabilityPct: readonly (number | null)[];
+  readonly precipitationAmountMm: readonly (number | null)[];
+  readonly windGustKmh: readonly (number | null)[];
+  /** L'altitude du modèle de terrain du fournisseur, pour l'audit seulement (§22). */
+  readonly providerElevationM: number | null;
+}
+
+export interface SeriesLocation {
+  readonly key: string;
+  readonly latitude: number;
+  readonly longitude: number;
+  /** L'altitude du parcours ; nulle, le fournisseur prend son propre terrain. */
+  readonly elevationM: number | null;
+}
+
+export interface SeriesRequest {
+  readonly locations: readonly SeriesLocation[];
+  /** La fenêtre voulue, en ISO ; bornée à l'horizon du fournisseur. */
+  readonly from: string;
+  readonly to: string;
+}
+
+export interface SeriesResponse {
+  readonly provider: string;
+  readonly providerModel: string | null;
+  readonly providerConfigVersion: string;
+  readonly normalizerVersion: string;
+  readonly fetchedAt: string;
+  /** La fenêtre réellement demandée ; nulle si rien n'était dans l'horizon. */
+  readonly windowStart: string | null;
+  readonly windowEnd: string | null;
+  /** Une série par lieu demandé dans l'horizon. */
+  readonly series: ReadonlyMap<string, HourlySeries>;
+}
+
+/** Un fournisseur qui rend des séries partageables (§93). */
+export interface WeatherSeriesProvider {
+  getSeries(request: SeriesRequest): Promise<SeriesResponse>;
+}

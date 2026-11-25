@@ -1,4 +1,9 @@
-import type { NormalizedWeatherPoint, RunCompleteness, WeatherSky } from './contracts.js';
+import type {
+  HourlySeries,
+  NormalizedWeatherPoint,
+  RunCompleteness,
+  WeatherSky,
+} from './contracts.js';
 
 /**
  * Lecture commune des fournisseurs — WEATHER_CONDITIONS §26, §55, §56.
@@ -60,5 +65,53 @@ export function emptyPoint(pointKey: string, fetchedAt: string): NormalizedWeath
     windGustKmh: null,
     windDirectionDeg: null,
     weatherCode: null,
+  };
+}
+
+const HOUR = 3600;
+
+function at(series: HourlySeries, values: readonly (number | null)[], slot: number): number | null {
+  const index = series.times.indexOf(slot);
+  return index < 0 ? null : (values[index] ?? null);
+}
+
+/**
+ * §34 : projette la série d'un lieu sur une heure de passage, sans nouvel
+ * appel. L'instantané (température, ressenti, vent, ciel) est lu à l'heure la
+ * plus proche du passage ; ce qui porte sur l'heure écoulée (probabilité,
+ * cumul, rafale) à l'heure qui contient le passage. Une heure absente de la
+ * série laisse la mesure nulle (§54).
+ */
+export function projectSeries(
+  pointKey: string,
+  plannedDatetime: string,
+  series: HourlySeries,
+  fetchedAt: string,
+): NormalizedWeatherPoint {
+  const passage = Date.parse(plannedDatetime) / 1000;
+  const instant = Math.round(passage / HOUR) * HOUR;
+  const preceding = Math.ceil(passage / HOUR) * HOUR;
+  const wmo = at(series, series.weatherCode, instant);
+  const direction = at(series, series.windDirectionDeg, instant);
+  return {
+    pointKey,
+    forecastIssuedAt: null,
+    fetchedAt,
+    temperatureC: at(series, series.temperatureC, instant),
+    apparentTemperatureC: at(series, series.apparentTemperatureC, instant),
+    precipitationProbabilityPct: at(series, series.precipitationProbabilityPct, preceding),
+    precipitationAmountMm: at(series, series.precipitationAmountMm, preceding),
+    windSpeedKmh: at(series, series.windSpeedKmh, instant),
+    windGustKmh: at(series, series.windGustKmh, preceding),
+    windDirectionDeg: direction === null ? null : Math.round(direction) % 360,
+    weatherCode: skyFromWmo(wmo === null ? null : Math.round(wmo)),
+    providerPayload: {
+      wmoCode: wmo,
+      // L'altitude du modèle de terrain du fournisseur, pour l'audit (W18) ;
+      // jamais affichée à la place de celle du parcours.
+      providerElevationM: series.providerElevationM,
+      instantSlot: new Date(instant * 1000).toISOString(),
+      precedingHourSlot: new Date(preceding * 1000).toISOString(),
+    },
   };
 }

@@ -1,15 +1,20 @@
 import { z } from 'zod';
 
 import type {
+  HourlySeries,
   NormalizedWeatherPoint,
+  SeriesRequest,
+  SeriesResponse,
   WeatherProvider,
   WeatherProviderRequest,
   WeatherProviderResponse,
+  WeatherSeriesProvider,
 } from '../contracts.js';
-import { completenessOf, emptyPoint, skyFromWmo } from '../normalizer.js';
+import { completenessOf, emptyPoint, projectSeries } from '../normalizer.js';
 
 /**
- * Adaptateur Open-Meteo — WEATHER_CONDITIONS §23 à §27 ; choix du 2026-11-25.
+ * Adaptateur Open-Meteo — WEATHER_CONDITIONS §23 à §27, §93, §94 ; choix du
+ * 2026-11-25.
  *
  * Open-Meteo prévoit jusqu'à 16 jours, donc toute la fenêtre J-14, et corrige
  * la température selon l'altitude qu'on lui donne (`elevation`) : la
@@ -17,15 +22,19 @@ import { completenessOf, emptyPoint, skyFromWmo } from '../normalizer.js';
  * parcours reste celle qu'on affiche (§22). Données sous licence CC BY 4.0 :
  * la source se cite à côté de la donnée. L'offre gratuite ne couvre pas un
  * usage commercial : un abonnement est à prendre avant la mise en ligne.
+ *
+ * L'adaptateur rend des séries horaires par lieu (`getSeries`), partageables
+ * entre les coureurs d'une même course ; `getForecast` les projette sur des
+ * heures de passage. Chaque lieu d'une requête compte pour un appel.
  */
 
 export const OPEN_METEO = {
   provider: 'open-meteo',
   providerConfigVersion: 'open-meteo-1.0.0',
   /**
-   * Règles de lecture : la valeur instantanée la plus proche du passage, et
-   * l'heure qui contient le passage pour les cumuls et maxima de l'heure
-   * écoulée (pluie, probabilité, rafales).
+   * Règles de lecture : la valeur instantanée de l'heure la plus proche du
+   * passage, et l'heure qui contient le passage pour les cumuls et maxima de
+   * l'heure écoulée (pluie, probabilité, rafales).
    */
   normalizerVersion: 'open-meteo-normalizer-1.0.0',
   model: 'best_match',
@@ -54,8 +63,11 @@ const HOUR = 3600;
 const DAY = 24 * HOUR;
 
 export interface OpenMeteoQuery {
+  /** Les clés des lieux demandés, dans l'ordre de la requête. */
   readonly pointKeys: readonly string[];
   readonly url: string;
+  readonly windowStart: number;
+  readonly windowEnd: number;
 }
 
 /** « 2026-09-11T15:00 » : une heure UTC, au format des paramètres `start_hour` / `end_hour`. */
@@ -71,37 +83,33 @@ function chunks<T>(items: readonly T[], size: number): T[][] {
 }
 
 /**
- * Les appels à faire : un par groupe d'au plus 50 points, en séparant les
- * points sans altitude (le fournisseur prend alors son propre modèle de
- * terrain) de ceux qui en ont une. La fenêtre horaire couvre les passages, une
- * heure de part et d'autre, bornée à l'horizon du fournisseur ; un passage
- * au-delà n'est pas demandé et restera sans valeur.
+ * Les appels à faire pour des séries : un par groupe d'au plus 50 lieux, en
+ * séparant les lieux sans altitude (le fournisseur prend alors son propre
+ * modèle de terrain) de ceux qui en ont une. La fenêtre, arrondie à l'heure,
+ * est bornée à l'horizon du fournisseur ; hors de l'horizon, rien n'est
+ * demandé.
  */
-export function openMeteoQueries(
-  request: WeatherProviderRequest,
+export function openMeteoSeriesQueries(
+  request: SeriesRequest,
   now: Date,
   baseUrl: string = OPEN_METEO.baseUrl,
 ): readonly OpenMeteoQuery[] {
   const nowSeconds = Math.floor(now.getTime() / 1000);
   const firstHour = Math.floor(nowSeconds / DAY) * DAY;
   const lastHour = firstHour + OPEN_METEO.forecastDays * DAY - HOUR;
-  const inHorizon = request.points.filter((point) => {
-    const at = Date.parse(point.plannedDatetime) / 1000;
-    return at >= firstHour && at <= lastHour;
-  });
+  const start = Math.max(firstHour, Math.floor(Date.parse(request.from) / 1000 / HOUR) * HOUR);
+  const end = Math.min(lastHour, Math.ceil(Date.parse(request.to) / 1000 / HOUR) * HOUR);
+  if (request.locations.length === 0 || end < start) return [];
 
   const groups = [
-    inHorizon.filter((point) => point.routeAltitudeM !== null),
-    inHorizon.filter((point) => point.routeAltitudeM === null),
+    request.locations.filter((location) => location.elevationM !== null),
+    request.locations.filter((location) => location.elevationM === null),
   ];
   return groups.flatMap((group) =>
-    chunks(group, OPEN_METEO.maxLocationsPerCall).map((points) => {
-      const times = points.map((point) => Date.parse(point.plannedDatetime) / 1000);
-      const start = Math.max(firstHour, Math.floor(Math.min(...times) / HOUR) * HOUR - HOUR);
-      const end = Math.min(lastHour, Math.ceil(Math.max(...times) / HOUR) * HOUR + HOUR);
+    chunks(group, OPEN_METEO.maxLocationsPerCall).map((locations) => {
       const params = new URLSearchParams({
-        latitude: points.map((point) => point.latitude.toFixed(4)).join(','),
-        longitude: points.map((point) => point.longitude.toFixed(4)).join(','),
+        latitude: locations.map((location) => location.latitude.toFixed(4)).join(','),
+        longitude: locations.map((location) => location.longitude.toFixed(4)).join(','),
         hourly: [...INSTANT, ...PRECEDING_HOUR].join(','),
         timezone: 'GMT',
         timeformat: 'unixtime',
@@ -109,14 +117,42 @@ export function openMeteoQueries(
         start_hour: utcHour(start),
         end_hour: utcHour(end),
       });
-      // Un groupe a l'altitude de tous ses points, ou d'aucun.
-      const altitudes = points.flatMap((point) =>
-        point.routeAltitudeM === null ? [] : [String(Math.round(point.routeAltitudeM))],
+      // Un groupe a l'altitude de tous ses lieux, ou d'aucun.
+      const altitudes = locations.flatMap((location) =>
+        location.elevationM === null ? [] : [String(Math.round(location.elevationM))],
       );
-      if (altitudes.length === points.length) params.set('elevation', altitudes.join(','));
-      return { pointKeys: points.map((point) => point.pointKey), url: `${baseUrl}?${params}` };
+      if (altitudes.length === locations.length) params.set('elevation', altitudes.join(','));
+      return {
+        pointKeys: locations.map((location) => location.key),
+        url: `${baseUrl}?${params}`,
+        windowStart: start,
+        windowEnd: end,
+      };
     }),
   );
+}
+
+/** Les appels pour des passages : la fenêtre couvre chaque passage, une heure de part et d'autre. */
+export function openMeteoQueries(
+  request: WeatherProviderRequest,
+  now: Date,
+  baseUrl: string = OPEN_METEO.baseUrl,
+): readonly OpenMeteoQuery[] {
+  return openMeteoSeriesQueries(seriesRequestOf(request), now, baseUrl);
+}
+
+function seriesRequestOf(request: WeatherProviderRequest): SeriesRequest {
+  const times = request.points.map((point) => Date.parse(point.plannedDatetime));
+  return {
+    locations: request.points.map((point) => ({
+      key: point.pointKey,
+      latitude: point.latitude,
+      longitude: point.longitude,
+      elevationM: point.routeAltitudeM,
+    })),
+    from: new Date(Math.min(...times) - HOUR * 1000).toISOString(),
+    to: new Date(Math.max(...times) + HOUR * 1000).toISOString(),
+  };
 }
 
 const series = z.array(z.number().nullable());
@@ -138,11 +174,10 @@ const locationSchema = z.object({
   }),
 });
 
-/** Une réponse à un seul point est un objet ; à plusieurs, une liste. */
+/** Une réponse à un seul lieu est un objet ; à plusieurs, une liste. */
 const responseSchema = z.union([z.array(locationSchema), locationSchema]);
 
 type Location = z.infer<typeof locationSchema>;
-type Hourly = Location['hourly'];
 
 export type WeatherProviderErrorCode = 'http' | 'timeout' | 'network' | 'malformed';
 
@@ -159,73 +194,62 @@ export class WeatherProviderError extends Error {
   }
 }
 
-function valueAt(hourly: Hourly, name: keyof Omit<Hourly, 'time'>, slot: number): number | null {
-  const index = hourly.time.indexOf(slot);
-  if (index < 0) return null;
-  return hourly[name]?.[index] ?? null;
+/** Une variable absente de la réponse reste une série vide de valeurs, jamais estimée. */
+function column(
+  location: Location,
+  name: Exclude<keyof Location['hourly'], 'time'>,
+): readonly (number | null)[] {
+  return location.hourly[name] ?? location.hourly.time.map(() => null);
 }
 
-/** Lit un point : l'heure la plus proche pour l'instantané, l'heure qui contient le passage pour le reste. */
-function normalizePoint(
-  pointKey: string,
-  plannedDatetime: string,
-  location: Location,
-  fetchedAt: string,
-): NormalizedWeatherPoint {
-  const at = Date.parse(plannedDatetime) / 1000;
-  const instant = Math.round(at / HOUR) * HOUR;
-  const preceding = Math.ceil(at / HOUR) * HOUR;
-  const { hourly } = location;
-  const wmo = valueAt(hourly, 'weather_code', instant);
-  const direction = valueAt(hourly, 'wind_direction_10m', instant);
-  const point: NormalizedWeatherPoint = {
-    pointKey,
-    forecastIssuedAt: null,
-    fetchedAt,
-    temperatureC: valueAt(hourly, 'temperature_2m', instant),
-    apparentTemperatureC: valueAt(hourly, 'apparent_temperature', instant),
-    precipitationProbabilityPct: valueAt(hourly, 'precipitation_probability', preceding),
-    precipitationAmountMm: valueAt(hourly, 'precipitation', preceding),
-    windSpeedKmh: valueAt(hourly, 'wind_speed_10m', instant),
-    windGustKmh: valueAt(hourly, 'wind_gusts_10m', preceding),
-    windDirectionDeg: direction === null ? null : Math.round(direction) % 360,
-    weatherCode: skyFromWmo(wmo === null ? null : Math.round(wmo)),
-  };
+function seriesOf(location: Location): HourlySeries {
   return {
-    ...point,
-    providerPayload: {
-      wmoCode: wmo,
-      // L'altitude du modèle de terrain du fournisseur, pour l'audit (W18) ;
-      // jamais affichée à la place de celle du parcours.
-      providerElevationM: location.elevation ?? null,
-      instantSlot: new Date(instant * 1000).toISOString(),
-      precedingHourSlot: new Date(preceding * 1000).toISOString(),
-    },
+    times: location.hourly.time,
+    temperatureC: column(location, 'temperature_2m'),
+    apparentTemperatureC: column(location, 'apparent_temperature'),
+    weatherCode: column(location, 'weather_code'),
+    windSpeedKmh: column(location, 'wind_speed_10m'),
+    windDirectionDeg: column(location, 'wind_direction_10m'),
+    precipitationProbabilityPct: column(location, 'precipitation_probability'),
+    precipitationAmountMm: column(location, 'precipitation'),
+    windGustKmh: column(location, 'wind_gusts_10m'),
+    providerElevationM: location.elevation ?? null,
   };
 }
 
 /**
- * Lit la réponse d'un appel. Une réponse qui ne correspond pas à la demande
- * est refusée en bloc, plutôt que d'attribuer une prévision au mauvais point.
+ * Lit les séries d'un appel. Une réponse qui ne correspond pas à la demande
+ * est refusée en bloc, plutôt que d'attribuer une série au mauvais lieu.
  */
-export function parseOpenMeteoResponse(
-  query: OpenMeteoQuery,
-  request: WeatherProviderRequest,
+export function parseOpenMeteoSeries(
+  query: Pick<OpenMeteoQuery, 'pointKeys'>,
   body: unknown,
-  fetchedAt: string,
-): readonly NormalizedWeatherPoint[] {
+): ReadonlyMap<string, HourlySeries> {
   const parsed = responseSchema.safeParse(body);
   if (!parsed.success) throw new WeatherProviderError('malformed', 'réponse Open-Meteo illisible');
   const locations = Array.isArray(parsed.data) ? parsed.data : [parsed.data];
   if (locations.length !== query.pointKeys.length) {
     throw new WeatherProviderError('malformed', 'réponse Open-Meteo incomplète');
   }
+  return new Map(
+    query.pointKeys.map((key, index) => [key, seriesOf(locations[index] as Location)]),
+  );
+}
+
+/** Lit un appel et le projette sur les passages demandés. */
+export function parseOpenMeteoResponse(
+  query: Pick<OpenMeteoQuery, 'pointKeys'>,
+  request: WeatherProviderRequest,
+  body: unknown,
+  fetchedAt: string,
+): readonly NormalizedWeatherPoint[] {
+  const parsed = parseOpenMeteoSeries(query, body);
   const planned = new Map(request.points.map((point) => [point.pointKey, point.plannedDatetime]));
-  return query.pointKeys.map((pointKey, index) =>
-    normalizePoint(
+  return query.pointKeys.map((pointKey) =>
+    projectSeries(
       pointKey,
       planned.get(pointKey) as string,
-      locations[index] as Location,
+      parsed.get(pointKey) as HourlySeries,
       fetchedAt,
     ),
   );
@@ -238,8 +262,10 @@ export interface OpenMeteoDependencies {
   readonly timeoutMs?: number;
 }
 
-/** Le fournisseur Open-Meteo derrière le contrat `WeatherProvider` (§24). */
-export function createOpenMeteoProvider(dependencies: OpenMeteoDependencies): WeatherProvider {
+/** Le fournisseur Open-Meteo derrière les contrats du moteur (§24). */
+export function createOpenMeteoProvider(
+  dependencies: OpenMeteoDependencies,
+): WeatherProvider & WeatherSeriesProvider {
   const timeoutMs = dependencies.timeoutMs ?? 10_000;
 
   async function call(url: string): Promise<unknown> {
@@ -265,33 +291,50 @@ export function createOpenMeteoProvider(dependencies: OpenMeteoDependencies): We
     }
   }
 
-  return {
-    async getForecast(request) {
-      const now = dependencies.now();
-      const fetchedAt = now.toISOString();
-      const queries = openMeteoQueries(request, now, dependencies.baseUrl);
-      const received = new Map<string, NormalizedWeatherPoint>();
-      for (const query of queries) {
-        const body = await call(query.url);
-        for (const point of parseOpenMeteoResponse(query, request, body, fetchedAt)) {
-          received.set(point.pointKey, point);
-        }
+  async function getSeries(request: SeriesRequest): Promise<SeriesResponse> {
+    const now = dependencies.now();
+    const queries = openMeteoSeriesQueries(request, now, dependencies.baseUrl);
+    const received = new Map<string, HourlySeries>();
+    for (const query of queries) {
+      for (const [key, value] of parseOpenMeteoSeries(query, await call(query.url))) {
+        received.set(key, value);
       }
+    }
+    const first = queries[0];
+    return {
+      provider: OPEN_METEO.provider,
+      providerModel: OPEN_METEO.model,
+      providerConfigVersion: OPEN_METEO.providerConfigVersion,
+      normalizerVersion: OPEN_METEO.normalizerVersion,
+      fetchedAt: now.toISOString(),
+      windowStart: first === undefined ? null : new Date(first.windowStart * 1000).toISOString(),
+      windowEnd: first === undefined ? null : new Date(first.windowEnd * 1000).toISOString(),
+      series: received,
+    };
+  }
+
+  return {
+    getSeries,
+    async getForecast(request) {
+      const response = await getSeries(seriesRequestOf(request));
       // Un passage hors de l'horizon n'a pas été demandé : il reste sans valeur.
-      const points = request.points.map(
-        (point) => received.get(point.pointKey) ?? emptyPoint(point.pointKey, fetchedAt),
-      );
-      const response: WeatherProviderResponse = {
-        provider: OPEN_METEO.provider,
-        providerModel: OPEN_METEO.model,
-        providerConfigVersion: OPEN_METEO.providerConfigVersion,
-        normalizerVersion: OPEN_METEO.normalizerVersion,
-        fetchedAt,
+      const points = request.points.map((point) => {
+        const found = response.series.get(point.pointKey);
+        return found === undefined
+          ? emptyPoint(point.pointKey, response.fetchedAt)
+          : projectSeries(point.pointKey, point.plannedDatetime, found, response.fetchedAt);
+      });
+      const forecast: WeatherProviderResponse = {
+        provider: response.provider,
+        providerModel: response.providerModel,
+        providerConfigVersion: response.providerConfigVersion,
+        normalizerVersion: response.normalizerVersion,
+        fetchedAt: response.fetchedAt,
         forecastIssuedAt: null,
         points,
         completeness: completenessOf(points),
       };
-      return response;
+      return forecast;
     },
   };
 }

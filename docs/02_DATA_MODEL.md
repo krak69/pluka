@@ -1475,6 +1475,30 @@ d'émission. `fetched_at` est toujours renseigné.
 
 Ces colonnes n'entrent jamais dans `input_hash` — voir `WEATHER_CONDITIONS.md` §30.
 
+### Implémentation (0113, 2026-11-25)
+
+- Un run porte aussi `astronomy_version` (le calcul de la Nuit) ;
+  `sampling_config_version` reçoit la version de la sélection des points
+  (`route-points-*`). Un run échoué porte un `failure_code` court
+  (`provider_timeout`, `no_forecast`…), et un run réussi n'en a pas.
+- Un seul run `active` par version de Plan ; un même calcul (Plan, empreinte,
+  heure d'obtention) n'est enregistré qu'une fois. Un nouveau run réussi rend
+  l'ancien `stale` ; un échec garde l'actif.
+- Un point garde `distance_km` et `elapsed_seconds`. `weather_code` y porte
+  la taxonomie PLUKA du ciel, le code du fournisseur reste dans
+  `provider_payload`.
+- Les nuits sont des `condition_periods` de type `night`, d'origine
+  `astronomy`.
+- `private.weather_series` est le cache technique des séries du fournisseur,
+  une par point de course : tous les coureurs d'une course passent aux mêmes
+  points, un appel les sert tous (`WEATHER_CONDITIONS.md` §93, §94). Il n'est
+  jamais lu par l'application.
+- `request_weather_refresh` : le coureur demande un rafraîchissement de son
+  Plan actif, dans la fenêtre J-14, au plus une fois par tranche de
+  10 minutes. Le worker revérifie ses droits avant tout appel au fournisseur.
+- Un point de course sans coordonnées officielles est placé sur la trace, à sa
+  distance (`worker_weather_race_plan`).
+
 ## 18.4 `condition_periods`
 
 Périodes continues significatives détectées :

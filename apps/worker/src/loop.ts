@@ -28,6 +28,11 @@ import {
   isParticipantInvitationMessage,
 } from './jobs/participant-invitation-send.js';
 import { SOURCES_QUEUE, handleSourceMessage } from './jobs/source-ingest.js';
+import {
+  WEATHER_QUEUE,
+  handleWeatherRefreshMessage,
+  isWeatherRefreshMessage,
+} from './jobs/weather-refresh.js';
 import { handleParseMessage, isParseMessage } from './jobs/source-parse.js';
 import type { QueueMessage, WorkerPorts } from './ports.js';
 
@@ -152,6 +157,14 @@ const CONSUMERS: readonly {
     handle: (ports, message) =>
       isBillingWebhookMessage(message)
         ? handleBillingWebhookMessage(ports, message)
+        : Promise.resolve({ kind: 'abandoned' as const }),
+  },
+  // WEATHER_CONDITIONS §88 : les prévisions, hors de toute requête (0113).
+  {
+    queue: WEATHER_QUEUE,
+    handle: (ports, message) =>
+      isWeatherRefreshMessage(message)
+        ? handleWeatherRefreshMessage(ports, message)
         : Promise.resolve({ kind: 'abandoned' as const }),
   },
 ];
