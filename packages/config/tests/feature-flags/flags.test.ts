@@ -20,6 +20,7 @@ describe('liste des flags', () => {
       'community',
       'advanced_offline',
       'participant_invitations',
+      'weather_conditions',
     ]);
   });
 

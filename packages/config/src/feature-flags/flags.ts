@@ -20,6 +20,8 @@ export const FEATURE_FLAGS = [
   'advanced_offline',
   // Les emails aux inscrits attendent la validation juridique (0069).
   'participant_invitations',
+  // Conditions J-14 : coupé en production tant que le fournisseur n'est pas souscrit.
+  'weather_conditions',
 ] as const;
 
 export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
@@ -39,6 +41,7 @@ export const DEFAULT_FEATURE_FLAGS: FeatureFlagSet = {
   community: false,
   advanced_offline: false,
   participant_invitations: false,
+  weather_conditions: false,
 };
 
 /** Nom de la variable d'environnement portant un flag : `advanced_offline` → `FLAG_ADVANCED_OFFLINE`. */
@@ -69,6 +72,10 @@ export const featureFlagEnvSchema = z
       'FLAG_PARTICIPANT_INVITATIONS',
       DEFAULT_FEATURE_FLAGS.participant_invitations,
     ),
+    FLAG_WEATHER_CONDITIONS: booleanEnv(
+      'FLAG_WEATHER_CONDITIONS',
+      DEFAULT_FEATURE_FLAGS.weather_conditions,
+    ),
   })
   .transform((raw): FeatureFlagSet => ({
     repere_pluka: raw.FLAG_REPERE_PLUKA,
@@ -76,4 +83,5 @@ export const featureFlagEnvSchema = z
     community: raw.FLAG_COMMUNITY,
     advanced_offline: raw.FLAG_ADVANCED_OFFLINE,
     participant_invitations: raw.FLAG_PARTICIPANT_INVITATIONS,
+    weather_conditions: raw.FLAG_WEATHER_CONDITIONS,
   }));

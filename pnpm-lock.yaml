@@ -273,6 +273,9 @@ importers:
       '@pluka/plan-engine':
         specifier: workspace:*
         version: link:../plan-engine
+      '@pluka/weather':
+        specifier: workspace:*
+        version: link:../weather
       zod:
         specifier: ^4.5.4
         version: 4.5.4

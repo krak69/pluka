@@ -17,6 +17,7 @@ describe('loadServerEnv', () => {
       community: false,
       advanced_offline: false,
       participant_invitations: false,
+      weather_conditions: false,
     });
   });
 

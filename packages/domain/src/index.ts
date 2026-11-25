@@ -979,6 +979,14 @@ export {
   type NutritionStrategyView,
   type OrphanMilestoneView,
 } from './nutrition/strategy.js';
+export {
+  getRaceConditions,
+  requestRaceConditionsRefresh,
+  type ConditionsContext,
+  type ConditionsPointView,
+  type ConditionsRefreshOutcome,
+  type RaceConditionsView,
+} from './conditions/race.js';
 export type {
   NutritionPreparationView,
   NutritionSendStatus,

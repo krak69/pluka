@@ -26,6 +26,7 @@
     "@pluka/db": "workspace:*",
     "@pluka/nutrition-engine": "workspace:*",
     "@pluka/plan-engine": "workspace:*",
+    "@pluka/weather": "workspace:*",
     "zod": "^4.5.4"
   },
   "devDependencies": {

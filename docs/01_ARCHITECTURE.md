@@ -1640,11 +1640,14 @@ race_intelligence
 community
 advanced_offline
 participant_invitations
+weather_conditions
 ```
 
 `repere_pluka` ouvre le Repère PLUKA V0 (`engines/REPERE_PLUKA.md`), non calibré : allumé pour les testeurs, coupé en production jusqu'au calibrage.
 
 `participant_invitations` tient les invitations des participants (0069) hors de la production tant que l'envoi d'emails aux inscrits n'est pas validé juridiquement : coupé, ni le bouton d'envoi, ni la page `/invitation/[token]` n'existent.
+
+`weather_conditions` ouvre les Conditions J-14 point par point (`engines/WEATHER_CONDITIONS.md` §105, 2026-11-25) : allumé pour les testeurs, coupé en production tant que l'abonnement au fournisseur météo n'est pas pris. Les flags `weather_auto_detection`, `weather_condition_proposals` et `weather_b2b_exposure` du même §105 s'ajouteront avec leurs tranches.
 
 Les flags ne doivent pas remplacer les entitlements.
 
