@@ -43,6 +43,14 @@ export {
   type SupplySource,
 } from './preparation.js';
 export {
+  reviewCustomizations,
+  type CustomizationReview,
+  type CustomizationWarning,
+  type CustomizedMilestone,
+  type KeptCustomization,
+  type MilestonePosition,
+} from './review.js';
+export {
   allocateProducts,
   type AllocatedItem,
   type Allocation,
