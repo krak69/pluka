@@ -1,9 +1,14 @@
-import type { NutritionResult, PlanPointView, PlanProfileSample } from '@pluka/domain';
+import type {
+  NutritionResult,
+  PlanOverview,
+  PlanPointView,
+  PlanProfileSample,
+} from '@pluka/domain';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AltitudeProfileProps } from '@/app/(shell)/courses/[participantRaceId]/plan/altitude-profile';
-import { profileIntakes, strategyLines } from '@/lib/nutrition-format';
+import { profileIntakes, timelineNutrition } from '@/lib/nutrition-format';
 
 /**
  * Les prises sur le profil du Plan — prototype `planNutMarks` / `profFilters`.
@@ -41,8 +46,7 @@ const NO_CONDITIONS: NutritionResult['conditions'] = {
 
 const { AltitudeProfile } =
   await import('@/app/(shell)/courses/[participantRaceId]/plan/altitude-profile');
-const { NutritionViews } =
-  await import('@/app/(shell)/courses/[participantRaceId]/plan/nutrition-views');
+const { PlanPoints } = await import('@/app/(shell)/courses/[participantRaceId]/plan/plan-points');
 
 const WP0 = 'ffff0000-0000-4000-8000-000000000010';
 const WP1 = 'ffff0000-0000-4000-8000-000000000011';
@@ -54,7 +58,9 @@ function point(id: string, name: string, distanceKm: number, at: string): PlanPo
     name,
     sortOrder: distanceKm,
     distanceKm,
+    waypointType: 'other',
     altitudeM: null,
+    gainFromStartM: null,
     plannedElapsedSeconds: 0,
     plannedArrivalAt: at,
     stopDurationSeconds: 0,
@@ -196,7 +202,9 @@ describe('les prises à poser sur le profil', () => {
 
   it('vise la même ancre que la ligne de « Ma stratégie »', () => {
     const intakes = profileIntakes(result(), START, 'Europe/Paris');
-    const lines = strategyLines(result(), START, 'Europe/Paris').milestones;
+    const lines = Object.values(
+      timelineNutrition(result(), START, 'Europe/Paris', POINTS, []).intakes,
+    ).flat();
 
     expect(intakes[0]?.anchor).toBe(`prise-intake-${WP0}-0`);
     expect(lines.map((line) => line.anchor)).toContain(intakes[0]?.anchor);
@@ -291,23 +299,80 @@ describe('le profil avec la Nutrition', () => {
   });
 });
 
-describe('« Ma stratégie » reçoit les points du profil', () => {
-  it('porte l’ancre de chaque jalon', () => {
-    const lines = strategyLines(result(), START, 'Europe/Paris');
-    const html = renderToStaticMarkup(
-      <NutritionViews
-        participantRaceId="aaaaaaaa-0000-4000-8000-000000000001"
-        milestones={lines.milestones}
-        sections={lines.sections}
-        flasks={null}
-        preparation={null}
-        aid={[]}
-        products={[]}
-        canEdit={false}
-      />,
-    );
+/** Un Plan minimal autour des trois points : la frise n'en lit que les points. */
+const OVERVIEW = {
+  startAt: START,
+  timezone: 'Europe/Paris',
+  points: POINTS,
+  cutoffs: [],
+  tightestCutoff: null,
+} as unknown as PlanOverview;
+
+function strategy(supplies: Parameters<typeof timelineNutrition>[4] = []): string {
+  return renderToStaticMarkup(
+    <PlanPoints
+      participantRaceId="aaaaaaaa-0000-4000-8000-000000000001"
+      overview={OVERVIEW}
+      timezone="Europe/Paris"
+      nutrition={{
+        marks: timelineNutrition(result(), START, 'Europe/Paris', POINTS, supplies),
+        products: [],
+        aid: [],
+        hasDrink: null,
+        canEdit: false,
+      }}
+    />,
+  );
+}
+
+describe('« Ma stratégie » : les prises dans la frise du Plan', () => {
+  it('range chaque prise sous le point qui la suit, et le ravito sous son point', () => {
+    const marks = timelineNutrition(result(), START, 'Europe/Paris', POINTS, []);
+
+    expect(marks.intakes[WP1]?.map((line) => line.key)).toEqual([`intake:${WP0}:0`]);
+    expect(marks.intakes[WP2]?.map((line) => line.key)).toEqual([`intake:${WP1}:0`]);
+    expect(marks.aid[WP1]?.key).toBe(`aid:${WP1}`);
+    // L'arrivée ne se prépare pas : elle n'a pas de ligne.
+    expect(
+      Object.values(marks.intakes)
+        .flat()
+        .some((line) => line.key.startsWith('finish')),
+    ).toBe(false);
+  });
+
+  it('porte l’ancre de chaque prise, que visent les points du profil', () => {
+    const html = strategy();
 
     expect(html).toContain(`id="prise-intake-${WP0}-0"`);
     expect(html).toContain(`id="prise-intake-${WP1}-0"`);
+  });
+
+  it('nomme chaque prise « Nutrition », dit ses produits et son kilomètre', () => {
+    const html = strategy();
+
+    expect(html).toContain('>Nutrition<');
+    expect(html).toContain('1 × Gel 25');
+    expect(html).toContain('km 2,5');
+    expect(html).toContain('Ravito nutrition');
+  });
+
+  it('dit qui attend le coureur, et quel drop bag, à un point', () => {
+    const html = strategy([
+      {
+        pointId: WP1,
+        name: 'Col du Test',
+        distanceKm: 5,
+        elapsedSeconds: 1800,
+        options: ['start', 'bag', 'assistance'],
+        auto: 'assistance',
+        chosen: null,
+        source: 'assistance',
+        assistants: ['Alice'],
+        bagName: 'Sac du col',
+      },
+    ]);
+
+    expect(html).toContain('Alice');
+    expect(html).toContain('Sac du col');
   });
 });

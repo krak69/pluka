@@ -2,7 +2,7 @@
 
 import type { PlanCutoffView, PlanOverview, PlanPointView } from '@pluka/domain';
 import { Button, Input, StatusBadge } from '@pluka/ui';
-import { useActionState } from 'react';
+import { useActionState, useId, useState } from 'react';
 
 import {
   changePlanTargetAction,
@@ -13,34 +13,52 @@ import {
   updateStopAction,
   type ActionState,
 } from '@/app/actions';
+import {
+  AidDrinkChoice,
+  AidInfo,
+} from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-aid';
+import { MilestoneEditor } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-views';
+import { usePlanBoard } from '@/app/(shell)/courses/[participantRaceId]/plan/plan-board';
 import { lockWaypointAction, resetPlanAction } from '@/app/profile-actions';
+import { Icon } from '@/components/icon';
+import type {
+  AidLine,
+  EditableProduct,
+  MilestoneLine,
+  TimelineNutrition,
+} from '@/lib/nutrition-format';
 import {
   formatClock,
   formatDistance,
+  formatDuration,
   formatElapsed,
+  formatMeters,
   formatMinutes,
   formatPace,
+  formatRelief,
   formatSigned,
+  formatSpeed,
+  shiftedDuration,
+  shiftedStop,
+  waypointKind,
 } from '@/lib/plan-format';
 
 /**
  * Frise des passages et réglages du Plan — PLAN_ENGINE §64, §65 ;
- * 06_DESIGN_SYSTEM.md §53 ; prototype, `tab: 'plan'`.
+ * 06_DESIGN_SYSTEM.md §53 ; prototype, `tab: 'plan'`, « Ma stratégie ».
  *
- * L'heure prévue à gauche, une carte par point, et entre deux points la
- * section qui les relie. §64 énumère ce qui doit être affichable — durée de
- * chaque section, ETA de chaque point, temps écoulé, arrêt, verrou, marge à la
- * barrière — et tout y est.
+ * L'heure prévue à gauche (et la barrière dessous), un repère sur le fil, une
+ * carte par point ; entre deux points, la section qui les relie — distance,
+ * relief, allure, durée réglable — puis les prises Nutrition qui y tombent.
+ * §64 énumère ce qui doit être affichable — durée de chaque section, ETA de
+ * chaque point, temps écoulé, arrêt, verrou, marge à la barrière — et tout y
+ * est.
  *
  * RIEN N'EST CALCULÉ ICI
  *
  * Chaque valeur affichée vient de `getPlanOverview` — horaires, allures,
- * marges, dérive. Ce composant met en forme des nombres déjà résolus : §35 du
- * moteur veut un résultat déterministe côté serveur, et un recalcul dans le
- * navigateur en produirait un second, forcément divergent un jour.
- *
- * Les réglages d'un point se replient dans sa carte : la frise reste lisible,
- * et chaque geste reste à un clic, nommé, à côté de ce qu'il change (§24).
+ * marges, dérive. Les boutons −/+ envoient une durée que `lib/plan-format`
+ * met en forme ; c'est le serveur qui recalcule le Plan (§35 du moteur).
  */
 
 const INITIAL: ActionState = {};
@@ -60,57 +78,75 @@ const MARGIN_TONE: Readonly<Record<string, 'success' | 'warning' | 'error' | 'ne
   beyond: 'error',
 };
 
-/** « Départ », « Arrivée » — sauf quand le point porte déjà ce nom. */
-function kindOf(name: string, index: number, lastIndex: number): string | null {
-  const kind = index === 0 ? 'Départ' : index === lastIndex ? 'Arrivée' : null;
-  return kind !== null && name.trim().toLowerCase() === kind.toLowerCase() ? null : kind;
+/** L'état Nutrition d'une section, dit en mots (§185). */
+const SECTION_STATUS: Readonly<Record<'ok' | 'low' | 'high', string>> = {
+  ok: 'Nutrition prête',
+  low: 'Nutrition à compléter',
+  high: 'Nutrition au-dessus de la cible',
+};
+
+/** Les points où l'on se ravitaille : un anneau sur le fil, comme au prototype. */
+const AID_TYPES: ReadonlySet<string> = new Set(['aid_station', 'water', 'assistance']);
+
+/** Ce que la frise montre de la Nutrition ; nulle quand elle est éteinte. */
+export interface PlanTimelineNutrition {
+  readonly marks: TimelineNutrition;
+  readonly products: readonly EditableProduct[];
+  readonly aid: readonly AidLine[];
+  /** Nul sans flasques prévues : le choix de la boisson du ravito ne se pose pas. */
+  readonly hasDrink: boolean | null;
+  readonly canEdit: boolean;
 }
 
 export interface PlanPointsProps {
   readonly participantRaceId: string;
   readonly overview: PlanOverview;
   readonly timezone: string;
+  readonly nutrition?: PlanTimelineNutrition | null;
 }
 
-export function PlanPoints({ participantRaceId, overview, timezone }: PlanPointsProps) {
-  const marginByWaypoint = new Map(
-    overview.cutoffs.map((cutoff) => [cutoff.raceWaypointId, cutoff]),
-  );
+export function PlanPoints({
+  participantRaceId,
+  overview,
+  timezone,
+  nutrition = null,
+}: PlanPointsProps) {
+  const board = usePlanBoard();
+  // La barrière la plus serrée de chaque point : le repository les trie par marge croissante.
+  const cutoffByWaypoint = new Map<string, PlanCutoffView>();
+  for (const cutoff of overview.cutoffs) {
+    if (!cutoffByWaypoint.has(cutoff.raceWaypointId)) {
+      cutoffByWaypoint.set(cutoff.raceWaypointId, cutoff);
+    }
+  }
   const lastIndex = overview.points.length - 1;
+  // Sans Nutrition, il n'y a pas d'onglets : la frise reste visible, quel que soit
+  // l'onglet choisi avant de la désactiver. Sans flasques, « Mes flasques » n'existe plus.
+  const shown =
+    nutrition === null ||
+    board.view === 'strategie' ||
+    (board.view === 'flasques' && nutrition.hasDrink === null);
 
   return (
-    <>
-      <DriftDecision participantRaceId={participantRaceId} overview={overview} />
-
-      <section aria-labelledby="pl-points-title" className="pl-timeline-wrap">
-        <h2 id="pl-points-title" className="pk-visually-hidden">
-          Points du parcours
-        </h2>
-        <ol className="pl-timeline">
-          {overview.points.map((point, index) => (
-            <TimelineItem
-              key={point.raceWaypointId}
-              participantRaceId={participantRaceId}
-              point={point}
-              timezone={timezone}
-              cutoff={marginByWaypoint.get(point.raceWaypointId)}
-              tightest={overview.tightestCutoff?.raceWaypointId === point.raceWaypointId}
-              kind={kindOf(point.name, index, lastIndex)}
-            />
-          ))}
-        </ol>
-      </section>
-
-      <section id="reglages" aria-labelledby="pl-settings-title" className="pl-settings">
-        <h2 id="pl-settings-title" className="pl-settings-title">
-          Réglages du plan
-        </h2>
-        <div className="pl-settings-grid">
-          <TargetForm participantRaceId={participantRaceId} overview={overview} />
-          <ResetPlan participantRaceId={participantRaceId} />
-        </div>
-      </section>
-    </>
+    <section aria-labelledby="pl-points-title" className="pl-timeline-wrap" hidden={!shown}>
+      <h2 id="pl-points-title" className="pk-visually-hidden">
+        Points du parcours
+      </h2>
+      <ol className="pl-timeline">
+        {overview.points.map((point, index) => (
+          <TimelineItem
+            key={point.raceWaypointId}
+            participantRaceId={participantRaceId}
+            point={point}
+            timezone={timezone}
+            cutoff={cutoffByWaypoint.get(point.raceWaypointId)}
+            tightest={overview.tightestCutoff?.raceWaypointId === point.raceWaypointId}
+            edge={index === 0 || index === lastIndex}
+            nutrition={nutrition}
+          />
+        ))}
+      </ol>
+    </section>
   );
 }
 
@@ -118,7 +154,7 @@ export function PlanPoints({ participantRaceId, overview, timezone }: PlanPoints
  * Un Plan dont l'arrivée diverge de l'objectif — §27 l'admet, et les deux
  * boutons qui la résolvent sont deux décisions distinctes (§22, §65).
  */
-function DriftDecision({
+export function DriftDecision({
   participantRaceId,
   overview,
 }: {
@@ -161,81 +197,485 @@ function DriftDecision({
   );
 }
 
+/** Réglages du Plan : l'objectif, et la remise à zéro. */
+export function PlanSettings({
+  participantRaceId,
+  overview,
+}: {
+  readonly participantRaceId: string;
+  readonly overview: PlanOverview;
+}) {
+  return (
+    <section id="reglages" aria-labelledby="pl-settings-title" className="pl-settings">
+      <h2 id="pl-settings-title" className="pl-settings-title">
+        Réglages du plan
+      </h2>
+      <div className="pl-settings-grid">
+        <TargetForm participantRaceId={participantRaceId} overview={overview} />
+        <ResetPlan participantRaceId={participantRaceId} />
+      </div>
+    </section>
+  );
+}
+
 function TimelineItem({
   participantRaceId,
   point,
   timezone,
   cutoff,
   tightest,
-  kind,
+  edge,
+  nutrition,
 }: {
   readonly participantRaceId: string;
   readonly point: PlanPointView;
   readonly timezone: string;
   readonly cutoff: PlanCutoffView | undefined;
   readonly tightest: boolean;
-  readonly kind: string | null;
+  /** Le départ ou l'arrivée : pas d'arrêt à régler. */
+  readonly edge: boolean;
+  readonly nutrition: PlanTimelineNutrition | null;
 }) {
+  const board = usePlanBoard();
   const segment = point.incomingSegment;
+  const intakes = nutrition?.marks.intakes[point.raceWaypointId] ?? [];
+  const section = nutrition?.marks.sections[point.raceWaypointId];
 
   return (
     <li className="pl-item">
       {segment === null ? null : (
-        <p className="pl-segment">
-          <span>{formatDistance(segment.distanceKm)} km</span>
-          <span>{formatPace(segment.paceSecondsPerKm)} /km</span>
-          <strong className="pl-segment-duration">
-            {formatElapsed(segment.plannedDurationSeconds)}
-          </strong>
-          {segment.manualOverride ? <span className="pl-chip">Durée imposée</span> : null}
-        </p>
+        <SegmentRow
+          participantRaceId={participantRaceId}
+          segment={segment}
+          section={section}
+          onSection={board.showSection}
+        />
       )}
 
-      <div className="pl-row">
-        <div className="pl-time">
-          <span className="pl-clock">{formatClock(point.plannedArrivalAt, timezone)}</span>
-          <span className="pl-elapsed">{formatElapsed(point.plannedElapsedSeconds)}</span>
-          <span
-            className={
-              cutoff !== undefined
-                ? 'pl-dot pl-dot-cutoff'
-                : kind !== null
-                  ? 'pl-dot pl-dot-end'
-                  : 'pl-dot'
-            }
-            aria-hidden="true"
-          />
-        </div>
+      {nutrition === null
+        ? null
+        : intakes.map((line) => (
+            <IntakeRow
+              key={line.key}
+              participantRaceId={participantRaceId}
+              line={line}
+              nutrition={nutrition}
+              hidden={board.intakesHidden}
+              targeted={board.target?.anchor === line.anchor}
+            />
+          ))}
 
+      <PointRow
+        participantRaceId={participantRaceId}
+        point={point}
+        timezone={timezone}
+        cutoff={cutoff}
+        tightest={tightest}
+        edge={edge}
+        nutrition={nutrition}
+        intakesHidden={board.intakesHidden}
+        onShowFlasks={() => board.setView('flasques')}
+      />
+    </li>
+  );
+}
+
+/**
+ * La section qui mène à un point — prototype `p.seg` : distance et relief,
+ * allure, durée réglable de trois en trois minutes, état Nutrition. Une durée
+ * changée ici devient imposée (§21.3) : le moteur ne la recalcule plus.
+ */
+function SegmentRow({
+  participantRaceId,
+  segment,
+  section,
+  onSection,
+}: {
+  readonly participantRaceId: string;
+  readonly segment: NonNullable<PlanPointView['incomingSegment']>;
+  readonly section: { readonly key: string; readonly status: 'ok' | 'low' | 'high' } | undefined;
+  readonly onSection: (key: string) => void;
+}) {
+  const [state, update, pending] = useActionState(updateSegmentDurationAction, INITIAL);
+  const relief = formatRelief(segment.elevationGainM, segment.elevationLossM);
+  const speed = formatSpeed(segment.paceSecondsPerKm);
+  const duration = formatDuration(segment.plannedDurationSeconds);
+
+  return (
+    <div className="pl-tl pl-tl-seg">
+      <span className="pl-tl-time" aria-hidden="true" />
+      <span className="pl-tl-rail pl-tl-rail-dashed" aria-hidden="true" />
+      <div className="pl-tl-body">
+        <div className="pl-seg">
+          <span className="pl-seg-dist">
+            <span>{formatDistance(segment.distanceKm)}</span> km
+            {relief === null ? null : ` · ${relief}`}
+          </span>
+          <span className="pl-seg-pace">
+            {formatPace(segment.paceSecondsPerKm)} /km{speed === null ? null : ` · ${speed}`}
+          </span>
+          <form action={update} className="pl-seg-duration" aria-busy={pending}>
+            <input type="hidden" name="participantRaceId" value={participantRaceId} />
+            <input type="hidden" name="raceSegmentId" value={segment.raceSegmentId} />
+            <span className="pl-seg-value">
+              <span className="pk-visually-hidden">Durée de la section : </span>
+              {duration}
+            </span>
+            <button
+              type="submit"
+              name="duration"
+              value={shiftedDuration(segment.plannedDurationSeconds, -3)}
+              className="pl-step"
+              aria-label="Trois minutes de moins sur cette section"
+              disabled={pending}
+            >
+              −
+            </button>
+            <button
+              type="submit"
+              name="duration"
+              value={shiftedDuration(segment.plannedDurationSeconds, 3)}
+              className="pl-step"
+              aria-label="Trois minutes de plus sur cette section"
+              disabled={pending}
+            >
+              +
+            </button>
+          </form>
+          {segment.manualOverride ? <span className="pl-chip">Durée imposée</span> : null}
+          {section === undefined ? null : (
+            <button
+              type="button"
+              className={`pl-seg-nut pl-seg-nut-${section.status}`}
+              onClick={() => onSection(section.key)}
+            >
+              <Icon name="ForkKnife" size={13} />
+              {SECTION_STATUS[section.status]}
+              <Icon name="ArrowRight" size={12} />
+            </button>
+          )}
+        </div>
+        <ActionError state={state} />
+      </div>
+    </div>
+  );
+}
+
+/** Ce qu'une prise dit sur une ligne : ses produits, sinon son besoin. */
+function intakeWhat(line: MilestoneLine): string {
+  if (line.items.length > 0) return line.items.join(' + ');
+  return line.customized ? 'Rien à cette prise' : line.need;
+}
+
+/**
+ * Une prise entre deux points — prototype `seg.jalons` : « NUTRITION », ce
+ * qu'il faut prendre, le kilomètre. Ouverte, elle dit pourquoi elle est là et
+ * se modifie (§58).
+ */
+function IntakeRow({
+  participantRaceId,
+  line,
+  nutrition,
+  hidden,
+  targeted,
+}: {
+  readonly participantRaceId: string;
+  readonly line: MilestoneLine;
+  readonly nutrition: PlanTimelineNutrition;
+  readonly hidden: boolean;
+  readonly targeted: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const panelId = useId();
+  const canModify = nutrition.canEdit && line.editable && nutrition.products.length > 0;
+
+  return (
+    <div
+      id={line.anchor}
+      className={targeted ? 'pl-tl pl-tl-take pl-tl-target' : 'pl-tl pl-tl-take'}
+      hidden={hidden}
+    >
+      <span className="pl-tl-time pl-tl-time-take">{line.clock}</span>
+      <span className="pl-tl-rail" aria-hidden="true">
+        <span className="pl-tl-ring" />
+      </span>
+      <div className="pl-tl-body">
+        <div className="pl-take">
+          <button
+            type="button"
+            className="pl-take-row"
+            aria-expanded={open}
+            aria-controls={panelId}
+            onClick={() => setOpen((current) => !current)}
+          >
+            <span className="pk-label">Nutrition</span>
+            <span className="pl-take-what">{intakeWhat(line)}</span>
+            {line.customized ? <span className="nu-custom">Modifiée par toi</span> : null}
+            {line.conditions.map((condition) => (
+              <span key={condition} className="nu-cond-tag">
+                {condition}
+              </span>
+            ))}
+            <span className="pl-take-km">{line.km}</span>
+          </button>
+          <div id={panelId} className="pl-take-panel" hidden={!open}>
+            <p className="nu-reason">
+              {line.reason} · besoin depuis la prise précédente : {line.need}
+            </p>
+            {open && canModify ? (
+              <MilestoneEditor
+                participantRaceId={participantRaceId}
+                line={line}
+                products={nutrition.products}
+                onDone={() => setOpen(false)}
+              />
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PointRow({
+  participantRaceId,
+  point,
+  timezone,
+  cutoff,
+  tightest,
+  edge,
+  nutrition,
+  intakesHidden,
+  onShowFlasks,
+}: {
+  readonly participantRaceId: string;
+  readonly point: PlanPointView;
+  readonly timezone: string;
+  readonly cutoff: PlanCutoffView | undefined;
+  readonly tightest: boolean;
+  readonly edge: boolean;
+  readonly nutrition: PlanTimelineNutrition | null;
+  readonly intakesHidden: boolean;
+  readonly onShowFlasks: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const editorId = useId();
+  const kind = waypointKind(point.waypointType, point.name);
+  const supply = nutrition?.marks.supplies[point.raceWaypointId];
+  const aid = nutrition?.marks.aid[point.raceWaypointId];
+  // Prototype : l'Aube pour une barrière qui serre, plein pour le départ, l'arrivée et une barrière confortable.
+  const dot =
+    cutoff !== undefined && cutoff.status !== 'comfortable'
+      ? 'cutoff'
+      : edge || cutoff !== undefined
+        ? 'end'
+        : AID_TYPES.has(point.waypointType)
+          ? 'aid'
+          : 'minor';
+  // L'arrêt se règle d'un geste là où l'on s'arrête : un ravito, un sac, un accompagnant,
+  // ou un arrêt déjà prévu. Ailleurs, il reste dans « Ouvrir ».
+  const stops =
+    !edge &&
+    (AID_TYPES.has(point.waypointType) || point.stopDurationSeconds > 0 || supply !== undefined);
+
+  return (
+    <div className="pl-tl pl-tl-point">
+      <span className="pl-tl-time">
+        <span className="pl-tl-clock">{formatClock(point.plannedArrivalAt, timezone)}</span>
+        {cutoff?.cutoffAt === null || cutoff?.cutoffAt === undefined ? null : (
+          <span className="pl-tl-cutoff">Barrière {formatClock(cutoff.cutoffAt, timezone)}</span>
+        )}
+      </span>
+      <span className="pl-tl-rail" aria-hidden="true">
+        <span className="pl-tl-dot" data-dot={dot} />
+      </span>
+      <div className="pl-tl-body">
         <article className={tightest ? 'pl-card pl-card-tight' : 'pl-card'}>
           <header className="pl-card-head">
-            <h3 className="pl-name">
-              {point.name}
-              {kind === null ? null : <span className="pl-kind">{kind}</span>}
-            </h3>
+            <h3 className="pl-name">{point.name}</h3>
+            {kind === null ? null : <span className="pl-kind">{kind}</span>}
+            {point.isLocked ? (
+              <span className="pl-chip pl-chip-lock">
+                <Icon name="LockSimple" size={12} />
+                Heure verrouillée
+              </span>
+            ) : null}
             {cutoff === undefined ? null : (
-              <StatusBadge tone={MARGIN_TONE[cutoff.status] ?? 'neutral'}>
-                Marge {formatSigned(cutoff.marginSeconds)} ·{' '}
-                {MARGIN_LABEL[cutoff.status] ?? cutoff.status}
-              </StatusBadge>
+              <span className="pl-card-margin">
+                <StatusBadge tone={MARGIN_TONE[cutoff.status] ?? 'neutral'}>
+                  Marge {formatSigned(cutoff.marginSeconds)} ·{' '}
+                  {MARGIN_LABEL[cutoff.status] ?? cutoff.status}
+                </StatusBadge>
+              </span>
             )}
           </header>
           <p className="pl-facts">
             km <span>{formatDistance(point.distanceKm)}</span>
-            {point.altitudeM === null ? '' : ` · ${String(Math.round(point.altitudeM))} m`}
-            {point.stopDurationSeconds === 0
+            {point.gainFromStartM === null ? '' : ` · D+ ${formatMeters(point.gainFromStartM)}`}
+            {point.altitudeM === null ? '' : ` · alt. ${formatMeters(point.altitudeM)}`}
+            {point.incomingSegment === null
               ? ''
-              : ` · arrêt ${formatMinutes(point.stopDurationSeconds)} min`}
+              : ` · ${formatElapsed(point.plannedElapsedSeconds)} de course`}
           </p>
-          {point.isLocked ? <p className="pl-chip pl-chip-lock">Heure verrouillée</p> : null}
 
-          <details className="pl-adjust">
-            <summary>Ajuster ce point</summary>
+          <div className="pl-card-row">
+            {stops ? <StopStepper participantRaceId={participantRaceId} point={point} /> : null}
+            {(supply?.assistants ?? []).map((name) => (
+              <span key={name} className="pl-tag pl-tag-assist">
+                <Icon name="User" size={13} />
+                {name}
+              </span>
+            ))}
+            {supply?.bagName === null || supply?.bagName === undefined ? null : (
+              <span className="pl-tag">
+                <Icon name="Backpack" size={13} />
+                {supply.bagName}
+              </span>
+            )}
+            <button
+              type="button"
+              className="pl-open"
+              aria-expanded={open}
+              aria-controls={editorId}
+              onClick={() => setOpen((current) => !current)}
+            >
+              {open ? 'Fermer' : 'Ouvrir'}
+              <Icon name="CaretRight" size={12} />
+            </button>
+          </div>
+
+          {aid === undefined || nutrition === null ? null : (
+            <AidRow
+              participantRaceId={participantRaceId}
+              line={aid}
+              nutrition={nutrition}
+              hidden={intakesHidden}
+              onShowFlasks={onShowFlasks}
+            />
+          )}
+
+          <div id={editorId} className="pl-card-panel" hidden={!open}>
             <PointEditor participantRaceId={participantRaceId} point={point} />
-          </details>
+          </div>
         </article>
       </div>
-    </li>
+    </div>
+  );
+}
+
+/**
+ * Ce qu'on prend à un ravitaillement — prototype « Ravito nutrition ». Ouvert,
+ * il dit ce que propose le ravito, la boisson choisie, et se modifie (§58).
+ */
+function AidRow({
+  participantRaceId,
+  line,
+  nutrition,
+  hidden,
+  onShowFlasks,
+}: {
+  readonly participantRaceId: string;
+  readonly line: MilestoneLine;
+  readonly nutrition: PlanTimelineNutrition;
+  readonly hidden: boolean;
+  readonly onShowFlasks: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const panelId = useId();
+  const aid =
+    line.pointId === null
+      ? undefined
+      : nutrition.aid.find((entry) => entry.pointId === line.pointId);
+  const canModify = nutrition.canEdit && line.editable && nutrition.products.length > 0;
+
+  return (
+    <div id={line.anchor} className="pl-take pl-take-aid" hidden={hidden}>
+      <button
+        type="button"
+        className="pl-take-row"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="pl-take-label">
+          <Icon name="ForkKnife" size={13} />
+          Ravito nutrition
+        </span>
+        <span className="pl-take-what">{intakeWhat(line)}</span>
+        {line.customized ? <span className="nu-custom">Modifiée par toi</span> : null}
+        {line.conditions.map((condition) => (
+          <span key={condition} className="nu-cond-tag">
+            {condition}
+          </span>
+        ))}
+      </button>
+      <div id={panelId} className="pl-take-panel" hidden={!open}>
+        <AidInfo line={aid} />
+        {nutrition.hasDrink === null ? null : (
+          <AidDrinkChoice
+            participantRaceId={participantRaceId}
+            line={aid}
+            hasDrink={nutrition.hasDrink}
+            canEdit={nutrition.canEdit}
+            onShowFlasks={onShowFlasks}
+          />
+        )}
+        {open && canModify ? (
+          <MilestoneEditor
+            participantRaceId={participantRaceId}
+            line={line}
+            products={nutrition.products}
+            onDone={() => setOpen(false)}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** L'arrêt d'un point, minute par minute — prototype `stopMinus` / `stopPlus` (§21.3). */
+function StopStepper({
+  participantRaceId,
+  point,
+}: {
+  readonly participantRaceId: string;
+  readonly point: PlanPointView;
+}) {
+  const [state, update, pending] = useActionState(updateStopAction, INITIAL);
+  const none = point.stopDurationSeconds === 0;
+
+  return (
+    <form action={update} className="pl-stepper" aria-busy={pending}>
+      <input type="hidden" name="participantRaceId" value={participantRaceId} />
+      <input type="hidden" name="raceWaypointId" value={point.raceWaypointId} />
+      <span className="pl-stepper-label">Arrêt</span>
+      <button
+        type="submit"
+        name="minutes"
+        value={shiftedStop(point.stopDurationSeconds, -1)}
+        className="pl-step"
+        aria-label={`Réduire l’arrêt à ${point.name} d’une minute`}
+        disabled={pending || none}
+      >
+        −
+      </button>
+      <span className="pl-stepper-value">{formatMinutes(point.stopDurationSeconds)} min</span>
+      <button
+        type="submit"
+        name="minutes"
+        value={shiftedStop(point.stopDurationSeconds, 1)}
+        className="pl-step"
+        aria-label={`Allonger l’arrêt à ${point.name} d’une minute`}
+        disabled={pending}
+      >
+        +
+      </button>
+      {state.error === undefined ? null : (
+        <span className="pk-field-error pl-stepper-error" role="alert">
+          {state.error}
+        </span>
+      )}
+    </form>
   );
 }
 
@@ -265,7 +705,7 @@ function PointEditor({
           <input type="hidden" name="participantRaceId" value={participantRaceId} />
           <input type="hidden" name="raceSegmentId" value={point.incomingSegment.raceSegmentId} />
           <Input
-            id={`section-${point.raceWaypointId}`}
+            id={`duree-${point.raceWaypointId}`}
             name="duration"
             label="Durée de la section"
             hint="HH:MM. Elle ne sera plus recalculée."

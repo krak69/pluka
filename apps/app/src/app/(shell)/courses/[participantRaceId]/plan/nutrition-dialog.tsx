@@ -62,7 +62,7 @@ interface DialogProps {
   readonly initial: NutritionGoals;
   /** Temps chaud, froid, nuit et répartition de la caféine (0112), mis en forme côté serveur. */
   readonly conditions: ConditionsDraft;
-  readonly triggerLabel: string;
+  readonly triggerLabel: ReactNode;
   readonly triggerClassName: string;
   readonly submitLabel: string;
   readonly products: readonly PickableProduct[];

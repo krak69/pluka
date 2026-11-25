@@ -3959,98 +3959,154 @@ a.st-tab {
   margin: 0;
 }
 
-/* Frise des passages : heure à gauche, ligne verticale, une carte par point. */
+/* Frise « Ma stratégie » — prototype `planRows`. L'heure à gauche (66 px), le
+   fil (26 px), puis une carte par point ; entre deux points, la section en
+   pointillés et les prises Nutrition qui y tombent. */
+.pl-timeline-wrap[hidden] {
+  display: none;
+}
+
 .pl-timeline {
-  display: grid;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.pl-item {
+.pl-tl {
   display: grid;
+  grid-template-columns: 66px 26px minmax(0, 1fr);
 }
 
-.pl-segment {
+.pl-tl[hidden] {
+  display: none;
+}
+
+.pl-tl-time {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-4);
-  margin: 0;
-  padding: var(--space-3) 0 var(--space-3) calc(72px + var(--space-6));
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  padding-top: var(--space-3);
+  text-align: right;
+}
+
+.pl-tl-clock {
   font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--pk-text-secondary);
-  background: linear-gradient(var(--pk-hairline), var(--pk-hairline)) 84px 0 / 1px 100% no-repeat;
-}
-
-.pl-segment-duration {
-  font-size: 14px;
-  color: var(--pk-text);
-}
-
-.pl-chip {
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-sm);
-  background: var(--pk-sand);
-  font-family: var(--font-body);
-  font-size: 11.5px;
-  color: var(--pk-text);
-}
-
-.pl-row {
-  display: grid;
-  grid-template-columns: 72px 1fr;
-  gap: var(--space-6);
-  align-items: start;
-}
-
-.pl-time {
-  position: relative;
-  display: grid;
-  justify-items: end;
-  gap: 2px;
-  padding-top: var(--space-4);
-}
-
-.pl-clock {
-  font-family: var(--font-mono);
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+  color: var(--pk-text);
 }
 
-.pl-elapsed {
+.pl-tl-cutoff {
+  max-width: 9ch;
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--pk-text-muted);
+  line-height: 1.35;
+  color: var(--pk-text-secondary);
 }
 
-.pl-dot {
+.pl-tl-time-take {
+  padding-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pk-text-secondary);
+}
+
+/* Le fil : plein entre les points, en pointillés le long d'une section. */
+.pl-tl-rail {
+  position: relative;
+}
+
+.pl-tl-rail::before {
   position: absolute;
-  top: calc(var(--space-4) + 6px);
-  right: -18px;
-  width: 9px;
-  height: 9px;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--pk-granite);
+  content: '';
+}
+
+.pl-tl-rail-dashed::before {
+  background: repeating-linear-gradient(to bottom, var(--pk-granite) 0 4px, transparent 4px 8px);
+}
+
+.pl-tl-take .pl-tl-rail::before {
+  background: var(--pk-hairline);
+}
+
+/* Le fil commence au départ et s'arrête à l'arrivée. */
+.pl-item:first-child .pl-tl-point .pl-tl-rail::before {
+  top: 15px;
+}
+
+.pl-item:last-child .pl-tl-point .pl-tl-rail::before {
+  bottom: auto;
+  height: 15px;
+}
+
+.pl-tl-dot,
+.pl-tl-ring {
+  position: absolute;
+  left: 50%;
   border-radius: 50%;
-  border: 2px solid var(--pk-forest);
-  background: var(--pk-limestone);
+  transform: translateX(-50%);
 }
 
-.pl-dot-end {
-  background: var(--pk-forest);
+/* Départ et arrivée pleins, ravitaillement en anneau, barrière en Aube, le reste discret. */
+.pl-tl-dot {
+  top: 15px;
+  width: 11px;
+  height: 11px;
+  background: var(--pk-ink);
+  box-shadow: 0 0 0 3px var(--pk-limestone);
 }
 
-.pl-dot-cutoff {
-  border-color: var(--pk-dawn-ink);
+.pl-tl-dot[data-dot='aid'] {
+  border: 2px solid var(--pk-ink);
+  background: var(--pk-surface);
+}
+
+.pl-tl-dot[data-dot='cutoff'] {
   background: var(--pk-dawn);
 }
 
+.pl-tl-dot[data-dot='minor'] {
+  top: 17px;
+  width: 7px;
+  height: 7px;
+}
+
+.pl-tl-ring {
+  top: 13px;
+  width: 7px;
+  height: 7px;
+  background: var(--pk-surface);
+  box-shadow:
+    0 0 0 1.5px var(--pk-hairline),
+    0 0 0 4px var(--pk-limestone);
+}
+
+.pl-tl-body {
+  min-width: 0;
+  padding: 0 0 10px var(--space-4);
+}
+
+.pl-tl-seg .pl-tl-body {
+  padding: var(--space-1) 0 var(--space-2) var(--space-4);
+}
+
+.pl-tl-take .pl-tl-body {
+  padding: 0 0 6px var(--space-4);
+}
+
+/* Une carte par point. */
 .pl-card {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-4) var(--space-5);
-  border-radius: var(--radius-sm);
+  padding: 15px 18px;
   background: var(--pk-surface);
   box-shadow: 0 0 0 1px var(--pk-hairline);
 }
@@ -4064,51 +4120,338 @@ a.st-tab {
 .pl-card-head {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+  gap: 6px 10px;
 }
 
 .pl-name {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2) var(--space-3);
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 600;
+  line-height: 1.2;
 }
 
 .pl-kind {
   font-family: var(--font-mono);
   font-size: 10.5px;
-  font-weight: 400;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--pk-text-muted);
 }
 
+.pl-card-margin {
+  margin-left: auto;
+}
+
 .pl-facts {
   margin: 0;
   font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--pk-text-secondary);
+}
+
+.pl-card-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.pl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--pk-sand);
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  color: var(--pk-text);
+}
+
+.pl-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--pk-sand);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--pk-text);
+}
+
+.pl-tag-assist {
+  background: var(--pk-glacier-bg);
+  color: var(--pk-forest);
+}
+
+/* Arrêt et durée : une valeur, deux boutons −/+. */
+.pl-stepper {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px var(--space-2);
+  margin: 0;
+  padding: 3px var(--space-1) 3px 9px;
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.pl-stepper-label {
+  color: var(--pk-text-secondary);
+}
+
+.pl-stepper-value {
+  min-width: 50px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.pl-stepper-error {
+  flex-basis: 100%;
+}
+
+.pl-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  color: var(--pk-text);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pl-step:hover:not(:disabled) {
+  background: var(--pk-sand);
+}
+
+.pl-step:disabled {
+  color: var(--pk-text-muted);
+  cursor: default;
+}
+
+.pl-stepper[aria-busy='true'],
+.pl-seg-duration[aria-busy='true'] {
+  opacity: 0.6;
+}
+
+.pl-open {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 32px;
+  margin-left: auto;
+  padding: 0 var(--space-1);
+  border: 0;
+  background: transparent;
+  color: var(--pk-forest);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.pl-open[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+
+/* La section entre deux points. */
+.pl-seg {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 5px 0;
   font-size: 12.5px;
   color: var(--pk-text-secondary);
 }
 
-.pl-adjust {
-  margin-top: var(--space-1);
+.pl-seg-dist {
+  font-weight: 500;
+  color: var(--pk-text);
+  white-space: nowrap;
 }
 
-.pl-adjust > summary {
+.pl-seg-pace {
+  white-space: nowrap;
+}
+
+.pl-seg-duration {
   display: inline-flex;
   align-items: center;
-  min-height: 36px;
+  gap: 6px;
+  margin: 0;
+  padding: 2px var(--space-1) 2px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  box-shadow: 0 0 0 1px var(--pk-hairline);
+}
+
+.pl-seg-value {
+  min-width: 48px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--pk-text);
+}
+
+.pl-seg-nut {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 2px var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--pk-success-bg);
+  color: var(--pk-success);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
   cursor: pointer;
-  font-family: var(--font-heading);
-  font-size: 13.5px;
-  font-weight: 600;
+}
+
+.pl-seg-nut-low {
+  background: var(--pk-warning-bg);
+  color: var(--pk-warning);
+}
+
+.pl-seg-nut-high {
+  background: var(--pk-sand);
+  color: var(--pk-text);
+}
+
+/* Une prise : « NUTRITION », ses produits, son kilomètre. */
+.pl-take {
+  display: grid;
+}
+
+.pl-take[hidden] {
+  display: none;
+}
+
+.pl-take-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px var(--space-3);
+  width: 100%;
+  min-height: 40px;
+  padding: var(--space-2) 14px;
+  border: 0;
+  background: var(--pk-surface);
+  box-shadow: 0 0 0 1px var(--pk-hairline);
+  color: var(--pk-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pl-take-row:hover {
+  background: color-mix(in srgb, var(--pk-sand) 35%, var(--pk-surface));
+}
+
+.pl-take-what {
+  flex: 1 1 110px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.pl-take-km {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--pk-text-secondary);
+  white-space: nowrap;
+}
+
+.pl-take-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--pk-forest);
+}
+
+.pl-take-panel {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3) 14px;
+  background: var(--pk-surface);
+  box-shadow: 0 0 0 1px var(--pk-hairline);
+}
+
+.pl-take-panel[hidden] {
+  display: none;
+}
+
+.pl-take-panel .nu-reason {
+  margin: 0;
+}
+
+/* Au ravitaillement, la prise vit dans la carte du point. */
+.pl-take-aid .pl-take-row {
+  background: var(--pk-glacier-bg);
+  box-shadow: none;
+}
+
+.pl-take-aid .pl-take-panel {
+  box-shadow: none;
+  border-top: 1px solid var(--pk-hairline);
+  padding-inline: 0;
+}
+
+/* La prise choisie sur le profil. */
+.pl-tl-target .pl-take-row {
+  box-shadow: 0 0 0 2px var(--pk-forest);
+}
+
+@media (width < 640px) {
+  .pl-tl {
+    grid-template-columns: 46px 20px minmax(0, 1fr);
+  }
+
+  .pl-tl-clock {
+    font-size: 13.5px;
+  }
+
+  .pl-tl-time-take {
+    font-size: 10.5px;
+  }
+
+  .pl-tl-body,
+  .pl-tl-seg .pl-tl-body,
+  .pl-tl-take .pl-tl-body {
+    padding-left: 10px;
+  }
+
+  .pl-card {
+    padding: 13px 14px;
+  }
+
+  .pl-name {
+    font-size: 16.5px;
+  }
+
+  .pl-card-margin {
+    margin-left: 0;
+  }
 }
 
 .pl-editor {
@@ -4188,26 +4531,6 @@ a.st-tab {
   margin: 0;
   font-size: 12.5px;
   color: var(--pk-text-muted);
-}
-
-@media (width < 640px) {
-  .pl-row {
-    grid-template-columns: 54px 1fr;
-    gap: var(--space-4);
-  }
-
-  .pl-segment {
-    padding-left: calc(54px + var(--space-4));
-    background-position: 62px 0;
-  }
-
-  .pl-dot {
-    right: -12px;
-  }
-
-  .pl-clock {
-    font-size: 15px;
-  }
 }
 
 @media (width >= 1000px) {
@@ -6289,8 +6612,7 @@ a.st-tab {
   gap: var(--space-3);
 }
 
-.nu-sections,
-.nu-milestones {
+.nu-sections {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -6346,24 +6668,12 @@ a.st-tab {
   font-variant-numeric: tabular-nums;
 }
 
-.nu-milestone {
-  display: grid;
-  grid-template-columns: 5.5rem minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 44px;
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--pk-hairline);
-}
-
-.nu-milestone-aid {
-  background: var(--pk-glacier-bg);
-}
-
 /* La prise choisie sur le profil : un filet Forêt, et un fond qui s'estompe. */
-.nu-milestone-target {
+.pl-tl-target {
   scroll-margin-top: 96px;
-  box-shadow: inset 3px 0 0 var(--pk-forest);
+}
+
+.pl-tl-target .pl-take-row {
   animation: nu-target 2.4s ease-out;
 }
 
@@ -6374,7 +6684,7 @@ a.st-tab {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nu-milestone-target {
+  .pl-tl-target .pl-take-row {
     animation: none;
   }
 }
@@ -6391,12 +6701,6 @@ a.st-tab {
   font-variant-numeric: tabular-nums;
 }
 
-.nu-milestone-what {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
 .nu-milestone-name {
   font-weight: 600;
 }
@@ -6404,14 +6708,6 @@ a.st-tab {
 .nu-reason {
   font-size: 13px;
   color: var(--pk-text-secondary);
-}
-
-.nu-milestone-need {
-  padding-right: var(--space-2);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 
 .nu-settings {
@@ -6427,21 +6723,9 @@ a.st-tab {
   cursor: pointer;
 }
 
-@media (width <= 620px) {
-  .nu-milestone {
-    grid-template-columns: 4.5rem minmax(0, 1fr);
-  }
-
-  .nu-milestone-need {
-    grid-column: 2;
-    text-align: left;
-  }
-}
-
 /* ── Nutrition sur le Plan — prototype `nutOff` / `nutOn` / `nutStepConfig` ── */
 
-.nu-off,
-.nu-on {
+.nu-off {
   display: grid;
   gap: var(--space-4);
   margin-top: 2px;
@@ -6455,14 +6739,12 @@ a.st-tab {
   align-items: center;
 }
 
-.nu-off-text,
-.nu-on-text {
+.nu-off-text {
   display: grid;
   gap: 4px;
 }
 
-.nu-off-title,
-.nu-on-title {
+.nu-off-title {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -6474,23 +6756,6 @@ a.st-tab {
 
 .nu-off-body {
   font-size: 14px;
-  color: var(--pk-text-secondary);
-}
-
-.nu-on-head {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.nu-on-count {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--pk-text-secondary);
 }
 
@@ -6508,29 +6773,31 @@ a.st-tab {
 }
 
 .nu-tabs {
-  display: inline-flex;
-  justify-self: start;
+  display: flex;
+  flex-wrap: wrap;
   gap: 2px;
-  padding: 2px;
-  border-radius: var(--radius-sm);
-  background: var(--pk-sand);
+  box-shadow: inset 0 -1px 0 var(--pk-hairline);
 }
 
 .nu-tab {
-  min-height: 40px;
-  padding: 0 var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 14px;
   border: 0;
-  border-radius: 2px;
+  border-bottom: 2px solid transparent;
   background: transparent;
-  color: var(--pk-text);
+  color: var(--pk-text-secondary);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
 }
 
 .nu-tab[aria-selected='true'] {
-  background: var(--pk-surface);
+  border-bottom-color: var(--pk-forest);
+  color: var(--pk-text);
 }
 
 .nu-section details {
@@ -6867,24 +7134,6 @@ a.st-tab {
 }
 
 /* Nutrition, tranche 2 : produits, couverture, choix (prototype `nutStepProducts`). */
-.nu-on-coverage {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--pk-forest);
-}
-
-.nu-on-todo {
-  font-size: 13.5px;
-  color: var(--pk-text-secondary);
-}
-
-.nu-items {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--pk-forest);
-}
-
 .nu-status {
   justify-self: start;
   padding: 2px 8px;
@@ -7020,19 +7269,6 @@ a.st-tab {
 }
 
 /* Nutrition — modifier les produits d'une prise (§58) */
-.nu-milestone-need {
-  display: grid;
-  justify-items: end;
-  gap: var(--space-1);
-}
-
-.nu-edit {
-  min-height: 44px;
-  padding-inline: var(--space-3);
-  font-family: var(--font-body);
-  font-size: 14px;
-}
-
 .nu-custom {
   margin-left: var(--space-2);
   padding: 1px 6px;
@@ -7752,49 +7988,45 @@ a.st-tab {
 }
 
 .nu-prep-products {
+  display: grid;
+  gap: 7px;
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid var(--pk-hairline);
 }
 
 .nu-prep-product {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: var(--space-3) 14px;
+  background: var(--pk-surface);
+  box-shadow: 0 0 0 1px var(--pk-hairline);
+}
+
+.nu-prep-product-text {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2px var(--space-4);
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--pk-hairline);
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
 }
 
 .nu-prep-name {
+  font-size: 14.5px;
   font-weight: 600;
 }
 
 .nu-prep-total {
+  flex: none;
   font-family: var(--font-heading);
+  font-size: 14.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
 .nu-prep-where {
-  grid-column: 1 / -1;
-  font-size: 14px;
-  color: var(--pk-forest);
-}
-
-.nu-prep-items {
-  display: grid;
-  gap: 2px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-variant-numeric: tabular-nums;
-}
-
-.nu-prep-source {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
   color: var(--pk-forest);
 }
 
@@ -7803,12 +8035,256 @@ a.st-tab {
 }
 
 @media (max-width: 640px) {
+  .nu-prep-product {
+    flex-wrap: wrap;
+  }
+
   .nu-prep-total {
     text-align: left;
   }
+}
 
-  .nu-prep-product {
-    grid-template-columns: 1fr;
+/* ── Bande Nutrition activée — prototype `nutOn` : une barre blanche, la
+   couverture, ce qui reste à compléter, tes cibles, et trois boutons. */
+.nu-on {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.nu-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 14px var(--space-4);
+  background: var(--pk-surface);
+  box-shadow: 0 0 0 1px var(--pk-hairline);
+}
+
+.nu-bar-text {
+  display: grid;
+  flex: 1 1 220px;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.nu-bar-text p {
+  margin: 0;
+}
+
+.nu-bar-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) 9px;
+}
+
+.nu-bar-label {
+  font-size: 12px;
+  color: var(--pk-text-secondary);
+}
+
+.nu-bar-coverage {
+  font-family: var(--font-heading);
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.nu-bar-todo {
+  font-size: 12.5px;
+  color: var(--pk-text-secondary);
+}
+
+.nu-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.nu-bar-btn {
+  min-height: 44px;
+  padding: var(--space-2) 14px;
+  font-size: 13.5px;
+}
+
+.nu-foot {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* ── À préparer — prototype `nutPrep` : un tiroir calé à droite du Plan,
+   une feuille montant du bas sur mobile. */
+.nu-drawer {
+  width: min(486px, 100%);
+  max-width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0 0 0 auto;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-left: 1px solid var(--pk-hairline);
+  background: var(--pk-surface);
+  color: var(--pk-text);
+}
+
+.nu-drawer::backdrop {
+  background: color-mix(in srgb, var(--pk-ink) 32%, transparent);
+}
+
+.nu-drawer[open] {
+  animation: nu-drawer-in var(--motion-panel) var(--motion-ease) both;
+}
+
+@keyframes nu-drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--space-6));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.nu-drawer-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.nu-drawer-head {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: 22px 26px 14px;
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.nu-drawer-heading {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
+}
+
+.nu-drawer-heading .nu-meta {
+  margin: 0;
+}
+
+.nu-drawer-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.nu-drawer-close {
+  flex: none;
+  min-width: 44px;
+  padding: 0;
+}
+
+.nu-drawer-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--space-5) 26px 44px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.nu-prep-card {
+  padding: 15px 17px;
+  box-shadow: 0 0 0 1px var(--pk-hairline);
+}
+
+.nu-spots {
+  display: grid;
+  gap: 7px;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nu-spot {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+  padding: var(--space-3) 14px;
+  background: var(--pk-limestone);
+}
+
+.nu-spot-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  width: 100%;
+}
+
+.nu-spot-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.nu-spot-when {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--pk-text-secondary);
+}
+
+.nu-spot-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nu-spot-items li {
+  padding: var(--space-1) 9px;
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  color: var(--pk-forest);
+  font-size: 12.5px;
+}
+
+.nu-spot .nu-prep-choice {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nu-drawer[open] {
+    animation: none;
+  }
+}
+
+@media (width <= 640px) {
+  .nu-drawer {
+    width: 100%;
+    height: auto;
+    max-height: 86dvh;
+    margin: auto 0 0;
+    border-top: 1px solid var(--pk-hairline);
+    border-left: 0;
+  }
+
+  .nu-drawer-inner {
+    height: auto;
+    max-height: 86dvh;
+  }
+
+  .nu-drawer-head {
+    padding: 18px 18px var(--space-3);
+  }
+
+  .nu-drawer-scroll {
+    padding: var(--space-4) 18px 34px;
   }
 }
 

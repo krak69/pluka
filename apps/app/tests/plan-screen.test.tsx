@@ -24,9 +24,25 @@ vi.mock('@/app/actions', () => {
   };
 });
 
+// La frise porte les prises Nutrition : leurs Server Actions sont remplacées de même.
+vi.mock('@/app/(shell)/courses/[participantRaceId]/plan/nutrition-actions', () => {
+  const noop = async () => ({});
+  return {
+    resetMilestoneAction: noop,
+    setMilestoneItemsAction: noop,
+    setRefillPointAction: noop,
+    setReserveAction: noop,
+    setSupplyPointAction: noop,
+    sendNutritionAction: noop,
+    setAidDrinkAction: noop,
+    setAidNoteAction: noop,
+  };
+});
+
 const { AltitudeProfile } =
   await import('@/app/(shell)/courses/[participantRaceId]/plan/altitude-profile');
-const { PlanPoints } = await import('@/app/(shell)/courses/[participantRaceId]/plan/plan-points');
+const { DriftDecision, PlanPoints, PlanSettings } =
+  await import('@/app/(shell)/courses/[participantRaceId]/plan/plan-points');
 
 const PARTICIPATION = 'aaaaaaaa-0000-4000-8000-000000000001';
 const WP0 = 'ffff0000-0000-4000-8000-000000000010';
@@ -43,9 +59,11 @@ function overview(patch: Partial<PlanOverview> = {}): PlanOverview {
     {
       raceWaypointId: WP0,
       name: 'Départ',
+      waypointType: 'start',
       sortOrder: 0,
       distanceKm: 0,
       altitudeM: 900,
+      gainFromStartM: 0,
       plannedElapsedSeconds: 0,
       plannedArrivalAt: '2026-06-20T04:00:00.000Z',
       stopDurationSeconds: 0,
@@ -58,9 +76,11 @@ function overview(patch: Partial<PlanOverview> = {}): PlanOverview {
     {
       raceWaypointId: WP1,
       name: 'Col du Test',
+      waypointType: 'aid_station',
       sortOrder: 1,
       distanceKm: 5,
       altitudeM: 1400,
+      gainFromStartM: 500,
       plannedElapsedSeconds: 1756,
       plannedArrivalAt: '2026-06-20T04:29:16.000Z',
       stopDurationSeconds: 300,
@@ -75,14 +95,18 @@ function overview(patch: Partial<PlanOverview> = {}): PlanOverview {
         initialDurationSeconds: 1700,
         manualOverride: true,
         paceSecondsPerKm: 351,
+        elevationGainM: 500,
+        elevationLossM: 0,
       },
     },
     {
       raceWaypointId: WP2,
       name: 'Arrivée',
+      waypointType: 'finish',
       sortOrder: 2,
       distanceKm: 10,
       altitudeM: 900,
+      gainFromStartM: 500,
       plannedElapsedSeconds: 3600,
       plannedArrivalAt: '2026-06-20T05:00:00.000Z',
       stopDurationSeconds: 0,
@@ -97,6 +121,8 @@ function overview(patch: Partial<PlanOverview> = {}): PlanOverview {
         initialDurationSeconds: 1844,
         manualOverride: false,
         paceSecondsPerKm: 369,
+        elevationGainM: 0,
+        elevationLossM: 500,
       },
     },
   ];
@@ -123,6 +149,7 @@ function overview(patch: Partial<PlanOverview> = {}): PlanOverview {
         raceCutoffId: 'cutoff-col',
         raceWaypointId: WP1,
         waypointName: 'Col du Test',
+        cutoffAt: '2026-06-20T05:00:00Z',
         marginSeconds: 1844,
         status: 'comfortable',
       },
@@ -131,6 +158,7 @@ function overview(patch: Partial<PlanOverview> = {}): PlanOverview {
       raceCutoffId: 'cutoff-col',
       raceWaypointId: WP1,
       waypointName: 'Col du Test',
+      cutoffAt: '2026-06-20T05:00:00Z',
       marginSeconds: 1844,
       status: 'comfortable',
     },
@@ -138,13 +166,15 @@ function overview(patch: Partial<PlanOverview> = {}): PlanOverview {
   };
 }
 
+/** L'écran sous la bannière : la décision de dérive, la frise, les réglages. */
 function points(patch: Partial<PlanOverview> = {}): string {
+  const data = overview(patch);
   return renderToStaticMarkup(
-    <PlanPoints
-      participantRaceId={PARTICIPATION}
-      overview={overview(patch)}
-      timezone="Europe/Paris"
-    />,
+    <>
+      <DriftDecision participantRaceId={PARTICIPATION} overview={data} />
+      <PlanPoints participantRaceId={PARTICIPATION} overview={data} timezone="Europe/Paris" />
+      <PlanSettings participantRaceId={PARTICIPATION} overview={data} />
+    </>,
   );
 }
 
@@ -248,6 +278,44 @@ describe('points du parcours', () => {
         ),
       }),
     ).not.toContain('Revenir à la proposition PLUKA');
+  });
+
+  it('règle la durée d’une section de trois en trois minutes', () => {
+    // Prototype `seg.minus` / `seg.plus` : 1756 s s'affichent « 29 min » ; les
+    // boutons envoient 26 et 32 minutes, au format que la commande attend.
+    const html = points();
+
+    expect(html).toContain('29 min');
+    expect(html).toMatch(/value="00:26"[^>]*name="duration"/);
+    expect(html).toMatch(/value="00:32"[^>]*name="duration"/);
+    expect(html).toContain('aria-label="Trois minutes de moins sur cette section"');
+  });
+
+  it('règle l’arrêt d’un point minute par minute, jamais au départ ni à l’arrivée', () => {
+    const html = points();
+
+    // Cinq minutes au col : − envoie 4, + envoie 6.
+    expect(html).toMatch(/value="4"[^>]*name="minutes"/);
+    expect(html).toMatch(/value="6"[^>]*name="minutes"/);
+    expect(html.match(/class="pl-stepper"/g)).toHaveLength(1);
+  });
+
+  it('dit le relief et la vitesse de chaque section', () => {
+    const html = points();
+
+    expect(html).toContain('+500/−0 m');
+    expect(html).toContain('10,3 km/h');
+  });
+
+  it('donne le type du point, son D+ cumulé et l’heure de sa barrière', () => {
+    const html = points();
+
+    expect(html).toContain('>Ravitaillement<');
+    expect(html).toContain('D+ 500 m');
+    // La barrière est publiée à 05:00 UTC : 07:00 à Paris.
+    expect(html).toContain('Barrière 07:00');
+    // « Départ » s'appelle déjà Départ : le type ne se répète pas.
+    expect(html).not.toContain('>Départ</span>');
   });
 
   it('nomme la liste des points pour qui ne voit pas la mise en page', () => {

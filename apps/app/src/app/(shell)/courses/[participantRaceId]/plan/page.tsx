@@ -12,14 +12,29 @@ import Link from 'next/link';
 
 import { AltitudeProfile } from '@/app/(shell)/courses/[participantRaceId]/plan/altitude-profile';
 import { GeneratePlanForm } from '@/app/(shell)/courses/[participantRaceId]/plan/generate-form';
-import { PlanPoints } from '@/app/(shell)/courses/[participantRaceId]/plan/plan-points';
+import {
+  NutritionBand,
+  NutritionFoot,
+} from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-band';
+import { PlanBoard } from '@/app/(shell)/courses/[participantRaceId]/plan/plan-board';
+import {
+  DriftDecision,
+  PlanPoints,
+  PlanSettings,
+  type PlanTimelineNutrition,
+} from '@/app/(shell)/courses/[participantRaceId]/plan/plan-points';
 import { CourseChangeAlert } from '@/components/course-change-alert';
 import { StartChangeAlert } from '@/components/start-change-alert';
-import { NutritionBand } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-band';
 import { conditionsContext, conditionsEnabled } from '@/lib/conditions';
 import { conditionsTeaser } from '@/lib/conditions-format';
 import { nutritionContext } from '@/lib/nutrition';
-import { profileIntakes } from '@/lib/nutrition-format';
+import {
+  aidLines,
+  editableProducts,
+  flaskView,
+  profileIntakes,
+  timelineNutrition,
+} from '@/lib/nutrition-format';
 import { planContext, redirectOnDomainError } from '@/lib/plan';
 import {
   formatClock,
@@ -102,6 +117,36 @@ export default async function PlanPage({
 
   // L'arrivée est l'heure prévue du dernier point : rien à recalculer.
   const finishAt = overview?.points[overview.points.length - 1]?.plannedArrivalAt ?? null;
+
+  // « Ma stratégie » : les prises rangées dans la frise du Plan, point par point.
+  const timeline: PlanTimelineNutrition | null =
+    overview === null ||
+    nutrition === null ||
+    nutrition.state !== 'ready' ||
+    nutrition.result === null ||
+    nutrition.settings === null
+      ? null
+      : {
+          marks: timelineNutrition(
+            nutrition.result,
+            nutrition.startAt,
+            nutrition.timezone,
+            overview.points,
+            nutrition.preparation?.points ?? [],
+          ),
+          products: editableProducts(nutrition.products, nutrition.settings.selectedProductIds),
+          aid: aidLines(nutrition.aid),
+          hasDrink:
+            nutrition.result.flasks === null
+              ? null
+              : flaskView(
+                  nutrition.result.flasks,
+                  nutrition.result,
+                  nutrition.startAt,
+                  nutrition.timezone,
+                ).hasDrink,
+          canEdit: nutrition.canEdit,
+        };
 
   return (
     <div className="ap-page pl-page">
@@ -228,16 +273,27 @@ export default async function PlanPage({
             />
           </section>
 
-          {/* AGENTS §39 : la Nutrition vit sous le Plan, pas dans un onglet. */}
+          <PlanBoard>
+            <DriftDecision participantRaceId={participantRaceId} overview={overview} />
+
+            {/* AGENTS §39 : la Nutrition vit sous le Plan, pas dans un onglet. */}
+            {nutrition === null ? null : (
+              <NutritionBand participantRaceId={participantRaceId} view={nutrition} />
+            )}
+
+            <PlanPoints
+              participantRaceId={participantRaceId}
+              overview={overview}
+              timezone={overview.timezone}
+              nutrition={timeline}
+            />
+          </PlanBoard>
+
           {nutrition === null ? null : (
-            <NutritionBand participantRaceId={participantRaceId} view={nutrition} />
+            <NutritionFoot participantRaceId={participantRaceId} view={nutrition} />
           )}
 
-          <PlanPoints
-            participantRaceId={participantRaceId}
-            overview={overview}
-            timezone={overview.timezone}
-          />
+          <PlanSettings participantRaceId={participantRaceId} overview={overview} />
 
           <p className="pl-version">
             Version {overview.version} · moteur {overview.engineVersion}

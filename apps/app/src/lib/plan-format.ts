@@ -113,3 +113,67 @@ export function formatTotalStops(
 ): string {
   return formatDuration(points.reduce((sum, point) => sum + point.stopDurationSeconds, 0));
 }
+
+const ONE_DECIMAL = new Intl.NumberFormat('fr-FR', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
+
+/**
+ * Vitesse d'une section, « 5,3 km/h » : l'autre lecture de l'allure que
+ * `getPlanOverview` a calculée. Nulle quand l'allure l'est (§54).
+ */
+export function formatSpeed(secondsPerKm: number | null): string | null {
+  if (secondsPerKm === null || secondsPerKm <= 0) return null;
+  return `${ONE_DECIMAL.format(3600 / secondsPerKm)} km/h`;
+}
+
+/** Mètres entiers, séparateur français des milliers : « 2 150 m ». */
+export function formatMeters(meters: number): string {
+  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(meters)} m`;
+}
+
+/** Le relief d'une section, « +620/−40 m » ; nul quand la trace ne le mesure pas. */
+export function formatRelief(gainM: number | null, lossM: number | null): string | null {
+  if (gainM === null || lossM === null) return null;
+  const format = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+  return `+${format.format(gainM)}/−${format.format(lossM)} m`;
+}
+
+/**
+ * Durée d'une section décalée de quelques minutes, au format `HH:MM` qu'attend
+ * la commande — les boutons −/+ de la frise (prototype : trois minutes). Le
+ * décalage part de la durée affichée, arrondie à la minute, et ne descend
+ * jamais sous une minute.
+ */
+export function shiftedDuration(seconds: number, minutes: number): string {
+  return formatElapsed(Math.max(1, Math.round(seconds / 60) + minutes) * 60);
+}
+
+/** Un arrêt décalé de quelques minutes, en minutes entières, jamais négatif. */
+export function shiftedStop(seconds: number, minutes: number): string {
+  return String(Math.max(0, Math.round(seconds / 60) + minutes));
+}
+
+/** Libellés du référentiel `waypoint_type` — 02_DATA_MODEL §6.6. */
+const WAYPOINT_KINDS: Readonly<Record<string, string>> = {
+  start: 'Départ',
+  aid_station: 'Ravitaillement',
+  water: 'Point d’eau',
+  checkpoint: 'Pointage',
+  cutoff: 'Barrière',
+  assistance: 'Base de vie',
+  summit: 'Sommet',
+  pass: 'Col',
+  finish: 'Arrivée',
+};
+
+/**
+ * Le type d'un point sous son nom — « Ravitaillement », « Sommet ». Rien
+ * quand le nom le dit déjà (un départ nommé « Départ ») ou pour un simple
+ * point de passage.
+ */
+export function waypointKind(type: string, name: string): string | null {
+  const kind = WAYPOINT_KINDS[type] ?? null;
+  return kind === null || name.trim().toLowerCase() === kind.toLowerCase() ? null : kind;
+}

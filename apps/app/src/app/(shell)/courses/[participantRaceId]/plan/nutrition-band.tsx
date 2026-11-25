@@ -6,12 +6,17 @@ import {
   NutritionDialog,
   type NutritionGoals,
 } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-dialog';
+import { PreparationDrawer } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-prep';
 import {
   NutritionReview,
   OrphanPanel,
 } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-review';
 import { NutritionSendAlert } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-send';
-import { NutritionViews } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-views';
+import {
+  NutritionBarActions,
+  NutritionViews,
+} from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-views';
+import { Icon } from '@/components/icon';
 import { conditionsBand, conditionsDraft } from '@/lib/nutrition-conditions';
 import {
   aidLines,
@@ -29,8 +34,10 @@ import {
  *
  * Jamais activée par défaut : un bandeau la propose. L'activer ouvre la
  * modale des objectifs ; c'est la stratégie Nutrition complète, au Race Pass
- * (04 §44). Activée, une bande dit tes cibles et le nombre de prises, et ouvre
- * « Mes paramètres » ; dessous, « Ma stratégie » et « Par section ».
+ * (04 §44). Activée, une bande blanche dit la couverture, ce qui reste à
+ * compléter et tes cibles, avec « Masquer mes prises », « À préparer » (un
+ * tiroir à droite) et « Mes paramètres ». Dessous, les onglets : « Ma
+ * stratégie » est la frise du Plan elle-même, prises comprises.
  */
 
 const EMPTY: NutritionGoals = {
@@ -67,15 +74,17 @@ function goalsOf(view: NutritionStrategyView): NutritionGoals {
   };
 }
 
-function productMeta(product: {
-  readonly carbsG: number;
-  readonly sodiumMg: number;
-  readonly caffeineMg: number;
-}): string {
-  const parts = [`${String(Math.round(product.carbsG))} g glucides`];
-  if (product.sodiumMg > 0) parts.push(`${String(product.sodiumMg)} mg sodium`);
-  if (product.caffeineMg > 0) parts.push(`${String(product.caffeineMg)} mg caféine`);
-  return parts.join(' · ');
+/** « Mes produits », pour l'étape de choix de la modale. */
+function pickableOf(view: NutritionStrategyView) {
+  return view.products.map((product) => ({
+    id: product.id,
+    name: product.brand === null ? product.name : `${product.brand} ${product.name}`,
+    category: product.category,
+    carbsG: product.carbsG,
+    sodiumMg: product.sodiumMg,
+    caffeineMg: product.caffeineMg,
+    hydrationMl: product.hydrationMl,
+  }));
 }
 
 export function NutritionBand({
@@ -87,16 +96,7 @@ export function NutritionBand({
 }) {
   if (view.state === 'no_plan') return null;
   const conditions = conditionsDraft(view);
-  // « Mes produits », pour l'étape de choix de la modale.
-  const pickable = view.products.map((product) => ({
-    id: product.id,
-    name: product.brand === null ? product.name : `${product.brand} ${product.name}`,
-    category: product.category,
-    carbsG: product.carbsG,
-    sodiumMg: product.sodiumMg,
-    caffeineMg: product.caffeineMg,
-    hydrationMl: product.hydrationMl,
-  }));
+  const pickable = pickableOf(view);
 
   if (view.state === 'off' || view.result === null || view.settings === null) {
     return (
@@ -132,7 +132,6 @@ export function NutritionBand({
 
   const settings = view.settings;
   const lines = strategyLines(view.result, view.startAt, view.timezone);
-  const planned = plannedIntake(view.result);
   const flasks =
     view.result.flasks === null
       ? null
@@ -143,7 +142,10 @@ export function NutritionBand({
       : preparationLines(view.preparation, view.startAt, view.timezone);
   const orphans = orphanLines(view.toPlace, view.result, view.startAt, view.timezone);
   const band = conditionsBand(view);
+  const aid = aidLines(view.aid);
   const intakes = view.result.milestones.filter((milestone) => milestone.kind === 'intake').length;
+  const count =
+    intakes === 0 ? 'aucune prise' : intakes === 1 ? '1 prise' : `${String(intakes)} prises`;
   const targets = `${String(settings.carbsGPerHour)} g/h · ${String(settings.hydrationMlPerHour)} ml/h · ${String(settings.sodiumMgPerHour)} mg/h${
     settings.caffeineTotalMg === null
       ? ' · sans objectif caféine'
@@ -152,38 +154,41 @@ export function NutritionBand({
 
   return (
     <section id="nutrition" className="nu-on" aria-labelledby="nu-on-title">
-      <div className="nu-on-head">
-        <span className="nu-on-text">
-          <span id="nu-on-title" className="nu-on-title">
-            Nutrition
-            {lines.summary.coverage === null ? null : (
-              <span className="nu-on-coverage">{lines.summary.coverage}</span>
-            )}
-            <span className="nu-on-count">
-              {intakes === 0
-                ? 'aucune prise'
-                : intakes === 1
-                  ? '1 prise'
-                  : `${String(intakes)} prises`}
+      <div className="nu-bar">
+        <div className="nu-bar-text">
+          <p className="nu-bar-line">
+            <span id="nu-on-title" className="nu-bar-label">
+              Nutrition
             </span>
-          </span>
-          <span className="nu-meta">{targets}</span>
-          {lines.summary.todo === null ? null : (
-            <span className="nu-on-todo">{lines.summary.todo}</span>
-          )}
-        </span>
-        {view.canEdit ? (
-          <NutritionDialog
-            participantRaceId={participantRaceId}
-            initial={goalsOf(view)}
-            products={pickable}
-            selectedIds={settings.selectedProductIds}
-            triggerLabel="Mes paramètres"
-            triggerClassName="pk-btn pk-button-secondary"
-            submitLabel="Recalculer ma stratégie"
-            conditions={conditions}
-          />
-        ) : null}
+            <span className="nu-bar-coverage">{lines.summary.coverage ?? count}</span>
+            {lines.summary.todo === null ? null : (
+              <span className="nu-bar-todo">{lines.summary.todo}</span>
+            )}
+          </p>
+          <p className="nu-meta">
+            {targets} · {count}
+          </p>
+        </div>
+        <div className="nu-bar-actions">
+          <NutritionBarActions hasIntakes={intakes > 0} hasPreparation={preparation !== null} />
+          {view.canEdit ? (
+            <NutritionDialog
+              participantRaceId={participantRaceId}
+              initial={goalsOf(view)}
+              products={pickable}
+              selectedIds={settings.selectedProductIds}
+              triggerLabel={
+                <>
+                  <Icon name="SlidersHorizontal" size={16} />
+                  Mes paramètres
+                </>
+              }
+              triggerClassName="pk-btn pk-button-secondary nu-bar-btn"
+              submitLabel="Recalculer ma stratégie"
+              conditions={conditions}
+            />
+          ) : null}
+        </div>
       </div>
 
       {band === null ? null : (
@@ -249,17 +254,40 @@ export function NutritionBand({
 
       <NutritionViews
         participantRaceId={participantRaceId}
-        milestones={lines.milestones}
         sections={sectionsWithFlasks(lines.sections, flasks)}
         flasks={flasks}
-        preparation={preparation}
-        aid={aidLines(view.aid)}
+        aid={aid}
         canEdit={view.canEdit}
-        products={pickable
-          .filter((product) => settings.selectedProductIds.includes(product.id))
-          .map((product) => ({ id: product.id, name: product.name, meta: productMeta(product) }))}
       />
 
+      {preparation === null ? null : (
+        <PreparationDrawer
+          participantRaceId={participantRaceId}
+          preparation={preparation}
+          aid={aid}
+          canEdit={view.canEdit}
+        />
+      )}
+    </section>
+  );
+}
+
+/**
+ * Après la frise : ce que prévoit la stratégie, en moyenne et au total, et la
+ * désactivation — volontairement discrète (§28 du Design System).
+ */
+export function NutritionFoot({
+  participantRaceId,
+  view,
+}: {
+  readonly participantRaceId: string;
+  readonly view: NutritionStrategyView;
+}) {
+  if (view.state !== 'ready' || view.result === null || view.settings === null) return null;
+  const planned = plannedIntake(view.result);
+
+  return (
+    <section className="nu-foot" aria-label="Ta stratégie Nutrition">
       {planned === null ? null : (
         <section className="nu-planned" aria-labelledby="nu-planned-title">
           <h3 id="nu-planned-title" className="nu-planned-title">

@@ -1,108 +1,71 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 
 import {
   resetMilestoneAction,
   setMilestoneItemsAction,
   setRefillPointAction,
-  setReserveAction,
-  setSupplyPointAction,
 } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-actions';
-import { NutritionSendStatus } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-send';
+import { AidControls, AidInfo } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-aid';
 import {
-  AidControls,
-  AidDrinkChoice,
-  AidInfo,
-} from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-aid';
+  sectionAnchor,
+  usePlanBoard,
+  type PlanView,
+} from '@/app/(shell)/courses/[participantRaceId]/plan/plan-board';
+import { Icon, type IconName } from '@/components/icon';
 import type {
   AidLine,
+  EditableProduct,
   FlaskLine,
   FlaskView,
   MilestoneLine,
-  PreparationLines,
   SectionLine,
-  SupplyValue,
 } from '@/lib/nutrition-format';
 
-/** Un produit choisi pour la stratégie, tel que la modification le propose. */
-export interface EditableProduct {
-  readonly id: string;
-  readonly name: string;
-  readonly meta: string;
-}
+export type { EditableProduct } from '@/lib/nutrition-format';
 
 /**
  * Les vues de la Nutrition sur le Plan — prototype `nutViews` : « Ma
- * stratégie » (les prises, dans l'ordre), « Mes flasques » (point par point)
- * et « Par section », le récapitulatif d'un ravito au suivant : ce qui se
- * consomme, ce qu'il faut emporter et ce qu'on fait de ses flasques. Les
- * libellés arrivent prêts du serveur : rien ne se calcule ici.
+ * stratégie » (la frise des passages, avec les prises), « Par section », le
+ * récapitulatif d'un ravito au suivant, et « Mes flasques », point par point.
+ * La frise vit dans `plan-points.tsx` ; ces onglets choisissent ce qui est
+ * montré. Les libellés arrivent prêts du serveur : rien ne se calcule ici.
  */
 
-type View = 'strategie' | 'section' | 'flasques' | 'preparer';
+const TABS: readonly {
+  readonly value: PlanView;
+  readonly label: string;
+  readonly icon: IconName;
+}[] = [
+  { value: 'strategie', label: 'Ma stratégie', icon: 'ListBullets' },
+  { value: 'section', label: 'Par section', icon: 'ArrowsLeftRight' },
+  { value: 'flasques', label: 'Mes flasques', icon: 'Drop' },
+];
 
 export function NutritionViews({
   participantRaceId,
-  milestones,
   sections,
   flasks,
-  preparation,
   aid,
-  products,
   canEdit,
 }: {
   readonly participantRaceId: string;
-  readonly milestones: readonly MilestoneLine[];
   readonly sections: readonly SectionLine[];
   readonly flasks: FlaskView | null;
-  readonly preparation: PreparationLines | null;
   /** Ce que propose chaque ravitaillement (0110). */
   readonly aid: readonly AidLine[];
-  readonly products: readonly EditableProduct[];
   readonly canEdit: boolean;
 }) {
-  const [view, setView] = useState<View>('strategie');
+  const board = usePlanBoard();
+  // Des flasques retirées depuis : l'onglet n'existe plus, on revient à la frise.
+  const view = board.view === 'flasques' && flasks === null ? 'strategie' : board.view;
   const aidOf = new Map(aid.map((line) => [line.pointId, line]));
-  const [editing, setEditing] = useState<string | null>(null);
-  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
+  const open = board.openSections;
   const allOpen = sections.length > 0 && sections.every((line) => open.has(line.key));
 
-  // Une prise choisie sur le profil : `seq` fait défiler à nouveau un second clic sur le même point.
-  const [target, setTarget] = useState<{ readonly anchor: string; readonly seq: number } | null>(
-    null,
-  );
-  const anchors = milestones.map((line) => line.anchor).join(' ');
-
-  useEffect(() => {
-    const known = new Set(anchors.split(' '));
-    const reveal = (anchor: string) => {
-      setView('strategie');
-      setTarget((current) => ({ anchor, seq: (current?.seq ?? 0) + 1 }));
-    };
-    // Les points du profil visent les lignes de « Ma stratégie », qui n'existent
-    // que sous cet onglet : on l'ouvre, puis on fait défiler jusqu'à la prise.
-    const onClick = (event: MouseEvent) => {
-      if (!(event.target instanceof Element)) return;
-      const anchor = event.target.closest('a.pl-intake')?.getAttribute('href')?.slice(1);
-      if (anchor === undefined || !known.has(anchor)) return;
-      event.preventDefault();
-      reveal(anchor);
-    };
-    document.addEventListener('click', onClick);
-    return () => document.removeEventListener('click', onClick);
-  }, [anchors]);
-
-  useEffect(() => {
-    if (target === null) return;
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    document
-      .getElementById(target.anchor)
-      ?.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
-  }, [target]);
-
   const toggleSection = (key: string, isOpen: boolean) =>
-    setOpen((current) => {
+    board.setOpenSections((current) => {
       if (current.has(key) === isOpen) return current;
       return isOpen
         ? new Set([...current, key])
@@ -111,111 +74,30 @@ export function NutritionViews({
 
   return (
     <div className="nu-views">
-      <div className="nu-tabs" role="tablist" aria-label="Vues de la nutrition">
-        {(
-          [
-            ['strategie', 'Ma stratégie'],
-            ...(flasks === null ? [] : [['flasques', 'Mes flasques'] as const]),
-            ['section', 'Par section'],
-            ...(preparation === null ? [] : [['preparer', 'À préparer'] as const]),
-          ] as const
-        ).map(([value, label]) => (
+      <div className="nu-tabs" role="tablist" aria-label="Vues du plan">
+        {TABS.filter((tab) => tab.value !== 'flasques' || flasks !== null).map((tab) => (
           <button
-            key={value}
+            key={tab.value}
             type="button"
             role="tab"
-            aria-selected={view === value}
+            aria-selected={view === tab.value}
             className="nu-tab"
-            onClick={() => setView(value)}
+            onClick={() => board.setView(tab.value)}
           >
-            {label}
+            <Icon name={tab.icon} size={15} />
+            {tab.label}
           </button>
         ))}
       </div>
 
-      {view === 'preparer' && preparation !== null ? (
-        <PreparationPanel
-          participantRaceId={participantRaceId}
-          preparation={preparation}
-          aidOf={aidOf}
-          canEdit={canEdit}
-        />
-      ) : view === 'flasques' && flasks !== null ? (
+      {view === 'flasques' && flasks !== null ? (
         <FlaskPanel
           participantRaceId={participantRaceId}
           flasks={flasks}
           aidOf={aidOf}
           canEdit={canEdit}
         />
-      ) : view === 'strategie' ? (
-        <ol className="nu-milestones">
-          {milestones.map((line) => (
-            <li
-              key={line.key}
-              id={line.anchor}
-              className={[
-                'nu-milestone',
-                ...(line.official ? ['nu-milestone-aid'] : []),
-                ...(target?.anchor === line.anchor ? ['nu-milestone-target'] : []),
-              ].join(' ')}
-            >
-              <span className="nu-milestone-when">
-                <span className="nu-milestone-clock">{line.clock}</span>
-                <span className="nu-meta">{line.km}</span>
-              </span>
-              <span className="nu-milestone-what">
-                <span className="nu-milestone-name">
-                  {line.name}
-                  {line.customized ? <span className="nu-custom">Modifiée par toi</span> : null}
-                  {line.conditions.map((condition) => (
-                    <span key={condition} className="nu-cond-tag">
-                      {condition}
-                    </span>
-                  ))}
-                </span>
-                <span className="nu-reason">{line.reason}</span>
-                {line.pointId === null ? null : <AidInfo line={aidOf.get(line.pointId)} />}
-                {line.pointId === null || flasks === null ? null : (
-                  <AidDrinkChoice
-                    participantRaceId={participantRaceId}
-                    line={aidOf.get(line.pointId)}
-                    hasDrink={flasks.hasDrink}
-                    canEdit={canEdit}
-                    onShowFlasks={() => setView('flasques')}
-                  />
-                )}
-                {line.items.length === 0 ? (
-                  line.customized ? (
-                    <span className="nu-items">Rien à cette prise</span>
-                  ) : null
-                ) : (
-                  <span className="nu-items">{line.items.join(' + ')}</span>
-                )}
-              </span>
-              <span className="nu-milestone-need">
-                {line.need}
-                {canEdit && line.editable && products.length > 0 && editing !== line.key ? (
-                  <button
-                    type="button"
-                    className="pk-btn pk-button-ghost nu-edit"
-                    onClick={() => setEditing(line.key)}
-                  >
-                    Modifier
-                  </button>
-                ) : null}
-              </span>
-              {editing === line.key ? (
-                <MilestoneEditor
-                  participantRaceId={participantRaceId}
-                  line={line}
-                  products={products}
-                  onDone={() => setEditing(null)}
-                />
-              ) : null}
-            </li>
-          ))}
-        </ol>
-      ) : (
+      ) : view === 'section' ? (
         <div className="nu-recap">
           <div className="nu-recap-head">
             <p className="nu-meta">
@@ -226,7 +108,9 @@ export function NutritionViews({
                 type="button"
                 className="pk-btn pk-button-ghost nu-recap-all"
                 onClick={() =>
-                  setOpen(allOpen ? new Set() : new Set(sections.map((line) => line.key)))
+                  board.setOpenSections(() =>
+                    allOpen ? new Set() : new Set(sections.map((line) => line.key)),
+                  )
                 }
               >
                 {allOpen ? 'Tout replier' : 'Tout déplier'}
@@ -235,7 +119,7 @@ export function NutritionViews({
           </div>
           <ol className="nu-sections">
             {sections.map((line) => (
-              <li key={line.key} className="nu-section">
+              <li key={line.key} id={sectionAnchor(line.key)} className="nu-section">
                 <details
                   open={open.has(line.key)}
                   onToggle={(event) => toggleSection(line.key, event.currentTarget.open)}
@@ -311,13 +195,52 @@ export function NutritionViews({
             ))}
           </ol>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
 
+/**
+ * Les boutons de la bande Nutrition — prototype : « Masquer mes prises », «
+ * À préparer ». « Mes paramètres » est la modale, rendue à côté par le serveur.
+ */
+export function NutritionBarActions({
+  hasIntakes,
+  hasPreparation,
+}: {
+  readonly hasIntakes: boolean;
+  readonly hasPreparation: boolean;
+}) {
+  const board = usePlanBoard();
+
+  return (
+    <>
+      {hasIntakes ? (
+        <button
+          type="button"
+          className="pk-btn pk-button-secondary nu-bar-btn"
+          onClick={board.toggleIntakes}
+        >
+          <Icon name={board.intakesHidden ? 'Eye' : 'EyeSlash'} size={16} />
+          {board.intakesHidden ? 'Afficher mes prises' : 'Masquer mes prises'}
+        </button>
+      ) : null}
+      {hasPreparation ? (
+        <button
+          type="button"
+          className="pk-btn pk-button-secondary nu-bar-btn"
+          aria-haspopup="dialog"
+          onClick={() => board.setPreparationOpen(true)}
+        >
+          <Icon name="Basket" size={16} />À préparer
+        </button>
+      ) : null}
+    </>
+  );
+}
+
 /** Une ligne par contenant : ce qu'on y met, ou qu'on n'y touche pas. */
-function FlaskLines({ lines }: { readonly lines: readonly FlaskLine[] }) {
+export function FlaskLines({ lines }: { readonly lines: readonly FlaskLine[] }) {
   return (
     <ul className="nu-flask-lines">
       {lines.map((line) => (
@@ -335,7 +258,7 @@ function FlaskLines({ lines }: { readonly lines: readonly FlaskLine[] }) {
  * produits de sa stratégie, avec leur nombre. Ce qu'il fixe est gardé ; les
  * autres prises s'ajustent autour.
  */
-function MilestoneEditor({
+export function MilestoneEditor({
   participantRaceId,
   line,
   products,
@@ -458,7 +381,6 @@ function MilestoneEditor({
     </div>
   );
 }
-
 /**
  * Mes flasques — §33, §34 : point par point, quoi mettre dans chaque flasque.
  * La boisson se prépare en flasque pleine ; une flasque qui suffit jusqu'au
@@ -561,245 +483,6 @@ function FlaskPanel({
             ))}
           </ul>
         </div>
-      )}
-    </div>
-  );
-}
-
-const RESERVES = [0, 10, 20] as const;
-
-/**
- * À préparer pour cette course — §49 à §56 : combien de chaque produit, la
- * réserve en plus, et où les trouver point par point. Ce qui sert après un
- * ravitaillement vient de ce point : ton drop bag, ton Assistance, ou porté
- * depuis le départ.
- */
-function PreparationPanel({
-  participantRaceId,
-  preparation,
-  aidOf,
-  canEdit,
-}: {
-  readonly participantRaceId: string;
-  readonly preparation: PreparationLines;
-  readonly aidOf: ReadonlyMap<string, AidLine>;
-  readonly canEdit: boolean;
-}) {
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const preset = (RESERVES as readonly number[]).includes(preparation.reservePercent);
-  const [other, setOther] = useState(!preset);
-  const [otherValue, setOtherValue] = useState(preset ? '' : String(preparation.reservePercent));
-
-  const reserve = (percent: number) =>
-    startTransition(async () => {
-      const outcome = await setReserveAction(participantRaceId, percent);
-      setError(outcome.error ?? null);
-    });
-
-  const supply = (pointId: string, value: SupplyValue) =>
-    startTransition(async () => {
-      const outcome = await setSupplyPointAction(
-        participantRaceId,
-        pointId,
-        value === 'auto' ? null : value,
-      );
-      setError(outcome.error ?? null);
-    });
-
-  return (
-    <div className="nu-prep" aria-busy={pending}>
-      <section className="nu-prep-block" aria-labelledby="nu-prep-reserve">
-        <h3 id="nu-prep-reserve" className="nu-prep-title">
-          Réserve de sécurité
-        </h3>
-        <p className="nu-meta">
-          Elle s’ajoute à ce que tu prépares, jamais à ce que tu consommes. Elle part avec toi.
-        </p>
-        {canEdit ? (
-          <div className="nu-chips" role="group" aria-label="Réserve de sécurité">
-            {RESERVES.map((percent) => (
-              <button
-                key={percent}
-                type="button"
-                className="nu-chip"
-                aria-pressed={!other && preparation.reservePercent === percent}
-                disabled={pending}
-                onClick={() => {
-                  setOther(false);
-                  reserve(percent);
-                }}
-              >
-                {percent === 0 ? 'Aucune' : `+${String(percent)} %`}
-              </button>
-            ))}
-            <button
-              type="button"
-              className="nu-chip"
-              aria-pressed={other}
-              disabled={pending}
-              onClick={() => setOther(true)}
-            >
-              Autre
-            </button>
-          </div>
-        ) : (
-          <p className="nu-section-line">
-            {preparation.reservePercent === 0
-              ? 'Aucune réserve'
-              : `+${String(preparation.reservePercent)} %`}
-          </p>
-        )}
-        {canEdit && other ? (
-          <form
-            className="nu-prep-other"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const value = Number(otherValue.replace(',', '.'));
-              if (otherValue.trim() !== '' && Number.isFinite(value)) reserve(value);
-            }}
-          >
-            <label className="pk-field">
-              <span className="pk-field-label">Réserve, en %</span>
-              <input
-                className="pk-input"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                max={100}
-                step={1}
-                required
-                value={otherValue}
-                onChange={(event) => setOtherValue(event.target.value)}
-              />
-            </label>
-            <button type="submit" className="pk-btn pk-button-secondary" disabled={pending}>
-              Appliquer
-            </button>
-          </form>
-        ) : null}
-      </section>
-
-      {error === null ? null : (
-        <p className="pk-field-error" role="alert">
-          {error}
-        </p>
-      )}
-
-      {preparation.products.length === 0 ? (
-        <p className="nu-section-line">
-          Aucun produit sur tes prises : choisis tes produits dans Mes paramètres, PLUKA comptera ce
-          qu’il faut préparer.
-        </p>
-      ) : (
-        <>
-          <section className="nu-prep-block" aria-labelledby="nu-prep-products">
-            <h3 id="nu-prep-products" className="nu-prep-title">
-              Ce que tu prépares
-            </h3>
-            {preparation.orphans > 0 ? (
-              <p className="nu-changed" role="status">
-                {preparation.orphans === 1
-                  ? 'Un point a perdu son drop bag ou son rendez-vous : ses produits sont sans place.'
-                  : `${String(preparation.orphans)} points ont perdu leur drop bag ou leur rendez-vous : leurs produits sont sans place.`}
-              </p>
-            ) : null}
-            <ul className="nu-prep-products">
-              {preparation.products.map((product) => (
-                <li key={product.key} className="nu-prep-product">
-                  <span className="nu-prep-name">{product.name}</span>
-                  <span className="nu-prep-total">{product.total}</span>
-                  <span className="nu-meta">{product.detail}</span>
-                  <span className="nu-prep-where">{product.where}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="nu-prep-block" aria-labelledby="nu-prep-points">
-            <h3 id="nu-prep-points" className="nu-prep-title">
-              Où les trouver
-            </h3>
-            <ol className="nu-flask-stops">
-              <li className="nu-flask-stop">
-                <span className="nu-milestone-when">
-                  <span className="nu-milestone-clock">{preparation.startClock}</span>
-                  <span className="nu-meta">km 0</span>
-                </span>
-                <div className="nu-flask-body">
-                  <span className="nu-milestone-name">{preparation.startName} · sur toi</span>
-                  {preparation.start.length === 0 ? (
-                    <span className="nu-reason">Rien à emporter</span>
-                  ) : (
-                    <ul className="nu-prep-items">
-                      {preparation.start.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </li>
-              {preparation.points.map((point) => (
-                <li key={point.pointId} className="nu-flask-stop">
-                  <span className="nu-milestone-when">
-                    <span className="nu-milestone-clock">{point.clock}</span>
-                    <span className="nu-meta">{point.km}</span>
-                  </span>
-                  <div className="nu-flask-body">
-                    <span className="nu-milestone-name">{point.name}</span>
-                    <AidInfo line={aidOf.get(point.pointId)} />
-                    {point.items.length === 0 ? (
-                      <span className="nu-reason">Aucun produit à prendre à partir d’ici</span>
-                    ) : (
-                      <ul className="nu-prep-items">
-                        {point.items.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
-                    )}
-                    {point.orphan ? (
-                      <p className="nu-changed" role="status">
-                        {point.source}
-                      </p>
-                    ) : canEdit && point.options !== null ? null : (
-                      <span className="nu-prep-source">{point.source}</span>
-                    )}
-                    {canEdit && point.options !== null ? (
-                      <label className="pk-field nu-prep-choice">
-                        <span className="pk-field-label">D’où viennent ces produits</span>
-                        <select
-                          className="pk-input"
-                          value={point.selected}
-                          disabled={pending}
-                          onChange={(event) =>
-                            supply(point.pointId, event.target.value as SupplyValue)
-                          }
-                        >
-                          {point.options.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    ) : null}
-                    {point.hint === null || !canEdit ? null : (
-                      <span className="nu-meta">{point.hint}</span>
-                    )}
-                    {point.sends.map((line) => (
-                      <NutritionSendStatus
-                        key={line.rendezvousId}
-                        participantRaceId={participantRaceId}
-                        line={line}
-                        canSend={canEdit}
-                      />
-                    ))}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </section>
-        </>
       )}
     </div>
   );

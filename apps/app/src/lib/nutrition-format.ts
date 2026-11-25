@@ -320,6 +320,131 @@ export function strategyLines(
 }
 
 // ------------------------------------------------------------
+// La Nutrition dans la frise du Plan — prototype `planRows`, `seg.jalons`.
+// ------------------------------------------------------------
+
+/** Un produit choisi pour la stratégie, tel que la modification d'une prise le propose. */
+export interface EditableProduct {
+  readonly id: string;
+  readonly name: string;
+  readonly meta: string;
+}
+
+/** « 25 g glucides · 50 mg sodium » : ce qu'apporte une unité. */
+function productMeta(product: {
+  readonly carbsG: number;
+  readonly sodiumMg: number;
+  readonly caffeineMg: number;
+}): string {
+  const parts = [`${String(Math.round(product.carbsG))} g glucides`];
+  if (product.sodiumMg > 0) parts.push(`${String(product.sodiumMg)} mg sodium`);
+  if (product.caffeineMg > 0) parts.push(`${String(product.caffeineMg)} mg caféine`);
+  return parts.join(' · ');
+}
+
+/** Les produits de la stratégie, dans l'ordre de « Mes produits » (§58). */
+export function editableProducts(
+  products: readonly {
+    readonly id: string;
+    readonly brand: string | null;
+    readonly name: string;
+    readonly carbsG: number;
+    readonly sodiumMg: number;
+    readonly caffeineMg: number;
+  }[],
+  selectedIds: readonly string[],
+): readonly EditableProduct[] {
+  return products
+    .filter((product) => selectedIds.includes(product.id))
+    .map((product) => ({
+      id: product.id,
+      name: product.brand === null ? product.name : `${product.brand} ${product.name}`,
+      meta: productMeta(product),
+    }));
+}
+
+/** Ce que la frise du Plan montre de la Nutrition, point par point. */
+export interface TimelineNutrition {
+  /** Les prises entre deux points, rangées sous le point qui les suit. */
+  readonly intakes: Readonly<Record<string, readonly MilestoneLine[]>>;
+  /** Ce qu'on prend à un ravitaillement, sous son point. */
+  readonly aid: Readonly<Record<string, MilestoneLine>>;
+  /** La section Nutrition qui couvre chaque section du Plan, rangée par point d'arrivée. */
+  readonly sections: Readonly<
+    Record<string, { readonly key: string; readonly status: 'ok' | 'low' | 'high' }>
+  >;
+  /** Qui t'attend, et quel drop bag, à chaque point. */
+  readonly supplies: Readonly<
+    Record<string, { readonly assistants: readonly string[]; readonly bagName: string | null }>
+  >;
+}
+
+/** Une tolérance d'un mètre : deux kilomètres égaux au centimètre près. */
+const SAME_KM = 0.001;
+
+/**
+ * Range la stratégie dans la frise du Plan : chaque prise sous le point qui la
+ * suit, chaque ravitaillement sous son point, l'état de chaque section. Les
+ * kilomètres départagent, pas les secondes : une prise reste à son endroit
+ * même si une durée a bougé depuis le calcul.
+ */
+export function timelineNutrition(
+  result: NutritionResult,
+  startAt: string | null,
+  timezone: string,
+  points: readonly { readonly raceWaypointId: string; readonly distanceKm: number }[],
+  supplies: readonly SupplyPointView[],
+): TimelineNutrition {
+  const known = new Set(points.map((point) => point.raceWaypointId));
+  const last = points[points.length - 1];
+  const intakes: Record<string, MilestoneLine[]> = {};
+  const aid: Record<string, MilestoneLine> = {};
+
+  for (const milestone of result.milestones) {
+    // L'arrivée ne se prépare pas : elle dit seulement le besoin depuis la dernière prise.
+    if (milestone.kind === 'finish') continue;
+    const line = milestoneLine(result, milestone, startAt, timezone);
+    if (milestone.kind === 'aid' && milestone.pointId !== null && known.has(milestone.pointId)) {
+      aid[milestone.pointId] = line;
+      continue;
+    }
+    const next = points.find((point) => point.distanceKm > milestone.distanceKm + SAME_KM) ?? last;
+    if (next === undefined) continue;
+    (intakes[next.raceWaypointId] ??= []).push(line);
+  }
+
+  const sections: Record<string, { key: string; status: 'ok' | 'low' | 'high' }> = {};
+  points.forEach((point, index) => {
+    const previous = points[index - 1];
+    if (previous === undefined) return;
+    const found = result.sections.findIndex(
+      (section) =>
+        section.startKm <= previous.distanceKm + SAME_KM &&
+        point.distanceKm <= section.endKm + SAME_KM,
+    );
+    const section = result.sections[found];
+    if (section === undefined) return;
+    const status = statusOf(section, result.allocation?.sectionCoverage[found]?.carbs ?? null);
+    if (status === null) return;
+    sections[point.raceWaypointId] = {
+      key: `${section.fromPointId}-${section.toPointId}`,
+      status,
+    };
+  });
+
+  return {
+    intakes,
+    aid,
+    sections,
+    supplies: Object.fromEntries(
+      supplies
+        .filter((point) => point.assistants.length > 0 || point.bagName !== null)
+        .map((point) => [point.pointId, { assistants: point.assistants, bagName: point.bagName }]),
+    ),
+  };
+}
+
+// ------------------------------------------------------------
 // Le Plan a changé — §61 à §66, N25 à N28 ; décisions du 2026-11-23.
 // ------------------------------------------------------------
 
@@ -761,6 +886,12 @@ export interface PreparationPointLine {
   readonly items: readonly string[];
   /** « Porté depuis le départ », « Dans ton drop bag », « Marie te les donne ». */
   readonly source: string;
+  /** D'où viennent les produits de ce point : départ, drop bag, Assistance ou nulle part. */
+  readonly destination: 'start' | 'bag' | 'assistance' | 'unassigned';
+  /** Le drop bag déposé à ce point, quand il existe. */
+  readonly bagName: string | null;
+  /** Les prénoms de ceux qui t'attendent à ce point. */
+  readonly assistants: readonly string[];
   /** Le choix n'existe plus (§56) : ses produits n'ont pas de place. */
   readonly orphan: boolean;
   readonly selected: SupplyValue;
@@ -773,6 +904,8 @@ export interface PreparationPointLine {
 }
 
 export interface PreparationLines {
+  /** « 4 produits à préparer · 1 drop bag · 1 rendez-vous d'Assistance ». */
+  readonly summary: string;
   readonly reservePercent: number;
   readonly products: readonly PreparationProductLine[];
   readonly startName: string;
@@ -874,7 +1007,56 @@ export function preparationLines(
     ),
   );
 
+  const points: PreparationPointLine[] = preparation.points.map((point) => {
+    const items = byId.get(point.pointId)?.items ?? [];
+    const choices = point.options.map((value) => ({
+      value,
+      label: SUPPLY_LABELS[value](point),
+    }));
+    const orphan = point.source === 'unassigned';
+    return {
+      pointId: point.pointId,
+      clock: clockAt(startAt, timezone, point.elapsedSeconds),
+      km: `km ${decimal.format(point.distanceKm)}`,
+      name: point.name,
+      items: items.map((item) => unitText(item, item.quantity)),
+      source: sourceText(point),
+      destination: point.source,
+      bagName: point.bagName,
+      assistants: point.assistants,
+      orphan,
+      selected: point.chosen ?? 'auto',
+      options:
+        point.options.length <= 1 && point.chosen === null
+          ? null
+          : [
+              {
+                value: 'auto',
+                label: `Automatique : ${autoLabel(point)}`,
+              },
+              ...choices,
+              ...(orphan && point.chosen !== null
+                ? [
+                    {
+                      value: point.chosen,
+                      label:
+                        point.chosen === 'bag'
+                          ? 'Drop bag (n’existe plus)'
+                          : 'Assistance (plus de rendez-vous)',
+                    },
+                  ]
+                : []),
+            ],
+      hint:
+        point.options.length <= 1
+          ? 'Pour les trouver ici, crée un drop bag dans Sacs ou un rendez-vous dans Assistance.'
+          : null,
+      sends: sends.filter((send) => send.pointId === point.pointId),
+    };
+  });
+
   return {
+    summary: preparationSummary(plan.products.length, points),
     reservePercent: plan.reservePercent,
     startName: first?.name ?? 'Départ',
     startClock: clockAt(startAt, timezone, first?.elapsedSeconds ?? 0),
@@ -882,53 +1064,24 @@ export function preparationLines(
     start: suppliedLines(
       plan.products.filter((row) => row.start > 0).map((row) => ({ ...row, quantity: row.start })),
     ),
-    points: preparation.points.map((point) => {
-      const items = byId.get(point.pointId)?.items ?? [];
-      const choices = point.options.map((value) => ({
-        value,
-        label: SUPPLY_LABELS[value](point),
-      }));
-      const orphan = point.source === 'unassigned';
-      return {
-        pointId: point.pointId,
-        clock: clockAt(startAt, timezone, point.elapsedSeconds),
-        km: `km ${decimal.format(point.distanceKm)}`,
-        name: point.name,
-        items: items.map((item) => unitText(item, item.quantity)),
-        source: sourceText(point),
-        orphan,
-        selected: point.chosen ?? 'auto',
-        options:
-          point.options.length <= 1 && point.chosen === null
-            ? null
-            : [
-                {
-                  value: 'auto',
-                  label: `Automatique : ${autoLabel(point)}`,
-                },
-                ...choices,
-                ...(orphan && point.chosen !== null
-                  ? [
-                      {
-                        value: point.chosen,
-                        label:
-                          point.chosen === 'bag'
-                            ? 'Drop bag (n’existe plus)'
-                            : 'Assistance (plus de rendez-vous)',
-                      },
-                    ]
-                  : []),
-              ],
-        hint:
-          point.options.length <= 1
-            ? 'Pour les trouver ici, crée un drop bag dans Sacs ou un rendez-vous dans Assistance.'
-            : null,
-        sends: sends.filter((send) => send.pointId === point.pointId),
-      };
-    }),
+    points,
     orphans: preparation.points.filter((point) => point.source === 'unassigned').length,
     stale: sends.filter((send) => send.status === 'stale'),
   };
+}
+
+/** « 4 produits à préparer · 2 drop bags · 1 rendez-vous d'Assistance » : ce qui part, et où. */
+function preparationSummary(products: number, points: readonly PreparationPointLine[]): string {
+  const filled = points.filter((point) => point.items.length > 0);
+  const bags = filled.filter((point) => point.destination === 'bag').length;
+  const meetings = filled.filter((point) => point.destination === 'assistance').length;
+  return [
+    products === 0
+      ? 'Aucun produit à préparer'
+      : `${String(products)} ${products === 1 ? 'produit' : 'produits'} à préparer`,
+    ...(bags === 0 ? [] : [`${String(bags)} ${bags === 1 ? 'drop bag' : 'drop bags'}`]),
+    ...(meetings === 0 ? [] : [`${String(meetings)} rendez-vous d’Assistance`]),
+  ].join(' · ');
 }
 
 /**
