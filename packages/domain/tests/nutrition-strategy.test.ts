@@ -9,6 +9,7 @@ import type {
   CustomMilestoneRecord,
   MyProductRecord,
   MyProductsRepository,
+  NutritionConditionRecord,
   NutritionRepository,
   NutritionSettingsRecord,
   RaceWaypointRepository,
@@ -78,6 +79,7 @@ let sentItems: AssistanceItemRecord[];
 let aidItems: AidStationItemRecord[];
 let aidNotes: AidNoteRecord[];
 let applied: ApplyNutritionInput[];
+let conditionRecords: NutritionConditionRecord[];
 
 function fakeNutrition(): NutritionRepository {
   const fake: NutritionRepository = {
@@ -142,6 +144,17 @@ function fakeNutrition(): NutritionRepository {
       });
     },
     listCustomMilestones: async () => customs,
+    // Un seul jeu de conditions ici, comme pour les prises : la base les rattache à la stratégie (0112).
+    listConditions: async () => conditionRecords,
+    saveConditions: async (participantRaceId, conditions, caffeineSpread) => {
+      conditionRecords = [...conditions];
+      const active = activePlan(plan).record.id;
+      stored = stored.map((entry) =>
+        entry.participantRaceId === participantRaceId && entry.racePlanId === active
+          ? { ...entry, caffeineSpread }
+          : entry,
+      );
+    },
     setMilestoneItems: async (_participantRaceId, milestone) => {
       customs = [
         ...customs.filter((custom) => custom.stableKey !== milestone.stableKey),
@@ -245,6 +258,7 @@ function fakeNutrition(): NutritionRepository {
         reservePercent: 0,
         supplyChoices: {},
         aidDrinkWaypointIds: [],
+        caffeineSpread: 'auto',
         confirmedAt: NOW.toISOString(),
       });
     },
@@ -339,6 +353,7 @@ beforeEach(() => {
   aidItems = [];
   aidNotes = [];
   applied = [];
+  conditionRecords = [];
   myProducts = [
     {
       id: GEL_ID,
@@ -795,6 +810,111 @@ describe('le Plan change — valider sa stratégie (§61 à §66, N25 à N28 ; d
     expect(view.review).toBeNull();
     expect(view.settings?.reservePercent).toBe(10);
     expect(view.toPlace).toHaveLength(1);
+  });
+});
+
+describe('temps chaud, froid, nuit (§13 à §19, §14 bis, 0112 ; décisions du 2026-11-24)', () => {
+  const hot = (patch: Partial<NutritionConditionRecord> = {}): NutritionConditionRecord => ({
+    type: 'hot',
+    enabled: true,
+    carbsGPerHour: null,
+    hydrationMlPerHour: null,
+    sodiumMgPerHour: null,
+    ranges: [{ startElapsedSeconds: 0, endElapsedSeconds: 3600 }],
+    ...patch,
+  });
+
+  async function withConditions(
+    conditions: readonly NutritionConditionRecord[],
+    caffeineSpread: 'auto' | 'late' | 'night' | 'manual' = 'auto',
+  ) {
+    racePass();
+    await withPlan(3);
+    await saveNutritionSettings(context(), {
+      participantRaceId: own,
+      ...SETTINGS,
+      conditions,
+      caffeineSpread,
+    });
+    return getNutritionStrategy(context(), { participantRaceId: own });
+  }
+
+  it('donne l’arrivée estimée, repère des plages, Nutrition activée ou non', async () => {
+    await withPlan(3);
+    const off = await getNutritionStrategy(context(), { participantRaceId: own });
+    const ready = await withConditions([hot()]);
+
+    expect(off.state).toBe('off');
+    expect(off.finishElapsedSeconds).toBe(3 * 3600);
+    expect(ready.finishElapsedSeconds).toBe(3 * 3600);
+  });
+
+  it('une plage chaude applique la proposition PLUKA, sur sa seule durée', async () => {
+    const view = await withConditions([hot()], 'night');
+
+    expect(conditionRecords).toEqual([hot()]);
+    expect(stored.at(-1)?.caffeineSpread).toBe('night');
+    // 60 g · 500 ml · 400 mg de base : 625 ml et 500 mg par heure au chaud.
+    expect(view.result?.conditions.hot.targets).toEqual({
+      carbsGPerHour: 60,
+      hydrationMlPerHour: 625,
+      sodiumMgPerHour: 500,
+    });
+    expect(view.result?.totals.hydrationMl).toBeCloseTo(625 + 500 * 2, 6);
+    expect(view.conditionProposals?.hot.hydrationMlPerHour).toBe(625);
+  });
+
+  it('une cible fixée par le coureur remplace la proposition', async () => {
+    const view = await withConditions([hot({ hydrationMlPerHour: 700 })]);
+
+    expect(view.result?.conditions.hot.targets.hydrationMlPerHour).toBe(700);
+    expect(view.result?.conditions.hot.custom.hydration).toBe(true);
+  });
+
+  it('une condition désactivée garde ses plages sans les appliquer', async () => {
+    const view = await withConditions([hot({ enabled: false })]);
+
+    expect(view.conditions).toEqual([hot({ enabled: false })]);
+    expect(view.result?.totals.hydrationMl).toBeCloseTo(1500, 6);
+  });
+
+  it('§17 — chaud et froid au même moment : refusé, avec la raison, et rien n’est enregistré', async () => {
+    await expect(
+      withConditions([
+        hot(),
+        hot({ type: 'cold', ranges: [{ startElapsedSeconds: 1800, endElapsedSeconds: 5400 }] }),
+      ]),
+    ).rejects.toMatchObject({ code: 'validation', details: { reason: 'hot_cold_overlap' } });
+    expect(conditionRecords).toEqual([]);
+  });
+
+  it('refuse une plage qui finit avant de commencer, et des cibles sur la nuit', async () => {
+    await expect(
+      withConditions([hot({ ranges: [{ startElapsedSeconds: 3600, endElapsedSeconds: 1800 }] })]),
+    ).rejects.toMatchObject({ details: { reason: 'range_invalid' } });
+    await expect(
+      withConditions([hot({ type: 'night', hydrationMlPerHour: 400 })]),
+    ).rejects.toMatchObject({ details: { reason: 'night_targets' } });
+  });
+
+  it('les conditions et la caféine s’enregistrent ensemble', async () => {
+    racePass();
+    await withPlan(3);
+
+    await expect(
+      saveNutritionSettings(context(), { participantRaceId: own, ...SETTINGS, conditions: [] }),
+    ).rejects.toMatchObject({ code: 'validation' });
+  });
+
+  it('Nutrition désactivée : les conditions et les propositions restent, pour la réactivation', async () => {
+    await withConditions([hot()]);
+    await disableNutrition(context(), { participantRaceId: own });
+
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+
+    expect(view.state).toBe('off');
+    expect(view.conditions).toEqual([hot()]);
+    expect(view.conditionProposals?.cold.hydrationMlPerHour).toBe(450);
   });
 });
 

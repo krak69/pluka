@@ -1,11 +1,12 @@
 -- PLUKA — Valider sa stratégie Nutrition sur un nouveau Plan
--- Référence : migration 0111 · NUTRITION_ENGINE §61 à §66, N25 à N28 ·
+-- Référence : migrations 0111, 0112 · NUTRITION_ENGINE §61 à §66, N25 à N28 ·
 -- AC-NUT-07, AC-NUT-08
 --
 -- 1. Le Plan change : la stratégie reste sur l'ancienne version, rien ne s'y
 --    écrit tant que le coureur ne l'a pas validée.
--- 2. Valider recopie tout : réglages, prises modifiées (à leur nouvelle
---    heure), prises sans place avec leurs produits ; l'ancienne reste intacte,
+-- 2. Valider recopie tout : réglages, conditions et leurs plages (0112),
+--    prises modifiées (à leur nouvelle heure), prises sans place avec leurs
+--    produits ; l'ancienne reste intacte,
 --    le diff est gardé, un nouvel essai ne double rien.
 -- 3. Placer une prise sans place : ses produits passent sur une prise du Plan
 --    actif, une seule fois.
@@ -17,7 +18,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(20);
+select plan(22);
 
 \ir _personas.psql
 
@@ -28,8 +29,19 @@ set reserve_percent = 10,
     flask_count = 3,
     aid_drink_waypoint_ids = array['aaaaaaaa-0000-4000-8000-000000000022']::uuid[],
     selected_user_product_ids = array['aaaaaaaa-0000-4000-8000-000000000053']::uuid[],
+    caffeine_spread = 'night',
     generated_at = now() - interval '1 day'
 where id = 'aaaaaaaa-0000-4000-8000-000000000051';
+
+-- Une plage chaude, avec une hydratation fixée par le coureur (0112).
+insert into public.nutrition_conditions
+  (id, nutrition_plan_id, condition_type, hydration_ml_per_hour)
+values ('cccccccc-0000-4000-8000-000000000021', 'aaaaaaaa-0000-4000-8000-000000000051',
+        'hot', 650);
+
+insert into public.nutrition_condition_ranges
+  (nutrition_condition_id, start_elapsed_seconds, end_elapsed_seconds)
+values ('cccccccc-0000-4000-8000-000000000021', 3600, 7200);
 
 insert into public.user_nutrition_products
   (id, user_id, custom_name, custom_category, custom_carbs_g, custom_sodium_mg)
@@ -90,25 +102,6 @@ select throws_ok(
   'une stratégie qui n''est pas la plus récente ne se reporte pas'
 );
 
--- Des plages Chaud / Froid / Nuit ne sont pas encore reportées : refus, pas de perte.
-reset role;
-insert into public.nutrition_conditions (id, nutrition_plan_id, condition_type)
-values ('cccccccc-0000-4000-8000-000000000021', 'aaaaaaaa-0000-4000-8000-000000000051', 'hot');
-select pg_temp.act_as('11111111-1111-4111-8111-111111111111');
-
-select throws_ok(
-  $$ select public.apply_nutrition_to_active_plan(
-       'aaaaaaaa-0000-4000-8000-000000000031', 'aaaaaaaa-0000-4000-8000-000000000051',
-       'nutrition-1.1.0', 'nutrition-config-1.0.0', repeat('a', 64), '{}'::jsonb,
-       '{}'::jsonb, '{}'::jsonb) $$,
-  '0A000',
-  null,
-  'des conditions Nutrition empêchent le report plutôt que de se perdre'
-);
-
-reset role;
-delete from public.nutrition_conditions where id = 'cccccccc-0000-4000-8000-000000000021';
-
 select pg_temp.act_as('22222222-2222-4222-8222-222222222222');
 
 select throws_ok(
@@ -141,11 +134,23 @@ select lives_ok(
 
 select is(
   (select (n.reserve_percent, n.flask_count, n.aid_drink_waypoint_ids,
-           n.selected_user_product_ids, n.carbs_target_g_per_hour, n.enabled)::text
+           n.selected_user_product_ids, n.carbs_target_g_per_hour, n.enabled,
+           n.caffeine_spread)::text
    from public.nutrition_plans n
    where n.race_plan_id = 'cccccccc-0000-4000-8000-000000000001'),
-  '(10.00,3,{aaaaaaaa-0000-4000-8000-000000000022},{aaaaaaaa-0000-4000-8000-000000000053},60.00,t)',
-  'réserve, flasques, boisson du ravito, produits et cibles sont reportés tels quels'
+  '(10.00,3,{aaaaaaaa-0000-4000-8000-000000000022},{aaaaaaaa-0000-4000-8000-000000000053},60.00,t,night)',
+  'réserve, flasques, boisson du ravito, produits, cibles et caféine sont reportés tels quels'
+);
+
+select is(
+  (select (c.condition_type, c.hydration_ml_per_hour, r.start_elapsed_seconds,
+           r.end_elapsed_seconds)::text
+   from public.nutrition_conditions c
+   join public.nutrition_plans n on n.id = c.nutrition_plan_id
+   join public.nutrition_condition_ranges r on r.nutrition_condition_id = c.id
+   where n.race_plan_id = 'cccccccc-0000-4000-8000-000000000001'),
+  '(hot,650,3600,7200)',
+  '0112 : les conditions et leurs plages sont reportées, au lieu de bloquer le report'
 );
 
 select is(
@@ -269,7 +274,8 @@ select is(
    from information_schema.columns c
    where c.table_schema = 'public' and c.table_name = 'nutrition_plans'),
   array[
-    'aid_buffer', 'aid_drink_waypoint_ids', 'bladder_ml', 'caffeine_target_total_mg',
+    'aid_buffer', 'aid_drink_waypoint_ids', 'bladder_ml', 'caffeine_spread',
+    'caffeine_target_total_mg',
     'carbs_target_g_per_hour', 'confirmed_at', 'created_at', 'enabled',
     'engine_config_version', 'engine_version', 'flask_capacity_ml', 'flask_count',
     'generated_at', 'hydration_target_ml_per_hour', 'id', 'input_hash', 'input_snapshot',
@@ -304,6 +310,30 @@ select is(
     'product_snapshot', 'quantity', 'sodium_mg', 'unit', 'user_nutrition_product_id'
   ],
   'nutrition_waypoint_items : une colonne nouvelle doit être reportée, ou écartée exprès'
+);
+
+select is(
+  (select array_agg(c.column_name::text order by c.column_name::text collate "C")
+   from information_schema.columns c
+   where c.table_schema = 'public' and c.table_name = 'nutrition_conditions'),
+  array[
+    'carbs_g_per_hour', 'condition_type', 'created_at', 'enabled', 'hydration_ml_per_hour',
+    'id', 'label', 'nutrition_plan_id', 'sodium_mg_per_hour'
+  ],
+  'nutrition_conditions : une colonne nouvelle doit être reportée, ou écartée exprès'
+);
+
+select is(
+  (select array_agg(c.column_name::text order by c.column_name::text collate "C")
+   from information_schema.columns c
+   where c.table_schema = 'public' and c.table_name = 'nutrition_condition_ranges'),
+  array[
+    'caffeine_distribution_weight', 'carbs_target_g_per_hour', 'created_at',
+    'end_elapsed_seconds', 'hydration_target_ml_per_hour', 'id', 'nutrition_condition_id',
+    'sodium_target_mg_per_hour', 'source', 'source_condition_period_id',
+    'start_elapsed_seconds'
+  ],
+  'nutrition_condition_ranges : une colonne nouvelle doit être reportée, ou écartée exprès'
 );
 
 select * from finish();

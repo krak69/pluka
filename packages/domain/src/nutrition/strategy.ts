@@ -6,19 +6,23 @@ import type {
   AidStationRepository,
   AssistanceRepository,
   BagRepository,
+  CaffeineSpreadValue,
   CourseMicroSegmentRecord,
   CustomMilestoneRecord,
   EntitlementRepositories,
+  NutritionConditionRecord,
   NutritionRepositories,
   MyProductRecord,
   NutritionSettingsRecord,
   RacePlanRecord,
 } from '@pluka/db';
 import {
+  type ConditionTargets,
   type CustomItem,
   generateNutrition,
   type MilestonePosition,
   NUTRITION_ENGINE_V1,
+  type NutritionConditionsInput,
   type NutritionContainers,
   type NutritionInput,
   type NutritionMilestone,
@@ -27,6 +31,7 @@ import {
   type NutritionTimeline,
   type NutritionTimelinePoint,
   planPreparation,
+  proposeConditionTargets,
   reviewCustomizations,
 } from '@pluka/nutrition-engine';
 import { microSegmentWeight, PLAN_ENGINE_V1 } from '@pluka/plan-engine';
@@ -35,7 +40,7 @@ import type { Actor } from '../authorization/organization-role.js';
 import type { Capability } from '../entitlements/capabilities.js';
 import { can } from '../entitlements/resolver.js';
 import { authorizeCapability, resolveEntitlements } from '../entitlements/use-cases.js';
-import { invalidStateError, notFoundError, parseCommand } from '../errors.js';
+import { invalidStateError, notFoundError, parseCommand, validationError } from '../errors.js';
 import { type AidPointView, aidDrinkPointIds, aidPoints } from './aid.js';
 import {
   type NutritionPreparationView,
@@ -99,6 +104,11 @@ export interface NutritionStrategyView {
   /** Heure de départ du Plan, pour dire l'heure de chaque prise. */
   readonly startAt: string | null;
   readonly timezone: string;
+  /**
+   * L'arrivée estimée du Plan actif, en temps écoulé : le repère des plages
+   * chaudes, froides et de nuit. Nulle sans Plan.
+   */
+  readonly finishElapsedSeconds: number | null;
   /** Les cibles ont été réglées sur une version antérieure du Plan. */
   readonly planChangedSinceSettings: boolean;
   /**
@@ -117,6 +127,13 @@ export interface NutritionStrategyView {
   readonly preparation: NutritionPreparationView | null;
   /** Ce que propose chaque ravitaillement, annoncé ou noté (§32, 0110). */
   readonly aid: readonly AidPointView[];
+  /** Temps chaud, froid, nuit, tels qu'enregistrés (0112) ; une cible nulle suit la proposition. */
+  readonly conditions: readonly NutritionConditionRecord[];
+  /** Les propositions PLUKA sur les cibles de base enregistrées (§14 bis) ; nulles sans cibles. */
+  readonly conditionProposals: {
+    readonly hot: ConditionTargets;
+    readonly cold: ConditionTargets;
+  } | null;
 }
 
 /** Un produit que le coureur a fixé à une prise. */
@@ -158,6 +175,24 @@ export interface NutritionPlanReview {
   readonly canApply: boolean;
 }
 
+/** Les propositions PLUKA pour les profils Chaud et Froid, sur les cibles de base (§14 bis). */
+function conditionProposalsOf(
+  settings: Pick<
+    NutritionSettingsRecord,
+    'carbsGPerHour' | 'hydrationMlPerHour' | 'sodiumMgPerHour'
+  >,
+) {
+  const base = {
+    carbsGPerHour: settings.carbsGPerHour,
+    hydrationMlPerHour: settings.hydrationMlPerHour,
+    sodiumMgPerHour: settings.sodiumMgPerHour,
+  };
+  return {
+    hot: proposeConditionTargets('hot', base, NUTRITION_ENGINE_V1.conditions),
+    cold: proposeConditionTargets('cold', base, NUTRITION_ENGINE_V1.conditions),
+  };
+}
+
 const PLAN_CHANGED = 'le Plan a changé : valider la stratégie sur le nouveau Plan d’abord';
 
 const participation = z.object({ participantRaceId: z.uuid() }).strict();
@@ -174,6 +209,79 @@ const containersSchema = z
     bladderMl: z.number().int().min(500).max(3000).nullable(),
   })
   .strict();
+
+/** Une course tient dans 30 jours : au-delà, c'est une saisie absurde. */
+const MAX_ELAPSED_SECONDS = 30 * 24 * 3600;
+
+const conditionSchema = z
+  .object({
+    type: z.enum(['hot', 'cold', 'night']),
+    enabled: z.boolean(),
+    carbsGPerHour: z.number().min(0).max(400).nullable(),
+    hydrationMlPerHour: z.number().int().min(0).max(5000).nullable(),
+    sodiumMgPerHour: z.number().int().min(0).max(10000).nullable(),
+    ranges: z
+      .array(
+        z
+          .object({
+            startElapsedSeconds: z.number().int().min(0).max(MAX_ELAPSED_SECONDS),
+            endElapsedSeconds: z.number().int().min(0).max(MAX_ELAPSED_SECONDS),
+          })
+          .strict(),
+      )
+      .max(12),
+  })
+  .strict();
+
+type ConditionCommand = z.infer<typeof conditionSchema>;
+
+/**
+ * Ce que la base refuserait aussi (0112), dit au coureur avant : une plage qui
+ * finit avant de commencer, deux plages d'un type qui se recouvrent, du chaud
+ * et du froid au même moment (§17), des cibles sur la nuit (§16).
+ */
+function conditionProblem(conditions: readonly ConditionCommand[]): string | null {
+  if (new Set(conditions.map((condition) => condition.type)).size !== conditions.length) {
+    return 'condition_duplicate';
+  }
+  for (const condition of conditions) {
+    if (
+      condition.type === 'night' &&
+      (condition.carbsGPerHour !== null ||
+        condition.hydrationMlPerHour !== null ||
+        condition.sodiumMgPerHour !== null)
+    ) {
+      return 'night_targets';
+    }
+    if (condition.ranges.some((range) => range.endElapsedSeconds <= range.startElapsedSeconds)) {
+      return 'range_invalid';
+    }
+  }
+  const overlaps = (
+    left: ConditionCommand['ranges'][number],
+    right: ConditionCommand['ranges'][number],
+  ) =>
+    left.startElapsedSeconds < right.endElapsedSeconds &&
+    right.startElapsedSeconds < left.endElapsedSeconds;
+  for (const condition of conditions) {
+    const ranges = condition.ranges;
+    if (
+      ranges.some((range, index) => ranges.slice(index + 1).some((other) => overlaps(range, other)))
+    ) {
+      return 'range_overlap';
+    }
+  }
+  const hot = conditions.find((condition) => condition.type === 'hot' && condition.enabled);
+  const cold = conditions.find((condition) => condition.type === 'cold' && condition.enabled);
+  if (
+    hot !== undefined &&
+    cold !== undefined &&
+    hot.ranges.some((range) => cold.ranges.some((other) => overlaps(range, other)))
+  ) {
+    return 'hot_cold_overlap';
+  }
+  return null;
+}
 
 const settingsCommand = z
   .object({
@@ -192,8 +300,18 @@ const settingsCommand = z
     productIds: z.array(z.uuid()).max(60).optional(),
     // §33-34 : ce que le coureur porte ; absent, les contenants ne changent pas.
     containers: containersSchema.optional(),
+    // §13 à §17 : temps chaud, froid, nuit ; absentes, les conditions ne changent pas.
+    conditions: z.array(conditionSchema).max(3).optional(),
+    caffeineSpread: z.enum(['auto', 'late', 'night', 'manual']).optional(),
   })
-  .strict();
+  .strict()
+  // Les conditions et la caféine s'enregistrent ensemble : l'une sans l'autre effacerait l'autre.
+  .refine(
+    (command) => (command.conditions === undefined) === (command.caffeineSpread === undefined),
+    {
+      message: 'les conditions et la répartition de la caféine vont ensemble',
+    },
+  );
 
 function serviceContext(context: NutritionContext) {
   return {
@@ -339,9 +457,19 @@ function engineInput(
     readonly noRefillPointIds: readonly string[];
     readonly aidDrinkPointIds: readonly string[];
   },
+  conditions?: {
+    readonly records: readonly NutritionConditionRecord[];
+    readonly caffeineSpread: CaffeineSpreadValue;
+  },
 ): NutritionInput {
   return {
     timeline,
+    ...(conditions === undefined
+      ? {}
+      : {
+          conditions: conditionsInput(conditions.records),
+          caffeineSpread: conditions.caffeineSpread,
+        }),
     ...(logistics === undefined
       ? {}
       : {
@@ -376,6 +504,39 @@ function engineInput(
       aidBuffer: settings.aidBuffer,
       intervalSeconds: settings.intervalMinutes === null ? null : settings.intervalMinutes * 60,
     },
+  };
+}
+
+/**
+ * Les conditions pour le moteur : les cibles fixées par le coureur (une cible
+ * nulle suit la proposition PLUKA), et les plages des conditions activées
+ * seulement — une condition désactivée garde ses plages sans les appliquer.
+ */
+function conditionsInput(records: readonly NutritionConditionRecord[]): NutritionConditionsInput {
+  const overrides = (type: 'hot' | 'cold') => {
+    const record = records.find((entry) => entry.type === type);
+    return record === undefined
+      ? {}
+      : {
+          [type]: {
+            carbsGPerHour: record.carbsGPerHour,
+            hydrationMlPerHour: record.hydrationMlPerHour,
+            sodiumMgPerHour: record.sodiumMgPerHour,
+          },
+        };
+  };
+  return {
+    ...overrides('hot'),
+    ...overrides('cold'),
+    ranges: records
+      .filter((record) => record.enabled)
+      .flatMap((record) =>
+        record.ranges.map((range) => ({
+          kind: record.type,
+          startElapsedSeconds: range.startElapsedSeconds,
+          endElapsedSeconds: range.endElapsedSeconds,
+        })),
+      ),
   };
 }
 
@@ -434,11 +595,12 @@ async function strategyInput(
   settings: NutritionSettingsRecord,
   products: readonly MyProductRecord[],
 ) {
-  const [timeline, customs, aidItems, aidNotes] = await Promise.all([
+  const [timeline, customs, aidItems, aidNotes, conditions] = await Promise.all([
     timelineOf(context, scope.raceId, scope.plan),
     context.repositories.nutrition.listCustomMilestones(settings.id),
     context.repositories.aidStations.listByRace(scope.raceId),
     context.repositories.aidNotes.listByParticipation(scope.participantRaceId),
+    context.repositories.nutrition.listConditions(settings.id),
   ]);
   // §27 : seuls les produits choisis pour cette stratégie, et qui existent encore.
   // §58 : les prises que le coureur a modifiées gardent ses produits.
@@ -456,8 +618,9 @@ async function strategyInput(
       noRefillPointIds: settings.noRefillWaypointIds,
       aidDrinkPointIds: aidDrinkPointIds(aidItems, aidNotes, settings.aidDrinkWaypointIds),
     },
+    { records: conditions, caffeineSpread: settings.caffeineSpread },
   );
-  return { engine, customs, aidItems, aidNotes };
+  return { engine, customs, aidItems, aidNotes, conditions };
 }
 
 function itemViews(custom: CustomMilestoneRecord): CustomItemView[] {
@@ -549,15 +712,22 @@ export async function getNutritionStrategy(
     context.repositories.myProducts.list(context.actor.userId),
   ]);
   const entitled = can(entitlements, 'nutrition.edit').allowed;
+  // Les conditions enregistrées et les propositions PLUKA, pour la modale des
+  // objectifs, même Nutrition désactivée : ses réglages restent.
+  const conditions =
+    settings === null ? [] : await context.repositories.nutrition.listConditions(settings.id);
   const base = {
     startAt: plan?.startAt ?? null,
     timezone,
+    finishElapsedSeconds: plan?.targetDurationSeconds ?? null,
     canEdit: entitled,
     products,
     preparation: null,
     aid: [],
     review: null,
     toPlace: [],
+    conditions,
+    conditionProposals: settings === null ? null : conditionProposalsOf(settings),
   };
 
   if (plan === null) {
@@ -638,6 +808,8 @@ export async function getNutritionStrategy(
     state: 'ready',
     settings,
     result,
+    // L'arrivée sur laquelle la stratégie est calculée, arrêts compris.
+    finishElapsedSeconds: engine.timeline.finishElapsedSeconds,
     preparation: { plan: preparationPlan, points, sends },
     aid: aidPoints(result, aidItems, aidNotes, settings.aidDrinkWaypointIds),
     planChangedSinceSettings: changed,
@@ -742,6 +914,10 @@ export async function saveNutritionSettings(
 ): Promise<NutritionResult> {
   const useCase = 'saveNutritionSettings';
   const command = parseCommand(settingsCommand, input, useCase);
+  const problem = command.conditions === undefined ? null : conditionProblem(command.conditions);
+  if (problem !== null) {
+    throw validationError(useCase, 'conditions incohérentes', { reason: problem });
+  }
 
   await authorizeCapability(serviceContext(context), {
     capability: 'nutrition.edit',
@@ -775,6 +951,11 @@ export async function saveNutritionSettings(
     timeline,
     command,
     products.filter((product) => selected.includes(product.id)),
+    [],
+    undefined,
+    command.conditions === undefined || command.caffeineSpread === undefined
+      ? undefined
+      : { records: command.conditions, caffeineSpread: command.caffeineSpread },
   );
   const result = generateNutrition(engine);
 
@@ -800,6 +981,13 @@ export async function saveNutritionSettings(
     await context.repositories.nutrition.setContainers(
       command.participantRaceId,
       command.containers,
+    );
+  }
+  if (command.conditions !== undefined && command.caffeineSpread !== undefined) {
+    await context.repositories.nutrition.saveConditions(
+      command.participantRaceId,
+      command.conditions,
+      command.caffeineSpread,
     );
   }
   return result;

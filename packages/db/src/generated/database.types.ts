@@ -1826,28 +1826,37 @@ export type Database = {
       }
       nutrition_conditions: {
         Row: {
+          carbs_g_per_hour: number | null
           condition_type: Database["public"]["Enums"]["nutrition_condition_type"]
           created_at: string
           enabled: boolean
+          hydration_ml_per_hour: number | null
           id: string
           label: string | null
           nutrition_plan_id: string
+          sodium_mg_per_hour: number | null
         }
         Insert: {
+          carbs_g_per_hour?: number | null
           condition_type: Database["public"]["Enums"]["nutrition_condition_type"]
           created_at?: string
           enabled?: boolean
+          hydration_ml_per_hour?: number | null
           id?: string
           label?: string | null
           nutrition_plan_id: string
+          sodium_mg_per_hour?: number | null
         }
         Update: {
+          carbs_g_per_hour?: number | null
           condition_type?: Database["public"]["Enums"]["nutrition_condition_type"]
           created_at?: string
           enabled?: boolean
+          hydration_ml_per_hour?: number | null
           id?: string
           label?: string | null
           nutrition_plan_id?: string
+          sodium_mg_per_hour?: number | null
         }
         Relationships: [
           {
@@ -1864,6 +1873,7 @@ export type Database = {
           aid_buffer: boolean
           aid_drink_waypoint_ids: string[]
           bladder_ml: number | null
+          caffeine_spread: string
           caffeine_target_total_mg: number | null
           carbs_target_g_per_hour: number
           confirmed_at: string | null
@@ -1898,6 +1908,7 @@ export type Database = {
           aid_buffer?: boolean
           aid_drink_waypoint_ids?: string[]
           bladder_ml?: number | null
+          caffeine_spread?: string
           caffeine_target_total_mg?: number | null
           carbs_target_g_per_hour: number
           confirmed_at?: string | null
@@ -1932,6 +1943,7 @@ export type Database = {
           aid_buffer?: boolean
           aid_drink_waypoint_ids?: string[]
           bladder_ml?: number | null
+          caffeine_spread?: string
           caffeine_target_total_mg?: number | null
           carbs_target_g_per_hour?: number
           confirmed_at?: string | null
@@ -7414,6 +7426,14 @@ export type Database = {
           p_program?: Json
           p_race_registration_urls?: Json
           p_sections: Json
+        }
+        Returns: undefined
+      }
+      save_nutrition_conditions: {
+        Args: {
+          p_caffeine_spread: string
+          p_conditions: Json
+          p_participant_race_id: string
         }
         Returns: undefined
       }

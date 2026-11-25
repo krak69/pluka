@@ -49,6 +49,24 @@ export interface NutritionSettingsRecord {
   readonly supplyChoices: Readonly<Record<string, SupplyChoice>>;
   /** Les ravitaillements où il prend la boisson d'effort fournie (0110). */
   readonly aidDrinkWaypointIds: readonly string[];
+  /** Répartition de la caféine (0112). */
+  readonly caffeineSpread: CaffeineSpreadValue;
+}
+
+export type CaffeineSpreadValue = 'auto' | 'late' | 'night' | 'manual';
+export type ConditionTypeValue = 'hot' | 'cold' | 'night';
+
+/** Une condition de la stratégie et ses plages (0001, 0112) ; une cible nulle suit la proposition PLUKA. */
+export interface NutritionConditionRecord {
+  readonly type: ConditionTypeValue;
+  readonly enabled: boolean;
+  readonly carbsGPerHour: number | null;
+  readonly hydrationMlPerHour: number | null;
+  readonly sodiumMgPerHour: number | null;
+  readonly ranges: readonly {
+    readonly startElapsedSeconds: number;
+    readonly endElapsedSeconds: number;
+  }[];
 }
 
 /** Ce qui sert après un ravitaillement : porté depuis le départ, drop bag ou Assistance. */
@@ -102,6 +120,14 @@ export interface NutritionRepository {
    * la stratégie la plus récente.
    */
   applyToActivePlan(participantRaceId: string, apply: ApplyNutritionInput): Promise<void>;
+  /** Les conditions Chaud / Froid / Nuit d'une stratégie (0112). */
+  listConditions(nutritionPlanId: string): Promise<readonly NutritionConditionRecord[]>;
+  /** Remplace les conditions et la répartition de la caféine de la stratégie du Plan actif (0112). */
+  saveConditions(
+    participantRaceId: string,
+    conditions: readonly NutritionConditionRecord[],
+    caffeineSpread: CaffeineSpreadValue,
+  ): Promise<void>;
   /** Porte les produits d'une prise sans place sur une prise du Plan actif (0111, N27). */
   placeOrphan(
     participantRaceId: string,
@@ -203,9 +229,22 @@ type SettingsRow = {
   supply_bag_waypoint_ids: string[];
   supply_assistance_waypoint_ids: string[];
   aid_drink_waypoint_ids: string[];
+  caffeine_spread: string;
   confirmed_at: string | null;
   race_plans: { status: string };
 };
+
+type ConditionRow = {
+  condition_type: string;
+  enabled: boolean;
+  carbs_g_per_hour: number | string | null;
+  hydration_ml_per_hour: number | null;
+  sodium_mg_per_hour: number | null;
+  nutrition_condition_ranges: { start_elapsed_seconds: number; end_elapsed_seconds: number }[];
+};
+
+const CAFFEINE_SPREADS: readonly string[] = ['auto', 'late', 'night', 'manual'];
+const CONDITION_ORDER: readonly string[] = ['hot', 'cold', 'night'];
 
 export const nutritionRepository = defineRepository<NutritionRepository>((context) => ({
   async findLatest(participantRaceId) {
@@ -213,7 +252,7 @@ export const nutritionRepository = defineRepository<NutritionRepository>((contex
       await context.client
         .from('nutrition_plans')
         .select(
-          'id, race_plan_id, carbs_target_g_per_hour, hydration_target_ml_per_hour, sodium_target_mg_per_hour, caffeine_target_total_mg, water_share_percent, placement_density, aid_buffer, placement_mode, placement_interval_minutes, enabled, selected_user_product_ids, flask_count, flask_capacity_ml, bladder_ml, no_refill_waypoint_ids, reserve_percent, supply_start_waypoint_ids, supply_bag_waypoint_ids, supply_assistance_waypoint_ids, aid_drink_waypoint_ids, confirmed_at, race_plans!inner(participant_race_id, status)',
+          'id, race_plan_id, carbs_target_g_per_hour, hydration_target_ml_per_hour, sodium_target_mg_per_hour, caffeine_target_total_mg, water_share_percent, placement_density, aid_buffer, placement_mode, placement_interval_minutes, enabled, selected_user_product_ids, flask_count, flask_capacity_ml, bladder_ml, no_refill_waypoint_ids, reserve_percent, supply_start_waypoint_ids, supply_bag_waypoint_ids, supply_assistance_waypoint_ids, aid_drink_waypoint_ids, caffeine_spread, confirmed_at, race_plans!inner(participant_race_id, status)',
         )
         .eq('race_plans.participant_race_id', participantRaceId)
         .order('generated_at', { ascending: false })
@@ -249,8 +288,65 @@ export const nutritionRepository = defineRepository<NutritionRepository>((contex
         ...row.supply_assistance_waypoint_ids.map((id) => [id, 'assistance'] as const),
       ]),
       aidDrinkWaypointIds: row.aid_drink_waypoint_ids,
+      caffeineSpread: (CAFFEINE_SPREADS.includes(row.caffeine_spread)
+        ? row.caffeine_spread
+        : 'auto') as CaffeineSpreadValue,
       confirmedAt: row.confirmed_at,
     };
+  },
+
+  async listConditions(nutritionPlanId) {
+    const rows = unwrapMaybe(
+      await context.client
+        .from('nutrition_conditions')
+        .select(
+          'condition_type, enabled, carbs_g_per_hour, hydration_ml_per_hour, sodium_mg_per_hour, nutrition_condition_ranges(start_elapsed_seconds, end_elapsed_seconds)',
+        )
+        .eq('nutrition_plan_id', nutritionPlanId),
+      'nutrition_conditions.list',
+    ) as ConditionRow[] | null;
+
+    return (rows ?? [])
+      .filter((row) => CONDITION_ORDER.includes(row.condition_type))
+      .sort(
+        (left, right) =>
+          CONDITION_ORDER.indexOf(left.condition_type) -
+          CONDITION_ORDER.indexOf(right.condition_type),
+      )
+      .map((row) => ({
+        type: row.condition_type as ConditionTypeValue,
+        enabled: row.enabled,
+        carbsGPerHour: row.carbs_g_per_hour === null ? null : Number(row.carbs_g_per_hour),
+        hydrationMlPerHour: row.hydration_ml_per_hour,
+        sodiumMgPerHour: row.sodium_mg_per_hour,
+        ranges: [...row.nutrition_condition_ranges]
+          .sort((left, right) => left.start_elapsed_seconds - right.start_elapsed_seconds)
+          .map((range) => ({
+            startElapsedSeconds: range.start_elapsed_seconds,
+            endElapsedSeconds: range.end_elapsed_seconds,
+          })),
+      }));
+  },
+
+  async saveConditions(participantRaceId, conditions, caffeineSpread) {
+    unwrapMaybe(
+      await context.client.rpc('save_nutrition_conditions', {
+        p_participant_race_id: participantRaceId,
+        p_conditions: conditions.map((condition) => ({
+          type: condition.type,
+          enabled: condition.enabled,
+          carbs: condition.carbsGPerHour,
+          hydration: condition.hydrationMlPerHour,
+          sodium: condition.sodiumMgPerHour,
+          ranges: condition.ranges.map((range) => ({
+            start: Math.round(range.startElapsedSeconds),
+            end: Math.round(range.endElapsedSeconds),
+          })),
+        })) as never,
+        p_caffeine_spread: caffeineSpread,
+      }),
+      'save_nutrition_conditions',
+    );
   },
 
   async save(participantRaceId, settings) {
