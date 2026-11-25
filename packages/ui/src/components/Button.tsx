@@ -9,14 +9,16 @@ import { classNames } from '../internal/class-names.js';
  * écran » : cette règle est de composition, le composant ne peut pas la faire
  * respecter — il ne voit qu'un bouton à la fois.
  *
- * `destructive` n'est jamais un CTA primaire de page (§28), et `ghostDark`
- * est le secondaire des bandes Ardoise (§27).
+ * `destructive` n'est jamais un CTA primaire de page (§28), `ghost` est
+ * l'action discrète d'une ligne ou d'un panneau clair (§27 bis), et
+ * `ghostDark` est le secondaire des bandes Ardoise (§27).
  */
-export type ButtonVariant = 'primary' | 'secondary' | 'ghostDark' | 'destructive';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'ghostDark' | 'destructive';
 
 const VARIANT_CLASS: Readonly<Record<ButtonVariant, string>> = {
   primary: 'pk-button-primary',
   secondary: 'pk-button-secondary',
+  ghost: 'pk-button-ghost',
   ghostDark: 'pk-button-ghost-dark',
   destructive: 'pk-button-destructive',
 };

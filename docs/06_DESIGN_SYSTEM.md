@@ -996,6 +996,34 @@ bord plus visible
 
 ---
 
+# 27 bis. Bouton discret
+
+Repris du `.btn-ghost` du prototype (décision du 2026-11-25). Pour les actions
+secondaires d’une ligne ou d’un panneau sur fond clair : « Modifier »,
+« Retirer », « Options avancées », « Tout voir ».
+
+```css
+.pk-button-ghost {
+  min-height: 44px;
+  padding: 8px 12px;
+  background: transparent;
+  border-color: transparent;
+  color: var(--pk-forest);
+}
+
+.pk-button-ghost:hover {
+  background: var(--pk-sand);
+}
+```
+
+Règles :
+
+- jamais l’action principale d’une zone : c’est le rôle du bouton principal ou secondaire ;
+- 44 px de cible (§29), et non les 38 px du prototype ;
+- sur fond sombre, utiliser `.pk-button-ghost-dark` (§27).
+
+---
+
 # 28. Boutons destructifs
 
 Ne pas utiliser Lichen.

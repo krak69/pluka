@@ -62,6 +62,13 @@ describe('Button', () => {
     expect(html).not.toContain('pk-button-primary');
   });
 
+  it('a une variante discrète pour les actions de ligne (§27 bis)', () => {
+    const html = renderToStaticMarkup(<Button variant="ghost">Modifier</Button>);
+
+    expect(html).toContain('pk-button-ghost');
+    expect(html).not.toContain('pk-button-ghost-dark');
+  });
+
   it('conserve les classes de l’appelant', () => {
     expect(renderToStaticMarkup(<Button className="ma-mise-en-page">X</Button>)).toContain(
       'ma-mise-en-page',

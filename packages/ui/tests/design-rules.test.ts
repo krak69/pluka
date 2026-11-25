@@ -276,6 +276,32 @@ describe('focus', () => {
   });
 });
 
+describe('variantes de bouton', () => {
+  it('n’emploie que des variantes définies par le Design System', () => {
+    // Le 2026-11-25, `pk-button-ghost` était employé 38 fois sans être défini :
+    // ces boutons prenaient le gris par défaut du navigateur. Une variante
+    // `pk-button-*` employée par un écran doit exister dans `button.css`.
+    const defined = new Set(
+      [
+        ...withoutComments(readFileSync(join(STYLES, 'button.css'), 'utf8')).matchAll(
+          /\.(pk-button-[a-z-]+)/g,
+        ),
+      ].map((match) => match[1] as string),
+    );
+
+    const offenders = productSources()
+      .filter((file) => file.endsWith('.tsx'))
+      .flatMap((file) =>
+        [...withoutComments(readFileSync(file, 'utf8')).matchAll(/\b(pk-button-[a-z-]+)/g)]
+          .map((match) => match[1] as string)
+          .filter((name) => !defined.has(name))
+          .map((name) => `${label(file)} → ${name}`),
+      );
+
+    expect(offenders, 'variante de bouton non définie').toEqual([]);
+  });
+});
+
 describe('cibles interactives', () => {
   it('atteint 44 px sur tous les contrôles', () => {
     // §29 : 44 × 44 px minimum. Le bouton principal conserve ses 52 px.

@@ -72,6 +72,23 @@ a.pk-btn {
 }
 
 /*
+ * §27 bis : le bouton discret du prototype (`.btn-ghost`), pour les actions
+ * secondaires d'une ligne ou d'un panneau sur fond clair. 44 px de cible
+ * (§29), et non les 38 px du prototype.
+ */
+.pk-button-ghost {
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border-color: transparent;
+  color: var(--pk-forest);
+}
+
+.pk-button-ghost:hover {
+  background: var(--pk-sand);
+}
+
+/*
  * §28 : un bouton destructif n'est pas un CTA primaire de page, et n'utilise
  * jamais le Lichen.
  */
