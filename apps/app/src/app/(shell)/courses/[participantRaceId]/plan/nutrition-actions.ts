@@ -25,6 +25,7 @@ import { revalidatePath } from 'next/cache';
 import type { ActionState } from '@/app/actions';
 import { assistanceContext } from '@/lib/assistance';
 import { nutritionContext } from '@/lib/nutrition';
+import { CONDITION_PROBLEMS, conditionsFromForm } from '@/lib/nutrition-conditions';
 import { requireSession } from '@/lib/session';
 
 /**
@@ -52,6 +53,9 @@ export async function saveNutritionAction(
   const session = await requireSession(pathOf(participantRaceId));
   const caffeine = String(form.get('caffeineTotalMg') ?? '').trim();
   const mode = String(form.get('placementMode') ?? 'smart');
+  // Temps chaud, froid, nuit (0112) : lus et convertis ici, côté serveur.
+  const conditions = form.has('conditionsStep') ? conditionsFromForm(form) : null;
+  if (conditions !== null && 'error' in conditions) return { error: conditions.error };
 
   try {
     await saveNutritionSettings(nutritionContext(session), {
@@ -79,6 +83,9 @@ export async function saveNutritionAction(
             },
           }
         : {}),
+      ...(conditions === null
+        ? {}
+        : { conditions: conditions.conditions, caffeineSpread: conditions.caffeineSpread }),
     });
   } catch (error) {
     if (error instanceof EntitlementError) {
@@ -86,6 +93,9 @@ export async function saveNutritionAction(
         error: 'Ta stratégie Nutrition fait partie de la préparation complète, avec le Race Pass.',
       };
     }
+    const problem =
+      error instanceof DomainError ? CONDITION_PROBLEMS[error.details['reason'] ?? ''] : undefined;
+    if (problem !== undefined) return { error: problem };
     if (error instanceof DomainError && error.code === 'validation') {
       return { error: 'Vérifie tes objectifs : des nombres positifs, sans unité.' };
     }

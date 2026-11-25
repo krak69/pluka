@@ -862,6 +862,8 @@ Une période météo doit avoir une vraie fin : elle ne doit pas s’étendre ju
 
 La nuit peut notamment servir à la répartition temporelle de la caféine sans imposer automatiquement un changement de g/h.
 
+**Temps chaud, froid, nuit (décisions produit du 2026-11-24).** Dans « Conditions particulières » de ses objectifs, le coureur active Temps chaud, Temps froid ou Nuit, et pose ses plages en temps écoulé depuis le départ ; l'heure à l'horloge s'affiche une fois la plage enregistrée. Chaud et Froid ont leurs cibles : PLUKA les propose à partir des objectifs du coureur (plus d'eau et de sodium au chaud, un peu moins d'eau et un peu plus de glucides au froid, NUTRITION_ENGINE §14 bis), et le coureur les modifie comme il veut. Chaud et froid ne peuvent pas se chevaucher. La Nuit ne change aucune cible. La caféine se répartit au choix : automatique, deuxième partie, période nocturne ou manuel ; le total ne change jamais. Les prises qui tombent dans une plage le disent dans « Ma stratégie ».
+
 ## 13.8 Quand le Plan change
 
 **Décisions produit du 2026-11-23.** Chaque confirmation du Plan en crée une nouvelle version. La stratégie Nutrition se montre aussitôt recalculée sur le nouveau Plan, avec les mêmes objectifs, mais elle ne se modifie plus tant que le coureur ne l'a pas validée :

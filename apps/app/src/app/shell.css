@@ -1931,6 +1931,7 @@ a.st-tab {
 }
 
 .st-panels > [hidden],
+.st-form[hidden],
 .st-fieldset[hidden] {
   display: none;
 }
@@ -6674,8 +6675,11 @@ a.st-tab {
 /* La modale des objectifs : bordée, peu arrondie, sans ombre décorative (DS §166). */
 .nu-dialog {
   width: min(100% - 2rem, 40rem);
+  /* Une hauteur fixe : la croix et les actions ne bougent pas d'une étape à l'autre. */
+  height: min(100dvh - 2rem, 52rem);
   max-height: calc(100dvh - 2rem);
   padding: 0;
+  overflow: hidden;
   border: 1px solid var(--pk-hairline);
   border-radius: var(--radius-sm);
   background: var(--pk-surface);
@@ -6686,10 +6690,53 @@ a.st-tab {
   background: color-mix(in srgb, var(--pk-ink) 55%, transparent);
 }
 
+/* En-tête et actions fixes, seul le milieu défile : la croix et « Annuler »
+   restent à portée, quelle que soit la longueur du formulaire. */
 .nu-dialog-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.nu-dialog-head {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6) var(--space-4);
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.nu-dialog-heading {
   display: grid;
-  gap: var(--space-5);
-  padding: var(--space-6);
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.nu-dialog-close {
+  flex: none;
+}
+
+.nu-dialog-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--space-5) var(--space-6) var(--space-6);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.nu-dialog-foot {
+  display: grid;
+  flex: none;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  border-top: 1px solid var(--pk-hairline);
+  background: var(--pk-surface);
+}
+
+.nu-dialog-foot .pk-field-error {
+  margin: 0;
 }
 
 .nu-dialog-title {
@@ -6699,15 +6746,19 @@ a.st-tab {
   font-weight: 700;
 }
 
+/* Le titre reçoit le focus à l'ouverture sans être une commande : pas d'anneau. */
+.nu-dialog-title:focus {
+  outline: none;
+}
+
 .nu-dialog-body,
 .nu-dialog-note {
-  margin: calc(-1 * var(--space-3)) 0 0;
+  margin: 0;
   font-size: 14.5px;
   color: var(--pk-text-secondary);
 }
 
 .nu-dialog-note {
-  margin: 0;
   font-size: 13px;
 }
 
@@ -6716,6 +6767,50 @@ a.st-tab {
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: var(--space-2);
+}
+
+/* Les parties du formulaire : un titre, un filet, pas de cadre. */
+.nu-part {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.nu-part-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* Sur mobile, la modale prend l'écran : plus de place pour les champs, et
+   les actions au pouce. */
+@media (width <= 620px) {
+  .nu-dialog {
+    width: 100%;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .nu-dialog-head,
+  .nu-dialog-scroll,
+  .nu-dialog-foot {
+    padding-inline: var(--space-4);
+  }
+
+  .nu-dialog-title {
+    font-size: 19px;
+  }
+
+  .nu-dialog-actions > .pk-btn {
+    flex: 1 1 auto;
+  }
 }
 
 .nu-chips {
@@ -6823,6 +6918,10 @@ a.st-tab {
 .nu-products {
   display: grid;
   gap: var(--space-4);
+}
+
+.nu-dialog-scroll > .nu-step {
+  gap: var(--space-5);
 }
 
 .nu-picks,
@@ -7111,6 +7210,336 @@ a.st-tab {
 .nu-send-button {
   justify-self: start;
   min-height: 44px;
+}
+
+/* Temps chaud, froid, nuit — §13 à §19, 0112. Un repère de couleur et toujours
+   son nom : la couleur ne porte jamais seule l'information. */
+.nu-cond-dot {
+  display: inline-block;
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--pk-text-secondary);
+}
+
+[data-type='hot'] > .nu-cond-dot {
+  background: var(--pk-warning);
+}
+
+[data-type='cold'] > .nu-cond-dot {
+  background: var(--pk-forest);
+}
+
+/* Les panneaux repliés restent montés, pour que leurs champs partent avec le
+   formulaire : sans ces règles, leur `display` l'emporterait sur `hidden`. */
+.nu-cond-panel[hidden],
+.nu-cond-body[hidden],
+.nu-cond-adjust[hidden] {
+  display: none;
+}
+
+.nu-cond-open {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nu-cond-open:hover {
+  border-color: var(--pk-text-secondary);
+}
+
+.nu-cond-open[aria-expanded='true'] {
+  border-color: var(--pk-forest);
+}
+
+.nu-cond-open-icon,
+.nu-cond-caret,
+.nu-cond-icon,
+.nu-cond-arrow {
+  display: inline-flex;
+  flex: none;
+  color: var(--pk-text-secondary);
+}
+
+.nu-cond-open-text {
+  display: grid;
+  flex: 1;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.nu-cond-open-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.nu-cond-open-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  font-size: 13px;
+  color: var(--pk-text);
+}
+
+.nu-cond-open[aria-expanded='true'] .nu-cond-caret {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nu-cond-caret {
+    transition: transform 150ms ease-out;
+  }
+}
+
+.nu-cond-panel {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.nu-cond {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  border-left: 3px solid var(--pk-hairline);
+  background: var(--pk-limestone);
+}
+
+.nu-cond[data-type='hot'][data-enabled='true'] {
+  border-left-color: var(--pk-warning);
+}
+
+.nu-cond[data-type='cold'][data-enabled='true'] {
+  border-left-color: var(--pk-forest);
+}
+
+.nu-cond[data-type='night'][data-enabled='true'] {
+  border-left-color: var(--pk-text-secondary);
+}
+
+.nu-cond-caffeine {
+  padding-top: var(--space-3);
+}
+
+.nu-cond-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.nu-cond-toggle input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--pk-forest);
+}
+
+[data-type='hot'] .nu-cond-icon {
+  color: var(--pk-warning);
+}
+
+[data-type='cold'] .nu-cond-icon {
+  color: var(--pk-forest);
+}
+
+.nu-cond-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.nu-cond-count {
+  font-size: 13px;
+  color: var(--pk-text-secondary);
+}
+
+.nu-cond-body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.nu-cond-targets {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+}
+
+.nu-cond-targets-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+
+.nu-cond-applied {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nu-cond-values {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.nu-cond-source {
+  font-size: 13px;
+  color: var(--pk-text-secondary);
+}
+
+.nu-cond-adjust {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.nu-cond-why {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pk-text-secondary);
+}
+
+/* Les actions secondaires de la modale Nutrition (Ajuster, Retirer, Options
+   avancées…) : du texte, pas des boutons à fond. */
+.nu-text-button {
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--pk-forest);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.nu-text-button:hover {
+  text-decoration-thickness: 2px;
+}
+
+.nu-dialog .nu-advanced {
+  padding-inline: 0;
+}
+
+.nu-text-button:disabled {
+  color: var(--pk-text-secondary);
+  cursor: default;
+}
+
+.nu-cond-remove {
+  color: var(--pk-text-secondary);
+  font-weight: 400;
+}
+
+.nu-cond-reset {
+  justify-self: start;
+  padding-inline: 0;
+}
+
+.nu-cond-add {
+  justify-self: start;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  font-size: 14px;
+}
+
+/* Sur le calcaire, un champ garde son fond : on voit où écrire. */
+.nu-cond .pk-input:not(:focus) {
+  background: var(--pk-surface);
+}
+
+.nu-cond-ranges-block {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.nu-cond-ranges {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nu-cond-range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+
+.nu-cond-time {
+  width: 76px;
+  min-height: 44px;
+  font-family: var(--font-mono);
+  text-align: center;
+}
+
+.nu-cond-remove {
+  margin-left: auto;
+}
+
+/* L'heure à l'horloge passe sous la plage, quelle que soit la largeur. */
+.nu-cond-clock {
+  order: 1;
+  flex-basis: 100%;
+  font-size: 13px;
+  color: var(--pk-text-secondary);
+}
+
+/* Dans la bande Nutrition : les plages et les cibles qui s'appliquent. */
+.nu-conds {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.nu-cond-periods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.nu-cond-period {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nu-cond-tag {
+  display: inline-block;
+  white-space: nowrap;
+  margin-left: var(--space-2);
+  padding: 1px 6px;
+  border: 1px solid var(--pk-text-secondary);
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pk-text-secondary);
+  vertical-align: 1px;
 }
 
 /* Le Plan a changé — §61 à §66, N27 : ce qui change, à valider ; les prises à replacer.

@@ -25,6 +25,20 @@ vi.mock('@/app/(shell)/courses/[participantRaceId]/plan/nutrition-actions', () =
   };
 });
 
+/** Aucune plage chaude, froide ou nocturne (0112). */
+const FLAT = { carbsGPerHour: 0, hydrationMlPerHour: 0, sodiumMgPerHour: 0 };
+const NO_CONDITIONS: NutritionResult['conditions'] = {
+  hot: { targets: FLAT, proposal: FLAT, custom: { carbs: false, hydration: false, sodium: false } },
+  cold: {
+    targets: FLAT,
+    proposal: FLAT,
+    custom: { carbs: false, hydration: false, sodium: false },
+  },
+  ranges: [],
+  caffeineSpread: 'auto',
+  warnings: [],
+};
+
 const { AltitudeProfile } =
   await import('@/app/(shell)/courses/[participantRaceId]/plan/altitude-profile');
 const { NutritionViews } =
@@ -141,6 +155,7 @@ function result(withProducts = true): NutritionResult {
         }
       : null,
     flasks: null,
+    conditions: NO_CONDITIONS,
   };
 }
 

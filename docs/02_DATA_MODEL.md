@@ -1208,6 +1208,8 @@ Une plage météo appliquée référence éventuellement le `condition_period` q
 
 La plage possède toujours un début et une fin.
 
+**Mise en œuvre (migration 0112).** Une condition par type et par stratégie (`ux_nutrition_conditions_plan_type`). Ses cibles horaires sont sur la condition (`carbs_g_per_hour`, `hydration_ml_per_hour`, `sodium_mg_per_hour`) : nulles, la proposition PLUKA s'applique (NUTRITION_ENGINE §14 bis) ; la Nuit n'en a jamais. `enabled` garde les plages d'une condition désactivée sans les appliquer. Les cibles par plage de `nutrition_condition_ranges` et son `caffeine_distribution_weight` restent inutilisés en V1. `nutrition_plans.caffeine_spread` (`auto`, `late`, `night`, `manual`) dit comment le total de caféine se répartit. L'écriture passe par `save_nutrition_conditions`, qui remplace le tout en une transaction et refuse chaud et froid sur le même intervalle (`HOT_COLD_OVERLAP`). Les conditions suivent la stratégie quand le Plan change (`apply_nutrition_to_active_plan`) et figurent dans l'export du compte.
+
 ## 15.4 `nutrition_waypoints`
 
 Les jalons Nutrition sont des objets stables du plan nutritionnel.

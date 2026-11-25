@@ -46,6 +46,25 @@ export interface MilestoneLine {
   readonly customized: boolean;
   /** Les produits placés, pour pré-remplir la modification. */
   readonly current: readonly { readonly productId: string; readonly quantity: number }[];
+  /** « Temps chaud », « Nuit » : les plages où tombe ce jalon (§13). */
+  readonly conditions: readonly string[];
+}
+
+const CONDITION_TAGS = { hot: 'Temps chaud', cold: 'Temps froid', night: 'Nuit' } as const;
+
+/** Les plages qui couvrent un instant, sans doublon, dans l'ordre chaud, froid, nuit. */
+function conditionsAt(result: NutritionResult, elapsedSeconds: number): string[] {
+  const kinds = new Set(
+    result.conditions.ranges
+      .filter(
+        (range) =>
+          range.startElapsedSeconds <= elapsedSeconds && elapsedSeconds < range.endElapsedSeconds,
+      )
+      .map((range) => range.kind),
+  );
+  return (['hot', 'cold', 'night'] as const)
+    .filter((kind) => kinds.has(kind))
+    .map((kind) => CONDITION_TAGS[kind]);
 }
 
 export interface SectionLine {
@@ -192,6 +211,7 @@ function milestoneLine(
       productId: item.productId,
       quantity: item.quantity,
     })),
+    conditions: conditionsAt(result, milestone.elapsedSeconds),
   };
 }
 

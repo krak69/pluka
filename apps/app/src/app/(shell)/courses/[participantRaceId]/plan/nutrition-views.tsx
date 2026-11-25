@@ -167,6 +167,11 @@ export function NutritionViews({
                 <span className="nu-milestone-name">
                   {line.name}
                   {line.customized ? <span className="nu-custom">Modifiée par toi</span> : null}
+                  {line.conditions.map((condition) => (
+                    <span key={condition} className="nu-cond-tag">
+                      {condition}
+                    </span>
+                  ))}
                 </span>
                 <span className="nu-reason">{line.reason}</span>
                 {line.pointId === null ? null : <AidInfo line={aidOf.get(line.pointId)} />}

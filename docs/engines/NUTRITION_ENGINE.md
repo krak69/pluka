@@ -443,7 +443,7 @@ pendant plage → H_hot
 après plage → H
 ```
 
-Le moteur n’invente pas `H_hot`.
+Le moteur n’invente pas `H_hot` : il le **propose**, et le coureur décide (§14 bis, décision du 2026-11-24).
 
 ---
 
@@ -458,6 +458,30 @@ Une plage `cold` peut fournir des overrides pour :
 - sodium.
 
 Une valeur non renseignée hérite de la cible de base.
+
+---
+
+# 14 bis. Propositions PLUKA pour Chaud et Froid
+
+**Décision produit du 2026-11-24.** Elle remplace l'interdit de §14 (« le moteur n'invente pas `H_hot` ») et de §22 : PLUKA **propose** des cibles Chaud et Froid, calculées sur les cibles de base du coureur. Le coureur les voit et les modifie comme il veut. Une valeur qu'il n'a pas touchée suit la proposition, recalculée si ses cibles de base changent. Les coefficients vivent dans la configuration versionnée (`NutritionEngineConfig.conditions`, `nutrition-config-1.1.0`). Ce ne sont pas des recommandations médicales, et l'écran le dit.
+
+| Profil | Dimension | Proposition | Niveau de preuve |
+|---|---|---|---|
+| Chaud | Hydratation | base × 1,25, plafonnée à 750 ml/h, jamais sous la base | Source : l'ISSN recommande 450–750 mL·h⁻¹ en course, des besoins « elevated » au chaud et met en garde contre l'excès de boisson (hyponatrémie). Le plafond est le haut de sa fourchette. |
+| Chaud | Sodium | même concentration que la base sur le nouveau volume, au moins 300 mg/h, au plus 1 000 mg/L, jamais sous la base | Source : ISSN, « ~ 300–600 mg·h⁻¹ » au chaud (> 25 °C) ou humide (> 60 %) ; « greater than ~ 1000 mg·L⁻¹ … should be avoided ». |
+| Chaud | Glucides | inchangés | L'ISSN note que la chaleur augmente l'oxydation des glucides, sans donner de chiffre, et la tolérance digestive baisse au chaud. Le coureur ajuste lui-même. |
+| Froid | Hydratation | base × 0,85, sans descendre sous 450 ml/h, jamais au-dessus de la base | **Estimation PLUKA.** On transpire moins au froid, mais l'ISSN rappelle que le froid émousse la soif : la baisse reste modérée et ne passe pas sous le bas de la fourchette ISSN. |
+| Froid | Sodium | même concentration que la base | Cohérent avec la règle en mg/L de l'ISSN. |
+| Froid | Glucides | base × 1,10, arrondie à 5 g, jamais sous la base | **Estimation PLUKA.** L'ISSN : les températures extrêmes « increase the absolute rate of CHO oxidation » et les besoins caloriques, sans chiffre. |
+
+Les propositions sont arrondies à 5 ml et à 5 mg.
+
+Sources :
+
+- International Society of Sports Nutrition, *Nutritional considerations for single-stage ultra-marathon training and racing* (Tiller et al., J Int Soc Sports Nutr 2019, 16:50, doi 10.1186/s12970-019-0312-9), texte intégral lu le 2026-11-24.
+- Sawka, Cheuvront, Kenefick, *Hydration and aerobic performance: impact of environment*, GSSI Sports Science Exchange #152 (2016) : plus de 1 L/h de sueur est courant sous la chaleur.
+
+Avant d'activer des propositions météo (WEATHER_CONDITIONS §63), ces valeurs devront être relues avec la calibration Conditions (§117).
 
 ---
 
@@ -484,6 +508,15 @@ weight = 1
 et la plage Nuit n’altère pas la distribution.
 
 Le moteur ne doit pas inventer un poids « nuit » en production à partir d’une fixture du prototype.
+
+**Répartition de la caféine (décision du 2026-11-24, prototype).** Le coureur choisit parmi quatre répartitions de son total, qui ne change jamais :
+
+- **Automatique** : `W(t) = 1`, au prorata du temps.
+- **Deuxième partie** : `W(t) = 0` avant la mi-course, `1` après.
+- **Période nocturne** : `W(t) = 1` sur les plages Nuit, `0` ailleurs. Sans plage Nuit, la deuxième partie s'applique et l'écran le dit (`caffeine_night_without_range`).
+- **Manuel** : PLUKA ne place aucune caféine ; le coureur la pose lui-même sur ses prises (§58).
+
+Aucun poids numérique n'est inventé : chaque répartition n'utilise que 0 et 1. Repère affiché, jamais imposé : l'ISSN juge des doses répétées de 50 mg·h⁻¹ « likely to be well-tolerated, principally reserved for night-running », et conseille de garder la caféine pour la fin de course.
 
 ---
 
@@ -640,6 +673,8 @@ Exemple invalide :
 Il fera 27°C
 → PLUKA invente automatiquement 742 ml/h
 ```
+
+La proposition PLUKA de §14 bis n'est pas une règle météo : elle se calcule sur les cibles du coureur, sans lire la température, et s'affiche pour qu'il la valide ou la modifie.
 
 ---
 
@@ -1704,7 +1739,7 @@ La persistance définitive intervient seulement après confirmation globale ou a
 - **Le diff montré.** Les prises modifiées seulement (les autres sont recalculées) : celles qui gardent leur place (`kept`), avec l'heure avant et après quand elle change d'au moins une minute (`time_shifted`, N25), et celles qui n'en ont plus (`item_reassignment_required`, `PRODUCT_REASSIGNMENT_REQUIRED`, N27). Fonction pure `reviewCustomizations` du moteur.
 - **Le matching.** §63, étapes 1 et 2 : la clé stable, qui pour un ravitaillement est son point officiel. Pas encore de jalon verrouillé (étape 3). Pas de rapprochement par le temps (étape 4) : son seuil n'est pas défini, le moteur ne l'invente pas, et la prise revient au coureur.
 - **Une prise sans place.** Elle garde ses produits après validation, signalée « À replacer », jusqu'à ce que le coureur choisisse : « Placer à une prise » (ses produits s'ajoutent à ceux d'une prise du Plan actif, qui devient modifiée ; `place_nutrition_orphan`, en une transaction) ou « Rendre à PLUKA » (la prise est oubliée, le moteur répartit de nouveau la sélection). Une prise dont un produit a quitté « Mes produits » ne peut que revenir à PLUKA. N28 (course raccourcie) suit le même chemin.
-- **Pas encore fait.** Les plages Chaud / Froid / Nuit n'ont ni écran ni écriture (tranche 4) : la validation refuse une stratégie qui en aurait, plutôt que de les perdre. Elle devra les recopier le jour où elles existeront.
+- **Les conditions (0112).** Les plages Chaud / Froid / Nuit et les cibles du coureur sont recopiées avec la stratégie. Elles restent en temps écoulé : le départ ne bouge pas avec le Plan, leur heure à l'horloge non plus. Une plage qui dépasse la nouvelle arrivée est ramenée à la course (§19).
 
 ---
 

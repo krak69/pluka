@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState, useTransition } from 'react';
+import { type Dispatch, type SetStateAction, useId, useState, useTransition } from 'react';
 
 import {
   addCatalogueProductAction,
@@ -49,14 +49,19 @@ function meta(product: PickableProduct): string {
 
 export function ProductsStep({
   participantRaceId,
-  products: initialProducts,
+  products,
+  onProducts: setProducts,
   selectedIds,
 }: {
   readonly participantRaceId: string;
+  /**
+   * « Mes produits », tenus par la modale : un produit ajouté ici reste dans
+   * la liste quand on referme sans enregistrer, puis qu'on rouvre.
+   */
   readonly products: readonly PickableProduct[];
+  readonly onProducts: Dispatch<SetStateAction<readonly PickableProduct[]>>;
   readonly selectedIds: readonly string[];
 }) {
-  const [products, setProducts] = useState<readonly PickableProduct[]>(initialProducts);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set(selectedIds));
   const [panel, setPanel] = useState<'none' | 'search' | 'create'>('none');
   const [query, setQuery] = useState('');
@@ -157,8 +162,6 @@ export function ProductsStep({
         <input key={productId} type="hidden" name="productIds" value={productId} />
       ))}
 
-      <p className="nu-dialog-eyebrow">Étape 2 sur 2</p>
-      <h2 className="nu-dialog-title">Quels produits veux-tu utiliser ?</h2>
       <p className="nu-dialog-body">
         PLUKA construit ta stratégie à partir des produits que tu as réellement envie d’utiliser.
       </p>
@@ -301,7 +304,7 @@ export function ProductsStep({
                   </span>
                   <button
                     type="button"
-                    className="pk-btn pk-button-ghost"
+                    className="nu-text-button"
                     disabled={pending}
                     onClick={() => add(result)}
                   >

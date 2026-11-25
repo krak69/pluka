@@ -12,6 +12,7 @@ import {
 } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-review';
 import { NutritionSendAlert } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-send';
 import { NutritionViews } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-views';
+import { conditionsBand, conditionsDraft } from '@/lib/nutrition-conditions';
 import {
   aidLines,
   flaskView,
@@ -85,6 +86,7 @@ export function NutritionBand({
   readonly view: NutritionStrategyView;
 }) {
   if (view.state === 'no_plan') return null;
+  const conditions = conditionsDraft(view);
   // « Mes produits », pour l'étape de choix de la modale.
   const pickable = view.products.map((product) => ({
     id: product.id,
@@ -117,6 +119,7 @@ export function NutritionBand({
             submitLabel="Générer ma stratégie"
             products={pickable}
             selectedIds={view.settings?.selectedProductIds ?? []}
+            conditions={conditions}
           />
         ) : (
           <Link href={`/offre?course=${participantRaceId}`} className="pk-btn pk-button-secondary">
@@ -139,6 +142,7 @@ export function NutritionBand({
       ? null
       : preparationLines(view.preparation, view.startAt, view.timezone);
   const orphans = orphanLines(view.toPlace, view.result, view.startAt, view.timezone);
+  const band = conditionsBand(view);
   const intakes = view.result.milestones.filter((milestone) => milestone.kind === 'intake').length;
   const targets = `${String(settings.carbsGPerHour)} g/h · ${String(settings.hydrationMlPerHour)} ml/h · ${String(settings.sodiumMgPerHour)} mg/h${
     settings.caffeineTotalMg === null
@@ -177,9 +181,40 @@ export function NutritionBand({
             triggerLabel="Mes paramètres"
             triggerClassName="pk-btn pk-button-secondary"
             submitLabel="Recalculer ma stratégie"
+            conditions={conditions}
           />
         ) : null}
       </div>
+
+      {band === null ? null : (
+        <div className="nu-conds">
+          {band.periods.length === 0 ? null : (
+            <ul className="nu-cond-periods" aria-label="Tes plages de conditions">
+              {band.periods.map((period) => (
+                <li key={period.key} className="nu-cond-period" data-type={period.type}>
+                  <span className="nu-cond-dot" aria-hidden="true" />
+                  {period.label}
+                  {period.clock === null ? null : (
+                    <span className="nu-meta"> ({period.clock})</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {band.profiles.map((line) => (
+            <span key={line} className="nu-meta">
+              {line}
+            </span>
+          ))}
+          {band.caffeine === null ? null : <span className="nu-meta">{band.caffeine}</span>}
+        </div>
+      )}
+
+      {(band?.warnings ?? []).map((warning) => (
+        <p key={warning} className="nu-changed" role="status">
+          {warning}
+        </p>
+      ))}
 
       {view.review === null ? null : (
         <NutritionReview
