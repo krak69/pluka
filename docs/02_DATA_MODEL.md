@@ -1277,6 +1277,8 @@ applied
 rejected
 ```
 
+**Changement de Plan (migration 0111).** `nutrition_plans` reste un enregistrement par version du Plan. Quand le coureur valide sa stratégie sur une nouvelle version, `apply_nutrition_to_active_plan` recopie la plus récente sur la version active : toutes ses colonnes de réglage, et ses `nutrition_waypoints` modifiés avec leurs `nutrition_waypoint_items`. Une prise qui garde sa place prend sa nouvelle heure ; une prise sans place reste telle quelle, à replacer. La stratégie de la version précédente n'est pas modifiée. Le diff validé est enregistré ici, au statut `applied` (`trigger_reason` `plan_changed`). Il ne cite que des clés et des heures, présentes dans les deux stratégies que l'export du compte contient. Le test pgTAP 82 échoue si une colonne est ajoutée à l'une de ces trois tables sans que son report soit décidé.
+
 Une proposition n'altère pas la stratégie active tant que l'utilisateur ne l'a pas explicitement appliquée.
 
 Ce mécanisme sert notamment aux changements de Plan et aux propositions Conditions.

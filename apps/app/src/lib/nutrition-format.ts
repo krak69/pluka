@@ -1,6 +1,9 @@
 import { AID_KIND_LABELS } from '@pluka/domain';
 import type {
   AidPointView,
+  CustomItemView,
+  NutritionPlanReview,
+  OrphanMilestoneView,
   FlaskAction,
   FlaskContainer,
   FlaskPlan,
@@ -293,6 +296,136 @@ export function strategyLines(
             : parts.join(' · '),
       warnings: (allocation?.warnings ?? []).map((warning) => WARNINGS[warning] ?? warning),
     },
+  };
+}
+
+// ------------------------------------------------------------
+// Le Plan a changé — §61 à §66, N25 à N28 ; décisions du 2026-11-23.
+// ------------------------------------------------------------
+
+function customItemsText(items: readonly CustomItemView[]): string {
+  return items.length === 0
+    ? 'Rien à cette prise'
+    : items.map((item) => `${String(item.quantity)} × ${item.label}`).join(' + ');
+}
+
+function kmText(distanceKm: number | null): string | null {
+  return distanceKm === null ? null : `km ${decimal.format(distanceKm)}`;
+}
+
+/** Une prise modifiée, telle que le récapitulatif la montre avant validation. */
+export interface ReviewKeptLine {
+  readonly key: string;
+  /** « Prise · 10:42 → 10:12 · km 12,4 → 10,1 », ou « Prise · 10:42 · km 12,4 » si rien ne bouge. */
+  readonly where: string;
+  readonly items: string;
+  /** L'heure change (N25) : marqué autrement que par la couleur. */
+  readonly shifted: boolean;
+}
+
+export interface ReviewOrphanLine {
+  readonly key: string;
+  /** « Prise de 10:42 · km 12,4 » : là où le coureur l'avait. */
+  readonly where: string;
+  readonly items: string;
+}
+
+export interface ReviewView {
+  readonly kept: readonly ReviewKeptLine[];
+  readonly orphaned: readonly ReviewOrphanLine[];
+  readonly canApply: boolean;
+}
+
+function orphanWhere(
+  orphan: OrphanMilestoneView,
+  startAt: string | null,
+  timezone: string,
+): string {
+  const km = kmText(orphan.distanceKm);
+  return `${orphan.label} de ${clockAt(startAt, timezone, orphan.elapsedSeconds)}${km === null ? '' : ` · ${km}`}`;
+}
+
+export function reviewLines(
+  review: NutritionPlanReview,
+  startAt: string | null,
+  timezone: string,
+): ReviewView {
+  return {
+    kept: review.kept.map((kept) => {
+      const before = clockAt(startAt, timezone, kept.before.elapsedSeconds);
+      const after = clockAt(startAt, timezone, kept.after.elapsedSeconds);
+      const kmBefore = kmText(kept.before.distanceKm);
+      const kmAfter = kmText(kept.after.distanceKm);
+      const clock = kept.shifted && before !== after ? `${before} → ${after}` : after;
+      const km =
+        kmAfter === null
+          ? null
+          : kmBefore !== null && kmBefore !== kmAfter
+            ? `${kmBefore} → ${kmAfter.replace('km ', '')}`
+            : kmAfter;
+      return {
+        key: kept.stableKey,
+        where: `${kept.label} · ${clock}${km === null ? '' : ` · ${km}`}`,
+        items: customItemsText(kept.items),
+        shifted: kept.shifted && before !== after,
+      };
+    }),
+    orphaned: review.orphaned.map((orphan) => ({
+      key: orphan.stableKey,
+      where: orphanWhere(orphan, startAt, timezone),
+      items: customItemsText(orphan.items),
+    })),
+    canApply: review.canApply,
+  };
+}
+
+/** Une prise à replacer, et les prises du Plan actif où la poser. */
+export interface OrphanLine {
+  readonly key: string;
+  readonly where: string;
+  readonly items: string;
+  /** Pourquoi elle ne peut que revenir à PLUKA ; nul si elle se place. */
+  readonly onlyReturn: string | null;
+  /** La prise du Plan actif la plus proche dans le temps, proposée d'abord. */
+  readonly nearest: string | null;
+}
+
+export interface PlaceTarget {
+  readonly key: string;
+  /** « 10:12 · km 10,1 · Prise ». */
+  readonly label: string;
+}
+
+export function orphanLines(
+  toPlace: readonly OrphanMilestoneView[],
+  result: NutritionResult,
+  startAt: string | null,
+  timezone: string,
+): { readonly lines: readonly OrphanLine[]; readonly targets: readonly PlaceTarget[] } {
+  const editable = result.milestones.filter((milestone) => milestone.kind !== 'finish');
+  return {
+    lines: toPlace.map((orphan) => {
+      const nearest = [...editable].sort(
+        (left, right) =>
+          Math.abs(left.elapsedSeconds - orphan.elapsedSeconds) -
+          Math.abs(right.elapsedSeconds - orphan.elapsedSeconds),
+      )[0];
+      return {
+        key: orphan.stableKey,
+        where: orphanWhere(orphan, startAt, timezone),
+        items: customItemsText(orphan.items),
+        onlyReturn: orphan.placeable
+          ? null
+          : orphan.items.length === 0
+            ? 'Tu n’y prenais rien : il n’y a rien à replacer.'
+            : 'Un de ses produits n’est plus dans « Mes produits » : elle ne peut que revenir à PLUKA.',
+        nearest: nearest?.stableKey ?? null,
+      };
+    }),
+    targets: editable.map((milestone) => ({
+      key: milestone.stableKey,
+      label: `${clockAt(startAt, timezone, milestone.elapsedSeconds)} · km ${decimal.format(milestone.distanceKm)} · ${milestone.kind === 'aid' ? milestone.name : 'Prise'}`,
+    })),
   };
 }
 

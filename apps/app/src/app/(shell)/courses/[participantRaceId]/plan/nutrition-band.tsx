@@ -6,13 +6,19 @@ import {
   NutritionDialog,
   type NutritionGoals,
 } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-dialog';
+import {
+  NutritionReview,
+  OrphanPanel,
+} from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-review';
 import { NutritionSendAlert } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-send';
 import { NutritionViews } from '@/app/(shell)/courses/[participantRaceId]/plan/nutrition-views';
 import {
   aidLines,
   flaskView,
+  orphanLines,
   plannedIntake,
   preparationLines,
+  reviewLines,
   sectionsWithFlasks,
   strategyLines,
 } from '@/lib/nutrition-format';
@@ -132,6 +138,7 @@ export function NutritionBand({
     view.preparation === null
       ? null
       : preparationLines(view.preparation, view.startAt, view.timezone);
+  const orphans = orphanLines(view.toPlace, view.result, view.startAt, view.timezone);
   const intakes = view.result.milestones.filter((milestone) => milestone.kind === 'intake').length;
   const targets = `${String(settings.carbsGPerHour)} g/h · ${String(settings.hydrationMlPerHour)} ml/h · ${String(settings.sodiumMgPerHour)} mg/h${
     settings.caffeineTotalMg === null
@@ -174,11 +181,19 @@ export function NutritionBand({
         ) : null}
       </div>
 
-      {view.planChangedSinceSettings ? (
-        <p className="nu-changed" role="status">
-          Ton plan a changé : tes prises suivent le nouveau plan, avec les mêmes objectifs.
-        </p>
-      ) : null}
+      {view.review === null ? null : (
+        <NutritionReview
+          participantRaceId={participantRaceId}
+          review={reviewLines(view.review, view.startAt, view.timezone)}
+        />
+      )}
+
+      <OrphanPanel
+        participantRaceId={participantRaceId}
+        lines={orphans.lines}
+        targets={orphans.targets}
+        canEdit={view.canEdit}
+      />
 
       {preparation === null
         ? null

@@ -7113,6 +7113,111 @@ a.st-tab {
   min-height: 44px;
 }
 
+/* Le Plan a changé — §61 à §66, N27 : ce qui change, à valider ; les prises à replacer.
+   Le même cadre Aube que l'alerte d'envoi : une action attend le coureur. */
+.nu-review {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 2px solid var(--pk-dawn);
+  border-left-width: 8px;
+  border-radius: var(--radius-sm);
+  background: var(--pk-warning-bg);
+}
+
+.nu-review-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.nu-review-title::before {
+  content: '!';
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 2px;
+  background: var(--pk-dawn);
+  color: var(--pk-ink);
+  font-weight: 800;
+}
+
+.nu-review-text {
+  margin: 0;
+}
+
+.nu-review-group {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.nu-review-group h4 {
+  margin: 0;
+}
+
+.nu-review-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nu-review-line,
+.nu-orphan {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.nu-review-where {
+  font-weight: 600;
+}
+
+/* Un libellé, pas seulement une couleur : l'heure a changé, ou la prise attend le coureur. */
+.nu-review-tag {
+  display: inline-block;
+  white-space: nowrap;
+  margin-left: var(--space-2);
+  padding: 1px 6px;
+  border: 1px solid var(--pk-forest);
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pk-forest);
+  vertical-align: 1px;
+}
+
+.nu-review-tag-orphan {
+  border-color: var(--pk-dawn);
+  background: var(--pk-dawn);
+  color: var(--pk-ink);
+}
+
+.nu-orphan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.nu-orphan-actions .pk-label {
+  flex-basis: 100%;
+}
+
+.nu-orphan-select {
+  flex: 1 1 220px;
+  min-height: 44px;
+  max-width: 100%;
+}
+
 .nu-send {
   display: flex;
   flex-wrap: wrap;

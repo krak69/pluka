@@ -2,7 +2,9 @@
 
 import {
   addCatalogueProduct,
+  applyNutritionToActivePlan,
   createMyNutritionProduct,
+  placeNutritionOrphan,
   disableNutrition,
   DomainError,
   EntitlementError,
@@ -276,6 +278,65 @@ export async function resetMilestoneAction(
     return { error: 'La proposition PLUKA n’a pas pu revenir. Réessaie dans un instant.' };
   }
   revalidatePath(pathOf(participantRaceId));
+  return {};
+}
+
+/**
+ * « Appliquer au nouveau Plan » — §61, §66 (0111) : le coureur a vu ce qui
+ * change, sa stratégie passe sur la version active du Plan.
+ */
+export async function applyNutritionAction(
+  participantRaceId: string,
+): Promise<{ readonly error?: string }> {
+  const session = await requireSession(pathOf(participantRaceId));
+  try {
+    await applyNutritionToActivePlan(nutritionContext(session), { participantRaceId });
+  } catch (error) {
+    if (error instanceof EntitlementError) {
+      return {
+        error: 'Valider ta stratégie fait partie de la stratégie Nutrition, avec le Race Pass.',
+      };
+    }
+    console.error('nutrition : validation refusée', {
+      code: error instanceof DomainError ? error.code : 'inconnu',
+    });
+    return { error: 'Ta stratégie n’a pas pu être validée. Recharge la page, puis réessaie.' };
+  }
+  revalidatePreparation(participantRaceId);
+  return {};
+}
+
+/** « Placer à une prise » — N27 (0111) : les produits d'une prise sans place vont sur une autre. */
+export async function placeOrphanAction(
+  participantRaceId: string,
+  stableKey: string,
+  targetKey: string,
+): Promise<{ readonly error?: string }> {
+  const session = await requireSession(pathOf(participantRaceId));
+  try {
+    await placeNutritionOrphan(nutritionContext(session), {
+      participantRaceId,
+      stableKey,
+      targetKey,
+    });
+  } catch (error) {
+    if (error instanceof EntitlementError) {
+      return {
+        error: 'Modifier tes prises fait partie de la stratégie Nutrition, avec le Race Pass.',
+      };
+    }
+    if (error instanceof DomainError && error.code === 'invalid_state') {
+      return {
+        error:
+          'Ces produits ne tiennent pas sur cette prise (5 portions et 6 produits au plus), ou elle a changé : choisis-en une autre, ou recharge la page.',
+      };
+    }
+    console.error('nutrition : prise non replacée', {
+      code: error instanceof DomainError ? error.code : 'inconnu',
+    });
+    return { error: 'Ces produits n’ont pas pu être replacés. Réessaie dans un instant.' };
+  }
+  revalidatePreparation(participantRaceId);
   return {};
 }
 

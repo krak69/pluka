@@ -1541,7 +1541,7 @@ Un jalon manuel ou personnalisé est protégé.
 - **Ce qui est enregistré.** Seules les prises modifiées s'enregistrent, dans `nutrition_waypoints` (`stable_key`, `is_customized`) et `nutrition_waypoint_items`. Les valeurs par portion sont recopiées par la base depuis « Mes produits ». Les autres prises restent calculées à la lecture.
 - **Le moteur.** Une prise modifiée garde exactement ses produits, sans complément de sodium. Ce qu'elle apporte compte pour les prises suivantes, qui s'ajustent (§40, étape 2). L'écran la marque « Modifiée par toi ».
 - **Revenir en arrière.** « Revenir à la proposition PLUKA » efface la prise personnalisée.
-- **Pas encore fait (tranche 5).** Si le Plan change et qu'une prise modifiée n'existe plus à sa clé, elle n'est plus montrée. Le diff qui la proposerait à réaffecter (N27) reste à faire.
+- **Quand le Plan change (0111, retour du 2026-11-23).** Une prise modifiée qui n'existe plus à sa clé garde ses produits et se montre « À replacer » : voir la mise en œuvre de §61 à §66.
 
 ---
 
@@ -1697,6 +1697,14 @@ ou permettre de conserver la stratégie actuelle lorsque le résultat reste coh�
 Un jalon auto non personnalisé peut être recalculé dans la preview.
 
 La persistance définitive intervient seulement après confirmation globale ou action explicitement autorisée.
+
+**Mise en œuvre de §61 à §66 (0111, décisions du 2026-11-23).**
+
+- **Validation à chaque changement.** Une stratégie restée sur une version antérieure du Plan se lit recalculée sur le Plan actif, avec les mêmes cibles. Rien ne s'y modifie avant que le coureur ait validé : « Appliquer au nouveau Plan » la recopie sur la version active, en une transaction (`apply_nutrition_to_active_plan`). L'ancienne reste telle quelle, comme historique de sa version du Plan. Le diff validé est gardé dans `nutrition_recalculations`, au statut `applied`.
+- **Le diff montré.** Les prises modifiées seulement (les autres sont recalculées) : celles qui gardent leur place (`kept`), avec l'heure avant et après quand elle change d'au moins une minute (`time_shifted`, N25), et celles qui n'en ont plus (`item_reassignment_required`, `PRODUCT_REASSIGNMENT_REQUIRED`, N27). Fonction pure `reviewCustomizations` du moteur.
+- **Le matching.** §63, étapes 1 et 2 : la clé stable, qui pour un ravitaillement est son point officiel. Pas encore de jalon verrouillé (étape 3). Pas de rapprochement par le temps (étape 4) : son seuil n'est pas défini, le moteur ne l'invente pas, et la prise revient au coureur.
+- **Une prise sans place.** Elle garde ses produits après validation, signalée « À replacer », jusqu'à ce que le coureur choisisse : « Placer à une prise » (ses produits s'ajoutent à ceux d'une prise du Plan actif, qui devient modifiée ; `place_nutrition_orphan`, en une transaction) ou « Rendre à PLUKA » (la prise est oubliée, le moteur répartit de nouveau la sélection). Une prise dont un produit a quitté « Mes produits » ne peut que revenir à PLUKA. N28 (course raccourcie) suit le même chemin.
+- **Pas encore fait.** Les plages Chaud / Froid / Nuit n'ont ni écran ni écriture (tranche 4) : la validation refuse une stratégie qui en aurait, plutôt que de les perdre. Elle devra les recopier le jour où elles existeront.
 
 ---
 

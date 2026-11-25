@@ -862,6 +862,16 @@ Une période météo doit avoir une vraie fin : elle ne doit pas s’étendre ju
 
 La nuit peut notamment servir à la répartition temporelle de la caféine sans imposer automatiquement un changement de g/h.
 
+## 13.8 Quand le Plan change
+
+**Décisions produit du 2026-11-23.** Chaque confirmation du Plan en crée une nouvelle version. La stratégie Nutrition se montre aussitôt recalculée sur le nouveau Plan, avec les mêmes objectifs, mais elle ne se modifie plus tant que le coureur ne l'a pas validée :
+
+- un récapitulatif dit ce qui change pour les prises qu'il a modifiées : celles qui gardent leur place, avec leur heure avant et après quand elle bouge, et celles qui n'ont plus de place, avec leurs produits ;
+- « Appliquer au nouveau Plan » reporte tout : objectifs, produits, flasques, réserve, sources, boisson du ravito et prises modifiées ;
+- une prise qui n'a plus de place garde ses produits, signalée « À replacer » jusqu'à ce que le coureur la place sur une prise du nouveau Plan, ou la rende à PLUKA. Rien ne disparaît sans lui (NUTRITION_ENGINE §61 à §66, N27).
+
+Une Nutrition désactivée sur une version antérieure garde ses réglages : la réactiver les reporte d'abord.
+
 ---
 
 # 14. Préparation
