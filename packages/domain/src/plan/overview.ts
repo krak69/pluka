@@ -1,3 +1,4 @@
+import type { RaceWaypointRecord } from '@pluka/db';
 import type { CutoffMarginStatus } from '@pluka/plan-engine';
 
 import { notFoundError, parseCommand } from '../errors.js';
@@ -29,9 +30,16 @@ import { authorizePlanRead, type PlanContext } from './use-cases.js';
 export interface PlanPointView {
   readonly raceWaypointId: string;
   readonly name: string;
+  /** Départ, ravitaillement, sommet… — 02_DATA_MODEL §6.6. */
+  readonly waypointType: RaceWaypointRecord['waypointType'];
   readonly sortOrder: number;
   readonly distanceKm: number;
   readonly altitudeM: number | null;
+  /**
+   * Dénivelé positif cumulé depuis le départ, en mètres, mesuré sur la trace.
+   * Nul sans micro-segments : rien n'est estimé à la place (§54).
+   */
+  readonly gainFromStartM: number | null;
   /** Temps écoulé depuis le départ effectif (§5.1). */
   readonly plannedElapsedSeconds: number;
   /** Heure calendaire dérivée (§5.3). */
@@ -54,6 +62,9 @@ export interface PlanPointView {
     readonly initialDurationSeconds: number;
     readonly manualOverride: boolean;
     readonly paceSecondsPerKm: number | null;
+    /** D+ et D− de la section, mesurés sur la trace ; nuls sans micro-segments. */
+    readonly elevationGainM: number | null;
+    readonly elevationLossM: number | null;
   } | null;
 }
 
@@ -67,6 +78,8 @@ export interface PlanCutoffView {
   readonly raceCutoffId: string;
   readonly raceWaypointId: string;
   readonly waypointName: string;
+  /** L'heure de la barrière, telle que l'organisation la publie. */
+  readonly cutoffAt: string | null;
   readonly marginSeconds: number;
   readonly status: CutoffMarginStatus;
 }
@@ -131,17 +144,25 @@ export async function getPlanOverview(context: PlanContext, input: unknown): Pro
     scope.race.id,
   );
 
-  const [planWaypoints, planSegments, cutoffStatuses, courseWaypoints, courseSegments, micro] =
-    await Promise.all([
-      context.repositories.racePlans.listWaypoints(plan.id),
-      context.repositories.racePlans.listSegments(plan.id),
-      context.repositories.racePlans.listCutoffStatuses(plan.id),
-      context.repositories.planCourse.listWaypoints(scope.race.id),
-      context.repositories.planCourse.listSegments(scope.race.id),
-      geometryId === null
-        ? Promise.resolve([])
-        : context.repositories.planCourse.listMicroSegments(geometryId),
-    ]);
+  const [
+    planWaypoints,
+    planSegments,
+    cutoffStatuses,
+    courseWaypoints,
+    courseSegments,
+    courseCutoffs,
+    micro,
+  ] = await Promise.all([
+    context.repositories.racePlans.listWaypoints(plan.id),
+    context.repositories.racePlans.listSegments(plan.id),
+    context.repositories.racePlans.listCutoffStatuses(plan.id),
+    context.repositories.planCourse.listWaypoints(scope.race.id),
+    context.repositories.planCourse.listSegments(scope.race.id),
+    context.repositories.planCourse.listCutoffs(scope.race.id),
+    geometryId === null
+      ? Promise.resolve([])
+      : context.repositories.planCourse.listMicroSegments(geometryId),
+  ]);
 
   const courseById = new Map(courseWaypoints.map((waypoint) => [waypoint.id, waypoint]));
   const segmentById = new Map(courseSegments.map((segment) => [segment.id, segment]));
@@ -156,6 +177,9 @@ export async function getPlanOverview(context: PlanContext, input: unknown): Pro
   const distanceById = new Map(
     courseWaypoints.map((waypoint) => [waypoint.id, waypoint.distanceKm]),
   );
+  // Sans micro-segments, le relief n'est pas connu : il reste nul, jamais zéro.
+  const relief = micro.length === 0 ? null : reliefBySegment(micro);
+  let gainSoFar = 0;
 
   const points: PlanPointView[] = [...planWaypoints]
     .sort((left, right) => left.sortOrder - right.sortOrder)
@@ -163,13 +187,16 @@ export async function getPlanOverview(context: PlanContext, input: unknown): Pro
       const course = courseById.get(waypoint.raceWaypointId);
       const segment = planSegmentByTarget.get(waypoint.raceWaypointId);
       const departure = waypoint.plannedElapsedSeconds + waypoint.stopDurationSeconds;
+      gainSoFar += segment === undefined ? 0 : (relief?.get(segment.raceSegmentId)?.gain ?? 0);
 
       return {
         raceWaypointId: waypoint.raceWaypointId,
         name: course?.name ?? 'Point de passage',
+        waypointType: course?.waypointType ?? 'other',
         sortOrder: waypoint.sortOrder,
         distanceKm: course?.distanceKm ?? 0,
         altitudeM: course?.altitudeM ?? null,
+        gainFromStartM: relief === null ? null : Math.round(gainSoFar),
         plannedElapsedSeconds: waypoint.plannedElapsedSeconds,
         plannedArrivalAt: new Date(startMs + waypoint.plannedElapsedSeconds * 1000).toISOString(),
         stopDurationSeconds: waypoint.stopDurationSeconds,
@@ -178,14 +205,16 @@ export async function getPlanOverview(context: PlanContext, input: unknown): Pro
         isLocked: waypoint.isLocked,
         lockedElapsedSeconds: waypoint.lockedElapsedSeconds,
         incomingSegment:
-          segment === undefined ? null : toSegmentView(segment, segmentById, distanceById),
+          segment === undefined ? null : toSegmentView(segment, segmentById, distanceById, relief),
       };
     });
 
+  const cutoffAtById = new Map(courseCutoffs.map((cutoff) => [cutoff.id, cutoff.cutoffDatetime]));
   const cutoffs: PlanCutoffView[] = cutoffStatuses.map((status) => ({
     raceCutoffId: status.raceCutoffId,
     raceWaypointId: status.raceWaypointId,
     waypointName: courseById.get(status.raceWaypointId)?.name ?? 'Barrière',
+    cutoffAt: cutoffAtById.get(status.raceCutoffId) ?? null,
     marginSeconds: status.marginSeconds,
     status: status.status,
   }));
@@ -220,6 +249,7 @@ function toSegmentView(
   },
   segmentById: ReadonlyMap<string, { fromWaypointId: string; toWaypointId: string }>,
   distanceById: ReadonlyMap<string, number>,
+  relief: ReadonlyMap<string, { readonly gain: number; readonly loss: number }> | null,
 ): NonNullable<PlanPointView['incomingSegment']> {
   const course = segmentById.get(segment.raceSegmentId);
   const from = course === undefined ? undefined : distanceById.get(course.fromWaypointId);
@@ -236,7 +266,29 @@ function toSegmentView(
     // en information.
     paceSecondsPerKm:
       distanceKm > 0 ? Math.round(segment.plannedDurationSeconds / distanceKm) : null,
+    elevationGainM:
+      relief === null ? null : Math.round(relief.get(segment.raceSegmentId)?.gain ?? 0),
+    elevationLossM:
+      relief === null ? null : Math.round(relief.get(segment.raceSegmentId)?.loss ?? 0),
   };
+}
+
+/** D+ et D− de chaque section, sommés sur ses micro-segments. */
+function reliefBySegment(
+  micro: readonly {
+    readonly raceSegmentId: string;
+    readonly elevationGainMeters: number;
+    readonly elevationLossMeters: number;
+  }[],
+): ReadonlyMap<string, { readonly gain: number; readonly loss: number }> {
+  const totals = new Map<string, { gain: number; loss: number }>();
+  for (const segment of micro) {
+    const total = totals.get(segment.raceSegmentId) ?? { gain: 0, loss: 0 };
+    total.gain += segment.elevationGainMeters;
+    total.loss += segment.elevationLossMeters;
+    totals.set(segment.raceSegmentId, total);
+  }
+  return totals;
 }
 
 /**

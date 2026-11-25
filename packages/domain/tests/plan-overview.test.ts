@@ -193,6 +193,54 @@ describe('getPlanOverview', () => {
     expect(overview.cutoffs.map((cutoff) => cutoff.marginSeconds)).toEqual([1844, 3600]);
     expect(overview.tightestCutoff?.raceWaypointId).toBe(WP1);
     expect(overview.tightestCutoff?.waypointName).toBe('Col du Test');
+    // L'heure publiée de chaque barrière, que la frise écrit sous l'heure de passage.
+    expect(overview.cutoffs.map((cutoff) => cutoff.cutoffAt)).toEqual([
+      '2026-06-20T05:00:00Z',
+      '2026-06-20T06:00:00Z',
+    ]);
+  });
+
+  it('donne le type de chaque point, le relief de chaque section et le D+ cumulé', async () => {
+    // Le relief se lit sur la trace : la somme des D+ et D− des micro-segments.
+    plan.microSegments = plan.microSegments.map((micro, index) =>
+      index === 0
+        ? { ...micro, elevationGainMeters: 500, elevationLossMeters: 0 }
+        : { ...micro, elevationGainMeters: 20, elevationLossMeters: 520 },
+    );
+    await withInitialPlan();
+
+    const overview = await getPlanOverview(contextFor(RUNNER_A), {
+      participantRaceId: ownParticipation,
+    });
+
+    expect(overview.points.map((point) => point.waypointType)).toEqual([
+      'start',
+      'aid_station',
+      'finish',
+    ]);
+    expect(
+      overview.points.map((point) => [
+        point.incomingSegment?.elevationGainM ?? null,
+        point.incomingSegment?.elevationLossM ?? null,
+      ]),
+    ).toEqual([
+      [null, null],
+      [500, 0],
+      [20, 520],
+    ]);
+    expect(overview.points.map((point) => point.gainFromStartM)).toEqual([0, 500, 520]);
+  });
+
+  it('ne fabrique aucun relief sans micro-segments (§54)', async () => {
+    await withInitialPlan();
+    plan.microSegments = [];
+
+    const overview = await getPlanOverview(contextFor(RUNNER_A), {
+      participantRaceId: ownParticipation,
+    });
+
+    expect(overview.points.map((point) => point.gainFromStartM)).toEqual([null, null, null]);
+    expect(overview.points[1]?.incomingSegment?.elevationGainM).toBeNull();
   });
 
   it('rend un profil ancré sur l’altitude officielle du départ', async () => {
