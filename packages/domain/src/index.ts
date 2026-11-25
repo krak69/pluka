@@ -970,8 +970,14 @@ export {
   setNutritionAidDrink,
   setAidNote,
   getMyAidNotes,
+  applyNutritionToActivePlan,
+  placeNutritionOrphan,
+  type CustomItemView,
+  type KeptMilestoneView,
   type NutritionContext,
+  type NutritionPlanReview,
   type NutritionStrategyView,
+  type OrphanMilestoneView,
 } from './nutrition/strategy.js';
 export type {
   NutritionPreparationView,

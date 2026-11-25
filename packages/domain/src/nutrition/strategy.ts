@@ -17,14 +17,17 @@ import type {
 import {
   type CustomItem,
   generateNutrition,
+  type MilestonePosition,
   NUTRITION_ENGINE_V1,
   type NutritionContainers,
   type NutritionInput,
+  type NutritionMilestone,
   type NutritionResult,
   type NutritionTerrainSpan,
   type NutritionTimeline,
   type NutritionTimelinePoint,
   planPreparation,
+  reviewCustomizations,
 } from '@pluka/nutrition-engine';
 import { microSegmentWeight, PLAN_ENGINE_V1 } from '@pluka/plan-engine';
 
@@ -52,9 +55,10 @@ import {
  *
  * Le coureur fixe ses cibles horaires et le placement de ses prises ; le
  * moteur pur les répartit sur son Plan actif. Les prises et les sections se
- * recalculent à chaque lecture : rien n'est encore personnalisé, donc rien ne
- * peut être écrasé (§57). Quand le Plan change, la stratégie suit le nouveau
- * Plan avec les mêmes cibles, et l'écran le dit.
+ * recalculent à chaque lecture ; seules les prises que le coureur a modifiées
+ * s'enregistrent (§57, §58). Quand le Plan change, la stratégie se lit sur le
+ * nouveau Plan avec les mêmes cibles, mais rien ne s'y modifie avant que le
+ * coureur ait vu ce qui change et validé (§61, §66 ; décision du 2026-11-23).
  *
  * Droits : lire est gratuit (`nutrition.read`) ; régler ses cibles est la
  * stratégie Nutrition complète, au Race Pass (`nutrition.edit`, 04 §44).
@@ -97,6 +101,15 @@ export interface NutritionStrategyView {
   readonly timezone: string;
   /** Les cibles ont été réglées sur une version antérieure du Plan. */
   readonly planChangedSinceSettings: boolean;
+  /**
+   * Le Plan a changé depuis la stratégie validée : ce qui change pour les
+   * prises modifiées, à valider avant toute modification (§61, §65, §66 ;
+   * décision du 2026-11-23). Nul sinon.
+   */
+  readonly review: NutritionPlanReview | null;
+  /** Les prises modifiées qui n'ont plus de place sur le Plan actif : à replacer (N27). */
+  readonly toPlace: readonly OrphanMilestoneView[];
+  /** Modifier la stratégie : Race Pass, et la stratégie validée sur le Plan actif. */
   readonly canEdit: boolean;
   /** « Mes produits », pour l'étape de choix de la modale. */
   readonly products: readonly MyProductRecord[];
@@ -105,6 +118,47 @@ export interface NutritionStrategyView {
   /** Ce que propose chaque ravitaillement, annoncé ou noté (§32, 0110). */
   readonly aid: readonly AidPointView[];
 }
+
+/** Un produit que le coureur a fixé à une prise. */
+export interface CustomItemView {
+  /** Nul si le produit a depuis quitté « Mes produits ». */
+  readonly userProductId: string | null;
+  readonly label: string;
+  readonly quantity: number;
+}
+
+/** Une prise modifiée qui garde sa place sur le nouveau Plan (§65 : `kept`, `time_shifted`). */
+export interface KeptMilestoneView {
+  readonly stableKey: string;
+  readonly label: string;
+  readonly before: MilestonePosition;
+  readonly after: MilestonePosition;
+  /** L'heure change : le coureur le voit avant de valider (N25). */
+  readonly shifted: boolean;
+  readonly items: readonly CustomItemView[];
+}
+
+/** Une prise modifiée qui n'a plus de place : ses produits restent, à replacer (N27). */
+export interface OrphanMilestoneView {
+  readonly stableKey: string;
+  readonly label: string;
+  /** Là où le coureur l'avait. */
+  readonly elapsedSeconds: number;
+  readonly distanceKm: number | null;
+  readonly items: readonly CustomItemView[];
+  /** Faux si l'un de ses produits a quitté « Mes produits » : elle ne peut que revenir à PLUKA. */
+  readonly placeable: boolean;
+}
+
+/** Le Plan a changé : ce que la validation reporte, et ce qu'elle laisse à replacer. */
+export interface NutritionPlanReview {
+  readonly kept: readonly KeptMilestoneView[];
+  readonly orphaned: readonly OrphanMilestoneView[];
+  /** Valider est une modification de la stratégie : Race Pass (04 §44). */
+  readonly canApply: boolean;
+}
+
+const PLAN_CHANGED = 'le Plan a changé : valider la stratégie sur le nouveau Plan d’abord';
 
 const participation = z.object({ participantRaceId: z.uuid() }).strict();
 
@@ -360,6 +414,121 @@ async function scopeOf(context: NutritionContext, participantRaceId: string, use
   return { raceId: record.raceId, timezone: race?.timezone ?? 'Europe/Paris', plan };
 }
 
+/** Le nom d'un jalon modifiable : un ravitaillement garde le sien, une prise est une prise. */
+function milestoneLabel(milestone: NutritionMilestone | undefined): string {
+  return milestone?.kind === 'aid' ? milestone.name : 'Prise';
+}
+
+/**
+ * L'entrée du moteur pour une stratégie, sur le Plan actif : produits
+ * choisis, prises modifiées, logistique. La même pour la lecture et pour la
+ * validation sur un nouveau Plan, qui doivent dire la même chose.
+ */
+async function strategyInput(
+  context: NutritionContext,
+  scope: {
+    readonly participantRaceId: string;
+    readonly raceId: string;
+    readonly plan: RacePlanRecord;
+  },
+  settings: NutritionSettingsRecord,
+  products: readonly MyProductRecord[],
+) {
+  const [timeline, customs, aidItems, aidNotes] = await Promise.all([
+    timelineOf(context, scope.raceId, scope.plan),
+    context.repositories.nutrition.listCustomMilestones(settings.id),
+    context.repositories.aidStations.listByRace(scope.raceId),
+    context.repositories.aidNotes.listByParticipation(scope.participantRaceId),
+  ]);
+  // §27 : seuls les produits choisis pour cette stratégie, et qui existent encore.
+  // §58 : les prises que le coureur a modifiées gardent ses produits.
+  const engine = engineInput(
+    timeline,
+    settings,
+    products.filter((product) => settings.selectedProductIds.includes(product.id)),
+    customs,
+    {
+      containers: {
+        flaskCount: settings.flaskCount,
+        flaskCapacityMl: settings.flaskCapacityMl,
+        bladderMl: settings.bladderMl,
+      },
+      noRefillPointIds: settings.noRefillWaypointIds,
+      aidDrinkPointIds: aidDrinkPointIds(aidItems, aidNotes, settings.aidDrinkWaypointIds),
+    },
+  );
+  return { engine, customs, aidItems, aidNotes };
+}
+
+function itemViews(custom: CustomMilestoneRecord): CustomItemView[] {
+  return custom.items.map((item) => ({
+    userProductId: item.userProductId,
+    label: item.label,
+    quantity: item.quantity,
+  }));
+}
+
+/** Les prises modifiées face aux prises calculées : gardées, ou à replacer (§63, N27). */
+function customizationsOf(
+  customs: readonly CustomMilestoneRecord[],
+  result: NutritionResult,
+): { readonly kept: KeptMilestoneView[]; readonly orphaned: OrphanMilestoneView[] } {
+  const review = reviewCustomizations(customs, result.milestones);
+  const customByKey = new Map(customs.map((custom) => [custom.stableKey, custom]));
+  const milestoneByKey = new Map(
+    result.milestones.map((milestone) => [milestone.stableKey, milestone]),
+  );
+
+  return {
+    kept: review.kept.flatMap((kept) => {
+      const custom = customByKey.get(kept.stableKey);
+      if (custom === undefined) return [];
+      return [
+        {
+          stableKey: kept.stableKey,
+          label: milestoneLabel(milestoneByKey.get(kept.stableKey)),
+          before: kept.before,
+          after: kept.after,
+          shifted: kept.shifted,
+          items: itemViews(custom),
+        },
+      ];
+    }),
+    orphaned: review.orphaned.flatMap((orphan) => {
+      const custom = customByKey.get(orphan.stableKey);
+      if (custom === undefined) return [];
+      return [
+        {
+          stableKey: orphan.stableKey,
+          label: custom.label,
+          elapsedSeconds: orphan.elapsedSeconds,
+          distanceKm: orphan.distanceKm,
+          items: itemViews(custom),
+          // Un produit retiré de « Mes produits » ne se recopie plus (0106).
+          placeable:
+            custom.items.length > 0 && custom.items.every((item) => item.userProductId !== null),
+        },
+      ];
+    }),
+  };
+}
+
+/** §79 : ce qui décrit le calcul, sans le terrain détaillé — il se retrouve depuis la géométrie (AGENTS §78). */
+function snapshotOf(
+  racePlanId: string,
+  engine: NutritionInput,
+  productIds: readonly string[],
+): Record<string, unknown> {
+  return {
+    race_plan_id: racePlanId,
+    targets: engine.targets,
+    placement: engine.placement,
+    point_count: engine.timeline.points.length,
+    terrain_span_count: engine.timeline.terrain.length,
+    product_ids: productIds,
+  };
+}
+
 /** La stratégie Nutrition d'une course, calculée sur le Plan actif. Gratuit à lire. */
 export async function getNutritionStrategy(
   context: NutritionContext,
@@ -379,14 +548,16 @@ export async function getNutritionStrategy(
     resolveEntitlements(serviceContext(context), { participantRaceId }),
     context.repositories.myProducts.list(context.actor.userId),
   ]);
-  const canEdit = can(entitlements, 'nutrition.edit').allowed;
+  const entitled = can(entitlements, 'nutrition.edit').allowed;
   const base = {
     startAt: plan?.startAt ?? null,
     timezone,
-    canEdit,
+    canEdit: entitled,
     products,
     preparation: null,
     aid: [],
+    review: null,
+    toPlace: [],
   };
 
   if (plan === null) {
@@ -408,13 +579,10 @@ export async function getNutritionStrategy(
     };
   }
 
-  const [timeline, customs, bags, assistants, aidItems, aidNotes] = await Promise.all([
-    timelineOf(context, raceId, plan),
-    context.repositories.nutrition.listCustomMilestones(settings.id),
+  const [{ engine, customs, aidItems, aidNotes }, bags, assistants] = await Promise.all([
+    strategyInput(context, { participantRaceId, raceId, plan }, settings, products),
     context.repositories.bags.listBags(participantRaceId),
     context.repositories.assistance.listAssistants(participantRaceId),
-    context.repositories.aidStations.listByRace(raceId),
-    context.repositories.aidNotes.listByParticipation(participantRaceId),
   ]);
   const assignments =
     assistants.length === 0
@@ -428,25 +596,7 @@ export async function getNutritionStrategy(
       : await context.repositories.assistance.listItems(
           assignments.map((assignment) => assignment.id),
         );
-  // §27 : seuls les produits choisis pour cette stratégie, et qui existent encore.
-  // §58 : les prises que le coureur a modifiées gardent ses produits.
-  const result = generateNutrition(
-    engineInput(
-      timeline,
-      settings,
-      products.filter((product) => settings.selectedProductIds.includes(product.id)),
-      customs,
-      {
-        containers: {
-          flaskCount: settings.flaskCount,
-          flaskCapacityMl: settings.flaskCapacityMl,
-          bladderMl: settings.bladderMl,
-        },
-        noRefillPointIds: settings.noRefillWaypointIds,
-        aidDrinkPointIds: aidDrinkPointIds(aidItems, aidNotes, settings.aidDrinkWaypointIds),
-      },
-    ),
-  );
+  const result = generateNutrition(engine);
   const points = supplyPoints(result, {
     choices: settings.supplyChoices,
     bags,
@@ -478,15 +628,111 @@ export async function getNutritionStrategy(
       },
     ];
   });
+  // Le Plan a changé : la stratégie se lit sur le nouveau Plan, mais rien ne
+  // s'y modifie avant que le coureur ait vu ce qui change et validé (§66).
+  const changed = !settings.onActivePlan;
+  const customizations = customizationsOf(customs, result);
   return {
     ...base,
+    canEdit: entitled && !changed,
     state: 'ready',
     settings,
     result,
     preparation: { plan: preparationPlan, points, sends },
     aid: aidPoints(result, aidItems, aidNotes, settings.aidDrinkWaypointIds),
-    planChangedSinceSettings: !settings.onActivePlan,
+    planChangedSinceSettings: changed,
+    review: changed
+      ? { kept: customizations.kept, orphaned: customizations.orphaned, canApply: entitled }
+      : null,
+    toPlace: changed ? [] : customizations.orphaned,
   };
+}
+
+/**
+ * Reporte la stratégie sur la version active du Plan (0111) : réglages,
+ * logistique et prises modifiées. Celles qui gardent leur place prennent leur
+ * nouvelle heure ; les autres restent avec leurs produits, à replacer (N27).
+ */
+async function carryOver(
+  context: NutritionContext,
+  scope: {
+    readonly participantRaceId: string;
+    readonly raceId: string;
+    readonly plan: RacePlanRecord;
+  },
+  settings: NutritionSettingsRecord,
+): Promise<void> {
+  const products = await context.repositories.myProducts.list(context.actor.userId);
+  const { engine, customs } = await strategyInput(context, scope, settings, products);
+  const result = generateNutrition(engine);
+  const review = reviewCustomizations(customs, result.milestones);
+  const milestoneByKey = new Map(
+    result.milestones.map((milestone) => [milestone.stableKey, milestone]),
+  );
+
+  await context.repositories.nutrition.applyToActivePlan(scope.participantRaceId, {
+    fromNutritionPlanId: settings.id,
+    engineVersion: result.engineVersion,
+    engineConfigVersion: result.configVersion,
+    inputHash: result.inputHash,
+    inputSnapshot: snapshotOf(scope.plan.id, engine, settings.selectedProductIds),
+    kept: review.kept.map((kept) => ({
+      stableKey: kept.stableKey,
+      label: milestoneLabel(milestoneByKey.get(kept.stableKey)),
+      elapsedSeconds: kept.after.elapsedSeconds,
+      distanceKm: kept.after.distanceKm,
+    })),
+    diff: {
+      kept: review.kept.map((kept) => ({
+        stable_key: kept.stableKey,
+        before_elapsed_seconds: kept.before.elapsedSeconds,
+        after_elapsed_seconds: kept.after.elapsedSeconds,
+        shifted: kept.shifted,
+      })),
+      orphaned: review.orphaned.map((orphan) => orphan.stableKey),
+      warnings: review.warnings,
+    },
+  });
+}
+
+/**
+ * Valider sa stratégie sur le nouveau Plan, après avoir vu ce qui change —
+ * « Appliquer au nouveau Plan » (§61, §66 ; décision du 2026-11-23). Race
+ * Pass, comme toute modification. Déjà validée : rien à refaire.
+ */
+export async function applyNutritionToActivePlan(
+  context: NutritionContext,
+  input: unknown,
+): Promise<void> {
+  const useCase = 'applyNutritionToActivePlan';
+  const { participantRaceId } = parseCommand(participation, input, useCase);
+  await authorizeCapability(serviceContext(context), {
+    capability: 'nutrition.edit',
+    participantRaceId,
+  });
+
+  const [{ raceId, plan }, settings] = await Promise.all([
+    scopeOf(context, participantRaceId, useCase),
+    context.repositories.nutrition.findLatest(participantRaceId),
+  ]);
+  if (plan === null || settings === null) {
+    throw invalidStateError(useCase, 'aucune stratégie à valider');
+  }
+  if (settings.onActivePlan) return;
+
+  await carryOver(context, { participantRaceId, raceId, plan }, settings);
+}
+
+/** Rien ne s'écrit dans une stratégie restée sur une version antérieure du Plan. */
+async function assertOnActivePlan(
+  context: NutritionContext,
+  participantRaceId: string,
+  useCase: string,
+): Promise<void> {
+  const latest = await context.repositories.nutrition.findLatest(participantRaceId);
+  if (latest !== null && latest.enabled && !latest.onActivePlan) {
+    throw invalidStateError(useCase, PLAN_CHANGED);
+  }
 }
 
 /** Régler ses cibles et le placement de ses prises — Race Pass (`nutrition.edit`). */
@@ -512,6 +758,18 @@ export async function saveNutritionSettings(
     context.repositories.myProducts.list(context.actor.userId),
     context.repositories.nutrition.findLatest(command.participantRaceId),
   ]);
+  if (previous !== null && !previous.onActivePlan) {
+    // Active sur une version antérieure du Plan : le coureur la valide d'abord,
+    // sinon une stratégie neuve perdrait en silence ce qu'il avait réglé.
+    if (previous.enabled) throw invalidStateError(useCase, PLAN_CHANGED);
+    // Désactivée : la réactiver reporte d'abord sa réserve, ses sources et ses
+    // prises modifiées ; les nouveaux objectifs s'appliquent ensuite.
+    await carryOver(
+      context,
+      { participantRaceId: command.participantRaceId, raceId, plan },
+      previous,
+    );
+  }
   const selected = command.productIds ?? previous?.selectedProductIds ?? [];
   const engine = engineInput(
     timeline,
@@ -533,16 +791,7 @@ export async function saveNutritionSettings(
     engineVersion: result.engineVersion,
     engineConfigVersion: result.configVersion,
     inputHash: result.inputHash,
-    // §79 : ce qui décrit le calcul, sans le terrain détaillé — il se retrouve
-    // depuis la géométrie courante, comme pour le Plan (AGENTS §78).
-    inputSnapshot: {
-      race_plan_id: plan.id,
-      targets: engine.targets,
-      placement: engine.placement,
-      point_count: engine.timeline.points.length,
-      terrain_span_count: engine.timeline.terrain.length,
-      product_ids: selected,
-    },
+    inputSnapshot: snapshotOf(plan.id, engine, selected),
   });
   if (command.productIds !== undefined) {
     await context.repositories.nutrition.setProducts(command.participantRaceId, command.productIds);
@@ -722,6 +971,7 @@ export async function setNutritionMilestoneItems(
   const view = await getNutritionStrategy(context, {
     participantRaceId: command.participantRaceId,
   });
+  if (view.review !== null) throw invalidStateError(useCase, PLAN_CHANGED);
   const milestone = view.result?.milestones.find(
     (candidate) => candidate.stableKey === command.stableKey && candidate.kind !== 'finish',
   );
@@ -739,24 +989,106 @@ export async function setNutritionMilestoneItems(
 
   await context.repositories.nutrition.setMilestoneItems(command.participantRaceId, {
     stableKey: milestone.stableKey,
-    label: milestone.kind === 'aid' ? milestone.name : 'Prise',
+    label: milestoneLabel(milestone),
     elapsedSeconds: milestone.elapsedSeconds,
     distanceKm: milestone.distanceKm,
     items: command.items,
   });
 }
 
-/** Rend une prise au moteur : la proposition PLUKA revient. */
+/**
+ * Rend une prise au moteur : la proposition PLUKA revient. Pour une prise qui
+ * n'a plus de place, c'est le geste « Rendre à PLUKA » : ses produits ne sont
+ * plus fixés, le moteur répartit de nouveau la sélection du coureur.
+ */
 export async function resetNutritionMilestone(
   context: NutritionContext,
   input: unknown,
 ): Promise<void> {
-  const command = parseCommand(resetCommand, input, 'resetNutritionMilestone');
+  const useCase = 'resetNutritionMilestone';
+  const command = parseCommand(resetCommand, input, useCase);
   await authorizeCapability(serviceContext(context), {
     capability: 'nutrition.edit',
     participantRaceId: command.participantRaceId,
   });
+  await assertOnActivePlan(context, command.participantRaceId, useCase);
   await context.repositories.nutrition.resetMilestone(command.participantRaceId, command.stableKey);
+}
+
+const placeCommand = z
+  .object({
+    participantRaceId: z.uuid(),
+    stableKey: z.string().min(1).max(160),
+    targetKey: z.string().min(1).max(160),
+  })
+  .strict();
+
+/** Une prise porte au plus 5 portions de 6 produits différents (0106). */
+const MAX_QUANTITY = 5;
+const MAX_PRODUCTS = 6;
+
+/**
+ * « Placer à une prise » (N27 ; décision du 2026-11-23) : les produits d'une
+ * prise qui n'a plus de place s'ajoutent à ceux d'une prise du Plan actif, qui
+ * devient modifiée par le coureur. Les autres prises s'ajustent autour (§40).
+ */
+export async function placeNutritionOrphan(
+  context: NutritionContext,
+  input: unknown,
+): Promise<void> {
+  const useCase = 'placeNutritionOrphan';
+  const command = parseCommand(placeCommand, input, useCase);
+  await authorizeCapability(serviceContext(context), {
+    capability: 'nutrition.edit',
+    participantRaceId: command.participantRaceId,
+  });
+
+  const view = await getNutritionStrategy(context, {
+    participantRaceId: command.participantRaceId,
+  });
+  if (view.review !== null) throw invalidStateError(useCase, PLAN_CHANGED);
+  const orphan = view.toPlace.find((candidate) => candidate.stableKey === command.stableKey);
+  if (view.state !== 'ready' || orphan === undefined) {
+    throw invalidStateError(useCase, 'prise à replacer introuvable');
+  }
+  if (!orphan.placeable) {
+    throw invalidStateError(useCase, 'un produit de cette prise a quitté « Mes produits »');
+  }
+  const target = view.result?.milestones.find(
+    (candidate) => candidate.stableKey === command.targetKey && candidate.kind !== 'finish',
+  );
+  if (target === undefined) {
+    throw invalidStateError(useCase, 'prise introuvable dans la stratégie actuelle');
+  }
+
+  // Ce que la prise visée porte déjà, plus ce qui arrive, produit par produit.
+  const merged = new Map<string, number>();
+  const add = (productId: string, quantity: number) =>
+    merged.set(productId, (merged.get(productId) ?? 0) + quantity);
+  for (const item of view.result?.allocation?.items[target.stableKey] ?? [])
+    add(item.productId, item.quantity);
+  for (const item of orphan.items) {
+    if (item.userProductId !== null) add(item.userProductId, item.quantity);
+  }
+
+  const owned = new Set(view.products.map((product) => product.id));
+  if ([...merged.keys()].some((productId) => !owned.has(productId))) {
+    throw invalidStateError(useCase, 'un produit de la prise visée a quitté « Mes produits »');
+  }
+  if (
+    merged.size > MAX_PRODUCTS ||
+    [...merged.values()].some((quantity) => quantity > MAX_QUANTITY)
+  ) {
+    throw invalidStateError(useCase, 'trop de produits pour une seule prise');
+  }
+
+  await context.repositories.nutrition.placeOrphan(command.participantRaceId, orphan.stableKey, {
+    stableKey: target.stableKey,
+    label: milestoneLabel(target),
+    elapsedSeconds: target.elapsedSeconds,
+    distanceKm: target.distanceKm,
+    items: [...merged].map(([userProductId, quantity]) => ({ userProductId, quantity })),
+  });
 }
 
 // ------------------------------------------------------------
@@ -780,6 +1112,7 @@ export async function setNutritionRefillPoint(
     capability: 'nutrition.edit',
     participantRaceId: command.participantRaceId,
   });
+  await assertOnActivePlan(context, command.participantRaceId, 'setNutritionRefillPoint');
   await context.repositories.nutrition.setRefillPoint(
     command.participantRaceId,
     command.raceWaypointId,
@@ -808,6 +1141,7 @@ export async function setNutritionReserve(
     capability: 'nutrition.edit',
     participantRaceId: command.participantRaceId,
   });
+  await assertOnActivePlan(context, command.participantRaceId, 'setNutritionReserve');
   await context.repositories.nutrition.setReserve(
     command.participantRaceId,
     command.reservePercent,
@@ -835,6 +1169,7 @@ export async function setNutritionSupplyPoint(
     capability: 'nutrition.edit',
     participantRaceId: command.participantRaceId,
   });
+  await assertOnActivePlan(context, command.participantRaceId, 'setNutritionSupplyPoint');
   await context.repositories.nutrition.setSupplyPoint(
     command.participantRaceId,
     command.raceWaypointId,
@@ -876,6 +1211,7 @@ export async function setNutritionAidDrink(
     capability: 'nutrition.edit',
     participantRaceId: command.participantRaceId,
   });
+  await assertOnActivePlan(context, command.participantRaceId, 'setNutritionAidDrink');
   await context.repositories.nutrition.setAidDrink(
     command.participantRaceId,
     command.raceWaypointId,

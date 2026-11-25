@@ -6867,6 +6867,19 @@ export type Database = {
         Args: { p_product_id: string }
         Returns: undefined
       }
+      apply_nutrition_to_active_plan: {
+        Args: {
+          p_diff: Json
+          p_engine_config_version: string
+          p_engine_version: string
+          p_from_nutrition_plan_id: string
+          p_input_hash: string
+          p_input_snapshot: Json
+          p_kept: Json
+          p_participant_race_id: string
+        }
+        Returns: string
+      }
       assistant_link_view: { Args: { p_token_hash: string }; Returns: Json }
       attach_participant_race: {
         Args: { p_race_id: string; p_referral_code?: string }
@@ -7262,6 +7275,19 @@ export type Database = {
           race_plan_id: string
           version: number
         }[]
+      }
+      place_nutrition_orphan: {
+        Args: {
+          p_distance_km: number
+          p_elapsed_seconds: number
+          p_label: string
+          p_orphan_key: string
+          p_participant_race_id: string
+          p_quantities: number[]
+          p_target_key: string
+          p_user_product_ids: string[]
+        }
+        Returns: undefined
       }
       preview_organization_invitation: {
         Args: { p_token_hash: string }

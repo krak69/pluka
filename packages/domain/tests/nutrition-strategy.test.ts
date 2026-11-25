@@ -1,6 +1,7 @@
 import type {
   AidNoteRecord,
   AidStationItemRecord,
+  ApplyNutritionInput,
   AssistanceAssignmentRecord,
   AssistanceItemRecord,
   AssistantRecord,
@@ -17,7 +18,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   DomainError,
   EntitlementError,
+  applyNutritionToActivePlan,
   createMyNutritionProduct,
+  placeNutritionOrphan,
   disableNutrition,
   generateRacePlan,
   getNutritionStrategy,
@@ -74,9 +77,10 @@ let assignments: AssistanceAssignmentRecord[];
 let sentItems: AssistanceItemRecord[];
 let aidItems: AidStationItemRecord[];
 let aidNotes: AidNoteRecord[];
+let applied: ApplyNutritionInput[];
 
 function fakeNutrition(): NutritionRepository {
-  return {
+  const fake: NutritionRepository = {
     findLatest: async (participantRaceId) => {
       const row = stored.filter((entry) => entry.participantRaceId === participantRaceId).at(-1);
       if (row === undefined) return null;
@@ -143,6 +147,9 @@ function fakeNutrition(): NutritionRepository {
         ...customs.filter((custom) => custom.stableKey !== milestone.stableKey),
         {
           stableKey: milestone.stableKey,
+          label: milestone.label,
+          elapsedSeconds: milestone.elapsedSeconds,
+          distanceKm: milestone.distanceKm,
           items: milestone.items.map((item) => {
             const product = myProducts.find((entry) => entry.id === item.userProductId);
             return {
@@ -161,12 +168,60 @@ function fakeNutrition(): NutritionRepository {
     resetMilestone: async (_participantRaceId, stableKey) => {
       customs = customs.filter((custom) => custom.stableKey !== stableKey);
     },
+    // Comme 0111 : une copie de la plus récente sur la version active, une seule fois.
+    applyToActivePlan: async (participantRaceId, apply) => {
+      const active = activePlan(plan).record.id;
+      if (stored.some((entry) => entry.racePlanId === active)) return;
+      const latest = stored.filter((entry) => entry.participantRaceId === participantRaceId).at(-1);
+      if (latest === undefined || latest.id !== apply.fromNutritionPlanId) {
+        throw new Error('stratégie périmée');
+      }
+      stored.push({ ...latest, id: `nutrition-${String(stored.length + 1)}`, racePlanId: active });
+      applied.push(apply);
+      // Les prises restent dans la liste (un seul jeu ici) ; celles qui gardent leur place bougent.
+      customs = customs.map((custom) => {
+        const kept = apply.kept.find((entry) => entry.stableKey === custom.stableKey);
+        return kept === undefined
+          ? custom
+          : {
+              ...custom,
+              label: kept.label,
+              elapsedSeconds: kept.elapsedSeconds,
+              distanceKm: kept.distanceKm,
+            };
+      });
+    },
+    placeOrphan: async (participantRaceId, orphanKey, target) => {
+      if (!customs.some((custom) => custom.stableKey === orphanKey)) {
+        throw new Error('prise à replacer introuvable');
+      }
+      customs = customs.filter((custom) => custom.stableKey !== orphanKey);
+      await fake.setMilestoneItems(participantRaceId, target);
+    },
     disable: async (participantRaceId) => {
       stored = stored.map((entry) =>
         entry.participantRaceId === participantRaceId ? { ...entry, enabled: false } : entry,
       );
     },
     save: async (participantRaceId, settings) => {
+      // Comme 0103 : une stratégie par version du Plan ; la réenregistrer garde le reste.
+      const active = activePlan(plan).record.id;
+      const existing = stored.find((entry) => entry.racePlanId === active);
+      if (existing !== undefined) {
+        Object.assign(existing, {
+          carbsGPerHour: settings.carbsGPerHour,
+          hydrationMlPerHour: settings.hydrationMlPerHour,
+          sodiumMgPerHour: settings.sodiumMgPerHour,
+          caffeineTotalMg: settings.caffeineTotalMg,
+          waterSharePercent: settings.waterSharePercent,
+          density: settings.density,
+          aidBuffer: settings.aidBuffer,
+          placementMode: settings.placementMode,
+          intervalMinutes: settings.intervalMinutes,
+          enabled: true,
+        });
+        return;
+      }
       stored.push({
         participantRaceId,
         id: `nutrition-${String(stored.length + 1)}`,
@@ -194,6 +249,7 @@ function fakeNutrition(): NutritionRepository {
       });
     },
   };
+  return fake;
 }
 
 function context(userId: string = RUNNER_A): NutritionContext & PlanContext {
@@ -282,6 +338,7 @@ beforeEach(() => {
   sentItems = [];
   aidItems = [];
   aidNotes = [];
+  applied = [];
   myProducts = [
     {
       id: GEL_ID,
@@ -539,6 +596,205 @@ describe('prise personnalisée (§57, §58, 0106)', () => {
         items: [{ userProductId: '0f000000-0000-4000-8000-0000000000ff', quantity: 1 }],
       }),
     ).rejects.toBeInstanceOf(DomainError);
+  });
+});
+
+describe('le Plan change — valider sa stratégie (§61 à §66, N25 à N28 ; décisions du 2026-11-23)', () => {
+  /**
+   * Une stratégie sur un Plan de 4 h, avec deux prises modifiées : la première
+   * après le ravito (son heure suivra l'arrivée au ravito), et la dernière
+   * avant le ravito — sur un Plan de 3 h, la section compte une prise de moins.
+   */
+  async function changedPlan(): Promise<{ kept: string; orphan: string; start: string }> {
+    racePass();
+    await withPlan(4);
+    await saveNutritionSettings(context(), {
+      participantRaceId: own,
+      ...SETTINGS,
+      waterSharePercent: 100,
+      productIds: [GEL_ID],
+    });
+    await setNutritionReserve(context(), { participantRaceId: own, reservePercent: 10 });
+
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    const [first] = view.result?.sections ?? [];
+    const start = first?.fromPointId ?? '';
+    const aid = first?.toPointId ?? '';
+    const leg = (view.result?.milestones ?? []).filter((milestone) =>
+      milestone.stableKey.startsWith(`intake:${start}:`),
+    );
+    const orphan = leg.at(-1)?.stableKey ?? '';
+    const kept = `intake:${aid}:1`;
+
+    await setNutritionMilestoneItems(context(), {
+      participantRaceId: own,
+      stableKey: kept,
+      items: [{ userProductId: GEL_ID, quantity: 2 }],
+    });
+    await setNutritionMilestoneItems(context(), {
+      participantRaceId: own,
+      stableKey: orphan,
+      items: [{ userProductId: GEL_ID, quantity: 2 }],
+    });
+
+    await withPlan(3);
+    return { kept, orphan, start };
+  }
+
+  it('la stratégie se lit sur le nouveau Plan, avec ce qui change, et attend la validation', async () => {
+    const { kept, orphan } = await changedPlan();
+
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+
+    expect(view.state).toBe('ready');
+    expect(view.canEdit).toBe(false);
+    expect(view.review?.canApply).toBe(true);
+    // N25 : l'heure de la prise gardée a bougé, avant et après.
+    expect(view.review?.kept.map((line) => [line.stableKey, line.shifted])).toEqual([[kept, true]]);
+    const [line] = view.review?.kept ?? [];
+    expect(line?.after.elapsedSeconds).toBeLessThan(line?.before.elapsedSeconds ?? 0);
+    // N27 : la prise sans place garde ses 2 gels.
+    expect(view.review?.orphaned.map((entry) => [entry.stableKey, entry.items])).toEqual([
+      [orphan, [{ userProductId: GEL_ID, label: 'Gel 25', quantity: 2 }]],
+    ]);
+    expect(view.toPlace).toEqual([]);
+  });
+
+  it('rien ne se modifie avant validation : une stratégie neuve perdrait les réglages', async () => {
+    const { kept } = await changedPlan();
+    const invalid = { code: 'invalid_state' };
+
+    await expect(
+      setNutritionReserve(context(), { participantRaceId: own, reservePercent: 20 }),
+    ).rejects.toMatchObject(invalid);
+    await expect(
+      setNutritionMilestoneItems(context(), { participantRaceId: own, stableKey: kept, items: [] }),
+    ).rejects.toMatchObject(invalid);
+    await expect(
+      resetNutritionMilestone(context(), { participantRaceId: own, stableKey: kept }),
+    ).rejects.toMatchObject(invalid);
+    await expect(
+      saveNutritionSettings(context(), { participantRaceId: own, ...SETTINGS }),
+    ).rejects.toMatchObject(invalid);
+    expect(stored).toHaveLength(1);
+  });
+
+  it('valider reporte tout : réglages, prises gardées à leur nouvelle heure, prise sans place', async () => {
+    const { kept, orphan } = await changedPlan();
+
+    await applyNutritionToActivePlan(context(), { participantRaceId: own });
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+
+    expect(view.review).toBeNull();
+    expect(view.canEdit).toBe(true);
+    expect(view.settings?.reservePercent).toBe(10);
+    expect(view.result?.allocation?.customized).toEqual([kept]);
+    expect(view.result?.allocation?.items[kept]?.map((item) => item.quantity)).toEqual([2]);
+    expect(view.toPlace.map((entry) => [entry.stableKey, entry.placeable])).toEqual([
+      [orphan, true],
+    ]);
+    // Le diff validé : la prise gardée, son heure avant et après ; la prise sans place.
+    expect(applied[0]?.diff).toMatchObject({
+      orphaned: [orphan],
+      warnings: ['PRODUCT_REASSIGNMENT_REQUIRED'],
+    });
+    expect(applied[0]?.kept.map((entry) => entry.stableKey)).toEqual([kept]);
+  });
+
+  it('un nouvel essai ne refait rien', async () => {
+    await changedPlan();
+
+    await applyNutritionToActivePlan(context(), { participantRaceId: own });
+    await applyNutritionToActivePlan(context(), { participantRaceId: own });
+
+    expect(stored).toHaveLength(2);
+    expect(applied).toHaveLength(1);
+  });
+
+  it('valider demande d’être le coureur', async () => {
+    await changedPlan();
+
+    await expect(
+      applyNutritionToActivePlan(context(RUNNER_B), { participantRaceId: own }),
+    ).rejects.toBeInstanceOf(Error);
+    expect(applied).toEqual([]);
+  });
+
+  it('placer la prise sans place : ses gels s’ajoutent à la prise choisie', async () => {
+    const { orphan, start } = await changedPlan();
+    await applyNutritionToActivePlan(context(), { participantRaceId: own });
+    const target = `intake:${start}:1`;
+    const before = (await getNutritionStrategy(context(), { participantRaceId: own })).result
+      ?.allocation?.items[target];
+
+    await placeNutritionOrphan(context(), {
+      participantRaceId: own,
+      stableKey: orphan,
+      targetKey: target,
+    });
+
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(view.toPlace).toEqual([]);
+    const gels = (items: typeof before) =>
+      (items ?? [])
+        .filter((item) => item.productId === GEL_ID)
+        .reduce((sum, item) => sum + item.quantity, 0);
+    expect(gels(view.result?.allocation?.items[target])).toBe(gels(before) + 2);
+    expect(view.result?.allocation?.customized).toContain(target);
+  });
+
+  it('rendre à PLUKA : la prise sans place est oubliée, sur demande du coureur', async () => {
+    const { orphan } = await changedPlan();
+    await applyNutritionToActivePlan(context(), { participantRaceId: own });
+
+    await resetNutritionMilestone(context(), { participantRaceId: own, stableKey: orphan });
+
+    expect((await getNutritionStrategy(context(), { participantRaceId: own })).toPlace).toEqual([]);
+  });
+
+  it('refuse de placer avant validation, une prise inconnue, ou sur l’arrivée', async () => {
+    const { orphan, start } = await changedPlan();
+    const invalid = { code: 'invalid_state' };
+
+    await expect(
+      placeNutritionOrphan(context(), {
+        participantRaceId: own,
+        stableKey: orphan,
+        targetKey: `intake:${start}:1`,
+      }),
+    ).rejects.toMatchObject(invalid);
+
+    await applyNutritionToActivePlan(context(), { participantRaceId: own });
+    const finish = (
+      await getNutritionStrategy(context(), { participantRaceId: own })
+    ).result?.milestones.at(-1);
+    await expect(
+      placeNutritionOrphan(context(), {
+        participantRaceId: own,
+        stableKey: 'intake:inconnue:1',
+        targetKey: `intake:${start}:1`,
+      }),
+    ).rejects.toMatchObject(invalid);
+    await expect(
+      placeNutritionOrphan(context(), {
+        participantRaceId: own,
+        stableKey: orphan,
+        targetKey: finish?.stableKey ?? '',
+      }),
+    ).rejects.toMatchObject(invalid);
+  });
+
+  it('une Nutrition désactivée sur un ancien Plan se réactive avec ses réglages', async () => {
+    await changedPlan();
+    await disableNutrition(context(), { participantRaceId: own });
+
+    await saveNutritionSettings(context(), { participantRaceId: own, ...SETTINGS });
+
+    const view = await getNutritionStrategy(context(), { participantRaceId: own });
+    expect(view.state).toBe('ready');
+    expect(view.review).toBeNull();
+    expect(view.settings?.reservePercent).toBe(10);
+    expect(view.toPlace).toHaveLength(1);
   });
 });
 

@@ -96,6 +96,35 @@ export interface NutritionRepository {
   setMilestoneItems(participantRaceId: string, milestone: CustomMilestoneInput): Promise<void>;
   /** Rend la prise au moteur : la proposition PLUKA revient. */
   resetMilestone(participantRaceId: string, stableKey: string): Promise<void>;
+  /**
+   * Recopie la stratégie validée sur la version active du Plan (0111, §61, §66).
+   * Sans effet si elle y est déjà ; refusée si `fromNutritionPlanId` n'est plus
+   * la stratégie la plus récente.
+   */
+  applyToActivePlan(participantRaceId: string, apply: ApplyNutritionInput): Promise<void>;
+  /** Porte les produits d'une prise sans place sur une prise du Plan actif (0111, N27). */
+  placeOrphan(
+    participantRaceId: string,
+    orphanKey: string,
+    target: CustomMilestoneInput,
+  ): Promise<void>;
+}
+
+export interface ApplyNutritionInput {
+  readonly fromNutritionPlanId: string;
+  readonly engineVersion: string;
+  readonly engineConfigVersion: string;
+  readonly inputHash: string;
+  readonly inputSnapshot: Readonly<Record<string, unknown>>;
+  /** Les prises modifiées qui gardent leur place, à leur position sur le nouveau Plan. */
+  readonly kept: readonly {
+    readonly stableKey: string;
+    readonly label: string;
+    readonly elapsedSeconds: number;
+    readonly distanceKm: number | null;
+  }[];
+  /** Le diff validé, gardé dans `nutrition_recalculations` (02 §15.6). */
+  readonly diff: Readonly<Record<string, unknown>>;
 }
 
 export interface ContainersInput {
@@ -118,6 +147,10 @@ export interface CustomMilestoneItemRecord {
 
 export interface CustomMilestoneRecord {
   readonly stableKey: string;
+  /** Là où la prise était quand le coureur l'a fixée, sur la version de sa stratégie. */
+  readonly label: string;
+  readonly elapsedSeconds: number;
+  readonly distanceKm: number | null;
   readonly items: readonly CustomMilestoneItemRecord[];
 }
 
@@ -131,6 +164,9 @@ export interface CustomMilestoneInput {
 
 type CustomMilestoneRow = {
   stable_key: string;
+  label: string;
+  elapsed_seconds: number;
+  distance_km: number | string | null;
   nutrition_waypoint_items: {
     user_nutrition_product_id: string | null;
     generic_label: string | null;
@@ -319,7 +355,7 @@ export const nutritionRepository = defineRepository<NutritionRepository>((contex
       await context.client
         .from('nutrition_waypoints')
         .select(
-          'stable_key, nutrition_waypoint_items(user_nutrition_product_id, generic_label, product_label_snapshot, quantity, carbs_g, sodium_mg, caffeine_mg, hydration_ml, created_at)',
+          'stable_key, label, elapsed_seconds, distance_km, nutrition_waypoint_items(user_nutrition_product_id, generic_label, product_label_snapshot, quantity, carbs_g, sodium_mg, caffeine_mg, hydration_ml, created_at)',
         )
         .eq('nutrition_plan_id', nutritionPlanId)
         .eq('is_customized', true),
@@ -328,6 +364,9 @@ export const nutritionRepository = defineRepository<NutritionRepository>((contex
 
     return (rows ?? []).map((row) => ({
       stableKey: row.stable_key,
+      label: row.label,
+      elapsedSeconds: row.elapsed_seconds,
+      distanceKm: row.distance_km === null ? null : Number(row.distance_km),
       items: [...row.nutrition_waypoint_items]
         .sort((left, right) => (left.created_at < right.created_at ? -1 : 1))
         .map((item) => ({
@@ -366,6 +405,48 @@ export const nutritionRepository = defineRepository<NutritionRepository>((contex
         p_stable_key: stableKey,
       }),
       'reset_nutrition_milestone',
+    );
+  },
+
+  async applyToActivePlan(participantRaceId, apply) {
+    unwrapMaybe(
+      await context.client.rpc('apply_nutrition_to_active_plan', {
+        p_participant_race_id: participantRaceId,
+        p_from_nutrition_plan_id: apply.fromNutritionPlanId,
+        p_engine_version: apply.engineVersion,
+        p_engine_config_version: apply.engineConfigVersion,
+        p_input_hash: apply.inputHash,
+        p_input_snapshot: apply.inputSnapshot as never,
+        p_kept: Object.fromEntries(
+          apply.kept.map((milestone) => [
+            milestone.stableKey,
+            {
+              label: milestone.label,
+              elapsed_seconds: Math.round(milestone.elapsedSeconds),
+              distance_km: milestone.distanceKm,
+            },
+          ]),
+        ) as never,
+        p_diff: apply.diff as never,
+      }),
+      'apply_nutrition_to_active_plan',
+    );
+  },
+
+  async placeOrphan(participantRaceId, orphanKey, target) {
+    unwrapMaybe(
+      await context.client.rpc('place_nutrition_orphan', {
+        p_participant_race_id: participantRaceId,
+        p_orphan_key: orphanKey,
+        p_target_key: target.stableKey,
+        p_label: target.label,
+        p_elapsed_seconds: Math.round(target.elapsedSeconds),
+        // Le type généré ne connaît pas la nullabilité des paramètres : la fonction l'accepte.
+        p_distance_km: target.distanceKm as number,
+        p_user_product_ids: target.items.map((item) => item.userProductId),
+        p_quantities: target.items.map((item) => item.quantity),
+      }),
+      'place_nutrition_orphan',
     );
   },
 }));
