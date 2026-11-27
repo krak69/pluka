@@ -1220,6 +1220,14 @@ Lecture V1 :
 
 Pas de communauté publique globale par défaut.
 
+Précisé le 2026-11-27 (décision produit, migration 0114) :
+
+- la communauté est celle d'une **édition** ; un sujet peut porter une course et un point de cette édition, jamais d'une autre ;
+- **lecture** : le coureur qui a une participation non archivée à une course de l'édition, l'`owner` et l'`admin` de l'organisation de l'édition, l'admin PLUKA ;
+- `editor` et `viewer` de l'organisation : **aucun accès** ; être membre d'une organisation ne suffit pas ;
+- **écriture** (sujet, réponse, « utile », signalement) : les participants seulement, et uniquement par les fonctions serveur — aucune écriture directe dans les tables ;
+- une course publique ne rend pas sa communauté publique : lire la course ne donne pas accès aux échanges.
+
 ---
 
 # 54. Community privacy
@@ -1235,6 +1243,10 @@ Le display profile doit être minimal.
 
 Prévoir une abstraction publique du profil si nécessaire.
 
+Abstraction retenue (0114) : « Prénom N. » — le prénom et l'initiale du nom, rien d'autre ;
+« Compte supprimé » quand l'auteur a effacé son compte (0078). Les lectures passent par des
+fonctions qui construisent ce libellé : `users` reste fermé aux autres comptes.
+
 ---
 
 # 55. Community moderation
@@ -1242,6 +1254,12 @@ Prévoir une abstraction publique du profil si nécessaire.
 Organisation peut modérer uniquement si le produit lui donne ce rôle.
 
 Un rôle `viewer` organisation ne doit pas modérer.
+
+Rôle donné le 2026-11-27 : l'`owner` et l'`admin` de l'organisation de l'édition modèrent sa
+communauté (masquer, rétablir, traiter un signalement), comme l'admin PLUKA. `editor` et
+`viewer` ne modèrent pas. Un contenu masqué disparaît pour les participants ; son auteur le voit
+encore, signalé comme masqué, et ne peut pas le republier lui-même. L'auteur peut supprimer
+son propre contenu (`deleted`) : il disparaît pour tous, sans retour.
 
 Les signalements peuvent être visibles :
 

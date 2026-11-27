@@ -708,6 +708,12 @@ Un second jeton public suppose une politique propre : durée de vie, révocation
 
 Deux arborescences s'ensuivent : `/communaute` ou `/courses/[participantRaceId]/communaute`. Aucune règle ne départage.
 
+**Tranché le 2026-11-27.** `/communaute` reste l'entrée globale du menu, sans onglet de course
+supplémentaire (AGENTS §39). Une communauté est celle d'une **édition** : toutes ses courses
+ensemble (9, 5 et 2 clochers partagent la même), chaque sujet pouvant être rattaché à une course
+et à un point. L'écran ouvre la communauté de la prochaine course du coureur ; un sélecteur
+apparaît quand il en prépare plusieurs. Le titre suit le prototype : « Communauté · <édition> ».
+
 ## 12.5 Index de `apps/admin`
 
 Le prototype ouvre l'administration sur une vue d'ensemble (`adminTab: 'overview'`). Le code existant place la liste des événements à `/`.

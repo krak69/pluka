@@ -1296,6 +1296,10 @@ L’objectif est de réduire la re-saisie d’une préparation à l’autre.
 
 La communauté V1 doit rester légère et centrée sur une édition / course.
 
+Décision du 2026-11-27 : une communauté par **édition**, toutes courses confondues ; chaque
+sujet peut être rattaché à une course et à un point du parcours. Lisible par les participants
+de l'édition ; modérée par PLUKA et par l'owner / admin de l'organisation (03 §53, §55).
+
 Thèmes possibles :
 
 - préparation ;
