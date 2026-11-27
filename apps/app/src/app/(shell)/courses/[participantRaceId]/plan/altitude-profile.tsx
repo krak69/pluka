@@ -2,6 +2,8 @@ import type { PlanPointView, PlanProfileSample } from '@pluka/domain';
 import { MicroLabel } from '@pluka/ui';
 
 import { ProfileLayers } from '@/app/(shell)/courses/[participantRaceId]/plan/profile-layers';
+import { Icon } from '@/components/icon';
+import type { ProfileWeather, ProfileWeatherMark } from '@/lib/conditions-format';
 import type { ProfileIntake } from '@/lib/nutrition-format';
 import { formatClock, formatDistance } from '@/lib/plan-format';
 
@@ -84,6 +86,12 @@ export interface AltitudeProfileProps {
     | { readonly state: 'ready'; readonly intakes: readonly ProfileIntake[] }
     | { readonly state: 'off' }
     | null;
+  /**
+   * La météo à chaque point, à l'heure du passage (Conditions J-14), sur le
+   * profil sombre seulement ; nulle hors fenêtre ou sans droit. Un picto mène
+   * à l'écran Conditions, qui la détaille.
+   */
+  readonly weather?: (ProfileWeather & { readonly href: string }) | null;
 }
 
 export function AltitudeProfile({
@@ -94,11 +102,19 @@ export function AltitudeProfile({
   variant = 'light',
   cutoffWaypointIds = [],
   nutrition = null,
+  weather = null,
 }: AltitudeProfileProps) {
   const dark = variant === 'dark';
+  const forecast = dark ? weather : null;
+  const weatherByWaypoint = new Map(
+    (forecast?.marks ?? []).flatMap((mark) =>
+      mark.raceWaypointId === null ? [] : [[mark.raceWaypointId, mark.text] as const],
+    ),
+  );
   const passages = points.map((point) => ({
     name: point.name,
     clock: formatClock(point.plannedArrivalAt, timezone),
+    weather: weatherByWaypoint.get(point.raceWaypointId) ?? null,
   }));
 
   if (profile.length < 2) {
@@ -153,6 +169,8 @@ export function AltitudeProfile({
     ),
   }));
 
+  const stations = forecast === null ? [] : weatherStations(forecast.marks, points, profile, box);
+
   return (
     <section className={dark ? 'pl-profile pl-profile-dark' : 'pl-profile'}>
       <ProfileLayers
@@ -168,8 +186,33 @@ export function AltitudeProfile({
                 ? 'toggle'
                 : null
         }
+        weather={stations.length > 0}
       >
-        <div className="pl-profile-plot">
+        <div
+          className={stations.length > 0 ? 'pl-profile-plot pl-profile-plot-wx' : 'pl-profile-plot'}
+        >
+          {stations.length === 0 || forecast === null ? null : (
+            // Un raccourci vers Conditions pour la souris et le doigt ; le texte
+            // équivalent suit chaque passage, dans la liste plus bas (§51).
+            <div className="pl-weather" aria-hidden="true">
+              {stations.map((station) => (
+                <a
+                  key={station.key}
+                  href={forecast.href}
+                  tabIndex={-1}
+                  title={station.text}
+                  className={station.compact ? 'pl-wx' : 'pl-wx pl-wx-wide'}
+                  style={{
+                    // Le départ et l'arrivée tombent au bord : le picto reste dans le cadre.
+                    left: `clamp(var(--pl-wx-half), ${station.left.toFixed(2)}%, calc(100% - var(--pl-wx-half)))`,
+                  }}
+                >
+                  {station.icon === null ? null : <Icon name={station.icon} size={20} />}
+                  <span className="pl-wx-temp">{station.temperature}</span>
+                </a>
+              ))}
+            </div>
+          )}
           <svg
             viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
             preserveAspectRatio={dark ? 'none' : 'xMidYMid meet'}
@@ -222,6 +265,25 @@ export function AltitudeProfile({
                   ),
                 )}
           </svg>
+
+          {stations.length === 0 ? null : (
+            // Le fil qui relie un picto à son point, sous les jalons et les prises.
+            // Pas au départ ni à l'arrivée : ils longeraient le bord du cadre.
+            <div className="pl-wx-stems" aria-hidden="true">
+              {stations
+                .filter((station) => !station.edge)
+                .map((station) => (
+                  <span
+                    key={station.key}
+                    className={station.compact ? 'pl-wx-stem' : 'pl-wx-stem pl-wx-wide'}
+                    style={{
+                      left: `${station.left.toFixed(2)}%`,
+                      height: `max(0px, calc(${station.top.toFixed(2)}% - var(--pl-wx-gap)))`,
+                    }}
+                  />
+                ))}
+            </div>
+          )}
 
           {intakes.length === 0 ? null : (
             // Un raccourci pour la souris et le doigt : chaque prise est détaillée,
@@ -291,6 +353,20 @@ export function AltitudeProfile({
           </p>
         ) : null}
 
+        {stations.length === 0 || forecast === null ? null : (
+          // §53 : une prévision externe, datée, et sa source à côté de la donnée.
+          <p className="pl-wx-source">
+            Météo à ton passage · prévision externe, mise à jour {forecast.updated} ·{' '}
+            <a href={forecast.attribution.url} target="_blank" rel="noreferrer">
+              {forecast.attribution.text}
+            </a>{' '}
+            ·{' '}
+            <a href={forecast.attribution.licenceUrl} target="_blank" rel="noreferrer">
+              {forecast.attribution.licence}
+            </a>
+          </p>
+        )}
+
         <PassageList
           passages={passages}
           dark={dark}
@@ -336,6 +412,89 @@ function profileLabels(
 }
 
 /**
+ * Écart minimal entre deux pictos, en pourcentage de la largeur : un picto
+ * fait environ 36 px. `compact` tient sur un profil de 340 px (mobile), le
+ * reste n'apparaît qu'à partir de 720 px environ.
+ */
+const WEATHER_GAP_COMPACT = 17;
+const WEATHER_GAP_WIDE = 8;
+
+interface WeatherStation {
+  readonly key: string;
+  readonly icon: ProfileWeatherMark['icon'];
+  readonly temperature: string;
+  readonly text: string;
+  readonly left: number;
+  readonly top: number;
+  /** Départ ou arrivée : posé au bord, sans fil. */
+  readonly edge: boolean;
+  /** Assez espacé pour rester affiché sur un profil étroit. */
+  readonly compact: boolean;
+}
+
+/**
+ * Les pictos à poser, sans chevauchement. Le départ et l'arrivée d'abord,
+ * puis les points les plus hauts : c'est là que les conditions durcissent.
+ * Un point écarté reste détaillé dans Conditions et dans la liste des passages.
+ */
+function weatherStations(
+  marks: readonly ProfileWeatherMark[],
+  points: readonly PlanPointView[],
+  profile: readonly PlanProfileSample[],
+  box: Bounds,
+): readonly WeatherStation[] {
+  const pointDistance = new Map(points.map((point) => [point.raceWaypointId, point.distanceKm]));
+
+  const candidates = marks.map((mark) => {
+    // Sur le jalon du Plan quand il existe : le picto tombe pile au-dessus du point.
+    const distanceKm =
+      (mark.raceWaypointId === null ? undefined : pointDistance.get(mark.raceWaypointId)) ??
+      mark.distanceKm;
+    const elevation = elevationAt(profile, distanceKm);
+    const position = project({ distanceKm, elevationMeters: elevation }, box);
+    const left = Math.min(100, Math.max(0, (position.x / VIEW_WIDTH) * 100));
+    return {
+      mark,
+      distanceKm,
+      elevation,
+      edge: left < 1 || left > 99,
+      left,
+      top: (position.y / VIEW_HEIGHT) * 100,
+    };
+  });
+
+  const ranked = [...candidates].sort(
+    (a, b) =>
+      Number(b.edge) - Number(a.edge) || b.elevation - a.elevation || a.distanceKm - b.distanceKm,
+  );
+
+  const pick = (gap: number, from: readonly (typeof candidates)[number][]) => {
+    const kept: (typeof candidates)[number][] = [];
+    for (const candidate of ranked) {
+      if (!from.includes(candidate)) continue;
+      if (kept.every((other) => Math.abs(other.left - candidate.left) >= gap)) kept.push(candidate);
+    }
+    return kept;
+  };
+
+  const wide = pick(WEATHER_GAP_WIDE, candidates);
+  const compact = new Set(pick(WEATHER_GAP_COMPACT, wide));
+
+  return wide
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .map((candidate) => ({
+      key: candidate.mark.key,
+      icon: candidate.mark.icon,
+      temperature: candidate.mark.temperature,
+      text: candidate.mark.text,
+      left: candidate.left,
+      top: candidate.top,
+      edge: candidate.edge,
+      compact: compact.has(candidate),
+    }));
+}
+
+/**
  * Équivalent textuel — §51.
  *
  * ```text
@@ -350,7 +509,12 @@ function PassageList({
   note,
   dark = false,
 }: {
-  readonly passages: readonly { readonly name: string; readonly clock: string }[];
+  readonly passages: readonly {
+    readonly name: string;
+    readonly clock: string;
+    /** « Ciel dégagé, 3 °C » : la météo prévue au passage, quand elle est connue. */
+    readonly weather?: string | null;
+  }[];
   readonly note?: string;
   readonly dark?: boolean;
 }) {
@@ -362,6 +526,9 @@ function PassageList({
           {passages.map((passage) => (
             <li key={`${passage.name}-${passage.clock}`}>
               {passage.name} — {passage.clock}
+              {passage.weather === undefined || passage.weather === null
+                ? null
+                : ` · météo prévue : ${passage.weather}`}
             </li>
           ))}
         </ul>

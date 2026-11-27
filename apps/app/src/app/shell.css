@@ -3847,6 +3847,98 @@ a.st-tab {
   display: none;
 }
 
+/* La météo au passage, au-dessus du profil sombre : un picto et la température
+   par point, reliés à leur jalon par un fil. Aucune couleur de seuil : le froid
+   et le chaud attendent leur calibrage (WEATHER_CONDITIONS §38). */
+.pl-profile-plot-wx {
+  --pl-wx-half: 18px;
+  --pl-wx-gap: 10px;
+}
+
+.pl-layers[data-weather='on'] .pl-profile-plot-wx {
+  margin-top: var(--space-10);
+}
+
+.pl-weather {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: var(--space-10);
+  pointer-events: none;
+}
+
+.pl-wx {
+  position: absolute;
+  bottom: var(--space-1);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: calc(2 * var(--pl-wx-half));
+  color: var(--pk-limestone);
+  text-decoration: none;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.pl-wx svg {
+  color: color-mix(in srgb, var(--pk-limestone) 85%, transparent);
+}
+
+.pl-wx:hover,
+.pl-wx:hover svg {
+  color: var(--pk-glacier);
+}
+
+.pl-wx-temp {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pl-wx-stems {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.pl-wx-stem {
+  position: absolute;
+  top: 0;
+  width: 0;
+  border-left: 1px dashed color-mix(in srgb, var(--pk-limestone) 35%, transparent);
+}
+
+.pl-wx-source {
+  margin: 0;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--pk-text-on-dark) 65%, transparent);
+}
+
+.pl-wx-source a {
+  color: inherit;
+}
+
+.pl-wx-source a:focus-visible {
+  outline: 2px solid var(--pk-focus-dark);
+  outline-offset: 2px;
+}
+
+.pl-layers[data-weather='off'] .pl-weather,
+.pl-layers[data-weather='off'] .pl-wx-stems,
+.pl-layers[data-weather='off'] .pl-wx-source {
+  display: none;
+}
+
+/* Sur un profil étroit, seuls les pictos assez espacés restent. */
+@media (max-width: 720px) {
+  .pl-wx-wide {
+    display: none;
+  }
+}
+
 .pl-profile-dark .pl-profile-svg {
   height: clamp(140px, 18vw, 220px);
 }

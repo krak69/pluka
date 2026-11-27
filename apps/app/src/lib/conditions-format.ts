@@ -334,6 +334,60 @@ export function conditionsTeaser(view: RaceConditionsView): string | null {
   return view.horizon === null ? null : (HORIZONS[view.horizon] ?? null);
 }
 
+export interface ProfileWeatherMark {
+  readonly key: string;
+  /** Pour se poser exactement sur le jalon du Plan ; nul pour un point hors parcours officiel. */
+  readonly raceWaypointId: string | null;
+  readonly distanceKm: number;
+  readonly icon: IconName | null;
+  /** « 3 ° » : le format court du prototype. */
+  readonly temperature: string;
+  /** « Ciel dégagé, 3 °C » : l'équivalent textuel du picto (06 §51). */
+  readonly text: string;
+}
+
+export interface ProfileWeather {
+  readonly marks: readonly ProfileWeatherMark[];
+  /** §53 : « ven. 27 nov. à 10:02 ». */
+  readonly updated: string;
+  readonly attribution: RaceConditionsView['attribution'];
+}
+
+/**
+ * La météo posée sur le profil du Plan : le ciel et la température à chaque
+ * point, à l'heure où le coureur y passe. Seulement une fois J-14 ouvert, avec
+ * le droit et une prévision (W01, W03) ; sinon rien, pas même un teaser (AGENTS
+ * §17). Aucun seuil de froid ou de chaud ne colore une valeur (§38).
+ */
+export function profileWeather(view: RaceConditionsView): ProfileWeather | null {
+  if (view.status !== 'eligible' || view.forecast === null) return null;
+  const marks = view.forecast.points.flatMap((point): ProfileWeatherMark[] => {
+    if (point.distanceKm === null) return [];
+    const sky = point.weatherCode === null ? undefined : SKIES[point.weatherCode];
+    // §54 : sans ciel ni température, il n'y a rien à poser — pas de « — » sur la courbe.
+    if (sky === undefined && point.temperatureC === null) return [];
+    return [
+      {
+        key: point.pointKey,
+        raceWaypointId: point.raceWaypointId,
+        distanceKm: point.distanceKm,
+        icon: sky?.icon ?? null,
+        temperature: shortDegrees(point.temperatureC),
+        text: [sky?.label ?? null, point.temperatureC === null ? null : degrees(point.temperatureC)]
+          .filter((part) => part !== null)
+          .join(', '),
+      },
+    ];
+  });
+  if (marks.length === 0) return null;
+  const fetchedAt = view.forecast.fetchedAt;
+  return {
+    marks,
+    updated: `${day(fetchedAt, view.timezone)} à ${formatClock(fetchedAt, view.timezone)}`,
+    attribution: view.attribution,
+  };
+}
+
 export interface ConditionsNextPoint {
   readonly name: string;
   /** « 08:33 · 2 385 m » */

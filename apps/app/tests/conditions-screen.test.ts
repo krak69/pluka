@@ -6,6 +6,7 @@ import {
   conditionsRaceLine,
   conditionsScreen,
   conditionsTeaser,
+  profileWeather,
 } from '@/lib/conditions-format';
 
 /**
@@ -211,5 +212,70 @@ describe('l’écran Conditions', () => {
       'Col du Rawil',
     );
     expect(conditionsNextPoint(view(), new Date('2026-09-13T09:00:00.000Z'))).toBeNull();
+  });
+});
+
+describe('la météo sur le profil du Plan', () => {
+  it('le ciel et la température de chaque point, datés et sourcés (§53)', () => {
+    const weather = profileWeather(view());
+
+    expect(weather?.updated).toBe('jeu. 10 sept. à 18:20');
+    expect(weather?.attribution.text).toBe('Weather data by Open-Meteo.com');
+    expect(weather?.marks).toEqual([
+      {
+        key: 'wp-depart',
+        raceWaypointId: 'depart',
+        distanceKm: 0,
+        icon: 'Sun',
+        temperature: '6 °',
+        text: 'Ciel dégagé, 6 °C',
+      },
+      {
+        key: 'wp-rawil',
+        raceWaypointId: 'rawil',
+        distanceKm: 40.5,
+        icon: 'CloudRain',
+        temperature: '4 °',
+        text: 'Pluie, 4 °C',
+      },
+    ]);
+  });
+
+  it('W01, W03 — rien avant J-14, sans Race Pass ou sans prévision : pas de teaser', () => {
+    expect(profileWeather(view({ status: 'too_early', forecast: null, horizon: null }))).toBeNull();
+    expect(profileWeather(view({ status: 'not_entitled', forecast: null }))).toBeNull();
+    expect(profileWeather(view({ forecast: null }))).toBeNull();
+  });
+
+  it('§54 — une mesure absente n’est jamais remplacée ; un point sans rien n’est pas posé', () => {
+    const base = view().forecast;
+    if (base === null) throw new Error('fixture');
+    const [depart, rawil] = base.points as [
+      (typeof base.points)[number],
+      (typeof base.points)[number],
+    ];
+    const weather = profileWeather(
+      view({
+        forecast: {
+          ...base,
+          points: [
+            { ...depart, weatherCode: null },
+            { ...rawil, temperatureC: null, weatherCode: null },
+            { ...rawil, pointKey: 'sans-km', distanceKm: null },
+          ],
+        },
+      }),
+    );
+
+    expect(weather?.marks).toEqual([
+      expect.objectContaining({ key: 'wp-depart', icon: null, temperature: '6 °', text: '6 °C' }),
+    ]);
+    expect(
+      profileWeather(
+        view({
+          forecast: { ...base, points: [{ ...rawil, temperatureC: null, weatherCode: null }] },
+        }),
+      ),
+    ).toBeNull();
   });
 });

@@ -26,7 +26,7 @@ import {
 import { CourseChangeAlert } from '@/components/course-change-alert';
 import { StartChangeAlert } from '@/components/start-change-alert';
 import { conditionsContext, conditionsEnabled } from '@/lib/conditions';
-import { conditionsTeaser } from '@/lib/conditions-format';
+import { conditionsTeaser, profileWeather } from '@/lib/conditions-format';
 import { nutritionContext } from '@/lib/nutrition';
 import {
   aidLines,
@@ -96,6 +96,8 @@ export default async function PlanPage({
     ? await getRaceConditions(conditionsContext(session), { participantRaceId }).catch(() => null)
     : null;
   const conditionsSub = conditions === null ? null : conditionsTeaser(conditions);
+  // La météo de chaque point, posée sur le profil : seulement J-14 ouvert, avec le droit.
+  const weather = conditions === null ? null : profileWeather(conditions);
   const overview = await getPlanOverview(context, { participantRaceId }).catch((error: unknown) => {
     // Pas encore de Plan : l'écran propose de le générer plutôt que de rendre
     // un 404. La participation existe, elle n'a simplement pas d'horaires.
@@ -270,6 +272,7 @@ export default async function PlanPage({
                       }
                     : { state: 'off' }
               }
+              weather={weather === null ? null : { ...weather, href: `${returnTo}/conditions` }}
             />
           </section>
 
