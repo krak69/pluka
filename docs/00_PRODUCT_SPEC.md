@@ -1311,6 +1311,12 @@ dans Mon profil, ou à défaut par une illustration (Homme, Femme, Neutre) qu'il
 choix, celle de son sexe s'il l'a renseigné, sinon Neutre. La photo ne se voit que là où il a
 écrit (03_PRIVACY_RLS §54.1).
 
+Décision du 2026-11-27, modération : l'owner et l'admin de l'organisation modèrent depuis un
+onglet « Communauté » de l'espace organisateur (contenus signalés, contenus masqués) et
+directement dans les discussions. Ils masquent un contenu, même sans signalement, le rétablissent,
+ou le gardent en ligne en classant ses signalements. Ils ne voient jamais qui a signalé
+(03_PRIVACY_RLS §55 ; 05_ROUTES_FLOWS §6.5).
+
 Thèmes possibles :
 
 - préparation ;

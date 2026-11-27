@@ -1287,6 +1287,13 @@ Les signalements peuvent être visibles :
 - modérateur autorisé ;
 - admin PLUKA.
 
+Précisé le 2026-11-27 (décision produit, migration 0116) :
+
+- le modérateur de l'organisation voit d'un signalement le motif, les précisions et la date, **jamais qui l'a fait** : ni nom, ni identifiant. Le déclarant reste visible du seul admin PLUKA, par une lecture auditée (0028) ;
+- les gestes — masquer, rétablir, garder en ligne — passent par des fonctions qui vérifient le rôle sur l'édition du contenu, verrouillent la ligne et écrivent `private.audit_logs` dans la même transaction (§104). L'entrée ne porte que des statuts et des identifiants, jamais le texte du contenu ;
+- un contenu inconnu et un contenu hors de portée reçoivent le même refus (`42501`) ;
+- un contenu supprimé par son auteur reste invisible, modération comprise : la file n'en garde que le signalement, sans titre ni texte, et il ne se rétablit pas.
+
 ---
 
 # 56. After-race

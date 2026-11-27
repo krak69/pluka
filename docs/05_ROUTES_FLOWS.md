@@ -376,6 +376,7 @@ Aucun de ces éléments n'a d'URL.
 /org/[organizationId]/course/epreuves
 /org/[organizationId]/analyse
 /org/[organizationId]/participants
+/org/[organizationId]/communaute                  Modération de la Communauté de l'édition (§6.5, 0116)
 /org/[organizationId]/parametres                  → redirige vers /evenement
 /org/[organizationId]/parametres/evenement
 /org/[organizationId]/parametres/partenaires
@@ -431,6 +432,23 @@ C'est un arbitrage de confidentialité, pas de routage : il appartient à `03_PR
 `riBrief` est un panneau dans le prototype, donc un état (§1.2).
 
 Mais la landing organisateurs promet explicitement : « Partagez-le avec votre équipe : tout le monde n'a pas besoin d'un compte PLUKA pour en profiter. » **Une route de partage hors compte n'est pas tranchée — voir §12.3.**
+
+## 6.5 Modération de la Communauté
+
+Décision produit du 2026-11-27. Le prototype n'a pas d'écran de modération. L'owner et l'admin de l'organisation modèrent la Communauté de l'édition (03_PRIVACY_RLS §55) à deux endroits :
+
+- **`/org/[organizationId]/communaute`**, onglet « Communauté » de l'organisation, présent quand la Communauté est ouverte (`community`) et seulement pour l'owner et l'admin : l'editor et le viewer n'ont aucun accès à la Communauté (§53). L'édition se choisit comme dans Ma course (§12.1). Deux listes : les **contenus signalés**, un par contenu avec ses signalements — motif, précisions, date, jamais le déclarant —, et les **contenus masqués** ;
+- **dans un sujet** de `/communaute`, l'owner et l'admin voient sur le sujet et sur chaque réponse « Masquer » ou « Rétablir », et le nombre de signalements ouverts. Masquer ne demande pas de signalement.
+
+Gestes (fonctions de 0116, chacune journalisée) :
+
+| Geste            | Effet sur le contenu                                    | Effet sur les signalements ouverts du contenu                       | Audit               |
+| ---------------- | ------------------------------------------------------- | ------------------------------------------------------------------- | ------------------- |
+| Masquer          | `published → hidden`                                    | `→ resolved`, ceux des réponses d'un sujet compris (même règle que §7.5) | `community.hide`    |
+| Rétablir         | `hidden → published`                                    | aucun : rien n'est rouvert                                          | `community.restore` |
+| Garder en ligne  | aucun                                                   | `→ dismissed`, ceux de ce contenu seulement                         | `community.keep`    |
+
+Garder en ligne classe ensemble les signalements d'un contenu : l'écran les présente ensemble, et la décision porte sur le contenu, pas sur un motif. La console PLUKA garde son geste signalement par signalement (§7.5). Un contenu supprimé par son auteur ne montre plus ni titre ni texte, ne se rétablit pas, et son signalement se clôt par « Clore ». Un geste qui ne change plus rien (double clic) réussit sans rien écrire.
 
 ---
 
@@ -557,7 +575,7 @@ Règles de modération :
 - masquer clôt **tous** les signalements ouverts (`open`, `reviewed`) sur le contenu, sous **une seule** entrée d'audit ; masquer un fil clôt aussi ceux de ses messages ;
 - classer sans suite ne clôt que le signalement traité ;
 - chaque signalement garde son motif et son déclarant : seuls `status` et `resolved_at` changent ;
-- l'entrée `report.hide_content` liste les signalements clos dans `closedReportIds`. Il n'existe pas de restauration ; si elle arrive, elle ne rouvrira rien automatiquement, et c'est cette liste qui permettra de retrouver les signalements concernés ;
+- l'entrée `report.hide_content` liste les signalements clos dans `closedReportIds`. La console n'a pas de restauration ; celle de 0116 (§6.5), ouverte à l'organisation et à l'admin PLUKA, ne rouvre rien automatiquement, et c'est cette liste qui permet de retrouver les signalements concernés ;
 - `deleted` n'est jamais posé par la console : la suppression relève de la rétention (`03_PRIVACY_RLS.md` §93).
 
 Règles d'écran :
