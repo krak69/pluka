@@ -6928,6 +6928,27 @@ export type Database = {
         Args: { p_import_id: string }
         Returns: Json
       }
+      community_thread_read: { Args: { p_thread_id: string }; Returns: Json }
+      community_threads_list: {
+        Args: { p_edition_id: string }
+        Returns: {
+          author_label: string
+          category: Database["public"]["Enums"]["community_category"]
+          created_at: string
+          id: string
+          is_mine: boolean
+          last_activity_at: string
+          race_id: string
+          race_name: string
+          reply_count: number
+          status: Database["public"]["Enums"]["community_content_status"]
+          title: string
+          useful_by_me: boolean
+          useful_count: number
+          waypoint_id: string
+          waypoint_name: string
+        }[]
+      }
       correct_participant_registration: {
         Args: { p_bib: string; p_participant_race_id: string; p_wave: string }
         Returns: undefined
@@ -6935,6 +6956,17 @@ export type Database = {
       create_assistant_link: {
         Args: { p_assistant_id: string; p_token_hash: string }
         Returns: undefined
+      }
+      create_community_thread: {
+        Args: {
+          p_body: string
+          p_category: Database["public"]["Enums"]["community_category"]
+          p_edition_id: string
+          p_race_id?: string
+          p_title: string
+          p_waypoint_id?: string
+        }
+        Returns: string
       }
       create_participant_import: {
         Args: {
@@ -6957,6 +6989,10 @@ export type Database = {
       decline_participant_invitation: {
         Args: { p_token_hash: string }
         Returns: string
+      }
+      delete_community_content: {
+        Args: { p_post_id: string; p_thread_id: string }
+        Returns: undefined
       }
       disable_nutrition: {
         Args: { p_participant_race_id: string }
@@ -7363,6 +7399,19 @@ export type Database = {
         Args: { p_photo_id: string }
         Returns: undefined
       }
+      reply_community_thread: {
+        Args: { p_body: string; p_thread_id: string }
+        Returns: string
+      }
+      report_community_content: {
+        Args: {
+          p_details?: string
+          p_post_id: string
+          p_reason: Database["public"]["Enums"]["report_reason"]
+          p_thread_id: string
+        }
+        Returns: string
+      }
       request_account_deletion: { Args: never; Returns: Json }
       request_weather_refresh: {
         Args: { p_participant_race_id: string }
@@ -7472,6 +7521,10 @@ export type Database = {
       send_assistance_nutrition: {
         Args: { p_assignment_id: string; p_labels: string[] }
         Returns: undefined
+      }
+      set_community_useful: {
+        Args: { p_post_id: string; p_thread_id: string; p_useful: boolean }
+        Returns: number
       }
       set_event_site_image: {
         Args: { p_event_id: string; p_kind: string; p_path: string }

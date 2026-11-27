@@ -440,6 +440,16 @@ export {
   type ConditionsRunRecord,
 } from './repositories/conditions.js';
 export {
+  communityRepository,
+  type CommunityCategory,
+  type CommunityContentStatus,
+  type CommunityReportReason,
+  type CommunityRepository,
+  type CommunityTarget,
+  type CommunityThreadSummaryRecord,
+  type CreateCommunityThreadInput,
+} from './repositories/community.js';
+export {
   createNutritionRepositories,
   nutritionRepository,
   type NutritionDensityValue,
