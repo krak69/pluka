@@ -83,6 +83,8 @@ export interface CommunitySummary {
   }[];
   /** Le premier départ de ses courses dans l'édition. */
   readonly startsAt: string;
+  /** Le fuseau IANA de cette première course : les messages se datent à l'heure de l'épreuve. */
+  readonly timezone: string;
   /** Toutes ses courses de l'édition sont parties. */
   readonly past: boolean;
 }
@@ -294,6 +296,7 @@ export async function listMyCommunities(
           name: race.name,
         })),
         startsAt: first.race.startDatetime,
+        timezone: first.race.timezone,
         past: Date.parse(last.race.startDatetime) < now,
       };
     }),

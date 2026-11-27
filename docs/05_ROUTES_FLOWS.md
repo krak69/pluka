@@ -276,6 +276,9 @@ C'est la seule route de `apps/app` qui porte des slugs, et la seule qui puisse �
 /bibliotheque/sacs
 /bibliotheque/strategies
 /produits                Mes produits — banque nutrition personnelle
+/communaute              Communauté de l'édition — ?edition=, ?categorie= (§12.4)
+/communaute/nouveau      Créer un sujet
+/communaute/sujets/[threadId]
 ```
 
 Ces routes ne portent pas de course dans leur chemin : elles correspondent aux cinq entrées de `navGlobal` du prototype, qui vivent au-dessus d'une course particulière.

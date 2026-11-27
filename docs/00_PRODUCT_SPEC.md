@@ -1300,6 +1300,12 @@ Décision du 2026-11-27 : une communauté par **édition**, toutes courses confo
 sujet peut être rattaché à une course et à un point du parcours. Lisible par les participants
 de l'édition ; modérée par PLUKA et par l'owner / admin de l'organisation (03 §53, §55).
 
+Décision du 2026-11-27, mise en forme : le détail d'un sujet et les réponses s'écrivent dans un
+éditeur visuel limité à gras, italique, listes à puces et numérotées, citation et lien. Un lien
+n'est accepté qu'en https ; il s'ouvre dans un nouvel onglet, sans référent, marqué contenu
+d'utilisateur, et son domaine est affiché. Le message reste du texte en base (Markdown restreint),
+jamais du HTML.
+
 Thèmes possibles :
 
 - préparation ;

@@ -41,7 +41,7 @@ const THREAD = 'aaaaaaaa-0000-4000-8000-000000000191';
 const POST = 'aaaaaaaa-0000-4000-8000-000000000192';
 
 function race(id: string, editionId: string, name: string, start: string): RaceRecord {
-  return { id, editionId, name, startDatetime: start } as RaceRecord;
+  return { id, editionId, name, startDatetime: start, timezone: 'Europe/Paris' } as RaceRecord;
 }
 
 const RACES: RaceRecord[] = [
@@ -186,6 +186,7 @@ describe('mes communautés', () => {
       'Les 9 clochers',
     ]);
     expect(clochers?.startsAt).toBe('2027-10-10T07:00:00.000Z');
+    expect(clochers?.timezone).toBe('Europe/Paris');
   });
 
   it('une course que la RLS ne rend pas est absente, sans erreur', async () => {
