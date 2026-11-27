@@ -11,6 +11,9 @@ import { NewThreadForm } from '@/app/(shell)/communaute/new-thread-form';
 import { ReplyForm, ReportForm } from '@/app/(shell)/communaute/thread-forms';
 import {
   COMMUNITY_CATEGORY_LABELS,
+  communityListHref,
+  communityNewHref,
+  pointCommunities,
   COMMUNITY_REPORT_REASON_LABELS,
   communityName,
   communityWhen,
@@ -30,9 +33,17 @@ import {
 const EDITION = 'aaaaaaaa-0000-4000-8000-000000000012';
 const THREAD = 'aaaaaaaa-0000-4000-8000-000000000191';
 const POST = 'aaaaaaaa-0000-4000-8000-000000000192';
+const LENK = 'aaaaaaaa-0000-4000-8000-000000000201';
 const RACES = [
-  { raceId: 'aaaaaaaa-0000-4000-8000-000000000101', name: 'Les 5 clochers' },
-  { raceId: 'aaaaaaaa-0000-4000-8000-000000000102', name: 'Les 9 clochers' },
+  {
+    raceId: 'aaaaaaaa-0000-4000-8000-000000000101',
+    name: 'Les 5 clochers',
+    points: [
+      { waypointId: 'aaaaaaaa-0000-4000-8000-000000000200', name: 'Départ', distanceKm: 0 },
+      { waypointId: LENK, name: 'Lenk', distanceKm: 12.3 },
+    ],
+  },
+  { raceId: 'aaaaaaaa-0000-4000-8000-000000000102', name: 'Les 9 clochers', points: [] },
 ];
 
 function fieldNames(markup: string): readonly string[] {
@@ -110,7 +121,7 @@ describe('communityWhen', () => {
 });
 
 describe('créer un sujet', () => {
-  it('poste les champs de la commande, sauf le point, rattaché depuis un tiroir', () => {
+  it('poste les champs de la commande', () => {
     const markup = renderToStaticMarkup(
       <NewThreadForm
         editionId={EDITION}
@@ -122,13 +133,31 @@ describe('créer un sujet', () => {
     );
 
     expect(fieldNames(markup)).toEqual(
-      Object.keys(createCommunityThreadCommandSchema.shape)
-        .filter((field) => field !== 'waypointId')
-        .sort(),
+      Object.keys(createCommunityThreadCommandSchema.shape).sort(),
     );
     expect(inputTag(markup, 'category', 'logistics')).toContain('checked=""');
     expect(inputTag(markup, 'category', 'other')).not.toContain('checked');
     expect(markup).toContain('Toute l’édition');
+  });
+
+  it('les points sont rangés par course, et celui venu du Plan est choisi', () => {
+    const markup = renderToStaticMarkup(
+      <NewThreadForm
+        editionId={EDITION}
+        races={RACES}
+        defaultCategory="other"
+        defaultRaceId={RACES[0]?.raceId ?? ''}
+        defaultWaypointId={LENK}
+        cancelHref="/communaute"
+      />,
+    );
+
+    expect(markup).toContain('<optgroup label="Les 5 clochers">');
+    // Une course sans point n'ouvre pas de groupe vide.
+    expect(markup).not.toContain('<optgroup label="Les 9 clochers">');
+    expect(markup).toMatch(
+      new RegExp(`<option value="${LENK}" selected="">Lenk — km 12,3</option>`),
+    );
   });
 
   it('une édition d’une seule course ne demande pas laquelle', () => {
@@ -169,5 +198,43 @@ describe('répondre et signaler', () => {
     const markup = renderToStaticMarkup(<ReportForm threadId={THREAD} />);
 
     expect(fieldNames(markup)).not.toContain('postId');
+  });
+});
+
+describe('un point du parcours', () => {
+  const community = {
+    editionId: EDITION,
+    raceId: 'aaaaaaaa-0000-4000-8000-000000000101',
+    pointThreads: ['t1', 't2', 't3', 't4'].map(
+      (id, index) =>
+        ({
+          id,
+          title: `Sujet ${id}`,
+          waypointId: LENK,
+          replyCount: index,
+        }) as never,
+    ),
+  };
+
+  it('les liens gardent l’édition, le filtre et le préremplissage', () => {
+    expect(communityListHref(EDITION, { point: LENK })).toBe(
+      `/communaute?edition=${EDITION}&point=${LENK}`,
+    );
+    expect(communityNewHref(EDITION, { race: 'r', point: LENK })).toBe(
+      `/communaute/nouveau?edition=${EDITION}&course=r&point=${LENK}`,
+    );
+  });
+
+  it('un résumé par point, même sans discussion ; trois sujets au plus', () => {
+    const points = pointCommunities(community, [LENK, 'autre-point']);
+
+    expect(points[LENK]?.count).toBe(4);
+    expect(points[LENK]?.threads.map((thread) => thread.id)).toEqual(['t1', 't2', 't3']);
+    expect(points[LENK]?.threads[1]).toMatchObject({
+      replies: '1 réponse',
+      href: '/communaute/sujets/t2',
+    });
+    expect(points['autre-point']).toMatchObject({ count: 0, threads: [] });
+    expect(points['autre-point']?.askHref).toContain('point=autre-point');
   });
 });

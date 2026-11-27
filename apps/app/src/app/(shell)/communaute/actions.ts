@@ -110,6 +110,7 @@ export async function createCommunityThreadAction(
   const values = {
     category: text(form, 'category'),
     raceId: text(form, 'raceId'),
+    waypointId: text(form, 'waypointId'),
     title: text(form, 'title'),
     body: text(form, 'body'),
   };
@@ -121,6 +122,8 @@ export async function createCommunityThreadAction(
       title: values.title,
       body: values.body,
       raceId: values.raceId === '' ? null : values.raceId,
+      // Sans course choisie, la base retient celle du point (0114).
+      waypointId: values.waypointId === '' ? null : values.waypointId,
     }));
   } catch (error) {
     return {

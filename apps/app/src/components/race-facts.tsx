@@ -7,8 +7,12 @@ import type {
   RaceWaypointRecord,
 } from '@pluka/db';
 import { AID_KIND_LABELS, equipmentValueOf } from '@pluka/domain';
-import type { ReactNode } from 'react';
 import { Divider, EmptyState, MicroLabel, SourceDrawer, TrustBadge } from '@pluka/ui';
+import Link from 'next/link';
+import type { ReactNode } from 'react';
+
+import { Icon } from '@/components/icon';
+import { discussionCount, type PointCommunity } from '@/lib/community-format';
 
 /**
  * L'information officielle d'une course — 06_DESIGN_SYSTEM.md §85, §86.
@@ -206,6 +210,17 @@ function FactRow({ fact }: { readonly fact: PublishedRaceFactRecord }) {
 }
 
 /** Le type du point, le drop bag et l'assistance quand l'organisation les accepte (0094, 0098). */
+/** Les discussions d'un point, sous sa ligne, quand il en a (AC-COM-04 : distinctes du fait officiel). */
+function WaypointCommunity({ point }: { readonly point: PointCommunity | undefined }) {
+  if (point === undefined || point.count === 0) return null;
+  return (
+    <Link href={point.listHref} className="rp-waypoint-community">
+      <Icon name="ChatsCircle" size={14} />
+      Communauté · {discussionCount(point.count)}
+    </Link>
+  );
+}
+
 function WaypointType({ waypoint }: { readonly waypoint: CourseWaypointRecord }) {
   return (
     <>
@@ -269,6 +284,16 @@ export interface RaceFactsProps {
   readonly aidItems?: readonly AidStationItemRecord[];
   /** Les notes du coureur sur ses ravitaillements, sur son onglet « La course ». */
   readonly aidNotes?: readonly AidNoteRecord[];
+  /**
+   * La Communauté de la course, sur l'onglet « La course » du coureur
+   * seulement : une fiche publique ne la reçoit jamais (03_PRIVACY_RLS §53).
+   */
+  readonly community?:
+    | {
+        readonly points: Readonly<Record<string, PointCommunity>>;
+        readonly askHref: string;
+      }
+    | undefined;
 }
 
 export function RaceFacts({
@@ -280,6 +305,7 @@ export function RaceFacts({
   lead,
   aidItems,
   aidNotes = [],
+  community,
 }: RaceFactsProps) {
   const byWaypointId = new Map(waypoints.map((waypoint) => [waypoint.id, waypoint]));
 
@@ -340,9 +366,19 @@ export function RaceFacts({
                         note={aidNotes.find((entry) => entry.waypointId === waypoint.id) ?? null}
                       />
                     )}
+                    <WaypointCommunity point={community?.points[waypoint.id]} />
                   </li>
                 ))}
               </ol>
+            )}
+            {community === undefined ? null : (
+              <p className="rp-community-ask">
+                Une question sur un point du parcours ?{' '}
+                <Link href={community.askHref} className="pk-link">
+                  Pose-la aux participants
+                </Link>{' '}
+                — des conseils de terrain, pas une information officielle.
+              </p>
             )}
           </section>
 

@@ -5,6 +5,7 @@ import {
   eventRepository,
   participantRaceRepository,
   raceRepository,
+  raceWaypointRepository,
 } from '@pluka/db';
 import type { CommunityContext } from '@pluka/domain';
 
@@ -36,6 +37,7 @@ export function communityContext(session: Session): CommunityContext {
       races: raceRepository({ client }),
       editions: editionRepository({ client }),
       events: eventRepository({ client }),
+      waypoints: raceWaypointRepository({ client }),
     },
     actor: { userId: session.userId },
     now: () => new Date(),

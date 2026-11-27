@@ -2,6 +2,7 @@
 
 import type { PlanCutoffView, PlanOverview, PlanPointView } from '@pluka/domain';
 import { Button, Input, StatusBadge } from '@pluka/ui';
+import Link from 'next/link';
 import { useActionState, useId, useState } from 'react';
 
 import {
@@ -21,6 +22,7 @@ import { MilestoneEditor } from '@/app/(shell)/courses/[participantRaceId]/plan/
 import { usePlanBoard } from '@/app/(shell)/courses/[participantRaceId]/plan/plan-board';
 import { lockWaypointAction, resetPlanAction } from '@/app/profile-actions';
 import { Icon } from '@/components/icon';
+import { discussionCount, type PointCommunity } from '@/lib/community-format';
 import type {
   AidLine,
   EditableProduct,
@@ -103,6 +105,8 @@ export interface PlanPointsProps {
   readonly overview: PlanOverview;
   readonly timezone: string;
   readonly nutrition?: PlanTimelineNutrition | null;
+  /** La Communauté de chaque point, par `raceWaypointId` ; nulle quand elle n'existe pas. */
+  readonly community?: Readonly<Record<string, PointCommunity>> | null;
 }
 
 export function PlanPoints({
@@ -110,6 +114,7 @@ export function PlanPoints({
   overview,
   timezone,
   nutrition = null,
+  community = null,
 }: PlanPointsProps) {
   const board = usePlanBoard();
   // La barrière la plus serrée de chaque point : le repository les trie par marge croissante.
@@ -143,6 +148,7 @@ export function PlanPoints({
             tightest={overview.tightestCutoff?.raceWaypointId === point.raceWaypointId}
             edge={index === 0 || index === lastIndex}
             nutrition={nutrition}
+            community={community?.[point.raceWaypointId]}
           />
         ))}
       </ol>
@@ -226,6 +232,7 @@ function TimelineItem({
   tightest,
   edge,
   nutrition,
+  community,
 }: {
   readonly participantRaceId: string;
   readonly point: PlanPointView;
@@ -235,6 +242,7 @@ function TimelineItem({
   /** Le départ ou l'arrivée : pas d'arrêt à régler. */
   readonly edge: boolean;
   readonly nutrition: PlanTimelineNutrition | null;
+  readonly community: PointCommunity | undefined;
 }) {
   const board = usePlanBoard();
   const segment = point.incomingSegment;
@@ -275,6 +283,7 @@ function TimelineItem({
         nutrition={nutrition}
         intakesHidden={board.intakesHidden}
         onShowFlasks={() => board.setView('flasques')}
+        community={community}
       />
     </li>
   );
@@ -447,6 +456,7 @@ function PointRow({
   nutrition,
   intakesHidden,
   onShowFlasks,
+  community,
 }: {
   readonly participantRaceId: string;
   readonly point: PlanPointView;
@@ -457,6 +467,7 @@ function PointRow({
   readonly nutrition: PlanTimelineNutrition | null;
   readonly intakesHidden: boolean;
   readonly onShowFlasks: () => void;
+  readonly community: PointCommunity | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const editorId = useId();
@@ -532,6 +543,13 @@ function PointRow({
                 {supply.bagName}
               </span>
             )}
+            {/* Prototype `threads: 'Communauté · 2'` : seulement quand le point en a. */}
+            {community === undefined || community.count === 0 ? null : (
+              <Link href={community.listHref} className="pl-tag pl-tag-community">
+                <Icon name="ChatsCircle" size={13} />
+                Communauté · {community.count}
+              </Link>
+            )}
             <button
               type="button"
               className="pl-open"
@@ -556,10 +574,44 @@ function PointRow({
 
           <div id={editorId} className="pl-card-panel" hidden={!open}>
             <PointEditor participantRaceId={participantRaceId} point={point} />
+            {community === undefined ? null : <PointCommunityBox community={community} />}
           </div>
         </article>
       </div>
     </div>
+  );
+}
+
+/**
+ * La Communauté d'un point — prototype `pointDrawer.threads` : les discussions
+ * les plus actives, de quoi les voir toutes, et de quoi en ouvrir une. Des
+ * conseils de participants, jamais une information officielle (AC-COM-04).
+ */
+function PointCommunityBox({ community }: { readonly community: PointCommunity }) {
+  return (
+    <section className="pl-community" aria-label="Communauté sur ce point">
+      <p className="pl-community-head">
+        <Icon name="ChatsCircle" size={15} />
+        Communauté ·{' '}
+        {community.count === 0 ? 'aucune discussion' : discussionCount(community.count)}
+      </p>
+      {community.threads.length === 0 ? null : (
+        <ul className="pl-community-list">
+          {community.threads.map((thread) => (
+            <li key={thread.id}>
+              <Link href={thread.href}>{thread.title}</Link>
+              <span>{thread.replies}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="pl-community-actions">
+        {community.count > community.threads.length ? (
+          <Link href={community.listHref}>Voir les {community.count} discussions</Link>
+        ) : null}
+        <Link href={community.askHref}>Poser une question sur ce point</Link>
+      </p>
+    </section>
   );
 }
 

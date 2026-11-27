@@ -13,7 +13,10 @@ import { NotWired } from '@/components/not-wired';
 import { communityContext, communityEnabled } from '@/lib/community';
 import {
   COMMUNITY_CATEGORY_LABELS,
+  communityListHref,
   communityName,
+  communityNewHref,
+  communityThreadHref,
   communityWhen,
   discussionCount,
   isCommunityCategory,
@@ -28,25 +31,20 @@ import { requireSession } from '@/lib/session';
  * coureur, un sélecteur apparaît quand il en prépare plusieurs. Les puces de
  * catégorie et le sélecteur sont des liens : ils marchent sans JavaScript et
  * se partagent. Pas de fil global, pas d'abonnés (AC-COM-02).
+ *
+ * `?point=` resserre la liste sur un point du parcours : c'est là qu'arrivent
+ * le Plan et La course (« Communauté · 3 »).
  */
 export const metadata = { title: 'Communauté' };
-
-function listHref(editionId: string, category?: CommunityCategory): string {
-  const params = new URLSearchParams({ edition: editionId });
-  if (category !== undefined) params.set('categorie', category);
-  return `/communaute?${params.toString()}`;
-}
-
-function newThreadHref(editionId: string, category?: CommunityCategory): string {
-  const params = new URLSearchParams({ edition: editionId });
-  if (category !== undefined) params.set('categorie', category);
-  return `/communaute/nouveau?${params.toString()}`;
-}
 
 export default async function CommunityPage({
   searchParams,
 }: {
-  readonly searchParams: Promise<{ readonly edition?: string; readonly categorie?: string }>;
+  readonly searchParams: Promise<{
+    readonly edition?: string;
+    readonly categorie?: string;
+    readonly point?: string;
+  }>;
 }) {
   if (!communityEnabled()) {
     return (
@@ -61,7 +59,7 @@ export default async function CommunityPage({
     );
   }
 
-  const { edition, categorie } = await searchParams;
+  const { edition, categorie, point } = await searchParams;
   const session = await requireSession('/communaute');
   const context = communityContext(session);
   const communities = await listMyCommunities(context);
@@ -91,14 +89,28 @@ export default async function CommunityPage({
 
   const view = await getCommunity(context, { editionId: selected.editionId });
   const category = isCommunityCategory(categorie) ? categorie : undefined;
-  const threads =
-    category === undefined
+  // Un point inconnu de l'édition n'est pas un filtre : la liste reste entière.
+  const place = view.races
+    .flatMap((race) =>
+      race.points.map((entry) => ({ ...entry, raceId: race.raceId, raceName: race.name })),
+    )
+    .find((entry) => entry.waypointId === point);
+  const atPlace =
+    place === undefined
       ? view.threads
-      : view.threads.filter((thread) => thread.category === category);
+      : view.threads.filter((thread) => thread.waypointId === place.waypointId);
+  const threads =
+    category === undefined ? atPlace : atPlace.filter((thread) => thread.category === category);
   const counts = new Map<CommunityCategory, number>();
-  for (const thread of view.threads) {
+  for (const thread of atPlace) {
     counts.set(thread.category, (counts.get(thread.category) ?? 0) + 1);
   }
+  const filter = { category, point: place?.waypointId };
+  const newHref = communityNewHref(selected.editionId, {
+    category,
+    race: place?.raceId,
+    point: place?.waypointId,
+  });
   const now = new Date();
 
   return (
@@ -116,24 +128,37 @@ export default async function CommunityPage({
       ) : null}
 
       <div className="cm-bar">
-        <p className="cm-count">{discussionCount(view.threads.length)}</p>
+        <p className="cm-count">{discussionCount(atPlace.length)}</p>
         {/* Une liste vide porte déjà l'action dans son état vide : un seul Lichen (AGENTS §43). */}
         {threads.length === 0 ? null : (
-          <Link
-            href={newThreadHref(selected.editionId, category)}
-            className="pk-btn pk-button-primary cm-cta"
-          >
+          <Link href={newHref} className="pk-btn pk-button-primary cm-cta">
             <Icon name="Plus" size={18} />
             Créer un sujet
           </Link>
         )}
       </div>
 
+      {place === undefined ? null : (
+        <p className="cm-place">
+          <Icon name="MapPin" size={16} />
+          <span>
+            Sujets rattachés à <strong>{place.name}</strong>
+            {view.races.length > 1 ? ` · ${place.raceName}` : ''}
+          </span>
+          <Link
+            href={communityListHref(selected.editionId, { category })}
+            className="cm-place-clear"
+          >
+            Tous les points
+          </Link>
+        </p>
+      )}
+
       <nav aria-label="Catégories">
         <ul className="cm-chips">
           <li>
             <Link
-              href={listHref(selected.editionId)}
+              href={communityListHref(selected.editionId, { point: filter.point })}
               className="cm-chip"
               aria-current={category === undefined ? 'true' : undefined}
             >
@@ -143,7 +168,10 @@ export default async function CommunityPage({
           {COMMUNITY_CATEGORIES.map((value) => (
             <li key={value}>
               <Link
-                href={listHref(selected.editionId, value)}
+                href={communityListHref(selected.editionId, {
+                  category: value,
+                  point: filter.point,
+                })}
                 className="cm-chip"
                 aria-current={category === value ? 'true' : undefined}
               >
@@ -161,19 +189,20 @@ export default async function CommunityPage({
         <div className="cm-empty">
           <Icon name="ChatsCircle" size={26} />
           <p className="cm-empty-title">
-            {category === undefined
-              ? 'Pas encore de discussion ici.'
-              : `Pas encore de discussion dans ${COMMUNITY_CATEGORY_LABELS[category]}.`}
+            {category !== undefined
+              ? `Pas encore de discussion dans ${COMMUNITY_CATEGORY_LABELS[category]}.`
+              : place !== undefined
+                ? `Pas encore de discussion sur ${place.name}.`
+                : 'Pas encore de discussion ici.'}
           </p>
           <p className="cm-empty-text">
-            {category === undefined
-              ? 'Tu peux être le premier à poser une question aux participants de l’édition.'
-              : 'Tu peux être le premier à poser une question sur cette catégorie.'}
+            {category !== undefined
+              ? 'Tu peux être le premier à poser une question sur cette catégorie.'
+              : place !== undefined
+                ? 'Tu peux être le premier à poser une question sur ce point.'
+                : 'Tu peux être le premier à poser une question aux participants de l’édition.'}
           </p>
-          <Link
-            href={newThreadHref(selected.editionId, category)}
-            className="pk-btn pk-button-primary cm-cta"
-          >
+          <Link href={newHref} className="pk-btn pk-button-primary cm-cta">
             <Icon name="Plus" size={18} />
             Créer un sujet
           </Link>
@@ -182,7 +211,7 @@ export default async function CommunityPage({
         <ul className="cm-threads">
           {threads.map((thread) => (
             <li key={thread.id}>
-              <Link href={`/communaute/sujets/${thread.id}`} className="cm-thread">
+              <Link href={communityThreadHref(thread.id)} className="cm-thread">
                 <span className="cm-thread-main">
                   <span className="cm-thread-title">{thread.title}</span>
                   <span className="cm-thread-meta">
@@ -246,7 +275,7 @@ function CommunityPicker({
         {communities.map((community) => (
           <li key={community.editionId}>
             <Link
-              href={listHref(community.editionId)}
+              href={communityListHref(community.editionId)}
               className="cm-picker-item"
               aria-current={community.editionId === selected.editionId ? 'true' : undefined}
             >

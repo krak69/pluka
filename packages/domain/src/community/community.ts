@@ -9,6 +9,7 @@ import {
   type EventRepository,
   type ParticipantRaceRepository,
   type RaceRepository,
+  type RaceWaypointRepository,
 } from '@pluka/db';
 
 import type { Actor } from '../authorization/organization-role.js';
@@ -65,6 +66,7 @@ export interface CommunityContext {
     readonly races: Pick<RaceRepository, 'findById' | 'listByEdition'>;
     readonly editions: Pick<EditionRepository, 'findById'>;
     readonly events: Pick<EventRepository, 'findById'>;
+    readonly waypoints: Pick<RaceWaypointRepository, 'listByRace'>;
   };
   readonly actor: Actor;
   readonly now: () => Date;
@@ -89,11 +91,33 @@ export interface CommunitySummary {
   readonly past: boolean;
 }
 
+/** Un point du parcours auquel rattacher un sujet. */
+export interface CommunityPoint {
+  readonly waypointId: string;
+  readonly name: string;
+  readonly distanceKm: number;
+}
+
 export interface CommunityView {
   readonly community: CommunitySummary;
-  /** Les courses de l'édition, pour rattacher un sujet. */
-  readonly races: readonly { readonly raceId: string; readonly name: string }[];
+  /** Les courses de l'édition et leurs points, par départ puis par kilomètre. */
+  readonly races: readonly {
+    readonly raceId: string;
+    readonly name: string;
+    readonly points: readonly CommunityPoint[];
+  }[];
   readonly threads: readonly CommunityThreadSummaryRecord[];
+}
+
+/**
+ * La communauté vue depuis une participation : son édition, sa course, et les
+ * sujets publiés rattachés à un point de cette course — pour le Plan et La
+ * course (prototype `pointDrawer.threads`).
+ */
+export interface ParticipationCommunity {
+  readonly editionId: string;
+  readonly raceId: string;
+  readonly pointThreads: readonly CommunityThreadSummaryRecord[];
 }
 
 const postViewSchema = z.object({
@@ -132,6 +156,7 @@ export type CommunityPostView = z.infer<typeof postViewSchema>;
 export type CommunityThreadView = z.infer<typeof threadViewSchema>;
 
 const editionQuerySchema = z.object({ editionId: z.uuid() }).strict();
+const participationQuerySchema = z.object({ participantRaceId: z.uuid() }).strict();
 const threadQuerySchema = z.object({ threadId: z.uuid() }).strict();
 
 const targetSchema = z.union([
@@ -333,14 +358,62 @@ export async function getCommunity(
     attempt(useCase, () => context.repositories.community.listThreads(editionId)),
     context.repositories.races.listByEdition(editionId),
   ]);
+  const ordered = [...races].sort((left, right) =>
+    left.startDatetime.localeCompare(right.startDatetime),
+  );
+  const waypoints = await Promise.all(
+    ordered.map((race) => context.repositories.waypoints.listByRace(race.id)),
+  );
 
   return {
     community,
-    races: [...races]
-      .sort((left, right) => left.startDatetime.localeCompare(right.startDatetime))
-      .map((race) => ({ raceId: race.id, name: race.name })),
+    races: ordered.map((race, index) => ({
+      raceId: race.id,
+      name: race.name,
+      points: [...(waypoints[index] ?? [])]
+        .sort((left, right) => left.sortOrder - right.sortOrder)
+        .map((waypoint) => ({
+          waypointId: waypoint.id,
+          name: waypoint.name,
+          distanceKm: waypoint.distanceKm,
+        })),
+    })),
     threads,
   };
+}
+
+/**
+ * Les sujets rattachés aux points de la course d'une participation. Nul quand
+ * la participation n'ouvre aucune communauté (archivée, ou pas la sienne) :
+ * le Plan s'affiche alors sans rien en dire.
+ */
+export async function getParticipationCommunity(
+  context: CommunityContext,
+  input: unknown,
+): Promise<ParticipationCommunity | null> {
+  const useCase = 'getParticipationCommunity';
+  const { participantRaceId } = parseCommand(participationQuerySchema, input, useCase);
+
+  for (const community of await listMyCommunities(context)) {
+    const race = community.myRaces.find((mine) => mine.participantRaceId === participantRaceId);
+    if (race === undefined) continue;
+
+    const threads = await attempt(useCase, () =>
+      context.repositories.community.listThreads(community.editionId),
+    );
+    return {
+      editionId: community.editionId,
+      raceId: race.raceId,
+      // Un sujet masqué par la modération n'a rien à faire sur le Plan, même pour son auteur.
+      pointThreads: threads.filter(
+        (thread) =>
+          thread.status === 'published' &&
+          thread.waypointId !== null &&
+          thread.raceId === race.raceId,
+      ),
+    };
+  }
+  return null;
 }
 
 /** Un sujet et ses réponses. */

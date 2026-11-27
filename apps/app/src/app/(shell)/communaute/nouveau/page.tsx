@@ -22,11 +22,12 @@ export default async function NewCommunityThreadPage({
     readonly edition?: string;
     readonly categorie?: string;
     readonly course?: string;
+    readonly point?: string;
   }>;
 }) {
   if (!communityEnabled()) notFound();
 
-  const { edition, categorie, course } = await searchParams;
+  const { edition, categorie, course, point } = await searchParams;
   const session = await requireSession('/communaute/nouveau');
   const context = communityContext(session);
   const community = (await listMyCommunities(context)).find(
@@ -36,6 +37,11 @@ export default async function NewCommunityThreadPage({
 
   const view = await getCommunity(context, { editionId: community.editionId });
   const back = `/communaute?edition=${community.editionId}`;
+  // Un point venu du Plan ou de La course : sa course est choisie avec lui.
+  const pointRace = view.races.find((race) =>
+    race.points.some((entry) => entry.waypointId === point),
+  );
+  const raceId = view.races.some((race) => race.raceId === course) ? course : pointRace?.raceId;
 
   return (
     <div className="cm-page cm-page-narrow">
@@ -56,7 +62,8 @@ export default async function NewCommunityThreadPage({
         editionId={community.editionId}
         races={view.races}
         defaultCategory={isCommunityCategory(categorie) ? categorie : 'other'}
-        defaultRaceId={view.races.some((race) => race.raceId === course) ? (course ?? '') : ''}
+        defaultRaceId={raceId ?? ''}
+        defaultWaypointId={pointRace === undefined ? '' : (point ?? '')}
         cancelHref={back}
       />
     </div>

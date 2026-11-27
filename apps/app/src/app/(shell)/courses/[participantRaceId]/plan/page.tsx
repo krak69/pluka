@@ -1,6 +1,7 @@
 import {
   DomainError,
   getNutritionStrategy,
+  getParticipationCommunity,
   getPlanCourseChange,
   getPlanOverview,
   getPlanStartDrift,
@@ -25,6 +26,8 @@ import {
 } from '@/app/(shell)/courses/[participantRaceId]/plan/plan-points';
 import { CourseChangeAlert } from '@/components/course-change-alert';
 import { StartChangeAlert } from '@/components/start-change-alert';
+import { communityContext, communityEnabled } from '@/lib/community';
+import { pointCommunities } from '@/lib/community-format';
 import { conditionsContext, conditionsEnabled } from '@/lib/conditions';
 import { conditionsTeaser, profileWeather } from '@/lib/conditions-format';
 import { nutritionContext } from '@/lib/nutrition';
@@ -105,6 +108,22 @@ export default async function PlanPage({
 
     return redirectOnDomainError(error);
   });
+
+  // La Communauté de chaque point (prototype `pointDrawer.threads`) ; une lecture
+  // en échec, ou un flag coupé, n'empêche pas le Plan de s'afficher.
+  const community =
+    overview === null || !communityEnabled()
+      ? null
+      : await getParticipationCommunity(communityContext(session), { participantRaceId }).catch(
+          () => null,
+        );
+  const pointCommunity =
+    overview === null || community === null
+      ? null
+      : pointCommunities(
+          community,
+          overview.points.map((point) => point.raceWaypointId),
+        );
 
   const latest = startChanges[0];
   let timezone = overview?.timezone ?? null;
@@ -289,6 +308,7 @@ export default async function PlanPage({
               overview={overview}
               timezone={overview.timezone}
               nutrition={timeline}
+              community={pointCommunity}
             />
           </PlanBoard>
 

@@ -18,6 +18,7 @@ import { Icon } from '@/components/icon';
 import { communityContext, communityEnabled } from '@/lib/community';
 import {
   COMMUNITY_CATEGORY_LABELS,
+  communityListHref,
   communityName,
   communityWhen,
   replyCount,
@@ -83,11 +84,14 @@ export default async function CommunityThreadPage({
         <div className="cm-tags">
           <span className="cm-tag">{COMMUNITY_CATEGORY_LABELS[thread.category]}</span>
           {thread.raceName === null ? null : <span className="cm-tag">{thread.raceName}</span>}
-          {thread.waypointName === null ? null : (
-            <span className="cm-tag cm-tag-point">
+          {thread.waypointId === null || thread.waypointName === null ? null : (
+            <Link
+              href={communityListHref(thread.editionId, { point: thread.waypointId })}
+              className="cm-tag cm-tag-point"
+            >
               <Icon name="MapPin" size={14} />
               {thread.waypointName}
-            </span>
+            </Link>
           )}
           <TrustBadge level="community" />
         </div>

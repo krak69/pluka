@@ -999,6 +999,7 @@ export {
   deleteCommunityContentCommandSchema,
   getCommunity,
   getCommunityThread,
+  getParticipationCommunity,
   listMyCommunities,
   replyCommunityThreadCommandSchema,
   replyToCommunityThread,
@@ -1008,10 +1009,12 @@ export {
   setCommunityUsefulCommandSchema,
   type CommunityCategory,
   type CommunityContext,
+  type CommunityPoint,
   type CommunityPostView,
   type CommunitySummary,
   type CommunityThreadView,
   type CommunityView,
+  type ParticipationCommunity,
 } from './community/community.js';
 export type {
   NutritionPreparationView,

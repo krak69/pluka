@@ -1,8 +1,16 @@
-import { DomainError, getMyAidNotes, getParticipation, listRaceInformation } from '@pluka/domain';
+import {
+  DomainError,
+  getMyAidNotes,
+  getParticipation,
+  getParticipationCommunity,
+  listRaceInformation,
+} from '@pluka/domain';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { RaceFacts } from '@/components/race-facts';
+import { communityContext, communityEnabled } from '@/lib/community';
+import { communityNewHref, pointCommunities } from '@/lib/community-format';
 import { nutritionContext } from '@/lib/nutrition';
 import { participationContext } from '@/lib/participations';
 import { formatClock, formatDistance } from '@/lib/plan-format';
@@ -46,10 +54,16 @@ export default async function RaceInformationPage({
     },
   );
 
-  const [information, aidNotes] = await Promise.all([
+  const [information, aidNotes, community] = await Promise.all([
     listRaceInformation(sessionRaceContext(session), { raceId: detail.participation.raceId }),
     // Ses notes sur les ravitaillements (0110) : un échec ne cache pas la course.
     getMyAidNotes(nutritionContext(session), { participantRaceId }).catch(() => []),
+    // La Communauté de ses points : un flag coupé ou un échec ne cache pas la course.
+    communityEnabled()
+      ? getParticipationCommunity(communityContext(session), { participantRaceId }).catch(
+          () => null,
+        )
+      : Promise.resolve(null),
   ]);
 
   const publicPath = `/epreuves/${information.event.slug}/${information.edition.slug}/${information.race.slug}`;
@@ -117,6 +131,17 @@ export default async function RaceInformationPage({
         timezone={race.timezone}
         aidItems={information.aidItems}
         aidNotes={aidNotes}
+        community={
+          community === null
+            ? undefined
+            : {
+                points: pointCommunities(
+                  community,
+                  information.waypoints.map((waypoint) => waypoint.id),
+                ),
+                askHref: communityNewHref(community.editionId, { race: community.raceId }),
+              }
+        }
         indexed
         lead={lead}
       />

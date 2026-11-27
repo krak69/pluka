@@ -3,6 +3,7 @@ import {
   type CommunityRepository,
   type CommunityTarget,
   type CommunityThreadSummaryRecord,
+  type CourseWaypointRecord,
   type CreateCommunityThreadInput,
   type EditionRecord,
   type EventRecord,
@@ -17,6 +18,7 @@ import {
   DomainError,
   getCommunity,
   getCommunityThread,
+  getParticipationCommunity,
   listMyCommunities,
   replyToCommunityThread,
   reportCommunityContent,
@@ -57,6 +59,14 @@ const RACES: RaceRecord[] = [
     '2027-05-01T06:00:00.000Z',
   ),
 ];
+
+function waypoint(id: string, name: string, sortOrder: number, distanceKm: number) {
+  return { id, name, sortOrder, distanceKm } as CourseWaypointRecord;
+}
+
+const WAYPOINTS: Record<string, CourseWaypointRecord[]> = {
+  'r-5': [waypoint('w-lenk', 'Lenk', 2, 12.3), waypoint('w-start', 'Départ', 1, 0)],
+};
 
 const EDITIONS: Record<string, EditionRecord> = {
   [EDITION_CLOCHERS]: { id: EDITION_CLOCHERS, eventId: 'ev-clochers', year: 2027 } as EditionRecord,
@@ -113,6 +123,7 @@ function context(): CommunityContext {
       },
       editions: { findById: async (id) => EDITIONS[id] ?? null },
       events: { findById: async (id) => EVENTS[id] ?? null },
+      waypoints: { listByRace: async (raceId) => WAYPOINTS[raceId] ?? [] },
     },
     actor: { userId: RUNNER },
     now: () => NOW,
@@ -206,6 +217,11 @@ describe('une communauté', () => {
       'Les 2 clochers',
       'Les 9 clochers',
     ]);
+    expect(view.races[0]?.points).toEqual([
+      { waypointId: 'w-start', name: 'Départ', distanceKm: 0 },
+      { waypointId: 'w-lenk', name: 'Lenk', distanceKm: 12.3 },
+    ]);
+    expect(view.races[2]?.points).toEqual([]);
     expect(calls).toEqual([{ method: 'listThreads', args: [EDITION_CLOCHERS] }]);
   });
 
@@ -223,6 +239,53 @@ describe('une communauté', () => {
       code: 'forbidden',
       message: expect.not.stringContaining('communauté inaccessible'),
     });
+  });
+});
+
+describe('depuis une participation', () => {
+  const PR_5 = 'aaaaaaaa-0000-4000-8000-000000000305';
+
+  function summary(
+    id: string,
+    raceId: string | null,
+    waypointId: string | null,
+    status: 'published' | 'hidden' = 'published',
+  ): CommunityThreadSummaryRecord {
+    return { id, raceId, waypointId, status, title: id } as CommunityThreadSummaryRecord;
+  }
+
+  it('les sujets publiés rattachés à un point de sa course, et seulement ceux-là', async () => {
+    participations.push({ participantRaceId: PR_5, raceId: 'r-5', status: 'active' });
+    threads = [
+      summary('au-point', 'r-5', 'w-lenk'),
+      summary('sans-point', 'r-5', null),
+      summary('autre-course', 'r-9', 'w-9'),
+      summary('masque', 'r-5', 'w-lenk', 'hidden'),
+    ];
+
+    const view = await getParticipationCommunity(context(), { participantRaceId: PR_5 });
+
+    expect(view?.editionId).toBe(EDITION_CLOCHERS);
+    expect(view?.raceId).toBe('r-5');
+    expect(view?.pointThreads.map((entry) => entry.id)).toEqual(['au-point']);
+  });
+
+  it('une participation qui n’ouvre aucune communauté : rien, sans lire de sujet', async () => {
+    participations.push({ participantRaceId: PR_5, raceId: 'r-5', status: 'archived' });
+
+    expect(await getParticipationCommunity(context(), { participantRaceId: PR_5 })).toBeNull();
+    expect(
+      await getParticipationCommunity(context(), {
+        participantRaceId: 'aaaaaaaa-0000-4000-8000-000000000399',
+      }),
+    ).toBeNull();
+    expect(calls).toEqual([]);
+  });
+
+  it('un identifiant mal formé est une saisie refusée', async () => {
+    await expect(
+      getParticipationCommunity(context(), { participantRaceId: 'pr-9' }),
+    ).rejects.toMatchObject({ code: 'validation' });
   });
 });
 
