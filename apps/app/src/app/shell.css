@@ -6111,7 +6111,7 @@ a.st-tab {
 
 .as-passage div {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .as-passage dt {
@@ -6314,7 +6314,7 @@ a.st-tab {
 
 .ax-times div {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .ax-times dt {
@@ -6582,7 +6582,7 @@ a.st-tab {
 
 .nu-totals > div {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
   padding: var(--space-4) var(--space-5);
   background: var(--pk-surface);
 }
@@ -6741,7 +6741,7 @@ a.st-tab {
 
 .nu-off-text {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .nu-off-title {
@@ -6843,7 +6843,7 @@ a.st-tab {
 
 .nu-section-title {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -6924,12 +6924,12 @@ a.st-tab {
 }
 
 .nu-section-line {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   font-variant-numeric: tabular-nums;
 }
 
 .nu-section-prises {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   padding: 0;
   list-style: none;
   font-size: 14px;
@@ -7105,7 +7105,7 @@ a.st-tab {
 
 .nu-place {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
   margin: 0;
   padding: var(--space-3) var(--space-4);
   border-left: 2px solid var(--pk-forest);
@@ -7136,7 +7136,7 @@ a.st-tab {
 /* Nutrition, tranche 2 : produits, couverture, choix (prototype `nutStepProducts`). */
 .nu-status {
   justify-self: start;
-  padding: 2px 8px;
+  padding: 2px var(--space-2);
   border-radius: 2px;
   background: var(--pk-sand);
   font-family: var(--font-mono);
@@ -7436,7 +7436,7 @@ a.st-tab {
 }
 
 .nu-send-alert-seen ul {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   padding-left: var(--space-4);
   font-size: 14px;
   color: var(--pk-text-secondary);
