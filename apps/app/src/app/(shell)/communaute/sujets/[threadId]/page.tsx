@@ -118,6 +118,7 @@ export default async function CommunityThreadPage({
             </h1>
             <Byline
               label={thread.authorLabel}
+              avatar={thread.authorAvatar}
               mine={thread.isMine}
               when={communityWhen(thread.createdAt, now, timeZone)}
             />
@@ -159,6 +160,7 @@ export default async function CommunityThreadPage({
                     <li key={post.id} className="cm-card cm-message">
                       <Byline
                         label={post.authorLabel}
+                        avatar={post.authorAvatar}
                         mine={post.isMine}
                         when={communityWhen(post.createdAt, now, timeZone)}
                       >

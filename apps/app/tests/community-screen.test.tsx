@@ -10,7 +10,6 @@ import { describe, expect, it } from 'vitest';
 import { NewThreadForm } from '@/app/(shell)/communaute/new-thread-form';
 import { ReplyForm, ReportForm } from '@/app/(shell)/communaute/thread-forms';
 import {
-  authorInitials,
   communityFigures,
   COMMUNITY_CATEGORY_LABELS,
   communityListHref,
@@ -241,14 +240,7 @@ describe('un point du parcours', () => {
   });
 });
 
-describe('en-tête et auteurs', () => {
-  it('les initiales viennent du libellé réduit, jamais d’autre chose', () => {
-    expect(authorInitials('Alice D.')).toBe('AD');
-    expect(authorInitials('Participant')).toBe('P');
-    expect(authorInitials('élodie m.')).toBe('ÉM');
-    expect(authorInitials('Compte supprimé')).toBe('–');
-  });
-
+describe('en-tête', () => {
   it('l’en-tête compte les discussions, les réponses et les points, sans rien de personnel', () => {
     expect(
       communityFigures([

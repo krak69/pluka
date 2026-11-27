@@ -41,25 +41,6 @@ export function communityName(community: Pick<CommunitySummary, 'eventName' | 'y
   return `${community.eventName} ${community.year}`;
 }
 
-/**
- * Les initiales d'un auteur, pour son repère rond : « Alice D. » → « AD ». Le
- * libellé vient déjà réduit de la base (03_PRIVACY_RLS §54) ; un compte
- * supprimé n'a pas d'initiales.
- */
-export function authorInitials(label: string): string {
-  if (label === 'Compte supprimé') return '–';
-  const words = label
-    .replace(/\./gu, ' ')
-    .trim()
-    .split(/\s+/u)
-    .filter((word) => word !== '');
-  if (words.length === 0) return '?';
-  return words
-    .slice(0, 2)
-    .map((word) => (word[0] ?? '').toLocaleUpperCase('fr-FR'))
-    .join('');
-}
-
 /** Ce que l'en-tête dit de la communauté : des comptes, rien de personnel. */
 export function communityFigures(
   threads: readonly { readonly replyCount: number; readonly waypointId: string | null }[],

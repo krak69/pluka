@@ -23,7 +23,7 @@ export function DeleteAccountForm() {
       </p>
       <p className="pk-field-hint">
         Tes courses venues d’une organisation lui restent, sans ta préparation. Ce que tu as publié
-        dans la communauté reste, sans ton nom.
+        dans la communauté reste, sans ton nom ; ta photo de profil est retirée aussitôt.
       </p>
 
       <div>

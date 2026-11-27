@@ -281,7 +281,12 @@ function ThreadCard({
       </span>
       <span className="cm-thread-title">{thread.title}</span>
       <span className="cm-thread-foot">
-        <Byline label={thread.authorLabel} mine={thread.isMine} when={when} />
+        <Byline
+          label={thread.authorLabel}
+          avatar={thread.authorAvatar}
+          mine={thread.isMine}
+          when={when}
+        />
         <span className="cm-thread-stats">
           <span className="cm-stat">
             <Icon name="ChatCircle" size={16} />

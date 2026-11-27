@@ -9291,23 +9291,8 @@ a.st-tab {
   min-width: 0;
 }
 
-.cm-avatar {
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: var(--pk-glacier-bg);
-  color: var(--pk-forest);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.cm-avatar[data-mine='true'] {
-  background: var(--pk-lichen);
-  color: var(--pk-ink);
+.cm-byline[data-mine='true'] .av {
+  box-shadow: 0 0 0 2px var(--pk-lichen);
 }
 
 .cm-byline-name {
@@ -10117,4 +10102,460 @@ a.cm-tag-point:hover {
 
 .pl-tl-point:target .pl-card {
   box-shadow: 0 0 0 2px var(--pk-lichen-deep);
+}
+
+/* ══ Avatar — photo ou illustration PLUKA (0115) ═════════════════════════ */
+
+.av {
+  display: inline-flex;
+  flex: none;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--pk-forest);
+  line-height: 0;
+}
+
+.av img,
+.av svg {
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* L'illustration tient dans son rond, même posée seule (le choix dans Mon profil). */
+.av-art {
+  clip-path: circle(50%);
+}
+
+.av-bg {
+  fill: var(--pk-forest);
+}
+
+.av-topo {
+  fill: none;
+  stroke: var(--pk-lichen);
+  stroke-width: 1.2;
+  opacity: 0.32;
+}
+
+.av-body {
+  fill: var(--pk-glacier);
+}
+
+.av-head {
+  fill: var(--pk-limestone);
+}
+
+.av-hair {
+  fill: var(--pk-ink);
+}
+
+.av-accent {
+  fill: var(--pk-lichen);
+}
+
+/* ══ Mon profil ══════════════════════════════════════════════════════════ */
+
+.pf-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+}
+
+.pf-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.pf-hero .av {
+  box-shadow: 0 0 0 3px var(--pk-lichen);
+}
+
+.pf-hero-text {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.pf-hero-line {
+  margin: 0;
+  font-size: 15px;
+  color: color-mix(in srgb, var(--pk-text-on-dark) 86%, transparent);
+}
+
+.pf-hero-line strong {
+  color: var(--pk-text-on-dark);
+}
+
+.pf-hero-mail {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: color-mix(in srgb, var(--pk-text-on-dark) 62%, transparent);
+  overflow-wrap: anywhere;
+}
+
+.pf-cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 46px;
+  text-decoration: none;
+}
+
+.pf-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--pk-success-bg);
+  color: var(--pk-success);
+  font-size: 14px;
+}
+
+/* Un sommaire à gauche sur grand écran, les encarts à droite. */
+.pf-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.pf-index {
+  display: none;
+}
+
+.pf-index ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pf-index a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--pk-text-secondary);
+  font-size: 14.5px;
+  text-decoration: none;
+}
+
+.pf-index a:hover {
+  background: var(--pk-sand);
+  color: var(--pk-text);
+}
+
+@media (width >= 1080px) {
+  .pf-layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .pf-index {
+    display: block;
+    position: sticky;
+    top: var(--space-6);
+  }
+}
+
+.pf-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+/* Un encart par sujet : surface blanche cernée d'un filet, comme la Communauté. */
+.pf-card {
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  box-shadow: 0 0 0 1px var(--pk-hairline);
+  scroll-margin-top: calc(var(--space-20) + var(--space-6));
+}
+
+.pf-card-head {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.pf-card-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.pf-card-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-variation-settings: 'wdth' 112;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.pf-card-sub {
+  margin: 0;
+  max-width: 64ch;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--pk-text-secondary);
+}
+
+.pf-card-warning {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--pk-warning);
+  background: var(--pk-warning-bg);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.pf-card-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.pf-card-link .pk-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  text-decoration: none;
+}
+
+.pf-beta {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--pk-glacier-bg);
+  color: var(--pk-forest);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  vertical-align: middle;
+}
+
+/* La photo : l'avatar, puis ce qu'on peut en faire. */
+.pf-photo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-5);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--pk-hairline);
+}
+
+.pf-photo-side {
+  display: grid;
+  flex: 1;
+  gap: var(--space-2);
+  min-width: 16rem;
+}
+
+.pf-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.pf-photo-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.pf-photo-actions form {
+  margin: 0;
+}
+
+.pf-file {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.pf-file:focus-within {
+  outline: 2px solid var(--pk-focus-light);
+  outline-offset: 2px;
+}
+
+.pf-file[aria-busy='true'] {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.pf-text-button {
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--pk-error);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.pf-text-button:focus-visible {
+  outline: 2px solid var(--pk-focus-light);
+  outline-offset: 2px;
+}
+
+.pf-hint {
+  margin: 0;
+  max-width: 58ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pk-text-muted);
+}
+
+.pf-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--pk-success);
+}
+
+/* L'identité : noms, sexe facultatif, illustration. */
+.pf-form {
+  display: grid;
+  gap: var(--space-5);
+  margin: 0;
+}
+
+.pf-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--space-4);
+}
+
+.pf-illustrations {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pf-illustration-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.pf-illustration {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  min-width: 104px;
+  padding: var(--space-3);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  color: var(--pk-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pf-illustration:hover {
+  border-color: var(--pk-forest);
+}
+
+.pf-illustration input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pf-illustration:has(input:checked) {
+  border-color: var(--pk-forest);
+  background: var(--pk-glacier-bg);
+  box-shadow: inset 0 0 0 1px var(--pk-forest);
+  color: var(--pk-text);
+}
+
+.pf-illustration:has(input:focus-visible) {
+  outline: 2px solid var(--pk-focus-light);
+  outline-offset: 2px;
+}
+
+.pf-form-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+}
+
+.pf-form-foot .pk-btn {
+  min-height: 46px;
+}
+
+.pf-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pk-text-muted);
+}
+
+.pf-mono {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--pk-text-secondary);
+}
+
+/* Mes données : télécharger, puis la zone de suppression, repliée. */
+.pf-download {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-self: start;
+  min-height: 44px;
+  text-decoration: none;
+}
+
+.pf-danger {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.pf-danger > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--pk-error);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.pf-danger[open] > summary {
+  margin-bottom: var(--space-2);
+}
+
+@media (width <= 720px) {
+  .pf-card {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .pf-illustration {
+    min-width: calc(50% - var(--space-2));
+  }
 }
