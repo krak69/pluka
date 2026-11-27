@@ -470,6 +470,24 @@ export {
   type SavedTrailProfile,
   type TrailProfileView,
 } from './profile/use-cases.js';
+export {
+  AVATAR_ILLUSTRATIONS,
+  AVATAR_UPLOAD_MAX_BYTES,
+  AVATAR_URL_SECONDS,
+  AvatarImageRejected,
+  communityAuthorLabel,
+  getMyIdentity,
+  illustrationFor,
+  NAME_MAX,
+  PROFILE_SEXES,
+  removeMyAvatar,
+  updateAccountIdentityCommandSchema,
+  updateMyIdentity,
+  uploadMyAvatar,
+  type AccountIdentityContext,
+  type AccountIdentityView,
+  type AvatarImageProcessor,
+} from './profile/identity.js';
 
 export {
   decideFactCandidateCommandSchema,
@@ -1008,10 +1026,12 @@ export {
   setCommunityUseful,
   setCommunityUsefulCommandSchema,
   type CommunityCategory,
+  type CommunityAvatarView,
   type CommunityContext,
   type CommunityPoint,
   type CommunityPostView,
   type CommunitySummary,
+  type CommunityThreadSummary,
   type CommunityThreadView,
   type CommunityView,
   type ParticipationCommunity,

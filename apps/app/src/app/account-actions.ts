@@ -1,9 +1,11 @@
 'use server';
 
 import type { AccountDeletionBlocker } from '@pluka/db';
+import { DomainError, removeMyAvatar } from '@pluka/domain';
 import { redirect } from 'next/navigation';
 
 import { accountClosure } from '@/lib/account';
+import { identityContext } from '@/lib/identity';
 import { requireSession } from '@/lib/session';
 import { createAuthClient } from '@/lib/supabase/auth';
 
@@ -42,6 +44,15 @@ export async function requestAccountDeletionAction(
   }
 
   if (outcome.status === 'blocked') return { error: BLOCKED[outcome.reason] };
+
+  // La photo de profil part tout de suite : la purge de la nuit efface la base,
+  // pas les fichiers du stockage (03_PRIVACY_RLS §54.1). Revenir dans les 30
+  // jours rouvre le compte, sans sa photo.
+  await removeMyAvatar(identityContext(session)).catch((error: unknown) => {
+    console.error('fermeture du compte : photo de profil non retirée', {
+      code: error instanceof DomainError ? error.code : 'inconnu',
+    });
+  });
 
   // Toutes les sessions, sur tous les appareils : le compte est fermé.
   const auth = await createAuthClient();

@@ -1,6 +1,7 @@
 import type { Enum } from '../types.js';
 import { defineRepository, type RepositoryContext } from '../repository.js';
 import { unwrap, unwrapMaybe } from '../results.js';
+import type { AvatarIllustration } from './identity.js';
 
 /**
  * Communauté d'édition — 03_PRIVACY_RLS §53 à §55 ; migration 0114.
@@ -14,6 +15,23 @@ import { unwrap, unwrapMaybe } from '../results.js';
 export type CommunityCategory = Enum<'community_category'>;
 export type CommunityContentStatus = Enum<'community_content_status'>;
 export type CommunityReportReason = Enum<'report_reason'>;
+
+/**
+ * L'avatar d'un auteur (0115) : sa photo par sa clé, quand le lecteur peut la
+ * voir, sinon son illustration. Jamais l'identifiant du compte.
+ */
+export type CommunityAvatar =
+  { readonly kind: 'photo'; readonly path: string } | { readonly kind: AvatarIllustration };
+
+/** L'avatar tel que la base le construit ; une forme inattendue se lit Neutre. */
+export function toCommunityAvatar(value: unknown): CommunityAvatar {
+  const raw = value as { readonly kind?: unknown; readonly path?: unknown } | null;
+  if (raw?.kind === 'photo' && typeof raw.path === 'string') {
+    return { kind: 'photo', path: raw.path };
+  }
+  if (raw?.kind === 'man' || raw?.kind === 'woman') return { kind: raw.kind };
+  return { kind: 'neutral' };
+}
 
 /** Exactement un sujet ou une réponse. */
 export type CommunityTarget =
@@ -29,6 +47,7 @@ export interface CommunityThreadSummaryRecord {
   readonly waypointId: string | null;
   readonly waypointName: string | null;
   readonly authorLabel: string;
+  readonly authorAvatar: CommunityAvatar;
   readonly isMine: boolean;
   readonly status: CommunityContentStatus;
   readonly createdAt: string;
@@ -94,6 +113,7 @@ export const communityRepository = defineRepository<CommunityRepository>(
         waypointId: (row.waypoint_id as string | null) ?? null,
         waypointName: (row.waypoint_name as string | null) ?? null,
         authorLabel: row.author_label,
+        authorAvatar: toCommunityAvatar(row.author_avatar),
         isMine: row.is_mine,
         status: row.status,
         createdAt: row.created_at,

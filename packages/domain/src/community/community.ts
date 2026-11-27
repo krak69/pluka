@@ -2,6 +2,9 @@ import { z } from 'zod';
 
 import {
   DbError,
+  type AvatarIllustration,
+  type AvatarStore,
+  type CommunityAvatar,
   type CommunityRepository,
   type CommunityTarget,
   type CommunityThreadSummaryRecord,
@@ -20,6 +23,7 @@ import {
   parseCommand,
   validationError,
 } from '../errors.js';
+import { AVATAR_URL_SECONDS } from '../profile/identity.js';
 
 /**
  * Communauté d'édition — 00_PRODUCT_SPEC §21 ; 03_PRIVACY_RLS §53 à §55 ;
@@ -67,6 +71,8 @@ export interface CommunityContext {
     readonly editions: Pick<EditionRepository, 'findById'>;
     readonly events: Pick<EventRepository, 'findById'>;
     readonly waypoints: Pick<RaceWaypointRepository, 'listByRace'>;
+    /** Les photos des auteurs, lues par lien temporaire (0115). */
+    readonly avatars: Pick<AvatarStore, 'signedUrls'>;
   };
   readonly actor: Actor;
   readonly now: () => Date;
@@ -91,6 +97,18 @@ export interface CommunitySummary {
   readonly past: boolean;
 }
 
+/**
+ * L'avatar d'un auteur, prêt à afficher : un lien de lecture temporaire vers
+ * sa photo, ou son illustration. Une photo que le stockage n'a pas signée
+ * s'affiche Neutre.
+ */
+export type CommunityAvatarView =
+  { readonly kind: 'photo'; readonly url: string } | { readonly kind: AvatarIllustration };
+
+export type CommunityThreadSummary = Omit<CommunityThreadSummaryRecord, 'authorAvatar'> & {
+  readonly authorAvatar: CommunityAvatarView;
+};
+
 /** Un point du parcours auquel rattacher un sujet. */
 export interface CommunityPoint {
   readonly waypointId: string;
@@ -106,7 +124,7 @@ export interface CommunityView {
     readonly name: string;
     readonly points: readonly CommunityPoint[];
   }[];
-  readonly threads: readonly CommunityThreadSummaryRecord[];
+  readonly threads: readonly CommunityThreadSummary[];
 }
 
 /**
@@ -120,9 +138,15 @@ export interface ParticipationCommunity {
   readonly pointThreads: readonly CommunityThreadSummaryRecord[];
 }
 
+const avatarSchema = z.union([
+  z.object({ kind: z.literal('photo'), path: z.string() }),
+  z.object({ kind: z.enum(['neutral', 'man', 'woman']) }),
+]);
+
 const postViewSchema = z.object({
   id: z.string(),
   authorLabel: z.string(),
+  authorAvatar: avatarSchema,
   isMine: z.boolean(),
   status: z.enum(['published', 'hidden', 'deleted']),
   body: z.string(),
@@ -142,6 +166,7 @@ const threadViewSchema = z.object({
   waypointId: z.string().nullable(),
   waypointName: z.string().nullable(),
   authorLabel: z.string(),
+  authorAvatar: avatarSchema,
   isMine: z.boolean(),
   status: z.enum(['published', 'hidden', 'deleted']),
   createdAt: z.string(),
@@ -152,8 +177,16 @@ const threadViewSchema = z.object({
   posts: z.array(postViewSchema),
 });
 
-export type CommunityPostView = z.infer<typeof postViewSchema>;
-export type CommunityThreadView = z.infer<typeof threadViewSchema>;
+type ParsedPost = z.infer<typeof postViewSchema>;
+type ParsedThread = z.infer<typeof threadViewSchema>;
+
+export type CommunityPostView = Omit<ParsedPost, 'authorAvatar'> & {
+  readonly authorAvatar: CommunityAvatarView;
+};
+export type CommunityThreadView = Omit<ParsedThread, 'authorAvatar' | 'posts'> & {
+  readonly authorAvatar: CommunityAvatarView;
+  readonly posts: readonly CommunityPostView[];
+};
 
 const editionQuerySchema = z.object({ editionId: z.uuid() }).strict();
 const participationQuerySchema = z.object({ participantRaceId: z.uuid() }).strict();
@@ -265,6 +298,28 @@ async function attempt<T>(useCase: string, run: () => Promise<T>): Promise<T> {
   }
 }
 
+/**
+ * Les photos d'une page signées d'un seul appel ; une photo refusée, ou un
+ * stockage qui ne répond pas, laisse place à l'illustration Neutre : la
+ * discussion s'affiche quand même.
+ */
+async function avatarResolver(
+  context: CommunityContext,
+  avatars: readonly CommunityAvatar[],
+): Promise<(avatar: CommunityAvatar) => CommunityAvatarView> {
+  const paths = avatars.flatMap((avatar) => (avatar.kind === 'photo' ? [avatar.path] : []));
+  const urls: Readonly<Record<string, string>> =
+    paths.length === 0
+      ? {}
+      : await context.repositories.avatars.signedUrls(paths, AVATAR_URL_SECONDS).catch(() => ({}));
+
+  return (avatar) => {
+    if (avatar.kind !== 'photo') return avatar;
+    const url = urls[avatar.path];
+    return url === undefined ? { kind: 'neutral' } : { kind: 'photo', url };
+  };
+}
+
 function asTarget(target: z.infer<typeof targetSchema>): CommunityTarget {
   return 'threadId' in target ? { threadId: target.threadId } : { postId: target.postId };
 }
@@ -365,6 +420,11 @@ export async function getCommunity(
     ordered.map((race) => context.repositories.waypoints.listByRace(race.id)),
   );
 
+  const avatarOf = await avatarResolver(
+    context,
+    threads.map((thread) => thread.authorAvatar),
+  );
+
   return {
     community,
     races: ordered.map((race, index) => ({
@@ -378,7 +438,7 @@ export async function getCommunity(
           distanceKm: waypoint.distanceKm,
         })),
     })),
-    threads,
+    threads: threads.map((thread) => ({ ...thread, authorAvatar: avatarOf(thread.authorAvatar) })),
   };
 }
 
@@ -430,7 +490,17 @@ export async function getCommunityThread(
   const parsed = threadViewSchema.safeParse(raw);
   // La forme est celle de 0114 : un écart est un défaut de contrat, pas une saisie.
   if (!parsed.success) throw new Error(`[${useCase}] sujet illisible : contrat 0114 rompu`);
-  return parsed.data;
+
+  const thread = parsed.data;
+  const avatarOf = await avatarResolver(context, [
+    thread.authorAvatar,
+    ...thread.posts.map((post) => post.authorAvatar),
+  ]);
+  return {
+    ...thread,
+    authorAvatar: avatarOf(thread.authorAvatar),
+    posts: thread.posts.map((post) => ({ ...post, authorAvatar: avatarOf(post.authorAvatar) })),
+  };
 }
 
 export async function createCommunityThread(

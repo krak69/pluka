@@ -85,6 +85,9 @@ let threads: CommunityThreadSummaryRecord[];
 let thread: unknown;
 let calls: { method: string; args: unknown[] }[];
 let failure: DbError | null;
+let signed: Record<string, string>;
+let signCalls: string[][];
+let storageDown: boolean;
 
 function dbFailure(code: DbError['code'], sqlState: string, message: string): DbError {
   return new DbError({
@@ -124,6 +127,15 @@ function context(): CommunityContext {
       editions: { findById: async (id) => EDITIONS[id] ?? null },
       events: { findById: async (id) => EVENTS[id] ?? null },
       waypoints: { listByRace: async (raceId) => WAYPOINTS[raceId] ?? [] },
+      avatars: {
+        signedUrls: async (paths) => {
+          signCalls.push([...paths]);
+          if (storageDown) throw new Error('stockage indisponible');
+          return Object.fromEntries(
+            paths.flatMap((path) => (signed[path] === undefined ? [] : [[path, signed[path]]])),
+          );
+        },
+      },
     },
     actor: { userId: RUNNER },
     now: () => NOW,
@@ -141,6 +153,7 @@ const THREAD_VIEW = {
   waypointId: null,
   waypointName: null,
   authorLabel: 'Alice D.',
+  authorAvatar: { kind: 'photo', path: 'alice.webp' },
   isMine: false,
   status: 'published',
   createdAt: '2026-11-27T09:00:00.000+00:00',
@@ -152,6 +165,7 @@ const THREAD_VIEW = {
     {
       id: POST,
       authorLabel: 'Bruno',
+      authorAvatar: { kind: 'woman' },
       isMine: true,
       status: 'published',
       body: 'Technique sur la fin.',
@@ -173,6 +187,9 @@ beforeEach(() => {
   thread = THREAD_VIEW;
   calls = [];
   failure = null;
+  signed = { 'alice.webp': 'https://stockage/alice' };
+  signCalls = [];
+  storageDown = false;
 });
 
 describe('mes communautés', () => {
@@ -223,6 +240,25 @@ describe('une communauté', () => {
     ]);
     expect(view.races[2]?.points).toEqual([]);
     expect(calls).toEqual([{ method: 'listThreads', args: [EDITION_CLOCHERS] }]);
+  });
+
+  it('les sujets montrent la photo de leur auteur par lien temporaire ; sans photo, aucun appel au stockage', async () => {
+    threads = [
+      { id: 't-1', authorAvatar: { kind: 'photo', path: 'alice.webp' } },
+      { id: 't-2', authorAvatar: { kind: 'man' } },
+    ] as CommunityThreadSummaryRecord[];
+
+    const view = await getCommunity(context(), { editionId: EDITION_CLOCHERS });
+
+    expect(view.threads.map((thread) => thread.authorAvatar)).toEqual([
+      { kind: 'photo', url: 'https://stockage/alice' },
+      { kind: 'man' },
+    ]);
+
+    threads = [{ id: 't-2', authorAvatar: { kind: 'man' } }] as CommunityThreadSummaryRecord[];
+    signCalls = [];
+    await getCommunity(context(), { editionId: EDITION_CLOCHERS });
+    expect(signCalls).toEqual([]);
   });
 
   it('§53 — une édition où il ne court pas : refusée sans interroger la base', async () => {
@@ -296,6 +332,26 @@ describe('un sujet', () => {
     expect(view.authorLabel).toBe('Alice D.');
     expect(view.posts).toHaveLength(1);
     expect(view.canReply).toBe(true);
+  });
+
+  it('la photo d’un auteur devient un lien temporaire, signé en un seul appel', async () => {
+    const view = await getCommunityThread(context(), { threadId: THREAD });
+
+    expect(view.authorAvatar).toEqual({ kind: 'photo', url: 'https://stockage/alice' });
+    expect(view.posts[0]?.authorAvatar).toEqual({ kind: 'woman' });
+    expect(signCalls).toEqual([['alice.webp']]);
+  });
+
+  it('une photo non signée, ou un stockage en panne : l’illustration Neutre, et le sujet s’affiche', async () => {
+    signed = {};
+    expect((await getCommunityThread(context(), { threadId: THREAD })).authorAvatar).toEqual({
+      kind: 'neutral',
+    });
+
+    storageDown = true;
+    const view = await getCommunityThread(context(), { threadId: THREAD });
+    expect(view.authorAvatar).toEqual({ kind: 'neutral' });
+    expect(view.title).toBe('Descente du col : technique ?');
   });
 
   it('masqué ou supprimé : introuvable', async () => {

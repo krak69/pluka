@@ -1,5 +1,6 @@
 import { loadFeatureFlags } from '@pluka/config';
 import {
+  avatarStore,
   communityRepository,
   editionRepository,
   eventRepository,
@@ -38,6 +39,8 @@ export function communityContext(session: Session): CommunityContext {
       editions: editionRepository({ client }),
       events: eventRepository({ client }),
       waypoints: raceWaypointRepository({ client }),
+      // Sous la session du lecteur : la base ne signe que les photos qu'il peut voir (0115).
+      avatars: avatarStore({ client }),
     },
     actor: { userId: session.userId },
     now: () => new Date(),

@@ -6217,6 +6217,8 @@ export type Database = {
       }
       users: {
         Row: {
+          avatar_illustration: string | null
+          avatar_path: string | null
           avatar_url: string | null
           created_at: string
           email: string
@@ -6225,11 +6227,14 @@ export type Database = {
           last_name: string | null
           locale: string
           platform_role: Database["public"]["Enums"]["platform_role"]
+          sex: string | null
           staff_role: Database["public"]["Enums"]["staff_role"] | null
           timezone: string
           updated_at: string
         }
         Insert: {
+          avatar_illustration?: string | null
+          avatar_path?: string | null
           avatar_url?: string | null
           created_at?: string
           email: string
@@ -6238,11 +6243,14 @@ export type Database = {
           last_name?: string | null
           locale?: string
           platform_role?: Database["public"]["Enums"]["platform_role"]
+          sex?: string | null
           staff_role?: Database["public"]["Enums"]["staff_role"] | null
           timezone?: string
           updated_at?: string
         }
         Update: {
+          avatar_illustration?: string | null
+          avatar_path?: string | null
           avatar_url?: string | null
           created_at?: string
           email?: string
@@ -6251,6 +6259,7 @@ export type Database = {
           last_name?: string | null
           locale?: string
           platform_role?: Database["public"]["Enums"]["platform_role"]
+          sex?: string | null
           staff_role?: Database["public"]["Enums"]["staff_role"] | null
           timezone?: string
           updated_at?: string
@@ -6932,6 +6941,7 @@ export type Database = {
       community_threads_list: {
         Args: { p_edition_id: string }
         Returns: {
+          author_avatar: Json
           author_label: string
           category: Database["public"]["Enums"]["community_category"]
           created_at: string
@@ -7537,6 +7547,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_my_avatar_photo: { Args: { p_path: string }; Returns: string }
       set_nutrition_aid_drink: {
         Args: {
           p_participant_race_id: string

@@ -441,6 +441,8 @@ export {
 } from './repositories/conditions.js';
 export {
   communityRepository,
+  toCommunityAvatar,
+  type CommunityAvatar,
   type CommunityCategory,
   type CommunityContentStatus,
   type CommunityReportReason,
@@ -449,6 +451,19 @@ export {
   type CommunityThreadSummaryRecord,
   type CreateCommunityThreadInput,
 } from './repositories/community.js';
+export {
+  AVATARS_BUCKET,
+  accountIdentityRepository,
+  avatarStore,
+  createAccountIdentityRepositories,
+  type AccountIdentityRecord,
+  type AccountIdentityRepositories,
+  type AccountIdentityRepository,
+  type AvatarIllustration,
+  type AvatarStore,
+  type ProfileSex,
+  type UpdateAccountIdentityInput,
+} from './repositories/identity.js';
 export {
   createNutritionRepositories,
   nutritionRepository,
