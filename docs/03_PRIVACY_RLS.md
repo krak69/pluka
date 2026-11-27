@@ -378,7 +378,11 @@ Le user peut modifier uniquement des colonnes autorisées :
 - last_name ;
 - avatar_url ;
 - locale ;
-- timezone.
+- timezone ;
+- sex, avatar_illustration (0115).
+
+`avatar_path`, la clé de sa photo de profil, ne s'écrit que par `set_my_avatar_photo`, qui
+vérifie qu'elle désigne un fichier de son compte (0115, §54.1).
 
 Il ne peut pas modifier :
 
@@ -1246,6 +1250,23 @@ Prévoir une abstraction publique du profil si nécessaire.
 Abstraction retenue (0114) : « Prénom N. » — le prénom et l'initiale du nom, rien d'autre ;
 « Compte supprimé » quand l'auteur a effacé son compte (0078). Les lectures passent par des
 fonctions qui construisent ce libellé : `users` reste fermé aux autres comptes.
+
+## 54.1 Photo de profil
+
+Décidé le 2026-11-27 (0115). Le coureur peut déposer une photo de profil. Sans photo, une
+illustration le représente : celle qu'il a choisie (Homme, Femme, Neutre) ; sans choix, celle de
+son sexe s'il l'a renseigné, facultativement ; sinon Neutre.
+
+- La photo ne se voit que **là où il a écrit** : par qui peut lire une édition où il a publié un
+  sujet ou une réponse encore visibles (participants de l'édition, modération). Ni annuaire, ni
+  affichage ailleurs. Un contenu masqué ou supprimé ne la montre plus.
+- Le sexe ne se lit que sur sa propre ligne. Les autres n'en voient que l'illustration qui en
+  découle, et seulement s'il n'en a pas choisi une lui-même.
+- Bucket privé `avatars`, lu par URL signée. La clé du fichier est aléatoire : elle passe dans
+  les DTO de la Communauté, qui ne portent jamais l'identifiant d'un autre compte.
+- L'application réencode la photo avant de la déposer (WebP carré, métadonnées retirées, dont la
+  position GPS) ; le bucket n'accepte que du WebP d'un mégaoctet au plus.
+- Fermer son compte retire sa photo aussitôt (le stockage ne s'efface pas par la purge SQL).
 
 ---
 

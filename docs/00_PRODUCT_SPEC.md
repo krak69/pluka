@@ -1306,6 +1306,11 @@ n'est accepté qu'en https ; il s'ouvre dans un nouvel onglet, sans référent, 
 d'utilisateur, et son domaine est affiché. Le message reste du texte en base (Markdown restreint),
 jamais du HTML.
 
+Décision du 2026-11-27, avatar : chaque auteur est représenté par sa photo de profil, déposée
+dans Mon profil, ou à défaut par une illustration (Homme, Femme, Neutre) qu'il choisit ; sans
+choix, celle de son sexe s'il l'a renseigné, sinon Neutre. La photo ne se voit que là où il a
+écrit (03_PRIVACY_RLS §54.1).
+
 Thèmes possibles :
 
 - préparation ;

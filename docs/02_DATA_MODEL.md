@@ -213,7 +213,11 @@ Contient uniquement les informations utiles à l'application :
 
 - email ;
 - prénom / nom ;
-- avatar ;
+- avatar : `avatar_path`, clé de la photo de profil dans le bucket privé `avatars`, et
+  `avatar_illustration` (`neutral`, `man`, `woman`), l'illustration choisie quand il n'y a pas
+  de photo (0115) ;
+- sexe facultatif (`sex` : `female`, `male`, `other`), qui ne sert qu'à l'illustration par
+  défaut (0115, 03_PRIVACY_RLS §54.1) ;
 - locale ;
 - timezone ;
 - rôle plateforme ;
