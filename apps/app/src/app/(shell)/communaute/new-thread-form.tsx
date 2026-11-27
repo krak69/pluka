@@ -167,7 +167,7 @@ export function NewThreadForm({
           id="cm-title"
           name="title"
           className="cm-input"
-          placeholder="Ex : Bâtons dès le départ ?"
+          placeholder={'Ex\u00a0: Bâtons dès le départ\u00a0?'}
           defaultValue={values.title ?? ''}
           required
           minLength={3}

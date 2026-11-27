@@ -10,6 +10,8 @@ import { describe, expect, it } from 'vitest';
 import { NewThreadForm } from '@/app/(shell)/communaute/new-thread-form';
 import { ReplyForm, ReportForm } from '@/app/(shell)/communaute/thread-forms';
 import {
+  authorInitials,
+  communityFigures,
   COMMUNITY_CATEGORY_LABELS,
   communityListHref,
   communityNewHref,
@@ -236,5 +238,27 @@ describe('un point du parcours', () => {
     });
     expect(points['autre-point']).toMatchObject({ count: 0, threads: [] });
     expect(points['autre-point']?.askHref).toContain('point=autre-point');
+  });
+});
+
+describe('en-tête et auteurs', () => {
+  it('les initiales viennent du libellé réduit, jamais d’autre chose', () => {
+    expect(authorInitials('Alice D.')).toBe('AD');
+    expect(authorInitials('Participant')).toBe('P');
+    expect(authorInitials('élodie m.')).toBe('ÉM');
+    expect(authorInitials('Compte supprimé')).toBe('–');
+  });
+
+  it('l’en-tête compte les discussions, les réponses et les points, sans rien de personnel', () => {
+    expect(
+      communityFigures([
+        { replyCount: 2, waypointId: 'w-1' },
+        { replyCount: 1, waypointId: 'w-1' },
+        { replyCount: 0, waypointId: null },
+      ]),
+    ).toBe('3 discussions · 3 réponses · 1 point du parcours');
+    expect(communityFigures([{ replyCount: 1, waypointId: null }])).toBe(
+      '1 discussion · 1 réponse',
+    );
   });
 });

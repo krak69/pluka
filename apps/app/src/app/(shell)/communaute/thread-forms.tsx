@@ -85,7 +85,7 @@ export function ReportForm({
         <input type="hidden" name="threadId" value={threadId} />
         {postId === undefined ? null : <input type="hidden" name="postId" value={postId} />}
         <fieldset className="cm-fieldset">
-          <legend className="pk-label">Pourquoi ?</legend>
+          <legend className="pk-label">Pourquoi&nbsp;?</legend>
           {COMMUNITY_REPORT_REASONS.map((reason) => (
             <label key={reason} className="cm-radio">
               <input

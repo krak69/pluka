@@ -4,15 +4,18 @@ import {
   listMyCommunities,
   type CommunityCategory,
   type CommunitySummary,
+  type CommunityView,
 } from '@pluka/domain';
-import { SectionHeader } from '@pluka/ui';
+import { SectionHeader, TerrainBand } from '@pluka/ui';
 import Link from 'next/link';
 
+import { Byline, TrustNote } from '@/app/(shell)/communaute/community-ui';
 import { Icon } from '@/components/icon';
 import { NotWired } from '@/components/not-wired';
 import { communityContext, communityEnabled } from '@/lib/community';
 import {
   COMMUNITY_CATEGORY_LABELS,
+  communityFigures,
   communityListHref,
   communityName,
   communityNewHref,
@@ -28,12 +31,14 @@ import { requireSession } from '@/lib/session';
  * `tab: 'communaute'` ; migration 0114.
  *
  * Une communauté par édition : l'écran ouvre celle de la prochaine course du
- * coureur, un sélecteur apparaît quand il en prépare plusieurs. Les puces de
- * catégorie et le sélecteur sont des liens : ils marchent sans JavaScript et
- * se partagent. Pas de fil global, pas d'abonnés (AC-COM-02).
+ * coureur, un sélecteur apparaît quand il en prépare plusieurs. Une bande de
+ * terrain pose la scène (06_DESIGN_SYSTEM §22) et porte la seule action Lichen ;
+ * dessous, une carte par sujet, et sur grand écran une colonne pour les points
+ * du parcours et le rappel de l'information officielle.
  *
- * `?point=` resserre la liste sur un point du parcours : c'est là qu'arrivent
- * le Plan et La course (« Communauté · 3 »).
+ * Les puces de catégorie, le sélecteur et `?point=` sont des liens : ils
+ * marchent sans JavaScript et se partagent. Pas de fil global, pas d'abonnés
+ * (AC-COM-02).
  */
 export const metadata = { title: 'Communauté' };
 
@@ -69,20 +74,23 @@ export default async function CommunityPage({
   if (selected === undefined) {
     return (
       <div className="cm-page">
-        <header className="cm-intro">
-          <h1 className="cm-title">Communauté</h1>
-        </header>
-        <div className="cm-empty">
-          <Icon name="ChatsCircle" size={26} />
-          <p className="cm-empty-title">Ta communauté s’ouvre avec ta première course.</p>
-          <p className="cm-empty-text">
-            Inscris-toi à une course : tu retrouveras ici les participants de son édition, leurs
-            questions et leurs conseils.
-          </p>
-          <Link href="/recherche" className="pk-btn pk-button-primary cm-cta">
-            Trouver une course
-          </Link>
-        </div>
+        <TerrainBand
+          tone="dark"
+          topo
+          eyebrow="Communauté"
+          title="Les participants de ta course, au même endroit."
+          body={
+            <p className="cm-band-text">
+              Inscris-toi à une course&nbsp;: tu retrouveras ici les participants de son édition,
+              leurs questions et leurs conseils.
+            </p>
+          }
+          primaryAction={
+            <Link href="/recherche" className="pk-btn pk-button-primary cm-cta">
+              Trouver une course
+            </Link>
+          }
+        />
       </div>
     );
   }
@@ -105,159 +113,248 @@ export default async function CommunityPage({
   for (const thread of atPlace) {
     counts.set(thread.category, (counts.get(thread.category) ?? 0) + 1);
   }
-  const filter = { category, point: place?.waypointId };
   const newHref = communityNewHref(selected.editionId, {
     category,
     race: place?.raceId,
     point: place?.waypointId,
   });
   const now = new Date();
+  const courseHref =
+    selected.myRaces[0] === undefined
+      ? null
+      : `/courses/${selected.myRaces[0].participantRaceId}/course`;
 
   return (
     <div className="cm-page">
-      <header className="cm-intro">
-        <h1 className="cm-title">Communauté · {communityName(selected)}</h1>
-        <p className="cm-sub">
-          Les participants de l’édition s’y entraident, toutes courses confondues. Ce sont des
-          conseils de terrain, pas des informations officielles.
-        </p>
-      </header>
-
-      {communities.length > 1 ? (
-        <CommunityPicker communities={communities} selected={selected} />
-      ) : null}
-
-      <div className="cm-bar">
-        <p className="cm-count">{discussionCount(atPlace.length)}</p>
-        {/* Une liste vide porte déjà l'action dans son état vide : un seul Lichen (AGENTS §43). */}
-        {threads.length === 0 ? null : (
+      <TerrainBand
+        tone="dark"
+        topo
+        eyebrow="Communauté"
+        title={communityName(selected)}
+        body={
+          <>
+            <p className="cm-band-text">
+              Les participants de l’édition s’y entraident, toutes courses confondues&nbsp;: des
+              conseils de terrain, pas des informations officielles.
+            </p>
+            {communities.length > 1 ? (
+              <CommunityPicker communities={communities} selected={selected} />
+            ) : null}
+          </>
+        }
+        footer={communityFigures(view.threads)}
+        primaryAction={
           <Link href={newHref} className="pk-btn pk-button-primary cm-cta">
             <Icon name="Plus" size={18} />
             Créer un sujet
           </Link>
-        )}
+        }
+      />
+
+      <div className="cm-layout">
+        <div className="cm-main">
+          {place === undefined ? null : (
+            <p className="cm-place">
+              <Icon name="MapPin" size={16} />
+              <span>
+                Sujets rattachés à <strong>{place.name}</strong>
+                {view.races.length > 1 ? ` · ${place.raceName}` : ''}
+              </span>
+              <Link
+                href={communityListHref(selected.editionId, { category })}
+                className="cm-place-clear"
+              >
+                Tous les points
+              </Link>
+            </p>
+          )}
+
+          <nav aria-label="Catégories" className="cm-chips-wrap">
+            <ul className="cm-chips">
+              <li>
+                <Link
+                  href={communityListHref(selected.editionId, { point: place?.waypointId })}
+                  className="cm-chip"
+                  aria-current={category === undefined ? 'true' : undefined}
+                >
+                  Tous
+                  <span className="cm-chip-count">{atPlace.length}</span>
+                </Link>
+              </li>
+              {COMMUNITY_CATEGORIES.map((value) => (
+                <li key={value}>
+                  <Link
+                    href={communityListHref(selected.editionId, {
+                      category: value,
+                      point: place?.waypointId,
+                    })}
+                    className="cm-chip"
+                    aria-current={category === value ? 'true' : undefined}
+                  >
+                    {COMMUNITY_CATEGORY_LABELS[value]}
+                    {(counts.get(value) ?? 0) > 0 ? (
+                      <span className="cm-chip-count">{counts.get(value)}</span>
+                    ) : null}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          {threads.length === 0 ? (
+            <div className="cm-card cm-empty">
+              <span className="cm-empty-mark" aria-hidden="true">
+                <Icon name="ChatsCircle" size={26} />
+              </span>
+              <p className="cm-empty-title">
+                {category !== undefined
+                  ? `Pas encore de discussion dans ${COMMUNITY_CATEGORY_LABELS[category]}.`
+                  : place !== undefined
+                    ? `Pas encore de discussion sur ${place.name}.`
+                    : 'Pas encore de discussion ici.'}
+              </p>
+              <p className="cm-empty-text">
+                {category !== undefined
+                  ? 'Tu peux être le premier à poser une question sur cette catégorie.'
+                  : place !== undefined
+                    ? 'Tu peux être le premier à poser une question sur ce point.'
+                    : 'Tu peux être le premier à poser une question aux participants de l’édition.'}
+              </p>
+              {/* Le Lichen est dans la bande : ici, une action secondaire (AGENTS §43). */}
+              <Link href={newHref} className="pk-btn pk-button-secondary cm-cta">
+                <Icon name="Plus" size={18} />
+                Poser une question
+              </Link>
+            </div>
+          ) : (
+            <ul className="cm-threads">
+              {threads.map((thread) => (
+                <li key={thread.id}>
+                  <ThreadCard
+                    thread={thread}
+                    when={communityWhen(thread.lastActivityAt, now, selected.timezone)}
+                    showRace={view.races.length > 1}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <aside className="cm-aside" aria-label="À côté des discussions">
+          <PointsCard view={view} editionId={selected.editionId} current={place?.waypointId} />
+          <TrustNote courseHref={courseHref} />
+        </aside>
       </div>
+    </div>
+  );
+}
 
-      {place === undefined ? null : (
-        <p className="cm-place">
-          <Icon name="MapPin" size={16} />
-          <span>
-            Sujets rattachés à <strong>{place.name}</strong>
-            {view.races.length > 1 ? ` · ${place.raceName}` : ''}
+/** Un sujet de la liste — prototype `commThreads` : catégorie, titre, auteur, réponses. */
+function ThreadCard({
+  thread,
+  when,
+  showRace,
+}: {
+  readonly thread: CommunityView['threads'][number];
+  readonly when: string;
+  readonly showRace: boolean;
+}) {
+  return (
+    <Link href={communityThreadHref(thread.id)} className="cm-card cm-thread">
+      <span className="cm-thread-tags">
+        <span className="pk-label cm-tag cm-tag-category">
+          {COMMUNITY_CATEGORY_LABELS[thread.category]}
+        </span>
+        {thread.waypointName === null ? null : (
+          <span className="pk-label cm-tag cm-tag-point">
+            <Icon name="MapPin" size={12} />
+            {thread.waypointName}
           </span>
-          <Link
-            href={communityListHref(selected.editionId, { category })}
-            className="cm-place-clear"
-          >
-            Tous les points
-          </Link>
-        </p>
-      )}
+        )}
+        {thread.raceName === null || !showRace ? null : (
+          <span className="pk-label cm-tag">{thread.raceName}</span>
+        )}
+        {thread.status === 'hidden' ? (
+          <span className="cm-flag">Masqué par la modération</span>
+        ) : null}
+      </span>
+      <span className="cm-thread-title">{thread.title}</span>
+      <span className="cm-thread-foot">
+        <Byline label={thread.authorLabel} mine={thread.isMine} when={when} />
+        <span className="cm-thread-stats">
+          <span className="cm-stat">
+            <Icon name="ChatCircle" size={16} />
+            {thread.replyCount}
+            <span className="pk-visually-hidden">
+              {thread.replyCount > 1 ? ' réponses' : ' réponse'}
+            </span>
+          </span>
+          {thread.usefulCount > 0 ? (
+            <span className="cm-stat">
+              <Icon name="ThumbsUp" size={16} />
+              {thread.usefulCount}
+              <span className="pk-visually-hidden"> utile</span>
+            </span>
+          ) : null}
+        </span>
+      </span>
+    </Link>
+  );
+}
 
-      <nav aria-label="Catégories">
-        <ul className="cm-chips">
-          <li>
+/**
+ * Les points du parcours qui ont des discussions, du plus discuté au moins —
+ * une entrée par le terrain plutôt que par la catégorie.
+ */
+function PointsCard({
+  view,
+  editionId,
+  current,
+}: {
+  readonly view: CommunityView;
+  readonly editionId: string;
+  readonly current: string | undefined;
+}) {
+  const names = new Map(
+    view.races.flatMap((race) =>
+      race.points.map((entry) => [
+        entry.waypointId,
+        view.races.length > 1 ? `${entry.name} · ${race.name}` : entry.name,
+      ]),
+    ),
+  );
+  const counts = new Map<string, number>();
+  for (const thread of view.threads) {
+    if (thread.waypointId !== null) {
+      counts.set(thread.waypointId, (counts.get(thread.waypointId) ?? 0) + 1);
+    }
+  }
+  const points = [...counts.entries()]
+    .filter(([waypointId]) => names.has(waypointId))
+    .sort((left, right) => right[1] - left[1]);
+  if (points.length === 0) return null;
+
+  return (
+    <section className="cm-card cm-side" aria-labelledby="cm-points-title">
+      <p id="cm-points-title" className="pk-label">
+        Par point du parcours
+      </p>
+      <ul className="cm-side-list">
+        {points.map(([waypointId, count]) => (
+          <li key={waypointId}>
             <Link
-              href={communityListHref(selected.editionId, { point: filter.point })}
-              className="cm-chip"
-              aria-current={category === undefined ? 'true' : undefined}
+              href={communityListHref(editionId, { point: waypointId })}
+              aria-current={current === waypointId ? 'true' : undefined}
             >
-              Tous
+              <Icon name="MapPin" size={15} />
+              <span className="cm-side-name">{names.get(waypointId)}</span>
+              <span className="cm-side-count">{discussionCount(count)}</span>
             </Link>
           </li>
-          {COMMUNITY_CATEGORIES.map((value) => (
-            <li key={value}>
-              <Link
-                href={communityListHref(selected.editionId, {
-                  category: value,
-                  point: filter.point,
-                })}
-                className="cm-chip"
-                aria-current={category === value ? 'true' : undefined}
-              >
-                {COMMUNITY_CATEGORY_LABELS[value]}
-                {(counts.get(value) ?? 0) > 0 ? (
-                  <span className="cm-chip-count">{counts.get(value)}</span>
-                ) : null}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
-      {threads.length === 0 ? (
-        <div className="cm-empty">
-          <Icon name="ChatsCircle" size={26} />
-          <p className="cm-empty-title">
-            {category !== undefined
-              ? `Pas encore de discussion dans ${COMMUNITY_CATEGORY_LABELS[category]}.`
-              : place !== undefined
-                ? `Pas encore de discussion sur ${place.name}.`
-                : 'Pas encore de discussion ici.'}
-          </p>
-          <p className="cm-empty-text">
-            {category !== undefined
-              ? 'Tu peux être le premier à poser une question sur cette catégorie.'
-              : place !== undefined
-                ? 'Tu peux être le premier à poser une question sur ce point.'
-                : 'Tu peux être le premier à poser une question aux participants de l’édition.'}
-          </p>
-          <Link href={newHref} className="pk-btn pk-button-primary cm-cta">
-            <Icon name="Plus" size={18} />
-            Créer un sujet
-          </Link>
-        </div>
-      ) : (
-        <ul className="cm-threads">
-          {threads.map((thread) => (
-            <li key={thread.id}>
-              <Link href={communityThreadHref(thread.id)} className="cm-thread">
-                <span className="cm-thread-main">
-                  <span className="cm-thread-title">{thread.title}</span>
-                  <span className="cm-thread-meta">
-                    <span className="cm-thread-cat">
-                      {COMMUNITY_CATEGORY_LABELS[thread.category]}
-                    </span>
-                    <span>
-                      {thread.isMine ? 'Toi' : thread.authorLabel} ·{' '}
-                      {communityWhen(thread.lastActivityAt, now, selected.timezone)}
-                    </span>
-                    {thread.raceName === null || view.races.length < 2 ? null : (
-                      <span>{thread.raceName}</span>
-                    )}
-                    {thread.waypointName === null ? null : (
-                      <span className="cm-thread-point">
-                        <Icon name="MapPin" size={14} />
-                        {thread.waypointName}
-                      </span>
-                    )}
-                    {thread.status === 'hidden' ? (
-                      <span className="cm-flag">Masqué par la modération</span>
-                    ) : null}
-                  </span>
-                </span>
-                <span className="cm-thread-stats">
-                  <span>
-                    <Icon name="ChatCircle" size={15} />
-                    {thread.replyCount}
-                    <span className="pk-visually-hidden">
-                      {thread.replyCount > 1 ? ' réponses' : ' réponse'}
-                    </span>
-                  </span>
-                  {thread.usefulCount > 0 ? (
-                    <span>
-                      <Icon name="ThumbsUp" size={15} />
-                      {thread.usefulCount}
-                      <span className="pk-visually-hidden"> utile</span>
-                    </span>
-                  ) : null}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+        ))}
+      </ul>
+    </section>
   );
 }
 

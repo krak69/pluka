@@ -8994,13 +8994,18 @@ a.st-tab {
 
 /* ══ Communauté — prototype, `tab: 'communaute'` ; 0114 ═══════════════════ */
 
+/* Une colonne qui ne s'élargit jamais à son contenu : la rangée de puces défile, la page non. */
 .cm-page {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
 }
 
-.cm-page-narrow {
-  max-width: 760px;
+/* Un encart : surface blanche cernée d'un filet, comme `.card` au prototype (06 §18 : pas d'ombre). */
+.cm-card {
+  border-radius: var(--radius-sm);
+  background: var(--pk-surface);
+  box-shadow: 0 0 0 1px var(--pk-hairline);
 }
 
 .cm-intro {
@@ -9008,21 +9013,25 @@ a.st-tab {
   gap: var(--space-2);
 }
 
+.cm-intro .pk-label {
+  margin: 0;
+}
+
 .cm-title {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: clamp(24px, 2.6vw, 30px);
+  font-variation-settings: 'wdth' 121;
+  font-size: clamp(26px, 3vw, 34px);
   font-weight: 700;
-  letter-spacing: -0.015em;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
   text-wrap: balance;
 }
 
-.cm-sub {
+.cm-band-text {
   margin: 0;
-  max-width: 64ch;
-  font-size: 15px;
-  line-height: 1.55;
-  color: var(--pk-text-secondary);
+  max-width: 56ch;
+  color: color-mix(in srgb, var(--pk-text-on-dark) 82%, transparent);
 }
 
 .cm-back {
@@ -9033,6 +9042,7 @@ a.st-tab {
   min-height: 44px;
   color: var(--pk-forest);
   font-size: 14.5px;
+  font-weight: 500;
   text-decoration: none;
 }
 
@@ -9044,16 +9054,48 @@ a.st-tab {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 44px;
+  min-height: 46px;
   text-decoration: none;
 }
 
-/* Sélecteur de communauté : une puce par édition, comme les filtres de la bibliothèque. */
+/* Deux colonnes sur grand écran : les discussions, et à côté ce qui aide à s'y retrouver. */
+.cm-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.cm-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.cm-aside {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+@media (width >= 1080px) {
+  .cm-layout {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+
+  .cm-aside {
+    position: sticky;
+    top: var(--space-6);
+  }
+}
+
+/* Sélecteur de communauté, dans la bande sombre. */
 .cm-picker {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  margin: 0;
+  margin: var(--space-2) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -9063,21 +9105,19 @@ a.st-tab {
   gap: 2px;
   min-height: 44px;
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--pk-hairline);
+  border: 1px solid color-mix(in srgb, var(--pk-text-on-dark) 26%, transparent);
   border-radius: var(--radius-sm);
-  background: var(--pk-surface);
-  color: var(--pk-text);
+  color: var(--pk-text-on-dark);
   text-decoration: none;
 }
 
 .cm-picker-item:hover {
-  border-color: var(--pk-forest);
+  border-color: var(--pk-lichen);
 }
 
 .cm-picker-item[aria-current='true'] {
-  border-color: var(--pk-forest);
-  background: var(--pk-forest);
-  color: var(--pk-text-on-dark);
+  border-color: var(--pk-lichen);
+  background: color-mix(in srgb, var(--pk-lichen) 14%, transparent);
 }
 
 .cm-picker-name {
@@ -9088,30 +9128,10 @@ a.st-tab {
 
 .cm-picker-races {
   font-size: 12.5px;
-  color: var(--pk-text-muted);
+  color: color-mix(in srgb, var(--pk-text-on-dark) 70%, transparent);
 }
 
-.cm-picker-item[aria-current='true'] .cm-picker-races {
-  color: var(--pk-glacier);
-}
-
-.cm-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.cm-count {
-  margin: 0;
-  font-size: 13.5px;
-  color: var(--pk-text-muted);
-}
-
-.cm-bar .cm-cta {
-  margin-left: auto;
-}
-
+/* Catégories : des puces ; sur mobile, une rangée qui défile plutôt que trois lignes. */
 .cm-chips {
   display: flex;
   flex-wrap: wrap;
@@ -9129,9 +9149,10 @@ a.st-tab {
   padding: 0 var(--space-3);
   border: 1px solid var(--pk-hairline);
   border-radius: var(--radius-sm);
-  background: transparent;
+  background: var(--pk-surface);
   color: var(--pk-text-secondary);
   font-size: 13.5px;
+  white-space: nowrap;
   text-decoration: none;
 }
 
@@ -9156,155 +9177,330 @@ a.st-tab {
   color: var(--pk-lichen);
 }
 
-/* La liste : bord à bord, un filet entre les sujets, pas de carte flottante. */
+/* Une carte par sujet — prototype `commThreads`. */
 .cm-threads {
+  display: grid;
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid var(--pk-hairline);
-}
-
-.cm-threads > li {
-  border-bottom: 1px solid var(--pk-hairline);
 }
 
 .cm-thread {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  min-height: 44px;
-  padding: var(--space-4) var(--space-1);
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
   color: var(--pk-text);
   text-decoration: none;
+  transition: box-shadow 0.14s ease;
 }
 
 .cm-thread:hover {
-  background: var(--pk-surface);
+  box-shadow: 0 0 0 1px var(--pk-forest);
 }
 
-.cm-thread-main {
-  display: grid;
-  flex: 1;
+.cm-thread:focus-visible {
+  outline: 2px solid var(--pk-focus-light);
+  outline-offset: 2px;
+}
+
+.cm-thread-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
-  min-width: 0;
 }
 
 .cm-thread-title {
-  font-size: 15.5px;
-  line-height: 1.35;
+  font-family: var(--font-heading);
+  font-variation-settings: 'wdth' 112;
+  font-size: 17.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
 }
 
 .cm-thread:hover .cm-thread-title {
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.cm-thread-meta {
+.cm-thread-foot {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px var(--space-3);
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--pk-hairline);
+}
+
+.cm-thread-stats {
+  display: flex;
+  gap: var(--space-4);
+  font-family: var(--font-mono);
   font-size: 12.5px;
   color: var(--pk-text-muted);
 }
 
-.cm-thread-cat {
-  color: var(--pk-forest);
-  font-weight: 600;
-}
-
-.cm-thread-point,
-.cm-tag-point {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.cm-thread-stats {
-  display: grid;
-  justify-items: end;
-  gap: var(--space-1);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--pk-text-muted);
-  white-space: nowrap;
-}
-
-.cm-thread-stats > span {
+.cm-stat {
   display: inline-flex;
   align-items: center;
   gap: 5px;
 }
 
+/* Étiquettes — prototype `.tag` : micro-label Martian Mono, cerné. */
+.cm-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--pk-hairline);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--pk-text-secondary);
+}
+
+.cm-tag-category {
+  border-color: var(--pk-forest);
+  color: var(--pk-forest);
+}
+
+.cm-tag-point {
+  border-color: transparent;
+  background: var(--pk-glacier-bg);
+  color: var(--pk-forest);
+}
+
 .cm-flag {
-  padding: 2px 6px;
+  padding: 3px 6px;
   border-radius: var(--radius-sm);
   background: var(--pk-warning-bg);
   color: var(--pk-warning);
   font-size: 11.5px;
 }
 
+/* L'auteur : ses initiales dans un rond, son nom, le moment. */
+.cm-byline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.cm-avatar {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--pk-glacier-bg);
+  color: var(--pk-forest);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.cm-avatar[data-mine='true'] {
+  background: var(--pk-lichen);
+  color: var(--pk-ink);
+}
+
+.cm-byline-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cm-byline-when {
+  font-size: 12.5px;
+  color: var(--pk-text-muted);
+}
+
 .cm-empty {
   display: grid;
   justify-items: start;
   gap: var(--space-2);
-  max-width: 520px;
-  padding: var(--space-6);
-  background: var(--pk-surface);
-  box-shadow: 0 0 0 1px var(--pk-hairline);
-  color: var(--pk-granite);
+  padding: var(--space-8) var(--space-6);
+}
+
+.cm-empty-mark {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: var(--space-2);
+  border-radius: 50%;
+  background: var(--pk-glacier-bg);
+  color: var(--pk-forest);
 }
 
 .cm-empty-title {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--pk-text);
 }
 
 .cm-empty-text {
   margin: 0 0 var(--space-2);
-  max-width: 44ch;
+  max-width: 46ch;
   font-size: 14.5px;
   line-height: 1.55;
   color: var(--pk-text-secondary);
 }
 
-/* Un sujet. */
-.cm-head {
+/* La colonne d'à côté : des encarts courts. */
+.cm-side {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
 }
 
-.cm-tags {
+.cm-side .pk-label,
+.cm-note .pk-label {
+  margin: 0;
+}
+
+.cm-side-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cm-side-list a {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
+  min-height: 44px;
+  margin: 0 calc(-1 * var(--space-2));
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--pk-text);
+  font-size: 14px;
+  text-decoration: none;
 }
 
-.cm-tag {
-  padding: 3px var(--space-2);
-  border: 1px solid var(--pk-hairline);
+.cm-side-list a:hover,
+.cm-side-list a[aria-current='true'] {
+  background: var(--pk-glacier-bg);
+}
+
+.cm-side-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.cm-side-count {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--pk-text-muted);
+  white-space: nowrap;
+}
+
+.cm-facts {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.cm-facts div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--pk-hairline);
+  font-size: 14px;
+}
+
+.cm-facts dt {
+  color: var(--pk-text-muted);
+}
+
+.cm-facts dd {
+  margin: 0;
+  font-weight: 500;
+  text-align: right;
+}
+
+.cm-side-links {
+  display: grid;
+}
+
+.cm-side-links a,
+.cm-note-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  color: var(--pk-forest);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* « Bon à savoir » : un encart Glacier, la couleur de l'information de référence. */
+.cm-note {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-sm);
-  font-size: 12.5px;
+  background: var(--pk-glacier-bg);
+}
+
+.cm-note-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--pk-text);
+}
+
+.cm-tips {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 14px;
+  line-height: 1.5;
   color: var(--pk-text-secondary);
+}
+
+.cm-tips strong {
+  color: var(--pk-text);
+  font-weight: 600;
+}
+
+/* Un sujet ouvert : le message d'ouverture, puis une carte par réponse. */
+.cm-message {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+}
+
+.cm-opening {
+  gap: var(--space-4);
+  padding: var(--space-6);
 }
 
 .cm-thread-heading {
   margin: 0;
-  max-width: 40ch;
   font-family: var(--font-heading);
-  font-size: clamp(22px, 2.4vw, 26px);
+  font-variation-settings: 'wdth' 121;
+  font-size: clamp(24px, 2.6vw, 30px);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
   text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 
-.cm-meta {
-  margin: 0;
-  font-size: 13px;
-  color: var(--pk-text-muted);
+.cm-message-foot {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--pk-hairline);
 }
 
 .cm-moderated {
@@ -9452,59 +9648,57 @@ a.st-tab {
 
 .cm-answers {
   display: grid;
-  gap: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--pk-hairline);
+  gap: var(--space-3);
 }
 
-.cm-answers-title {
-  margin: 0;
+.cm-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
   font-family: var(--font-heading);
-  font-size: 17px;
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.cm-count-pill {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  background: var(--pk-forest);
+  color: var(--pk-text-on-dark);
+  font-family: var(--font-mono);
+  font-size: 11px;
   font-weight: 600;
 }
 
 .cm-answers-empty {
   margin: 0;
+  padding: var(--space-4) var(--space-5);
+  border: 1px dashed var(--pk-hairline);
+  border-radius: var(--radius-sm);
   font-size: 14px;
-  color: var(--pk-text-muted);
+  line-height: 1.55;
+  color: var(--pk-text-secondary);
 }
 
 .cm-posts {
   display: grid;
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.cm-post {
-  display: grid;
-  gap: var(--space-2);
-  padding: var(--space-4) 0;
-  border-bottom: 1px solid var(--pk-hairline);
+.cm-reply-card {
+  padding: var(--space-5);
 }
 
-.cm-post:first-child {
-  padding-top: 0;
-}
-
-.cm-post-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  margin: 0;
-}
-
-.cm-post-author {
-  font-family: var(--font-heading);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.cm-post-when {
-  font-size: 12px;
-  color: var(--pk-text-muted);
+.cm-form-card {
+  padding: var(--space-6);
 }
 
 /* Formulaires : nouveau sujet, réponse, signalement. */
@@ -9762,12 +9956,34 @@ a.st-tab {
 }
 
 @media (width <= 720px) {
-  .cm-bar .cm-cta {
-    margin-left: 0;
+  .cm-chips {
+    flex-wrap: nowrap;
+    margin: 0 calc(-1 * var(--space-4));
+    padding: 0 var(--space-4) 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .cm-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cm-chips > li {
+    flex: none;
   }
 
   .cm-thread {
-    align-items: flex-start;
+    padding: var(--space-4);
+  }
+
+  .cm-opening,
+  .cm-form-card {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .cm-message,
+  .cm-reply-card {
+    padding: var(--space-4);
   }
 }
 
@@ -9795,7 +10011,6 @@ a.st-tab {
 }
 
 a.cm-tag-point {
-  min-height: 32px;
   color: var(--pk-forest);
   text-decoration: none;
 }
@@ -9892,4 +10107,14 @@ a.cm-tag-point:hover {
   margin: var(--space-3) 0 0;
   font-size: 13.5px;
   color: var(--pk-text-secondary);
+}
+
+/* « Voir ce point dans mon Plan » : le point visé s'affiche sous l'en-tête, cerné de Lichen. */
+.pl-tl-point {
+  /* La hauteur de l'en-tête collant du shell, plus un peu d'air. */
+  scroll-margin-top: calc(var(--space-20) + var(--space-10));
+}
+
+.pl-tl-point:target .pl-card {
+  box-shadow: 0 0 0 2px var(--pk-lichen-deep);
 }

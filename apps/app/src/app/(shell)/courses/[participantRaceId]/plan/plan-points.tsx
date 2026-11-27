@@ -490,7 +490,8 @@ function PointRow({
     (AID_TYPES.has(point.waypointType) || point.stopDurationSeconds > 0 || supply !== undefined);
 
   return (
-    <div className="pl-tl pl-tl-point">
+    // L'ancre `#point-…` : la Communauté y renvoie (« Voir ce point dans mon Plan »).
+    <div id={`point-${point.raceWaypointId}`} className="pl-tl pl-tl-point">
       <span className="pl-tl-time">
         <span className="pl-tl-clock">{formatClock(point.plannedArrivalAt, timezone)}</span>
         {cutoff?.cutoffAt === null || cutoff?.cutoffAt === undefined ? null : (
